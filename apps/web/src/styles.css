@@ -1,0 +1,22 @@
+/* Foundation */
+@import "./styles/foundation.css";
+
+/* Shared UI primitives and surfaces */
+@import "./styles/chrome-and-buttons.css";
+@import "./styles/sidebar-and-scrollbars.css";
+@import "./styles/terminal-and-status.css";
+
+/* Console theme tokens and console-specific overrides */
+@import "./styles/console-theme-tokens.css";
+@import "./styles/console-chrome-status-nav.css";
+@import "./styles/console-canvas-activity.css";
+@import "./styles/console-canvas-github.css";
+@import "./styles/console-canvas-monitor.css";
+@import "./styles/console-canvas-conversations.css";
+@import "./styles/console-canvas-settings.css";
+@import "./styles/console-canvas-deck.css";
+@import "./styles/console-canvas-pixpack.css";
+@import "./styles/console-canvas-canvas.css";
+@import "./styles/console-canvas-code-intel.css";
+@import "./styles/console-canvas-prompts.css";
+@import "./styles/console-overrides-telemetry.css";

@@ -1,0 +1,25 @@
+:root {
+  --bg-canvas: #050607;
+  --bg-surface-1: #0b0d10;
+  --bg-surface-2: #12151b;
+  --border-subtle: #2b2f36;
+  --text-primary: #e6e8ec;
+  --text-secondary: #a9b0ba;
+  --accent-primary: #d6a21a;
+  --term-red: #8c0b12;
+  --term-green: #25d366;
+  --term-blue: #0d2a57;
+  --term-warning: #ffb020;
+  --terminal-bg: #101722;
+  --terminal-header-bg-top: #254570;
+  --terminal-header-bg-bottom: #1e385a;
+  --terminal-header-text: #e6e8ec;
+  --control-border-strong: #2b2f36;
+  --control-bg-strong: #0b0d10;
+  --ui-base-font-size: 17px;
+}
+
+body {
+  background: radial-gradient(circle at top right, #11161e 0%, var(--bg-canvas) 54%);
+  color: var(--text-primary);
+}

@@ -1,0 +1,1524 @@
+/* ─── Deck View ───────────────────────────────────────────────── */
+/* Layout is driven entirely by [data-mode="grid"|"detail"] on the root.     */
+/* Pods container is a CSS grid in grid mode, a sidebar column in detail.    */
+/* Non-focused pods collapse; focused pod stretches; detail panel expands.   */
+
+.deck-view {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ─── Empty state ────────────────────────────────────────────────────────── */
+
+.deck-empty-state {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+  transition: justify-content 400ms;
+}
+
+[data-empty-mode="idle"] .deck-empty-state {
+  justify-content: center;
+}
+
+[data-empty-mode="adding"] .deck-empty-state {
+  justify-content: flex-start;
+}
+
+.deck-empty-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7rem;
+  padding: 2rem;
+  transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1), flex 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-empty-mode="idle"] .deck-empty-left {
+  flex: 0 0 auto;
+}
+
+[data-empty-mode="adding"] .deck-empty-left {
+  flex: 0 0 auto;
+  transform: translateX(-2rem);
+  gap: 4rem;
+  padding: 2rem 2rem 2rem 3rem;
+}
+
+.deck-empty-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-left: 1px solid #2b2f36;
+  background: #0b0d10;
+  animation: deck-form-slide-in 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes deck-form-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.deck-empty-octopus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-empty-octopus canvas {
+  image-rendering: pixelated;
+}
+
+.deck-empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.deck-empty-actions--compact {
+  gap: 0.5rem;
+}
+
+.deck-empty-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.25rem;
+  width: 480px;
+  padding: 1.25rem 1.5rem;
+  background: #0b0d10;
+  border: 1px solid var(--accent-primary);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: var(--font-main);
+  text-align: left;
+}
+
+.deck-empty-actions--compact .deck-empty-card {
+  width: auto;
+  padding: 0.6rem 1rem;
+  gap: 0.75rem;
+}
+
+.deck-empty-card:hover {
+  border-color: var(--accent-primary);
+  background: #0d1017;
+}
+
+.deck-empty-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  color: var(--accent-primary);
+}
+
+.deck-empty-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.deck-empty-card-icon canvas {
+  image-rendering: pixelated;
+}
+
+.deck-empty-card-icon--terminal {
+  font-size: 2.4rem;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+}
+
+.deck-empty-actions--compact .deck-empty-card-icon--terminal {
+  font-size: 1.4rem;
+}
+
+/* ─── Deck sidebar content (rendered inside shared ActiveAgentsSidebar) ───── */
+
+/* Override the parent grid to let deck content fill full height */
+.active-agents-body:has(.deck-sidebar-content) {
+  align-content: stretch;
+}
+
+.deck-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.deck-sidebar-content-top {
+  flex: 1;
+}
+
+.deck-sidebar-content-bottom {
+  border-top: 1px solid var(--sidebar-border);
+  background: var(--sidebar-panel);
+}
+
+.deck-sidebar-content .deck-empty-actions--compact {
+  gap: 0;
+}
+
+.deck-sidebar-content .deck-empty-actions--compact .deck-empty-card {
+  width: auto;
+  padding: 0.46rem 0.56rem;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--sidebar-border);
+  font-family: var(--font-main);
+}
+
+.deck-sidebar-content .deck-empty-actions--compact .deck-empty-card:hover {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+}
+
+.deck-sidebar-content .deck-empty-card-title {
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.deck-sidebar-content .deck-empty-card-desc {
+  display: none;
+}
+
+.deck-sidebar-content .deck-empty-card-icon {
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-sidebar-content .deck-empty-card-icon--terminal {
+  font-size: 1rem;
+}
+
+.deck-sidebar-content .deck-empty-card-icon canvas {
+  image-rendering: pixelated;
+  width: 20px !important;
+  height: auto !important;
+}
+
+.deck-sidebar-content .deck-empty-agent-select-row {
+  display: flex;
+}
+
+.deck-sidebar-content .deck-empty-agent-trigger {
+  font-size: 0.68rem;
+  padding: 0.22rem 0.4rem;
+}
+
+.deck-sidebar-content .deck-empty-agent-launch {
+  font-size: 0.68rem;
+  padding: 0.22rem 0.5rem;
+}
+
+.deck-bottom-clear-link {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-main);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #e05555;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--sidebar-border);
+  padding: 0.46rem 0.56rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.deck-bottom-clear-link:hover {
+  background: rgba(224, 85, 85, 0.1);
+}
+
+.deck-bottom-clear-icon {
+  width: 20px;
+  height: 0.8rem;
+  flex-shrink: 0;
+}
+
+.deck-bottom-clear-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.36rem 0.56rem;
+}
+
+.deck-bottom-clear-label {
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  color: #e05555;
+  flex: 1;
+}
+
+.deck-bottom-clear-btn {
+  font-family: var(--font-main);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--sidebar-card);
+  border: 1px solid var(--sidebar-border);
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+
+.deck-bottom-clear-btn:hover {
+  color: var(--text-primary);
+}
+
+.deck-bottom-clear-btn--danger {
+  color: #e05555;
+  border-color: #e05555;
+}
+
+.deck-bottom-clear-btn--danger:hover {
+  background: rgba(224, 85, 85, 0.1);
+}
+
+/* ─── Add terminal form ──────────────────────────────────────────────────── */
+
+.deck-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.deck-add-form-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #2b2f36;
+  flex-shrink: 0;
+}
+
+.deck-add-form-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.deck-add-form-back {
+  font-family: var(--font-main);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.deck-add-form-back:hover {
+  color: var(--text-primary);
+}
+
+.deck-add-form-title {
+  font-family: "Silkscreen", cursive;
+  font-size: 1rem;
+  color: var(--accent-primary);
+}
+
+/* ─── Chip selectors (expression, hair) ──────────────────────────────────── */
+
+.deck-add-form-row {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.deck-add-form-row > .deck-add-form-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.deck-add-form-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding-top: 0.15rem;
+}
+
+.deck-add-form-chip {
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  background: #11161d;
+  border: 1px solid #2b2f36;
+  padding: 0.2rem 0.45rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.deck-add-form-chip:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.deck-add-form-chip[data-selected="true"] {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: rgba(250, 163, 44, 0.08);
+}
+
+.deck-add-form-preview {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+.deck-add-form-preview canvas {
+  image-rendering: pixelated;
+}
+
+.deck-add-form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.deck-add-form-input,
+.deck-add-form-textarea {
+  font-family: var(--font-main);
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  background: #11161d;
+  border: 1px solid #2b2f36;
+  padding: 0.5rem 0.6rem;
+  transition: border-color 0.15s;
+  resize: vertical;
+}
+
+.deck-add-form-input:focus,
+.deck-add-form-textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.deck-add-form-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.15rem;
+}
+
+.deck-add-form-color-swatch {
+  width: 28px;
+  height: 28px;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.deck-add-form-color-swatch--small {
+  width: 22px;
+  height: 22px;
+}
+
+.deck-add-form-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.deck-add-form-color-swatch[data-selected="true"] {
+  border-color: #fff;
+  transform: scale(1.15);
+}
+
+.deck-add-form-error {
+  font-family: var(--font-main);
+  font-size: 0.82rem;
+  color: #e05555;
+}
+
+.deck-add-form-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.2rem;
+}
+
+.deck-add-form-skill-option {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #2b2f36;
+  background: #11161d;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.deck-add-form-skill-option input {
+  margin-top: 0.15rem;
+  accent-color: var(--accent-primary);
+}
+
+.deck-add-form-skill-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.deck-add-form-skill-name {
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.deck-add-form-skill-desc {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.deck-add-form-submit {
+  font-family: var(--font-main);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #000;
+  background: var(--accent-primary);
+  border: none;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.deck-add-form-submit:hover {
+  opacity: 0.85;
+}
+
+.deck-add-form-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Agent provider select row ──────────────────────────────────────────── */
+
+.deck-empty-agent-select-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+/* ─── Custom agent picker dropdown ───────────────────────────────────────── */
+
+.deck-empty-agent-picker {
+  position: relative;
+  flex: 1;
+}
+
+.deck-empty-agent-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  width: 100%;
+  font-family: var(--font-main);
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: #11161d;
+  border: 1px solid #2b2f36;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+}
+
+.deck-empty-agent-trigger:hover {
+  border-color: var(--accent-primary);
+}
+
+.deck-empty-agent-trigger[aria-expanded="true"] {
+  border-color: var(--accent-primary);
+}
+
+.deck-empty-agent-chevron {
+  width: 0.55rem;
+  height: 0.4rem;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.deck-empty-agent-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 2px;
+  z-index: 100;
+  border: 1px solid #2b2f36;
+  background: #0d1017;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  padding: 0.15rem 0;
+}
+
+.deck-empty-agent-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.deck-empty-agent-menu-item:hover {
+  background: rgba(250, 163, 44, 0.1);
+}
+
+.deck-empty-agent-menu-item[data-active="true"] {
+  color: var(--accent-primary);
+}
+
+.deck-empty-agent-menu-check {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.deck-empty-agent-launch {
+  font-family: var(--font-main);
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #000;
+  background: var(--accent-primary);
+  border: none;
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.deck-empty-agent-launch:hover {
+  opacity: 0.85;
+}
+
+.deck-empty-card-title {
+  font-family: "Silkscreen", cursive;
+  font-size: 1.1rem;
+  color: var(--accent-primary);
+  line-height: 1.3;
+}
+
+.deck-empty-card-desc {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ─── Pods container ─────────────────────────────────────────────────────── */
+/* Grid mode: multi-column grid filling the view.                            */
+/* Detail mode: narrow sidebar column on the left (like empty-state adding). */
+
+.deck-pods-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-auto-rows: minmax(180px, 1fr);
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0.5rem;
+  transition: flex 400ms cubic-bezier(0.4, 0, 0.2, 1), padding 400ms cubic-bezier(0.4, 0, 0.2, 1),
+    gap 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-mode="detail"] .deck-pods-container {
+  grid-template-columns: 1fr;
+  grid-auto-rows: 1fr;
+  flex: 0 0 320px;
+  gap: 0;
+  padding: 0;
+  overflow-y: hidden;
+  border-right: 1px solid #2b2f36;
+}
+
+/* ─── Pod slot wrappers ──────────────────────────────────────────────────── */
+
+.deck-pod-slot {
+  min-height: 0;
+}
+
+/* Idle state (grid mode): all pods visible */
+.deck-pod-slot[data-pod-role="idle"] {
+  opacity: 1;
+}
+
+/* Focused pod: fills the sidebar column in detail mode */
+.deck-pod-slot[data-pod-role="focused"] {
+  opacity: 1;
+}
+
+/* Non-focused pods: hidden in detail mode */
+.deck-pod-slot[data-pod-role="other"] {
+  display: none;
+}
+
+/* ─── Pod card ────────────────────────────────────────────────────────────── */
+
+.deck-pod {
+  display: flex;
+  flex-direction: column;
+  background: #0b0d10;
+  border: 1px solid #2b2f36;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.deck-pod:hover {
+  filter: brightness(1.15);
+}
+
+/* ─── Focused pod modifier ───────────────────────────────────────────────── */
+
+.deck-pod--focused {
+  cursor: default;
+}
+
+.deck-pod--focused:hover {
+  filter: none;
+}
+
+.deck-pod--focused .deck-pod-vault-file[aria-current="true"] {
+  color: var(--accent-primary);
+  background: rgba(250, 163, 44, 0.12);
+  border-color: var(--accent-primary);
+}
+
+/* ─── Pod header (buttons only) ───────────────────────────────────────────── */
+
+.deck-pod-header {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 0;
+  border-bottom: 1px solid #2b2f36;
+  flex-shrink: 0;
+}
+
+.deck-pod-btn {
+  font-family: var(--font-main);
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #000;
+  background: var(--accent-primary);
+  border: none;
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
+  padding: 0.36rem 0.7rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  flex: 1;
+}
+
+.deck-pod-btn:first-child {
+  border-left: none;
+}
+
+.deck-pod-btn:hover {
+  opacity: 0.85;
+}
+
+.deck-pod-btn--secondary {
+  color: var(--accent-primary);
+  background: transparent;
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
+}
+
+.deck-pod-btn--secondary:hover {
+  background: rgba(250, 163, 44, 0.08);
+}
+
+.deck-pod-btn--delete {
+  color: #e05555;
+  background: var(--accent-primary);
+  border: none;
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
+  flex: 0;
+  padding: 0.36rem 0.5rem;
+}
+
+.deck-pod-btn--delete:hover {
+  opacity: 0.85;
+}
+
+.deck-pod-btn-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  display: block;
+}
+
+.deck-pod-btn--danger {
+  color: #fff;
+  background: #c53030;
+  border-left: 2px solid rgba(0, 0, 0, 0.8);
+}
+
+.deck-pod-btn--danger:hover {
+  background: #e05555;
+}
+
+.deck-pod-btn--danger:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ─── Pod body ────────────────────────────────────────────────────────────── */
+
+.deck-pod-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding: 0.3rem;
+  overflow: auto;
+  position: relative;
+}
+
+/* ─── Identity row — octopus top-left, name + description right ───────────── */
+
+.deck-pod-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.deck-pod-octopus-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.deck-pod-octopus {
+  flex-shrink: 0;
+}
+
+.deck-pod-octopus canvas {
+  image-rendering: pixelated;
+}
+
+.deck-pod-status {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.36rem;
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.deck-pod-status--idle {
+  color: #6a7080;
+  background: #1a1d24;
+}
+
+.deck-pod-status--active {
+  color: #4ec9b0;
+  background: rgba(78, 201, 176, 0.1);
+}
+
+.deck-pod-status--blocked {
+  color: #e05555;
+  background: rgba(224, 85, 85, 0.1);
+}
+
+.deck-pod-status--needs-review {
+  color: #d4a017;
+  background: rgba(212, 160, 23, 0.1);
+}
+
+.deck-pod-identity-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  padding-top: 0.2rem;
+}
+
+.deck-pod-name {
+  font-family: "Silkscreen", cursive;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.deck-pod-description {
+  font-family: var(--font-main);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Details section (progress, todos, vault) ────────────────────────────── */
+
+.deck-pod-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.deck-pod-skills-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.45rem;
+  border: 1px solid #1f252d;
+  background: #0d1017;
+}
+
+.deck-pod-skills-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.deck-pod-skill-option {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  font-family: var(--font-main);
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.deck-pod-skill-option input {
+  margin-top: 0.15rem;
+  accent-color: var(--accent-primary);
+}
+
+.deck-pod-skill-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.deck-pod-skill-name {
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.deck-pod-skill-desc,
+.deck-pod-skills-empty {
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.deck-pod-skills-actions {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid #1a1d24;
+  padding-top: 0.35rem;
+}
+
+.deck-pod-skills-actions .deck-pod-btn {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+/* ─── Progress bar ────────────────────────────────────────────────────────── */
+
+.deck-pod-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.deck-pod-progress-bar {
+  flex: 1;
+  height: 5px;
+  background: #1a1d24;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.deck-pod-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.deck-pod-progress-label {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+}
+
+/* ─── Todo list ───────────────────────────────────────────────────────────── */
+
+.deck-pod-todos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.deck-pod-todo-item {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.deck-pod-todo-text {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.deck-pod-todo-item--done {
+  color: #3e4450;
+  text-decoration: line-through;
+}
+
+.deck-pod-todo-checkbox {
+  flex-shrink: 0;
+  accent-color: var(--accent-primary);
+  pointer-events: none;
+}
+
+/* ─── Vault file listing ──────────────────────────────────────────────────── */
+
+.deck-pod-vault {
+  display: flex;
+  align-items: baseline;
+  gap: 0.36rem;
+  padding-top: 0.24rem;
+  border-top: 1px solid #1a1d24;
+  flex-shrink: 0;
+}
+
+.deck-pod-vault-label {
+  font-family: var(--font-main);
+  font-size: 0.7rem;
+  color: #3e4450;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.deck-pod-vault-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.deck-pod-vault-file {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: #11161d;
+  padding: 0.08rem 0.3rem;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.deck-pod-vault-file:hover {
+  color: var(--text-primary);
+  background: #1a1d24;
+}
+
+/* ─── Detail panel (right side) ──────────────────────────────────────────── */
+/* Always in the DOM. In grid mode it has flex:0 + opacity:0.                */
+/* In detail mode it expands to fill remaining space.                        */
+
+.deck-detail-main {
+  flex: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  border-left: 1px solid transparent;
+  transition: flex 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 350ms cubic-bezier(0.4, 0, 0.2, 1)
+    100ms, border-color 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-mode="detail"] .deck-detail-main {
+  flex: 1;
+  opacity: 1;
+  border-left-color: #2b2f36;
+  animation: deck-form-slide-in 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-mode="detail"][data-has-pods="false"] .deck-pods-container {
+  display: none;
+}
+
+[data-mode="detail"][data-has-pods="false"] .deck-detail-main {
+  border-left-color: transparent;
+}
+
+.deck-detail-main-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #2b2f36;
+  background: #0d1017;
+  flex-shrink: 0;
+}
+
+.deck-detail-main-path {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.deck-detail-main-path strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.deck-detail-main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  animation: deck-content-fade 200ms ease-out;
+}
+
+@keyframes deck-content-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ─── Vault browser (ASCII tree) ─────────────────────────────────────────── */
+
+.deck-vault-tree {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.88rem;
+  line-height: 1.8;
+  margin: 0;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+}
+
+.deck-vault-tree-dir {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.deck-vault-tree-row {
+  display: flex;
+  align-items: baseline;
+}
+
+.deck-vault-tree-branch {
+  color: #3e4450;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.deck-vault-tree-file {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.deck-vault-tree-file:hover {
+  color: var(--accent-primary);
+}
+
+/* ─── Terminal inside detail panel ────────────────────────────────────────── */
+
+.deck-detail-terminal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: deck-content-fade 200ms ease-out;
+}
+
+.deck-detail-terminal .terminal-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.deck-detail-terminal .terminal-mount {
+  flex: 1;
+}
+
+/* ─── Markdown rendering inside detail panel ─────────────────────────────── */
+
+.deck-detail-markdown {
+  font-family: var(--font-main);
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.deck-detail-markdown h1 {
+  font-family: "Silkscreen", cursive;
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--accent-primary);
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.deck-detail-markdown h2 {
+  font-family: var(--font-main);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 1.25rem 0 0.5rem 0;
+}
+
+.deck-detail-markdown h3 {
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 1rem 0 0.4rem 0;
+}
+
+.deck-detail-markdown p {
+  margin: 0.4rem 0;
+}
+
+.deck-detail-markdown ul,
+.deck-detail-markdown ol {
+  padding-left: 1.25rem;
+  margin: 0.4rem 0;
+}
+
+.deck-detail-markdown li {
+  margin: 0.2rem 0;
+  color: var(--text-secondary);
+}
+
+.deck-detail-markdown code {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  background: #11161d;
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+  color: #dcdcaa;
+}
+
+.deck-detail-markdown pre {
+  background: #0b0d10;
+  border: 1px solid #2b2f36;
+  border-radius: 3px;
+  padding: 0.6rem 0.75rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.deck-detail-markdown pre code {
+  background: none;
+  padding: 0;
+}
+
+.deck-detail-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.82rem;
+}
+
+.deck-detail-markdown th,
+.deck-detail-markdown td {
+  border: 1px solid #2b2f36;
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+}
+
+.deck-detail-markdown th {
+  background: #0d1017;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.deck-detail-markdown td {
+  color: var(--text-secondary);
+}
+
+.deck-detail-markdown strong {
+  color: var(--text-primary);
+}
+
+.deck-detail-markdown input[type="checkbox"] {
+  margin-right: 0.4rem;
+}
+
+.workspace-setup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(720px, 100%);
+  padding: 1.2rem;
+  border: 1px solid rgba(238, 194, 83, 0.28);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(17, 22, 29, 0.98), rgba(11, 14, 19, 0.98)),
+    radial-gradient(circle at top left, rgba(212, 160, 23, 0.16), transparent 55%);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.28);
+}
+
+.workspace-setup-card--compact {
+  width: 100%;
+  padding: 1rem;
+}
+
+.workspace-setup-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.workspace-setup-card-glyph {
+  flex: 0 0 auto;
+}
+
+.workspace-setup-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.workspace-setup-card-title {
+  margin: 0;
+  font-family: var(--font-main);
+  font-size: 1.02rem;
+  color: var(--text-primary);
+}
+
+.workspace-setup-card-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.workspace-setup-card-error,
+.workspace-setup-step-guidance,
+.workspace-setup-step-status,
+.workspace-setup-step-desc,
+.workspace-setup-card-loading,
+.workspace-setup-card-actions-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.workspace-setup-card-error {
+  color: #ff9b8e;
+}
+
+.workspace-setup-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.workspace-setup-step {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(8, 10, 14, 0.82);
+}
+
+.workspace-setup-step[data-complete="true"] {
+  border-color: rgba(55, 195, 115, 0.32);
+  background: rgba(9, 18, 13, 0.82);
+}
+
+.workspace-setup-step-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.workspace-setup-step-title-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.workspace-setup-step-title,
+.workspace-setup-card-actions-title {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.workspace-setup-step-state {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.workspace-setup-step-command {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.2rem 0.45rem;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: #f7d774;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+}
+
+.workspace-setup-step-action,
+.workspace-setup-card-primary-action,
+.workspace-setup-card-secondary-action {
+  flex: 0 0 auto;
+  min-height: 2.2rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.workspace-setup-step-action:hover,
+.workspace-setup-card-primary-action:hover,
+.workspace-setup-card-secondary-action:hover {
+  border-color: rgba(238, 194, 83, 0.4);
+}
+
+.workspace-setup-step-action:disabled,
+.workspace-setup-card-primary-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.workspace-setup-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.workspace-setup-card-actions-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.workspace-setup-card-actions-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.workspace-setup-card--compact .workspace-setup-card-header {
+  flex-direction: row;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .workspace-setup-step,
+  .workspace-setup-card-header,
+  .workspace-setup-card-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

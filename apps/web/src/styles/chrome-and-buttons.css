@@ -1,0 +1,272 @@
+.chrome {
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface-2);
+  padding: 0.3rem 0.45rem;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.chrome h1 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.chrome p {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.chrome-left {
+  display: flex;
+  align-items: center;
+  justify-self: start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.chrome-octopus {
+  display: block;
+  width: 1.2rem;
+  height: auto;
+  margin: 0;
+  image-rendering: pixelated;
+}
+
+.chrome-right {
+  grid-column: 3;
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 0.26rem;
+}
+
+.action-button {
+  --action-button-border: var(--control-border-strong);
+  --action-button-bg: var(--control-bg-strong);
+  --action-button-color: var(--accent-primary);
+  --action-button-font-size: 0.6rem;
+  --action-button-line-height: var(--control-line-height);
+  --action-button-letter-spacing: var(--control-letter-spacing);
+  --action-button-padding-y: 0.16rem;
+  --action-button-padding-x: 0.25rem;
+  border: 1px solid var(--action-button-border);
+  background: var(--action-button-bg);
+  color: var(--action-button-color);
+  font-family: var(--control-font-family);
+  font-size: var(--action-button-font-size);
+  font-weight: 700;
+  letter-spacing: var(--action-button-letter-spacing);
+  text-transform: uppercase;
+  line-height: var(--action-button-line-height);
+  padding: var(--action-button-padding-y) var(--action-button-padding-x);
+  cursor: pointer;
+}
+
+.action-button--dense {
+  --action-button-font-size: 0.72rem;
+  --action-button-padding-y: 0.28rem;
+  --action-button-padding-x: 0.44rem;
+}
+
+.action-button--compact {
+  --action-button-font-size: 0.58rem;
+  --action-button-padding-y: 0.14rem;
+  --action-button-padding-x: 0.22rem;
+}
+
+.action-button--primary {
+  --action-button-border: var(--border-subtle);
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 88%, #ffd7a0 12%);
+  --action-button-color: #121212;
+  --action-button-font-size: 0.68rem;
+  --action-button-padding-y: 0.2rem;
+  --action-button-padding-x: 0.42rem;
+  --action-button-letter-spacing: 0.08em;
+}
+
+.action-button--accent {
+  --action-button-border: color-mix(
+    in srgb,
+    var(--accent-primary) 50%,
+    var(--control-border-strong)
+  );
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 14%, var(--control-bg-strong));
+  --action-button-color: var(--accent-primary);
+}
+
+.action-button--info {
+  --action-button-border: color-mix(in srgb, #9bc8ff 45%, var(--control-border-strong));
+  --action-button-bg: color-mix(in srgb, #9bc8ff 12%, var(--control-bg-strong));
+  --action-button-color: #9bc8ff;
+}
+
+.action-button--danger {
+  --action-button-border: color-mix(in srgb, #ff9a9a 45%, var(--control-border-strong));
+  --action-button-bg: color-mix(in srgb, #ff9a9a 12%, var(--control-bg-strong));
+  --action-button-color: #ff9a9a;
+}
+
+.action-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.action-button:focus-visible {
+  outline: 1px solid var(--action-button-border);
+  outline-offset: 1px;
+}
+
+.chrome-sidebar-toggle {
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-surface-1) 85%, #1e1e1e);
+  color: var(--text-primary);
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  cursor: pointer;
+}
+
+.chrome-sidebar-toggle[data-active="false"] {
+  color: var(--text-secondary);
+  background: var(--bg-surface-1);
+}
+
+.chrome-sidebar-toggle-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: currentColor;
+}
+
+.chrome-sidebar-toggle:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.chrome-create-terminal {
+  --action-button-border: var(--border-subtle);
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 88%, #ffd7a0 12%);
+  --action-button-color: #121212;
+  --action-button-font-size: 0.68rem;
+  --action-button-letter-spacing: 0.07em;
+  --action-button-line-height: 1.25;
+  --action-button-padding-y: 0.23rem;
+  --action-button-padding-x: 0.44rem;
+}
+
+.chrome-create-terminal--worktree {
+  --action-button-border: color-mix(in srgb, #9bc8ff 45%, var(--border-subtle));
+  --action-button-bg: color-mix(in srgb, #9bc8ff 14%, var(--bg-surface-1) 86%);
+  --action-button-color: #9bc8ff;
+}
+
+/* Split button for terminal creation with provider dropdown */
+.split-button {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.split-button-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.split-button-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-left: 1px solid color-mix(in srgb, #000 18%, transparent);
+  padding: 0 0.22rem;
+  cursor: pointer;
+  font-size: 0;
+  line-height: 1;
+}
+
+.split-button-toggle--primary {
+  background: color-mix(in srgb, var(--accent-primary) 78%, #ffd7a0 12%);
+  color: #121212;
+}
+
+.split-button-toggle--info {
+  background: color-mix(in srgb, #9bc8ff 14%, var(--bg-surface-1) 86%);
+  border-color: color-mix(in srgb, #9bc8ff 45%, var(--border-subtle));
+  border-left-color: color-mix(in srgb, #9bc8ff 25%, transparent);
+  color: #9bc8ff;
+}
+
+.split-button-toggle:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.split-button-toggle:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.split-button-toggle-icon {
+  width: 0.5rem;
+  height: 0.35rem;
+}
+
+.split-button-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 2px;
+  z-index: 100;
+  min-width: 9rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  padding: 0.15rem 0;
+}
+
+.split-button-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--control-font-family);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.split-button-menu-item:hover {
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
+.split-button-menu-item[data-active="true"] {
+  color: var(--accent-primary);
+}
+
+.split-button-menu-check {
+  font-size: 0.6rem;
+  opacity: 0.8;
+}

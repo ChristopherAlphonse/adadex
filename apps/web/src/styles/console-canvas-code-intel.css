@@ -1,0 +1,227 @@
+/* ── Code Intel view ─────────────────────────────────── */
+
+.console-shell .code-intel-view {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #0b0d10;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+/* ── Header stats bar ───────────────────────────────── */
+
+.code-intel-view-header {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid #2b2f36;
+  background: #090d12;
+  height: 32px;
+}
+
+.code-intel-stat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border-right: 1px solid #1a1f28;
+  font-size: 0.68rem;
+  color: #50607a;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.code-intel-stat-icon {
+  color: var(--accent-primary, #d4a017);
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.code-intel-stat-value {
+  color: var(--accent-primary, #d4a017);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.code-intel-stat-label {
+  color: #50607a;
+}
+
+.code-intel-view-header .action-button {
+  --action-button-bg: var(--accent-primary, #d4a017);
+  --action-button-border: var(--accent-primary, #d4a017);
+  --action-button-color: #0b0d10;
+  padding-inline: 1.6rem;
+}
+
+/* ── Panel layout ───────────────────────────────────── */
+
+.code-intel-panels {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.code-intel-panel {
+  min-height: 0;
+  border-right: 1px solid #1a1f28;
+  background: #090d12;
+  padding: 0.4rem 0.5rem;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.3rem;
+  overflow: hidden;
+}
+
+.code-intel-panel:last-child {
+  border-right: none;
+}
+
+.code-intel-panel-header {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.code-intel-panel-header h2 {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 0.96rem;
+  letter-spacing: 0.02em;
+}
+
+.code-intel-panel-header p {
+  margin: 0;
+  color: #6b7a90;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.code-intel-error {
+  color: #cc2e2e;
+}
+
+.code-intel-empty {
+  color: #6b7a90;
+  font-size: 0.82rem;
+  padding: 1rem 0;
+}
+
+/* ── Treemap ────────────────────────────────────────── */
+
+.code-intel-treemap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+}
+
+.code-intel-treemap-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.code-intel-treemap-cell {
+  cursor: crosshair;
+  transition: filter 0.1s ease;
+}
+
+.code-intel-treemap-label {
+  fill: #dce6f7;
+  font-size: 10px;
+  pointer-events: none;
+  font-family: inherit;
+}
+
+.code-intel-treemap-count {
+  fill: #ffffff;
+  font-size: 9px;
+}
+
+/* ── Tooltip ────────────────────────────────────────── */
+
+.code-intel-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: #151a22;
+  border: 1px solid #2b2f36;
+  padding: 0.4rem 0.56rem;
+  z-index: 10;
+  max-width: 320px;
+}
+
+.code-intel-tooltip-path {
+  color: #dce6f7;
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.code-intel-tooltip-value {
+  color: #d4a017;
+  font-size: 0.78rem;
+  margin-top: 0.16rem;
+}
+
+/* ── Arc Diagram ────────────────────────────────────── */
+
+.code-intel-arc-diagram {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.code-intel-arc-svg {
+  display: block;
+}
+
+.code-intel-arc-label {
+  fill: #6b7a90;
+  font-size: 10px;
+  font-family: inherit;
+  cursor: default;
+  transition: fill 0.1s ease;
+}
+
+.code-intel-arc-label--active {
+  fill: #dce6f7;
+}
+
+.code-intel-arc-file-group {
+  cursor: default;
+}
+
+.code-intel-arc-path {
+  cursor: crosshair;
+  transition: stroke-opacity 0.1s ease, stroke-width 0.1s ease;
+}
+
+/* ── Coupling tooltip details ───────────────────────── */
+
+.code-intel-tooltip-coupling-list {
+  display: grid;
+  gap: 2px;
+  margin-top: 0.24rem;
+}
+
+.code-intel-tooltip-coupling-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.74rem;
+}
+
+.code-intel-tooltip-coupling-partner {
+  color: #8494ab;
+}
+
+.code-intel-tooltip-coupling-count {
+  color: #d4a017;
+  font-weight: 600;
+}

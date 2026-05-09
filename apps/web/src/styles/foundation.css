@@ -1,0 +1,100 @@
+@import url("https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap");
+
+:root {
+  --bg-canvas: #000000;
+  --bg-surface-1: #040404;
+  --bg-surface-2: #191919;
+  --border-subtle: #5c5c5c;
+  --text-primary: #f0f0f0;
+  --text-secondary: #c8c8c8;
+  --accent-primary: #faa32c;
+  --term-red: #880f1e;
+  --term-green: #33ff66;
+  --term-blue: #1e59a3;
+  --term-warning: #ffb020;
+  --control-border-strong: #121212;
+  --control-bg-strong: #000000;
+  --sidebar-canvas: color-mix(in srgb, var(--bg-surface-1) 84%, #131a23 16%);
+  --sidebar-panel: color-mix(in srgb, var(--bg-surface-1) 78%, #1b2430 22%);
+  --sidebar-card: color-mix(in srgb, var(--bg-surface-1) 82%, #16202a 18%);
+  --sidebar-header: color-mix(in srgb, var(--bg-surface-2) 72%, #212c3a 28%);
+  --sidebar-row: color-mix(in srgb, var(--bg-surface-1) 88%, #121a22 12%);
+  --sidebar-row-hover: color-mix(in srgb, var(--sidebar-row) 76%, #263445 24%);
+  --sidebar-row-active: color-mix(in srgb, var(--sidebar-row) 62%, #2c4055 38%);
+  --sidebar-border: color-mix(in srgb, var(--border-subtle) 72%, #313d4d 28%);
+  --sidebar-border-strong: color-mix(in srgb, var(--border-subtle) 48%, #3a4f66 52%);
+  --sidebar-text-muted: color-mix(in srgb, var(--text-secondary) 84%, #9eb2c8 16%);
+  --terminal-bg: #101722;
+  --terminal-header-bg-top: #4b607d;
+  --terminal-header-bg-bottom: #3d516b;
+  --terminal-header-text: #eef3fb;
+  --terminal-scrollbar-track: color-mix(in srgb, var(--terminal-bg) 88%, #0f1622 12%);
+  --terminal-scrollbar-thumb: color-mix(in srgb, var(--accent-primary) 34%, var(--terminal-bg) 66%);
+  --terminal-scrollbar-thumb-hover: color-mix(
+    in srgb,
+    var(--accent-primary) 44%,
+    var(--terminal-bg) 56%
+  );
+  --terminal-scrollbar-thumb-active: color-mix(
+    in srgb,
+    var(--accent-primary) 54%,
+    var(--terminal-bg) 46%
+  );
+  --font-main: "PP Neue Machina Plain", "PP Neue Machina", "JetBrains Mono", "IBM Plex Mono",
+    monospace;
+  --control-font-family: var(--font-main);
+  --control-letter-spacing: 0.06em;
+  --control-line-height: 1.2;
+  --ui-base-font-size: 18px;
+  --scrollbar-size: 10px;
+  --scrollbar-track: color-mix(in srgb, var(--bg-surface-1) 88%, #121212);
+  --scrollbar-thumb: color-mix(in srgb, var(--accent-primary) 38%, var(--border-subtle) 62%);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--accent-primary) 54%, var(--border-subtle) 46%);
+  --scrollbar-thumb-active: color-mix(in srgb, var(--accent-primary) 68%, var(--border-subtle) 32%);
+  --terminal-column-min-width: 370px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  min-height: 100%;
+}
+
+html {
+  font-size: var(--ui-base-font-size);
+}
+
+body {
+  font-family: var(--font-main);
+  background: radial-gradient(circle at top right, #111111, var(--bg-canvas) 50%);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.page {
+  height: 100vh;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.workspace-shell {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.workspace-shell--full {
+  grid-template-columns: 1fr;
+}

@@ -1,0 +1,35 @@
+{
+  "name": "adadex",
+  "version": "0.1.0",
+  "description": "Web-first command surface for running multiple coding agents in parallel",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.4.1",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "bin": {
+    "adadex": "./bin/adadex"
+  },
+  "files": ["bin", "dist", "README.md"],
+  "scripts": {
+    "start": "pnpm dev",
+    "dev": "node scripts/dev.mjs",
+    "build": "pnpm --filter @adadex/web build && pnpm --filter @adadex/web exec vite build --config vite.api.bundle.config.mts && node scripts/build-package.mjs",
+    "smoke:public-install": "node scripts/smoke-public-install.mjs",
+    "test": "pnpm -r test",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "node-pty": "^1.1.0",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.13.10",
+    "knip": "^6.3.1",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.7"
+  }
+}

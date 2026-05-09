@@ -1,0 +1,14 @@
+.DS_Store
+/.claude
+/.codex
+/context
+/.octogent
+/node_modules
+/dist
+/coverage
+**/node_modules/
+**/dist/
+**/.vite/
+**/coverage/
+
+.octogent

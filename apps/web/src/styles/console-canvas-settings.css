@@ -1,0 +1,207 @@
+.console-shell .settings-view {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #0b0d10;
+  padding: 0.56rem;
+  display: grid;
+  align-content: start;
+  gap: 0.56rem;
+}
+
+.settings-panel {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #090d12;
+  padding: 0.68rem;
+  display: grid;
+  align-content: start;
+  gap: 0.58rem;
+}
+
+.settings-panel-header {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.settings-panel-header h2 {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 0.96rem;
+  letter-spacing: 0.02em;
+}
+
+.settings-panel-header p {
+  margin: 0;
+  color: #9eb0c8;
+  font-size: 0.82rem;
+}
+
+.settings-sound-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 0.34rem;
+}
+
+.settings-sound-option {
+  border: 1px solid #2b2f36;
+  background: #11161d;
+  color: #b8c2d1;
+  font-family: var(--font-main);
+  cursor: pointer;
+  text-align: left;
+  padding: 0.42rem 0.46rem;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.settings-sound-option[data-active="true"] {
+  border-color: color-mix(in srgb, var(--term-green) 58%, #244a34);
+  background: color-mix(in srgb, var(--term-green) 22%, #11161d 78%);
+  color: #d6ffe4;
+}
+
+.settings-sound-option:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--term-green) 64%, #6fb78a);
+  outline-offset: 1px;
+}
+
+.settings-sound-option-label {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.settings-sound-option-description {
+  color: #93a4bb;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.76rem;
+  line-height: 1.34;
+}
+
+.settings-panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  flex-wrap: wrap;
+}
+
+.settings-sound-preview {
+  --action-button-border: color-mix(in srgb, #38b86c 68%, #1a5235);
+  --action-button-bg: color-mix(in srgb, #2fb763 76%, #194e34 24%);
+  --action-button-color: #f4fff8;
+  --action-button-font-size: 0.76rem;
+  --action-button-padding-y: 0.2rem;
+  --action-button-padding-x: 0.4rem;
+}
+
+.settings-saved-pill {
+  border: 1px solid #2f3946;
+  background: #111822;
+  color: #d9e4f6;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.14rem 0.36rem;
+}
+
+.settings-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.34rem;
+}
+
+.settings-toggle-option {
+  border: 1px solid #2b2f36;
+  background: #11161d;
+  color: #b8c2d1;
+  font-family: var(--font-main);
+  cursor: pointer;
+  text-align: left;
+  padding: 0.42rem 0.46rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 0.52rem;
+  row-gap: 0.18rem;
+  align-items: center;
+}
+
+.settings-toggle-option[data-active="true"] {
+  border-color: color-mix(in srgb, var(--term-green) 58%, #244a34);
+  background: color-mix(in srgb, var(--term-green) 22%, #11161d 78%);
+  color: #d6ffe4;
+}
+
+.settings-toggle-option:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--term-green) 64%, #6fb78a);
+  outline-offset: 1px;
+}
+
+.settings-toggle-label {
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.settings-toggle-copy {
+  display: grid;
+  align-content: start;
+  gap: 0.12rem;
+}
+
+.settings-toggle-description {
+  color: #93a4bb;
+  font-size: 0.73rem;
+  letter-spacing: 0.03em;
+}
+
+.settings-toggle-switch {
+  width: 2.35rem;
+  height: 1.22rem;
+  border: 1px solid #405064;
+  border-radius: 999px;
+  background: #0c141f;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem;
+  justify-self: end;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.settings-toggle-thumb {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #2f3946;
+  background: #9eb0c8;
+  transform: translateX(0);
+  transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
+}
+
+.settings-toggle-option[data-active="true"] .settings-toggle-switch {
+  border-color: color-mix(in srgb, var(--term-green) 62%, #1c4f35);
+  background: color-mix(in srgb, var(--term-green) 40%, #101926 60%);
+}
+
+.settings-toggle-option[data-active="true"] .settings-toggle-thumb {
+  transform: translateX(1.08rem);
+  background: #e5ffee;
+  border-color: color-mix(in srgb, var(--term-green) 56%, #20553a);
+}
+
+.settings-toggle-state {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #93a4bb;
+  grid-column: 1 / -1;
+}
+
+.settings-toggle-option[data-active="true"] .settings-toggle-state {
+  color: #c2f5d4;
+}
+
+@media (max-width: 940px) {
+  .settings-toggle-grid {
+    grid-template-columns: 1fr;
+  }
+}

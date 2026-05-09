@@ -1,0 +1,474 @@
+/* ─── Prompts Primary View ─────────────────────────────────────────────── */
+
+.console-shell .prompts-view {
+  min-height: 0;
+  border: 1px solid #2b2f36;
+  background: #0b0d10;
+  padding: 0.56rem;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.prompts-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.prompts-empty {
+  color: #6b7a8e;
+  font-size: 0.82rem;
+  text-align: center;
+  margin: 0;
+}
+
+.prompts-error {
+  color: #ff9a9a;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.56rem;
+}
+
+/* ─── Prompt Detail ────────────────────────────────────────────────────── */
+
+.prompts-detail {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.52rem;
+  min-height: 0;
+}
+
+.prompts-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.56rem;
+  padding: 0.34rem 0.2rem;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.prompts-detail-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.44rem;
+}
+
+.prompts-detail-name {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 0.96rem;
+  letter-spacing: 0.03em;
+}
+
+.prompts-detail-source-badge {
+  font-size: 0.66rem;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  padding: 0.12rem 0.36rem;
+  border-radius: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.prompts-detail-source-badge[data-source="user"] {
+  background: color-mix(in srgb, var(--accent-primary) 18%, #11161d);
+  color: color-mix(in srgb, var(--accent-primary) 60%, #e6ebf3);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, #2b2f36);
+}
+
+.prompts-detail-source-badge[data-source="builtin"] {
+  background: color-mix(in srgb, #6ea8fe 12%, #11161d);
+  color: color-mix(in srgb, #6ea8fe 50%, #e6ebf3);
+  border: 1px solid color-mix(in srgb, #6ea8fe 25%, #2b2f36);
+}
+
+.prompts-detail-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+}
+
+.prompts-content {
+  overflow-y: auto;
+  padding: 0.56rem;
+  color: #b8c2d1;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.prompts-content h1,
+.prompts-content h2,
+.prompts-content h3 {
+  color: #dce6f7;
+}
+
+.prompts-content code {
+  background: #1a1f28;
+  padding: 0.12rem 0.28rem;
+  border-radius: 0.18rem;
+  font-size: 0.78rem;
+}
+
+.prompts-content pre {
+  background: #0d1117;
+  border: 1px solid #2b2f36;
+  padding: 0.56rem;
+  border-radius: 0.28rem;
+  overflow-x: auto;
+}
+
+.prompts-edit-area {
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
+  background: #0d1117;
+  border: 1px solid #2b2f36;
+  color: #b8c2d1;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  padding: 0.56rem;
+  line-height: 1.6;
+  border-radius: 0.28rem;
+}
+
+.prompts-edit-area:focus {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 70%, #e9c56c);
+  outline-offset: 1px;
+}
+
+/* ─── Embedded Terminal (New Prompt) — matches deck-detail-terminal ───── */
+
+.prompts-terminal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: prompts-content-fade 200ms ease-out;
+}
+
+@keyframes prompts-content-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.prompts-terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #2b2f36;
+  background: #0d1017;
+  flex-shrink: 0;
+}
+
+.prompts-terminal-back {
+  font-family: var(--font-main);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.prompts-terminal-back:hover {
+  color: var(--text-primary);
+}
+
+.prompts-terminal-label {
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.prompts-terminal-label strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.prompts-terminal .terminal-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.prompts-terminal .terminal-mount {
+  flex: 1;
+}
+
+/* ─── Sidebar Prompts List ─────────────────────────────────────────────── */
+
+.sidebar-prompts {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.sidebar-prompts-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.34rem;
+  padding: 0.36rem;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.sidebar-prompts-new-btn {
+  flex: 1;
+  background: color-mix(in srgb, var(--accent-primary) 14%, #11161d);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 40%, #2b2f36);
+  color: color-mix(in srgb, var(--accent-primary) 40%, #e6ebf3);
+  font-family: var(--font-main);
+  font-size: 0.76rem;
+  padding: 0.28rem 0.44rem;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.sidebar-prompts-new-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 24%, #11161d);
+}
+
+.sidebar-prompts-refresh-btn {
+  background: none;
+  border: 1px solid #2b2f36;
+  color: #98a9c0;
+  font-size: 0.86rem;
+  padding: 0.2rem 0.36rem;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  line-height: 1;
+}
+
+.sidebar-prompts-refresh-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 10%, #11161d);
+}
+
+.sidebar-prompts-refresh-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sidebar-prompts-empty {
+  color: #98a9c0;
+  font-size: 0.76rem;
+  padding: 0.56rem;
+  text-align: center;
+}
+
+.sidebar-prompts-list {
+  overflow-y: auto;
+  padding: 0.22rem;
+  display: grid;
+  align-content: start;
+  gap: 0.14rem;
+}
+
+.sidebar-prompts-group {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.sidebar-prompts-group-label {
+  margin: 0;
+  padding: 0.28rem 0.4rem 0.14rem;
+  color: #6b7a8e;
+  font-size: 0.66rem;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sidebar-prompts-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #2b2f36;
+  border-left: 2px solid transparent;
+  background: #11161d;
+  color: #b8c2d1;
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  padding: 0.34rem 0.4rem;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.sidebar-prompts-item:hover {
+  background: color-mix(in srgb, var(--accent-primary) 6%, #11161d);
+  border-color: color-mix(in srgb, var(--accent-primary) 25%, #2b2f36);
+  border-left-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
+}
+
+.sidebar-prompts-item[data-active="true"] {
+  border-left: 2px solid var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, #2b2f36);
+  border-left-color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 24%, #11161d);
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--accent-primary) 16%, transparent);
+}
+
+.sidebar-prompts-item:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 70%, #e9c56c);
+  outline-offset: 1px;
+}
+
+/* ─── Minimized Terminal Bar ──────────────────────────────────────────── */
+
+.sidebar-prompts-minimized-terminal {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--accent-primary) 30%, #2b2f36);
+  background: color-mix(in srgb, var(--accent-primary) 10%, #0d1117);
+}
+
+.sidebar-prompts-minimized-terminal-restore {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.44rem;
+  padding: 0.44rem 0.56rem;
+  background: none;
+  border: none;
+  color: color-mix(in srgb, var(--accent-primary) 60%, #e6ebf3);
+  font-family: var(--font-main);
+  font-size: 0.74rem;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.sidebar-prompts-minimized-terminal-restore:hover {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+}
+
+.sidebar-prompts-minimized-terminal-close {
+  padding: 0.44rem 0.5rem;
+  background: none;
+  border: none;
+  border-left: 1px solid color-mix(in srgb, var(--accent-primary) 20%, #2b2f36);
+  color: color-mix(in srgb, #e6ebf3 50%, transparent);
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.sidebar-prompts-minimized-terminal-close:hover {
+  color: #f87171;
+  background: color-mix(in srgb, #f87171 12%, transparent);
+}
+
+.sidebar-prompts-minimized-terminal-icon {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  color: var(--accent-primary);
+  opacity: 0.8;
+}
+
+.sidebar-prompts-minimized-terminal-label {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Terminal Prompt Picker ───────────────────────────────────────────── */
+
+.terminal-prompt-picker-anchor {
+  position: relative;
+}
+
+.terminal-prompt-picker-btn {
+  background: color-mix(in srgb, var(--accent-primary) 8%, #11161d);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, #2b2f36);
+  color: color-mix(in srgb, var(--accent-primary) 50%, #b8c2d1);
+  cursor: pointer;
+  padding: 0.18rem 0.42rem;
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-family: var(--font-main);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.terminal-prompt-picker-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 18%, #11161d);
+  border-color: color-mix(in srgb, var(--accent-primary) 50%, #2b2f36);
+  color: var(--accent-primary);
+}
+
+.terminal-prompt-picker-label {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.prompt-picker-popover {
+  z-index: 1000;
+  min-width: 200px;
+  max-width: 320px;
+  max-height: 300px;
+  background: #11161d;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, #2b2f36);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.prompt-picker-header {
+  padding: 0.36rem 0.44rem;
+  font-size: 0.72rem;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  color: #6b7a8e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.prompt-picker-loading,
+.prompt-picker-empty {
+  padding: 0.56rem;
+  color: #98a9c0;
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+.prompt-picker-list {
+  overflow-y: auto;
+  padding: 0.14rem;
+}
+
+.prompt-picker-group {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.prompt-picker-group-label {
+  padding: 0.24rem 0.4rem 0.1rem;
+  color: #6b7a8e;
+  font-size: 0.62rem;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.prompt-picker-item {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #b8c2d1;
+  font-family: var(--font-main);
+  font-size: 0.76rem;
+  padding: 0.3rem 0.44rem;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.prompt-picker-item:hover {
+  background: color-mix(in srgb, var(--accent-primary) 14%, #11161d);
+  color: #e6ebf3;
+}

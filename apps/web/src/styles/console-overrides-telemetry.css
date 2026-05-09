@@ -1,0 +1,320 @@
+.console-shell .dashboard-deck-shell {
+  border-right: 1px solid #2b2f36;
+}
+
+.console-shell .active-agents-sidebar {
+  background: #0b0f14;
+  border-right: 1px solid #2b2f36;
+}
+
+.console-shell .active-agents-footer {
+  background: #0f131a;
+}
+
+.console-shell .active-agents-section,
+.console-shell .active-agents-group {
+  border-color: #2b2f36;
+  background: #11161d;
+  box-shadow: none;
+}
+
+.console-shell .active-agents-section-toggle,
+.console-shell .active-agents-group-header {
+  background: #181f28;
+}
+
+.console-shell .active-agents-section-toggle:hover {
+  background: #1d2631;
+}
+
+.console-shell .active-agents-section-title,
+.console-shell .active-agents-group h3 {
+  color: #e6e8ec;
+  font-size: 0.78rem;
+}
+
+.console-shell .active-agents-section-meta,
+.console-shell .active-agents-group-count,
+.console-shell .active-agents-agent-row--child,
+.console-shell .active-agents-codex-usage-label {
+  color: #a9b0ba;
+  font-size: 0.72rem;
+}
+
+.console-shell .active-agents-agent-row {
+  background: #10161e;
+  border-bottom-color: #252b33;
+  font-size: 0.84rem;
+}
+
+.console-shell .active-agents-agent-row:hover {
+  background: #16202b;
+}
+
+.console-shell .active-agents-agent-row--root {
+  background: #121a23;
+  border-left-color: #d6a21a;
+}
+
+.console-shell .active-agents-codex-usage {
+  border-color: #2b2f36;
+  background: #0c131b;
+}
+
+.console-shell .active-agents-codex-usage-meta {
+  color: #d6a21a;
+  font-size: 0.7rem;
+}
+
+.console-shell .active-agents-codex-usage-percent,
+.console-shell .active-agents-codex-usage-credits,
+.console-shell .active-agents-codex-usage-status {
+  font-size: 0.74rem;
+}
+
+.console-shell .terminals {
+  background: #050607;
+  padding: 0;
+  gap: 0;
+}
+
+.console-shell .empty-state {
+  border: 1px dashed #2b2f36;
+  background: #090c10;
+}
+
+.console-shell .empty-state h2 {
+  color: #d6a21a;
+  font-size: 1rem;
+}
+
+.console-shell .empty-state p {
+  color: #a9b0ba;
+  font-size: 0.84rem;
+}
+
+.console-shell .terminal-column {
+  border: 1px solid #2b2f36;
+  background: #0b0d10;
+}
+
+.console-shell .terminal-divider {
+  flex-basis: 6px;
+  border-left: 1px solid #2b2f36;
+  border-right: 1px solid #11151b;
+  background: linear-gradient(180deg, #141920, #0b0f15);
+}
+
+.console-shell .terminal-column-header {
+  background: #161b23;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.console-shell .terminal-column-header h2 {
+  color: #d6a21a;
+  font-size: 0.78rem;
+}
+
+.console-shell .terminal-name-editor {
+  background: #1e2631;
+  color: #e6e8ec;
+}
+
+.console-shell .terminal-workspace-badge {
+  background: #233346;
+  border-color: #2f4258;
+  color: #bad8ff;
+}
+
+.console-shell .terminal-workspace-badge--shared {
+  background: #3a2f14;
+  border-color: #604a1a;
+  color: #f3cf72;
+}
+
+.console-shell .terminal-git-cluster {
+  background: #1d2734;
+  border-color: #2f4258;
+}
+
+.console-shell .terminal-header-actions {
+  gap: 0.14rem;
+}
+
+.console-shell .terminal-pane {
+  background: #0b0d10;
+}
+
+.console-shell .terminal-header {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
+    color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
+  );
+  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
+  color: #121212;
+}
+
+.console-shell .terminal-pane--selected .terminal-header {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
+    color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
+  );
+  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
+  color: #121212;
+}
+
+.console-shell .terminal-pane--selected .terminal-title {
+  color: #121212;
+}
+
+.console-shell .terminal-title {
+  color: #121212;
+  font-size: 0.72rem;
+}
+
+.console-shell .terminal-mount {
+  background: #101722;
+}
+
+.console-shell .pill,
+.console-shell .status-badge {
+  border-color: color-mix(in srgb, #000000 55%, #2b2f36 45%);
+  font-size: 0.68rem;
+}
+
+.console-shell .pill.idle,
+.console-shell .status-badge.idle {
+  background: #0d2a57;
+  color: #e8f2ff;
+}
+
+.console-shell .pill.processing,
+.console-shell .status-badge.processing {
+  background: #25d366;
+  color: #031700;
+}
+
+.console-shell .pill.queued,
+.console-shell .status-badge.queued {
+  background: #d6a21a;
+  color: #161103;
+}
+
+.console-shell .pill.blocked,
+.console-shell .status-badge.blocked {
+  background: #8c0b12;
+  color: #ffdddd;
+}
+
+.console-telemetry-tape {
+  border-top: 1px solid #2b2f36;
+  background: #050607;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.console-telemetry-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2rem;
+  min-width: max-content;
+  padding: 0.22rem 0.55rem;
+  animation-name: consoleTelemetryScroll;
+  animation-duration: 60s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.console-telemetry-item {
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 0.36rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: #b3bdcb;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.console-telemetry-item strong {
+  color: #dce6f7;
+  font-size: 0.7rem;
+}
+
+.console-telemetry-source {
+  color: #d6a21a;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.console-telemetry-snippet {
+  max-width: 30ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.console-telemetry-likes {
+  color: #25d366;
+}
+
+a.console-telemetry-item:hover .console-telemetry-snippet,
+a.console-telemetry-item:focus-visible .console-telemetry-snippet {
+  text-decoration: underline;
+}
+
+a.console-telemetry-item:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 70%, #f0cf75);
+  outline-offset: 2px;
+}
+
+@keyframes consoleTelemetryScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 940px) {
+  .console-shell .chrome {
+    grid-template-columns: 1fr;
+    gap: 0.24rem;
+  }
+
+  .console-shell .chrome-right {
+    grid-column: 1;
+    justify-self: start;
+    flex-wrap: wrap;
+  }
+
+  .console-shell .console-status-strip {
+    grid-template-columns: 1fr;
+    gap: 0.28rem;
+  }
+
+  .console-shell .console-primary-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .console-shell .console-primary-nav-hint {
+    white-space: normal;
+  }
+
+  .github-overview {
+    grid-template-rows: auto auto minmax(220px, 1fr);
+  }
+
+  .github-overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .github-overview-graph-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
