@@ -24,7 +24,6 @@ import {
   buildDeckVaultFileUrl,
   buildTerminalsUrl,
 } from "../runtime/runtimeEndpoints";
-import { MascotSprite } from "./MascotSprite";
 import { Terminal } from "./Terminal";
 import { ActionCards } from "./deck/ActionCards";
 import { AddOrchestrationForm } from "./deck/AddOrchestrationForm";
@@ -494,9 +493,6 @@ export const DeckPrimaryView = ({
       >
         <div className="deck-empty-state">
           <div className="deck-empty-left">
-            <div className="deck-empty-mascot">
-              <MascotSprite color="#a3e635" speedMs={16} size={220} />
-            </div>
             {shouldShowWorkspaceSetup ? (
               <WorkspaceSetupCard
                 workspaceSetup={workspaceSetup}

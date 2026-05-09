@@ -43,6 +43,7 @@ export const ACCESSORY_OPTIONS: { value: MascotAccessory; label: string }[] = [
   { value: "mohawk", label: "Mohawk" },
   { value: "side-sweep", label: "Side Sweep" },
   { value: "curly", label: "Curly" },
+  { value: "afro", label: "Afro" },
 ];
 
 export const HAIR_COLORS = [
@@ -128,11 +129,10 @@ export const AddOrchestrationForm = ({
         <div className="deck-add-form-preview">
           <MascotSprite
             color={selectedColor}
-            animation={selectedAnimation}
+            animation="idle"
             expression={selectedExpression}
             accessory={selectedAccessory}
             hairColor={selectedHairColor}
-            speedMs={16}
             size={160}
           />
         </div>
@@ -254,10 +254,14 @@ export const AddOrchestrationForm = ({
                   data-selected={c === selectedHairColor ? "true" : "false"}
                   style={{ backgroundColor: c }}
                   onClick={() => setSelectedHairColor(c)}
-                  aria-label={`Select hair color ${c}`}
+                  title={formatColorForDisplay(c)}
+                  aria-label={`Select hair color ${formatColorForDisplay(c)}`}
                 />
               ))}
             </div>
+            <p className="deck-add-form-color-meta" aria-live="polite">
+              {formatColorForDisplay(selectedHairColor)}
+            </p>
           </div>
         </div>
 

@@ -70,16 +70,6 @@
   }
 }
 
-.deck-empty-mascot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.deck-empty-mascot canvas {
-  image-rendering: pixelated;
-}
-
 .deck-empty-actions {
   display: flex;
   flex-direction: column;

@@ -33,7 +33,15 @@ const splitLabel = (label: string): [string] | [string, string] => {
 
 const ANIMATIONS: MascotAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
 const EXPRESSIONS: MascotExpression[] = ["normal", "happy", "angry", "surprised"];
-const ACCESSORIES: MascotAccessory[] = ["none", "none", "long", "mohawk", "side-sweep", "curly"];
+const ACCESSORIES: MascotAccessory[] = [
+  "none",
+  "none",
+  "long",
+  "mohawk",
+  "side-sweep",
+  "curly",
+  "afro",
+];
 
 function hashString(str: string): number {
   let h = 0;
@@ -310,7 +318,13 @@ export const MascotNode = ({
         )}
         textAnchor="middle"
         className="canvas-node-label canvas-node-label--orchestration canvas-node-label--always"
-        fill={isDeckLead ? "var(--accent-primary, #a3e635)" : "var(--accent-secondary, #eab308)"}
+        fill={
+          isDeckLead && showFocus
+            ? "var(--text-primary, #ffffff)"
+            : isDeckLead
+              ? "var(--accent-primary, #a3e635)"
+              : "var(--accent-secondary, #eab308)"
+        }
       >
         <tspan x={LABEL_OFFSET_X_PX} dy="0">
           {lines[0]}

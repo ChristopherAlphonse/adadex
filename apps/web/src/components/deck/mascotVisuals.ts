@@ -16,6 +16,7 @@ export const ACCESSORIES: MascotAccessory[] = [
   "mohawk",
   "side-sweep",
   "curly",
+  "afro",
 ];
 
 export function hashString(str: string): number {

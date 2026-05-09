@@ -65,7 +65,8 @@
 .github-overview-content {
   min-height: 0;
   display: grid;
-  gap: 0.74rem;
+  align-items: stretch;
+  gap: 1.05rem;
   grid-template-columns: minmax(0, 1.72fr) minmax(270px, 1fr);
 }
 
@@ -73,10 +74,15 @@
   min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr);
+  padding-right: 0.15rem;
+  height: 100%;
 }
 
 .github-overview-side {
+  position: relative;
+  z-index: 1;
   min-height: 0;
+  height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0.34rem;
@@ -166,13 +172,16 @@
 }
 
 .github-overview-graph {
+  box-sizing: border-box;
+  width: 100%;
   min-height: 0;
+  height: 100%;
   border: 1px solid #2b2f36;
   background: #0c1118;
-  padding: 0.48rem 0.52rem;
+  padding: 0.58rem 0.64rem;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.3rem;
+  gap: 0.38rem;
 }
 
 .github-overview-graph-meta {
@@ -197,10 +206,12 @@
 
 .github-overview-graph-surface {
   min-height: 0;
+  max-height: 100%;
   border: 1px solid color-mix(in srgb, #303949 72%, #1f2733);
   background: #0a0f16;
-  padding: 0.28rem;
+  padding: 0.4rem 0.48rem;
   position: relative;
+  border-radius: 3px;
 }
 
 .github-overview-graph-surface svg {

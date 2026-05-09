@@ -5,8 +5,8 @@
 export const MASCOT_COLORS = [
   "#a3e635",
   "#eab308",
-  "#84cc16",
   "#22c55e",
+  "#ef4444",
   "#f97316",
   "#38bdf8",
 ] as const;

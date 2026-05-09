@@ -22,7 +22,8 @@ type GitHubPrimaryViewProps = {
   onHoveredGitHubOverviewPointIndexChange: (index: number | null) => void;
 };
 
-const GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET = 8;
+/** Room above y=0 so top Y-axis labels (baseline above grid) are not clipped by the viewBox. */
+const GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET = 18;
 const GITHUB_RECENT_COMMITS_LIMIT = 50;
 
 /** Plain-text export for download (UTF-8 `.txt`). */

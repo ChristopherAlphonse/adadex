@@ -58,7 +58,7 @@ export const SettingsPrimaryView = ({
         >
           Preview
         </ActionButton>
-        <span className="settings-saved-pill">Saved to workspace</span>
+        <span className="settings-saved-pill">Saved locally</span>
       </div>
     </section>
     <section className="settings-panel" aria-label="Workspace surface visibility settings">

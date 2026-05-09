@@ -7,6 +7,7 @@ import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-util
 describe("App UI state persistence", () => {
   afterEach(() => {
     cleanup();
+    window.localStorage.clear();
     resetAppTestHarness();
   });
 
@@ -96,6 +97,73 @@ describe("App UI state persistence", () => {
       expect(
         uiStatePatchBodies.some((body) => body.terminalCompletionSound === "double-beep"),
       ).toBe(true);
+      expect(window.localStorage.getItem("adadex.terminalCompletionSound")).toBe("double-beep");
+    });
+  });
+
+  it("keeps the locally saved completion sound when API hydration has a different value", async () => {
+    window.localStorage.setItem("adadex.terminalCompletionSound", "double-beep");
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
+        return jsonResponse([]);
+      }
+
+      if (url.endsWith("/api/codex/usage") && method === "GET") {
+        return jsonResponse({
+          status: "unavailable",
+          fetchedAt: "2026-02-24T10:00:00.000Z",
+          source: "none",
+        });
+      }
+
+      if (url.endsWith("/api/github/summary") && method === "GET") {
+        return jsonResponse({
+          status: "unavailable",
+          source: "none",
+          fetchedAt: "2026-02-24T10:00:00.000Z",
+          commitsPerDay: [],
+        });
+      }
+
+      if (url.includes("/api/analytics/usage-heatmap") && method === "GET") {
+        return jsonResponse({
+          days: [],
+          projects: [],
+          models: [],
+        });
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "GET") {
+        return jsonResponse({
+          activePrimaryNav: 8,
+          terminalCompletionSound: "retro-beep",
+        });
+      }
+
+      if (url.endsWith("/api/ui-state") && method === "PATCH") {
+        return jsonResponse({});
+      }
+
+      return notFoundResponse();
+    });
+
+    render(<App />);
+
+    expect(await screen.findByLabelText("Settings primary view")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Double beep/i })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(screen.getByRole("button", { name: /Retro beep/i })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
     });
   });
 });

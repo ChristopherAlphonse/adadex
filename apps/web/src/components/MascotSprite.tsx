@@ -7,7 +7,7 @@ const HIGHLIGHT_COLOR = "#fff4cc";
 
 export type MascotAnimation = "idle" | "sway" | "walk" | "jog" | "swim-up" | "bounce" | "float";
 export type MascotExpression = "normal" | "happy" | "sleepy" | "angry" | "surprised";
-export type MascotAccessory = "none" | "long" | "mohawk" | "side-sweep" | "curly";
+export type MascotAccessory = "none" | "long" | "mohawk" | "side-sweep" | "curly" | "afro";
 
 export type OctopusAnimation = MascotAnimation;
 export type OctopusExpression = MascotExpression;
@@ -132,7 +132,55 @@ const drawAccessoryHair = (
   headRy: number,
   unit: number,
 ) => {
-  if (accessory === "none") return;
+  /* With no hairstyle, hair color still needs to affect the preview (picker feedback). */
+  if (accessory === "none") {
+    ctx.save();
+    ctx.fillStyle = hairHex;
+    ctx.strokeStyle = OUTLINE_COLOR;
+    ctx.lineWidth = Math.max(1, unit * 0.1);
+    ctx.lineJoin = "round";
+
+    const crownY = headCy - headRy * 0.88;
+    const sideY = headCy - headRy * 0.42;
+    ctx.beginPath();
+    ctx.moveTo(-headRx * 0.82, sideY);
+    ctx.bezierCurveTo(
+      -headRx * 0.66,
+      crownY - unit * 0.55,
+      -headRx * 0.08,
+      crownY - unit * 0.9,
+      headRx * 0.72,
+      crownY - unit * 0.18,
+    );
+    ctx.bezierCurveTo(
+      headRx * 0.42,
+      crownY + unit * 0.32,
+      headRx * 0.02,
+      crownY + unit * 0.42,
+      -headRx * 0.3,
+      crownY + unit * 0.24,
+    );
+    ctx.bezierCurveTo(
+      -headRx * 0.36,
+      crownY + unit * 0.78,
+      -headRx * 0.58,
+      sideY + unit * 0.12,
+      -headRx * 0.82,
+      sideY,
+    );
+    ctx.fill();
+    ctx.stroke();
+
+    const browY = headCy - headRy * 0.62;
+    for (const dx of [-headRx * 0.42, headRx * 0.42]) {
+      ctx.beginPath();
+      ctx.ellipse(dx, browY, unit * 0.32, unit * 0.12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
 
   ctx.save();
   ctx.strokeStyle = OUTLINE_COLOR;
@@ -204,6 +252,25 @@ const drawAccessoryHair = (
         const cy = headCy + Math.sin(a) * headRy * 0.35 - headRy * 0.55;
         ctx.beginPath();
         ctx.arc(cx, cy, unit * 0.38, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      break;
+    }
+    case "afro": {
+      const puffs = [
+        { x: -0.72, y: -0.94, r: 0.68 },
+        { x: -0.28, y: -1.14, r: 0.74 },
+        { x: 0.22, y: -1.16, r: 0.78 },
+        { x: 0.68, y: -0.94, r: 0.7 },
+        { x: -0.92, y: -0.55, r: 0.62 },
+        { x: -0.38, y: -0.62, r: 0.7 },
+        { x: 0.22, y: -0.64, r: 0.72 },
+        { x: 0.82, y: -0.54, r: 0.62 },
+      ];
+      for (const puff of puffs) {
+        ctx.beginPath();
+        ctx.arc(headRx * puff.x, headCy + headRy * puff.y, unit * puff.r, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
