@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 const DEFAULT_SIZE = 224;
 const MARK_UNITS = 16;
 const OUTLINE_COLOR = "#050505";
-const HIGHLIGHT_COLOR = "#fff4cc";
 
 export type MascotAnimation = "idle" | "sway" | "walk" | "jog" | "swim-up" | "bounce" | "float";
 export type MascotExpression = "normal" | "happy" | "sleepy" | "angry" | "surprised";
@@ -399,12 +398,6 @@ const drawMark = (
     default:
       drawEyePair(1, 1);
   }
-
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = HIGHLIGHT_COLOR;
-  ctx.beginPath();
-  ctx.ellipse(-unit * 1.15, headCy - unit * 0.95, unit * 0.55, unit * 0.42, -0.35, 0, Math.PI * 2);
-  ctx.fill();
 
   ctx.restore();
 };

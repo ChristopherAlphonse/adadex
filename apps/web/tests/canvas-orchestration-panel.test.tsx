@@ -65,6 +65,9 @@ describe("CanvasOrchestrationPanel actions", () => {
     });
 
     fireEvent.click(worktreeButton);
+    await waitFor(() => {
+      expect(worktreeButton).not.toBeDisabled();
+    });
     fireEvent.click(normalButton);
 
     expect(onSpawnSwarm).toHaveBeenNthCalledWith(1, "docs-knowledge", "worktree");
