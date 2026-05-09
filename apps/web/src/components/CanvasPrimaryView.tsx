@@ -605,20 +605,6 @@ export const CanvasPrimaryView = ({
         return;
       }
 
-      setOpenTerminals((prev) => {
-        const next = new Map(prev);
-        next.delete(node.id);
-        return next;
-      });
-      setSelectedNodeId((prev) => (prev === node.id ? null : prev));
-
-      const terminal = columns.find((entry) => entry.terminalId === node.sessionId);
-      const closeResult = onCloseActiveSession?.(
-        node.sessionId,
-        terminal?.coordinationName ?? node.label,
-        terminal?.workspaceMode ?? node.workspaceMode,
-      );
-
       const closePanel = () => {
         setOpenTerminals((prev) => {
           const next = new Map(prev);
@@ -628,20 +614,14 @@ export const CanvasPrimaryView = ({
         setSelectedNodeId((prev) => (prev === node.id ? null : prev));
       };
 
-      if (closeResult && typeof closeResult === "object" && "then" in closeResult) {
-        void closeResult
-          .then((didClose) => {
-            if (didClose !== false) {
-              closePanel();
-            }
-          })
-          .catch(() => {});
-        return;
-      }
+      closePanel();
 
-      if (closeResult !== false) {
-        closePanel();
-      }
+      const terminal = columns.find((entry) => entry.terminalId === node.sessionId);
+      void onCloseActiveSession?.(
+        node.sessionId,
+        terminal?.coordinationName ?? node.label,
+        terminal?.workspaceMode ?? node.workspaceMode,
+      );
     },
     [columns, onCloseActiveSession],
   );
