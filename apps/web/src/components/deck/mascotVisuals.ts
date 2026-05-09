@@ -1,14 +1,11 @@
 import type { DeckCoordinationSummary } from "@adadex/core";
+
+import { MASCOT_COLORS } from "../../app/mascotPalette";
 import type { MascotAccessory, MascotAnimation, MascotExpression } from "../MascotSprite";
 
 // ─── Mascot visual derivation (seeded from coordination id) ───────────────
 
-export const MASCOT_COLORS = [
-  "#a3e635",
-  "#eab308",
-  "#84cc16",
-  "#d9f99d",
-];
+export { MASCOT_COLORS };
 
 export const ANIMATIONS: MascotAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
 export const EXPRESSIONS: MascotExpression[] = ["normal", "happy", "angry", "surprised"];

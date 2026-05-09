@@ -8,7 +8,6 @@ import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShort
 import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
-import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useOrchestrationGitLifecycle } from "./app/hooks/useOrchestrationGitLifecycle";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
@@ -67,14 +66,12 @@ export const App = () => {
     applyHydratedUiState,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
-    isMonitorVisible,
     isRuntimeStatusStripVisible,
     isUiStateHydrated,
     minimizedTerminalIds,
     readUiState,
     setIsActiveAgentsSectionExpanded,
     setIsAgentsSidebarVisible,
-    setIsMonitorVisible,
     setIsRuntimeStatusStripVisible,
     setIsUiStateHydrated,
     setMinimizedTerminalIds,
@@ -309,9 +306,6 @@ export const App = () => {
   });
 
   useConsoleKeyboardShortcuts({ setActivePrimaryNav });
-  const monitorRuntime = useMonitorRuntime({
-    enabled: isUiStateHydrated && isMonitorVisible,
-  });
 
   const {
     githubCommitCount30d,
@@ -426,13 +420,12 @@ export const App = () => {
 
       <section className="console-main-canvas" aria-label="Main content canvas">
         <div
-          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 5 && activePrimaryNav !== 8 ? "" : " workspace-shell--full"}`}
+          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 8 ? "" : " workspace-shell--full"}`}
         >
           {isAgentsSidebarVisible &&
             activePrimaryNav !== 1 &&
             activePrimaryNav !== 3 &&
             activePrimaryNav !== 4 &&
-            activePrimaryNav !== 5 &&
             activePrimaryNav !== 8 && (
               <ActiveAgentsSidebar
                 sidebarWidth={sidebarWidth}
@@ -463,7 +456,6 @@ export const App = () => {
               onRunWorkspaceSetupStep: runWorkspaceSetupStep,
               suppressWorkspaceSetupCard: true,
             }}
-            isMonitorVisible={isMonitorVisible}
             activityPrimaryViewProps={{
               usageChartProps: {
                 data: heatmapData,
@@ -489,11 +481,8 @@ export const App = () => {
                 },
               },
             }}
-            monitorRuntime={monitorRuntime}
             settingsPrimaryViewProps={{
-              isMonitorVisible,
               isRuntimeStatusStripVisible,
-              onMonitorVisibilityChange: setIsMonitorVisible,
               onRuntimeStatusStripVisibilityChange: setIsRuntimeStatusStripVisible,
               onPreviewTerminalCompletionSound: playCompletionSoundPreview,
               onTerminalCompletionSoundChange: setTerminalCompletionSound,

@@ -311,16 +311,33 @@
 .github-overview-recent-item {
   position: relative;
   display: grid;
+  width: 100%;
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: start;
   gap: 0.44rem;
   padding: 0.26rem 0;
+  border: 0;
   border-bottom: 1px dashed #243041;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+}
+
+.github-overview-recent-item:hover,
+.github-overview-recent-item:focus-visible {
+  background: color-mix(in srgb, var(--accent-primary) 8%, #0f141c);
+  outline: none;
+}
+
+.github-overview-recent-item:focus-visible {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 54%, #3d4a5e);
 }
 
 .github-overview-recent-item.is-selected {
-  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 12%, #0f141c);
 }
 
 .github-overview-recent-item.is-selected .github-overview-recent-node {

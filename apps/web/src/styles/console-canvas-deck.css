@@ -455,6 +455,14 @@
   transform: scale(1.15);
 }
 
+.deck-add-form-color-meta {
+  margin: 0.35rem 0 0;
+  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: #c5d0de;
+}
+
 .deck-add-form-error {
   font-family: var(--font-main);
   font-size: 0.82rem;

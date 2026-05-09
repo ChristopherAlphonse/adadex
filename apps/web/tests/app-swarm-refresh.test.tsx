@@ -10,7 +10,6 @@ const persistedUiStateMock = {
   isActiveAgentsSectionExpanded: true,
   isAgentsSidebarVisible: false,
   isCodexUsageSectionExpanded: true,
-  isMonitorVisible: false,
   isRuntimeStatusStripVisible: false,
   isUiStateHydrated: true,
   minimizedTerminalIds: [] as string[],
@@ -18,7 +17,6 @@ const persistedUiStateMock = {
   setIsActiveAgentsSectionExpanded: vi.fn(),
   setIsAgentsSidebarVisible: vi.fn(),
   setIsCodexUsageSectionExpanded: vi.fn(),
-  setIsMonitorVisible: vi.fn(),
   setIsRuntimeStatusStripVisible: vi.fn(),
   setIsUiStateHydrated: vi.fn(),
   setMinimizedTerminalIds: vi.fn(),
@@ -95,10 +93,6 @@ vi.mock("../src/app/hooks/useInitialColumnsHydration", async () => {
     },
   };
 });
-
-vi.mock("../src/app/hooks/useMonitorRuntime", () => ({
-  useMonitorRuntime: () => null,
-}));
 
 vi.mock("../src/app/hooks/usePersistedUiState", () => ({
   usePersistedUiState: () => persistedUiStateMock,

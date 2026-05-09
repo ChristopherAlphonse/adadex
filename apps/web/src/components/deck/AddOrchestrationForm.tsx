@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { DeckAvailableSkill } from "@adadex/core";
+
+import { formatColorForDisplay } from "../../app/mascotPalette";
 import type { MascotAccessory, MascotAnimation, MascotExpression } from "../MascotSprite";
 import { MascotSprite } from "../MascotSprite";
 import { ACCESSORIES, ANIMATIONS, EXPRESSIONS, MASCOT_COLORS } from "./mascotVisuals";
@@ -198,10 +200,14 @@ export const AddOrchestrationForm = ({
                 data-selected={c === selectedColor ? "true" : "false"}
                 style={{ backgroundColor: c }}
                 onClick={() => setSelectedColor(c)}
-                aria-label={`Select color ${c}`}
+                title={formatColorForDisplay(c)}
+                aria-label={`Select color ${formatColorForDisplay(c)}`}
               />
             ))}
           </div>
+          <p className="deck-add-form-color-meta" aria-live="polite">
+            {formatColorForDisplay(selectedColor)}
+          </p>
         </div>
 
         <div className="deck-add-form-row">

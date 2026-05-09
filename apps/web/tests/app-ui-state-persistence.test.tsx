@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
@@ -50,7 +50,6 @@ describe("App UI state persistence", () => {
         return jsonResponse({
           activePrimaryNav: 8,
           isRuntimeStatusStripVisible: false,
-          isMonitorVisible: false,
           terminalCompletionSound: "retro-beep",
         });
       }
@@ -85,20 +84,15 @@ describe("App UI state persistence", () => {
       "aria-checked",
       "false",
     );
-    expect(screen.getByRole("switch", { name: "Enable X Monitor" })).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
+    expect(screen.queryByRole("switch", { name: "Enable X Monitor" })).toBeNull();
 
     fireEvent.click(screen.getByRole("switch", { name: "Show runtime status strip" }));
-    fireEvent.click(screen.getByRole("switch", { name: "Enable X Monitor" }));
     fireEvent.click(screen.getByRole("button", { name: /Double beep/i }));
 
     await waitFor(() => {
       expect(uiStatePatchBodies.some((body) => body.isRuntimeStatusStripVisible === true)).toBe(
         true,
       );
-      expect(uiStatePatchBodies.some((body) => body.isMonitorVisible === true)).toBe(true);
       expect(
         uiStatePatchBodies.some((body) => body.terminalCompletionSound === "double-beep"),
       ).toBe(true);

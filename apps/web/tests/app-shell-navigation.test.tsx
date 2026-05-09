@@ -62,10 +62,11 @@ describe("App shell and navigation", () => {
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
     expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
     expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
-    expect(screen.getByText("Press 1-8 to navigate")).toBeInTheDocument();
+    expect(screen.getByText("Press 1-4, 6-8 to navigate")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "[5] Monitor" })).toBeNull();
   });
 
-  it("supports keyboard-first primary navigation with number keys 1-8", async () => {
+  it("supports keyboard-first primary navigation with available number keys", async () => {
     mockShellRequests();
 
     render(<App />);
@@ -96,6 +97,6 @@ describe("App shell and navigation", () => {
     expect(screen.getByRole("button", { name: /Soft chime/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Retro beep/i })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Show runtime status strip" })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Enable X Monitor" })).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Enable X Monitor" })).toBeNull();
   });
 });

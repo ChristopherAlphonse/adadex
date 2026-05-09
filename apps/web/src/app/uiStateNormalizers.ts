@@ -1,6 +1,6 @@
 import { asRecord } from "@adadex/core";
 
-import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, PRIMARY_NAV_MAX } from "./constants";
+import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, isPrimaryNavIndex } from "./constants";
 import { isTerminalCompletionSoundId } from "./notificationSounds";
 import type { FrontendUiStateSnapshot } from "./types";
 
@@ -19,8 +19,7 @@ export const normalizeFrontendUiStateSnapshot = (
   if (
     typeof record.activePrimaryNav === "number" &&
     Number.isInteger(record.activePrimaryNav) &&
-    record.activePrimaryNav >= 1 &&
-    record.activePrimaryNav <= PRIMARY_NAV_MAX
+    isPrimaryNavIndex(record.activePrimaryNav)
   ) {
     nextState.activePrimaryNav = record.activePrimaryNav;
   }
@@ -39,10 +38,6 @@ export const normalizeFrontendUiStateSnapshot = (
 
   if (typeof record.isRuntimeStatusStripVisible === "boolean") {
     nextState.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
-  }
-
-  if (typeof record.isMonitorVisible === "boolean") {
-    nextState.isMonitorVisible = record.isMonitorVisible;
   }
 
   if (typeof record.isCodexUsageVisible === "boolean") {

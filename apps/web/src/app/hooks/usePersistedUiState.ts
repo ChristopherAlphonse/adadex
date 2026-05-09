@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
 import type { PrimaryNavIndex } from "../constants";
-import { MIN_SIDEBAR_WIDTH, PRIMARY_NAV_ITEMS, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
+import { MIN_SIDEBAR_WIDTH, UI_STATE_SAVE_DEBOUNCE_MS, isPrimaryNavIndex } from "../constants";
 import {
   DEFAULT_TERMINAL_COMPLETION_SOUND,
   type TerminalCompletionSoundId,
@@ -20,7 +20,6 @@ const DEFAULT_ACTIVE_PRIMARY_NAV: PrimaryNavIndex = 1;
 const DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE = true;
 const DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED = true;
 const DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE = true;
-const DEFAULT_IS_MONITOR_VISIBLE = true;
 const DEFAULT_IS_CODEX_USAGE_VISIBLE = true;
 const DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED = true;
 const DEFAULT_MINIMIZED_TERMINAL_IDS: string[] = [];
@@ -65,7 +64,6 @@ const buildPersistedUiStateSnapshot = ({
   sidebarWidth,
   isActiveAgentsSectionExpanded,
   isRuntimeStatusStripVisible,
-  isMonitorVisible,
   isCodexUsageVisible,
   isCodexUsageSectionExpanded,
   terminalCompletionSound,
@@ -80,7 +78,6 @@ const buildPersistedUiStateSnapshot = ({
   sidebarWidth: number;
   isActiveAgentsSectionExpanded: boolean;
   isRuntimeStatusStripVisible: boolean;
-  isMonitorVisible: boolean;
   isCodexUsageVisible: boolean;
   isCodexUsageSectionExpanded: boolean;
   terminalCompletionSound: TerminalCompletionSoundId;
@@ -95,7 +92,6 @@ const buildPersistedUiStateSnapshot = ({
   sidebarWidth: clampSidebarWidth(sidebarWidth),
   isActiveAgentsSectionExpanded,
   isRuntimeStatusStripVisible,
-  isMonitorVisible,
   isCodexUsageVisible,
   isCodexUsageSectionExpanded,
   terminalCompletionSound,
@@ -116,7 +112,6 @@ const areUiStateSnapshotsEqual = (
   left.sidebarWidth === right.sidebarWidth &&
   left.isActiveAgentsSectionExpanded === right.isActiveAgentsSectionExpanded &&
   left.isRuntimeStatusStripVisible === right.isRuntimeStatusStripVisible &&
-  left.isMonitorVisible === right.isMonitorVisible &&
   left.isCodexUsageVisible === right.isCodexUsageVisible &&
   left.isCodexUsageSectionExpanded === right.isCodexUsageSectionExpanded &&
   left.terminalCompletionSound === right.terminalCompletionSound &&
@@ -140,8 +135,6 @@ type UsePersistedUiStateResult = {
   setIsActiveAgentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
   isRuntimeStatusStripVisible: boolean;
   setIsRuntimeStatusStripVisible: Dispatch<SetStateAction<boolean>>;
-  isMonitorVisible: boolean;
-  setIsMonitorVisible: Dispatch<SetStateAction<boolean>>;
   isCodexUsageVisible: boolean;
   setIsCodexUsageVisible: Dispatch<SetStateAction<boolean>>;
   isCodexUsageSectionExpanded: boolean;
@@ -181,7 +174,6 @@ export const usePersistedUiState = ({
   const [isRuntimeStatusStripVisible, setIsRuntimeStatusStripVisible] = useState(
     DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
   );
-  const [isMonitorVisible, setIsMonitorVisible] = useState(DEFAULT_IS_MONITOR_VISIBLE);
   const [isCodexUsageVisible, setIsCodexUsageVisible] = useState(DEFAULT_IS_CODEX_USAGE_VISIBLE);
   const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(
     DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
@@ -246,7 +238,6 @@ export const usePersistedUiState = ({
           sidebarWidth: MIN_SIDEBAR_WIDTH,
           isActiveAgentsSectionExpanded: DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
           isRuntimeStatusStripVisible: DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
-          isMonitorVisible: DEFAULT_IS_MONITOR_VISIBLE,
           isCodexUsageVisible: DEFAULT_IS_CODEX_USAGE_VISIBLE,
           isCodexUsageSectionExpanded: DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
           terminalCompletionSound: DEFAULT_TERMINAL_COMPLETION_SOUND,
@@ -274,10 +265,8 @@ export const usePersistedUiState = ({
 
       lastPersistedUiStateRef.current = buildPersistedUiStateSnapshot({
         activePrimaryNav:
-          snapshot.activePrimaryNav !== undefined &&
-          snapshot.activePrimaryNav >= 1 &&
-          snapshot.activePrimaryNav <= PRIMARY_NAV_ITEMS.length
-            ? (snapshot.activePrimaryNav as PrimaryNavIndex)
+          snapshot.activePrimaryNav !== undefined && isPrimaryNavIndex(snapshot.activePrimaryNav)
+            ? snapshot.activePrimaryNav
             : DEFAULT_ACTIVE_PRIMARY_NAV,
         isAgentsSidebarVisible:
           snapshot.isAgentsSidebarVisible ?? DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE,
@@ -286,7 +275,6 @@ export const usePersistedUiState = ({
           snapshot.isActiveAgentsSectionExpanded ?? DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
         isRuntimeStatusStripVisible:
           snapshot.isRuntimeStatusStripVisible ?? DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
-        isMonitorVisible: snapshot.isMonitorVisible ?? DEFAULT_IS_MONITOR_VISIBLE,
         isCodexUsageVisible: snapshot.isCodexUsageVisible ?? DEFAULT_IS_CODEX_USAGE_VISIBLE,
         isCodexUsageSectionExpanded:
           snapshot.isCodexUsageSectionExpanded ?? DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
@@ -301,10 +289,9 @@ export const usePersistedUiState = ({
 
       if (
         snapshot.activePrimaryNav !== undefined &&
-        snapshot.activePrimaryNav >= 1 &&
-        snapshot.activePrimaryNav <= PRIMARY_NAV_ITEMS.length
+        isPrimaryNavIndex(snapshot.activePrimaryNav)
       ) {
-        setActivePrimaryNav(snapshot.activePrimaryNav as PrimaryNavIndex);
+        setActivePrimaryNav(snapshot.activePrimaryNav);
       }
 
       if (snapshot.isAgentsSidebarVisible !== undefined) {
@@ -321,10 +308,6 @@ export const usePersistedUiState = ({
 
       if (snapshot.isRuntimeStatusStripVisible !== undefined) {
         setIsRuntimeStatusStripVisible(snapshot.isRuntimeStatusStripVisible);
-      }
-
-      if (snapshot.isMonitorVisible !== undefined) {
-        setIsMonitorVisible(snapshot.isMonitorVisible);
       }
 
       if (snapshot.isCodexUsageVisible !== undefined) {
@@ -382,7 +365,6 @@ export const usePersistedUiState = ({
       sidebarWidth,
       isActiveAgentsSectionExpanded,
       isRuntimeStatusStripVisible,
-      isMonitorVisible,
       isCodexUsageVisible,
       isCodexUsageSectionExpanded,
       terminalCompletionSound,
@@ -428,7 +410,6 @@ export const usePersistedUiState = ({
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
     isRuntimeStatusStripVisible,
-    isMonitorVisible,
     isCodexUsageVisible,
     isCodexUsageSectionExpanded,
     isUiStateHydrated,
@@ -452,8 +433,6 @@ export const usePersistedUiState = ({
     setIsActiveAgentsSectionExpanded,
     isRuntimeStatusStripVisible,
     setIsRuntimeStatusStripVisible,
-    isMonitorVisible,
-    setIsMonitorVisible,
     isCodexUsageVisible,
     setIsCodexUsageVisible,
     isCodexUsageSectionExpanded,

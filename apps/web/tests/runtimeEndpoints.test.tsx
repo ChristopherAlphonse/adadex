@@ -6,9 +6,6 @@ import {
   buildConversationSessionUrl,
   buildConversationsUrl,
   buildGithubSummaryUrl,
-  buildMonitorConfigUrl,
-  buildMonitorFeedUrl,
-  buildMonitorRefreshUrl,
   buildOrchestrationGitCommitUrl,
   buildOrchestrationGitPullRequestMergeUrl,
   buildOrchestrationGitPullRequestUrl,
@@ -66,18 +63,6 @@ describe("runtimeEndpoints", () => {
     );
   });
 
-  it("builds monitor config URL on same origin by default", () => {
-    expect(buildMonitorConfigUrl()).toBe("/api/monitor/config");
-  });
-
-  it("builds monitor feed URL on same origin by default", () => {
-    expect(buildMonitorFeedUrl()).toBe("/api/monitor/feed");
-  });
-
-  it("builds monitor refresh URL on same origin by default", () => {
-    expect(buildMonitorRefreshUrl()).toBe("/api/monitor/refresh");
-  });
-
   it("builds conversations URLs on same origin by default", () => {
     expect(buildConversationsUrl()).toBe("/api/conversations");
     expect(buildConversationSessionUrl("orchestration-1-root")).toBe(
@@ -101,18 +86,6 @@ describe("runtimeEndpoints", () => {
     expect(
       buildConversationExportUrl("orchestration-1-root", "json", "https://runtime.example.com"),
     ).toBe("https://runtime.example.com/api/conversations/orchestration-1-root/export?format=json");
-  });
-
-  it("builds absolute monitor URLs when runtime base URL is configured", () => {
-    expect(buildMonitorConfigUrl("https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/monitor/config",
-    );
-    expect(buildMonitorFeedUrl("https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/monitor/feed",
-    );
-    expect(buildMonitorRefreshUrl("https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/monitor/refresh",
-    );
   });
 
   it("builds ui state URL on same origin by default", () => {

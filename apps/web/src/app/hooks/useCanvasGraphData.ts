@@ -4,6 +4,7 @@ import type { DeckCoordinationSummary } from "@adadex/core";
 import { buildConversationsUrl, buildDeckOrchestrationsUrl } from "../../runtime/runtimeEndpoints";
 import type { GraphEdge, GraphNode } from "../canvas/types";
 import { normalizeConversationSessionSummary } from "../conversationNormalizers";
+import { MASCOT_COLORS } from "../mascotPalette";
 import type { ConversationSessionSummary, TerminalView } from "../types";
 import type { AgentRuntimeStateInfo } from "./useAgentRuntimeStates";
 
@@ -26,14 +27,6 @@ const getAccentPrimary = (): string =>
   (typeof document !== "undefined"
     ? getComputedStyle(document.documentElement).getPropertyValue("--accent-primary").trim()
     : "") || "#a3e635";
-
-// Must match the Deck tab's MASCOT_COLORS for consistent coordination colors
-const MASCOT_COLORS = [
-  "#a3e635",
-  "#eab308",
-  "#84cc16",
-  "#d9f99d",
-];
 
 function hashString(str: string): number {
   let h = 0;

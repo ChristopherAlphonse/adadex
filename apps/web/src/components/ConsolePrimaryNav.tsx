@@ -1,4 +1,4 @@
-import { PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "../app/constants";
+import { PRIMARY_NAV_ITEMS, PRIMARY_NAV_KEY_HINT, type PrimaryNavIndex } from "../app/constants";
 
 type ConsolePrimaryNavProps = {
   activePrimaryNav: PrimaryNavIndex;
@@ -26,6 +26,6 @@ export const ConsolePrimaryNav = ({
         </button>
       ))}
     </div>
-    <p className="console-primary-nav-hint">Press 1-{PRIMARY_NAV_ITEMS.length} to navigate</p>
+    <p className="console-primary-nav-hint">Press {PRIMARY_NAV_KEY_HINT} to navigate</p>
   </nav>
 );

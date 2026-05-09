@@ -202,7 +202,9 @@ describe("App workspace setup", () => {
     fireEvent.click(within(setupCard).getByRole("button", { name: "Update .gitignore" }));
 
     await waitFor(() => {
-      const gitignoreStep = screen.getByText("Ignore .adadex").closest(".workspace-setup-step");
+      const gitignoreStep = screen
+        .getByText("Ignore local planning files")
+        .closest(".workspace-setup-step");
       expect(gitignoreStep).not.toBeNull();
       expect(within(gitignoreStep as HTMLElement).getByText("Done")).toBeInTheDocument();
     });
