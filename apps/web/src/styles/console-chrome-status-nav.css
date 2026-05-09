@@ -389,12 +389,13 @@
 .console-shell .console-primary-nav {
   grid-row: 3;
   border-bottom: 1px solid #1a2e05;
-  background: #07120a;
+  /* Slightly lifted from pure black-green so inactive tab text reads clearly */
+  background: #0c1810;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0 0.48rem;
+  gap: 0.3rem;
+  padding: 0 0.4rem;
 }
 
 .console-shell .console-main-canvas {
@@ -404,29 +405,35 @@
 .console-primary-nav-tabs {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.12rem;
   min-width: 0;
   overflow-x: auto;
 }
 
 .console-primary-nav-tab {
   border: none;
-  background: transparent;
-  color: #d9f99d;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent-primary) 9%, transparent);
+  color: #f7fee7;
   font-family: var(--font-main);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 0.24rem 0.26rem;
+  letter-spacing: 0.05em;
+  padding: 0.14rem 0.22rem;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.console-primary-nav-tab:not([data-active="true"]):hover {
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+  color: #ffffff;
 }
 
 .console-primary-nav-tab[data-active="true"] {
   background: #a3e635;
   color: #000000;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), inset 0 -1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.32), inset 0 -1px 1px rgba(0, 0, 0, 0.12);
 }
 
 .console-primary-nav-tab:focus-visible {
@@ -436,8 +443,9 @@
 
 .console-primary-nav-hint {
   margin: 0;
-  color: #84cc16;
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  color: #d9f99d;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }

@@ -120,6 +120,101 @@ const drawArmStroke = (
   ctx.restore();
 };
 
+const resolveHairColor = (hairColor: string | undefined): string =>
+  hairColor && hairColor.trim().length > 0 ? hairColor : "#5c4033";
+
+const drawAccessoryHair = (
+  ctx: CanvasRenderingContext2D,
+  accessory: MascotAccessory,
+  hairHex: string,
+  headCy: number,
+  headRx: number,
+  headRy: number,
+  unit: number,
+) => {
+  if (accessory === "none") return;
+
+  ctx.save();
+  ctx.strokeStyle = OUTLINE_COLOR;
+  ctx.fillStyle = hairHex;
+  ctx.lineWidth = Math.max(1.2, unit * 0.14);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  switch (accessory) {
+    case "long": {
+      for (let i = 0; i < 5; i++) {
+        const t = i / 4;
+        const sx = -headRx * (0.85 - t * 0.35);
+        const sy = headCy - headRy * (0.4 + t * 0.15);
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo(
+          sx - unit * (1.8 + t * 0.4),
+          sy + unit * (1.2 + t * 0.8),
+          sx - unit * (2.4 + t * 0.3),
+          sy + unit * (3.5 + t * 0.5),
+        );
+        ctx.stroke();
+      }
+      break;
+    }
+    case "mohawk": {
+      const topY = headCy - headRy * 1.05;
+      for (let i = -2; i <= 2; i++) {
+        const x = i * unit * 0.55;
+        ctx.beginPath();
+        ctx.moveTo(x * 0.3, headCy - headRy * 0.85);
+        ctx.lineTo(x, topY - unit * (1.55 - Math.abs(i) * 0.12));
+        ctx.lineTo(x * 0.3 + (i > 0 ? unit * 0.12 : -unit * 0.12), headCy - headRy * 0.8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      break;
+    }
+    case "side-sweep": {
+      ctx.beginPath();
+      ctx.moveTo(headRx * 0.2, headCy - headRy * 0.95);
+      ctx.bezierCurveTo(
+        headRx * 0.85,
+        headCy - headRy * 1.22,
+        headRx * 1.75,
+        headCy - headRy * 0.82,
+        headRx * 1.85,
+        headCy - headRy * 0.32,
+      );
+      ctx.bezierCurveTo(
+        headRx * 1.35,
+        headCy + headRy * 0.08,
+        headRx * 0.45,
+        headCy - headRy * 0.42,
+        headRx * 0.2,
+        headCy - headRy * 0.95,
+      );
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case "curly": {
+      const n = 6;
+      for (let i = 0; i < n; i++) {
+        const a = Math.PI * (0.85 + (i / Math.max(1, n - 1)) * 0.35);
+        const cx = Math.cos(a) * headRx * 0.75;
+        const cy = headCy + Math.sin(a) * headRy * 0.35 - headRy * 0.55;
+        ctx.beginPath();
+        ctx.arc(cx, cy, unit * 0.38, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      break;
+    }
+    default:
+      break;
+  }
+  ctx.restore();
+};
+
 const drawMark = (
   ctx: CanvasRenderingContext2D,
   accentColor: string,
@@ -127,6 +222,8 @@ const drawMark = (
   frame: number,
   animation: MascotAnimation,
   expression: MascotExpression,
+  accessory: MascotAccessory,
+  hairColor: string | undefined,
 ) => {
   const width = MARK_UNITS * unit;
   const center = width / 2;
@@ -194,14 +291,54 @@ const drawMark = (
   ctx.lineWidth = Math.max(1.5, unit * 0.22);
   ctx.stroke();
 
+  drawAccessoryHair(
+    ctx,
+    accessory,
+    resolveHairColor(hairColor),
+    headCy,
+    headRx,
+    headRy,
+    unit,
+  );
+
   ctx.globalAlpha = alpha;
   const eyeY = headCy - unit * 0.35;
   const eyeDx = unit * 1.05;
   ctx.fillStyle = OUTLINE_COLOR;
-  for (const dx of [-eyeDx, eyeDx]) {
-    ctx.beginPath();
-    ctx.ellipse(dx, eyeY, unit * 0.38, unit * 0.48, 0, 0, Math.PI * 2);
-    ctx.fill();
+
+  const drawEyePair = (ryScale: number, rxScale: number) => {
+    for (const dx of [-eyeDx, eyeDx]) {
+      ctx.beginPath();
+      ctx.ellipse(dx, eyeY, unit * 0.38 * rxScale, unit * 0.48 * ryScale, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
+  switch (expression) {
+    case "happy":
+      drawEyePair(0.62, 1);
+      break;
+    case "surprised":
+      drawEyePair(1.12, 1.18);
+      break;
+    case "sleepy":
+      drawEyePair(0.32, 1);
+      break;
+    case "angry":
+      drawEyePair(1, 1);
+      ctx.lineWidth = Math.max(1.5, unit * 0.2);
+      ctx.strokeStyle = OUTLINE_COLOR;
+      ctx.beginPath();
+      ctx.moveTo(-eyeDx - unit * 0.55, eyeY - unit * 0.78);
+      ctx.lineTo(-eyeDx + unit * 0.32, eyeY - unit * 0.52);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(eyeDx + unit * 0.55, eyeY - unit * 0.78);
+      ctx.lineTo(eyeDx - unit * 0.32, eyeY - unit * 0.52);
+      ctx.stroke();
+      break;
+    default:
+      drawEyePair(1, 1);
   }
 
   ctx.globalAlpha = 1;
@@ -225,8 +362,8 @@ const resolveCanvasResolutionScale = (graphScale?: number): number => {
 export const MascotSprite = ({
   animation = "sway",
   expression = "normal",
-  accessory: _accessory = "none",
-  hairColor: _hairColor,
+  accessory = "none",
+  hairColor,
   scale,
   size = DEFAULT_SIZE,
   speedMs = 90,
@@ -239,8 +376,6 @@ export const MascotSprite = ({
   const frameRef = useRef(0);
   const unit = scale ?? size / MARK_UNITS;
   const canvasSize = MARK_UNITS * unit;
-  void _accessory;
-  void _hairColor;
   const resolutionScale = resolveCanvasResolutionScale(graphScale);
 
   useEffect(() => {
@@ -261,7 +396,7 @@ export const MascotSprite = ({
         "#a3e635");
 
     const drawFrame = () => {
-      drawMark(ctx, accentColor, unit, frameRef.current, animation, expression);
+      drawMark(ctx, accentColor, unit, frameRef.current, animation, expression, accessory, hairColor);
     };
 
     frameRef.current = 0;
@@ -277,7 +412,7 @@ export const MascotSprite = ({
     }, speedMs);
 
     return () => window.clearInterval(id);
-  }, [animation, expression, color, unit, speedMs, canvasSize, resolutionScale]);
+  }, [animation, expression, accessory, hairColor, color, unit, speedMs, canvasSize, resolutionScale]);
 
   return (
     <canvas

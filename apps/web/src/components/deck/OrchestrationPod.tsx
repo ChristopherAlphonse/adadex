@@ -223,7 +223,15 @@ export const OrchestrationPod = ({
         <div className="deck-pod-identity">
           <div className="deck-pod-mascot-col">
             <div className="deck-pod-mascot">
-              <MascotSprite speedMs={16} size={160} color={visuals.color} />
+              <MascotSprite
+                speedMs={16}
+                size={160}
+                color={visuals.color}
+                animation={visuals.animation}
+                expression={visuals.expression}
+                accessory={visuals.accessory}
+                {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
+              />
             </div>
           </div>
           <div className="deck-pod-identity-text">

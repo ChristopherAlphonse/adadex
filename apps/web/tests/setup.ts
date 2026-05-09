@@ -32,6 +32,7 @@ const canvasContextStub = {
   beginPath() {},
   moveTo() {},
   quadraticCurveTo() {},
+  bezierCurveTo() {},
   lineTo() {},
   closePath() {},
   stroke() {},

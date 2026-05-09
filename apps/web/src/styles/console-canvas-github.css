@@ -391,8 +391,8 @@
 .github-overview-recent-subject {
   margin: 0;
   color: var(--accent-primary);
-  font-size: 0.76rem;
-  line-height: 1.35;
+  font-size: 0.86rem;
+  line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -400,9 +400,9 @@
 
 .github-overview-recent-meta {
   margin: 0;
-  color: #8c9ab0;
-  font-size: 0.66rem;
-  letter-spacing: 0.03em;
+  color: #c5d0de;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
   display: inline-flex;
   gap: 0.36rem;
   flex-wrap: wrap;

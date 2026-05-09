@@ -126,10 +126,13 @@ export const AddOrchestrationForm = ({
         <div className="deck-add-form-preview">
           <MascotSprite
             color={selectedColor}
-              speedMs={16}
-              size={160}
-            />
-
+            animation={selectedAnimation}
+            expression={selectedExpression}
+            accessory={selectedAccessory}
+            hairColor={selectedHairColor}
+            speedMs={16}
+            size={160}
+          />
         </div>
 
         <label className="deck-add-form-label">
