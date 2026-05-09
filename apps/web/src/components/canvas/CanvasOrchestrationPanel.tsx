@@ -25,7 +25,7 @@ type CanvasOrchestrationPanelProps = {
   onCreateAgent?: ((coordinationId: string) => void) | undefined;
   onSolveTodoItem?: ((coordinationId: string, itemIndex: number) => void) | undefined;
   onSpawnSwarm?:
-    | ((coordinationId: string, workspaceMode: CoordinationWorkspaceMode) => void)
+    | ((coordinationId: string, workspaceMode: CoordinationWorkspaceMode) => Promise<void> | void)
     | undefined;
   onNavigateToConversation?: ((sessionId: string) => void) | undefined;
   onRefreshOrchestrationData?: (() => Promise<void>) | undefined;
@@ -266,7 +266,7 @@ export const CanvasOrchestrationPanel = ({
               disabled={spawningSwarmMode !== null}
               onClick={() => void handleSpawnSwarm("worktree")}
             >
-              {spawningSwarmMode === "worktree" ? "Spawning..." : "≣ Spawn Swarm (Worktrees)"}
+              {spawningSwarmMode === "worktree" ? "Spawning..." : "\u2263 Spawn Swarm (Worktrees)"}
             </button>
             <button
               type="button"
@@ -274,7 +274,7 @@ export const CanvasOrchestrationPanel = ({
               disabled={spawningSwarmMode !== null}
               onClick={() => void handleSpawnSwarm("shared")}
             >
-              {spawningSwarmMode === "shared" ? "Spawning..." : "≣ Spawn Swarm (Normal)"}
+              {spawningSwarmMode === "shared" ? "Spawning..." : "\u2263 Spawn Swarm (Normal)"}
             </button>
           </div>
           {spawnSwarmError ? <div className="deck-add-form-error">{spawnSwarmError}</div> : null}

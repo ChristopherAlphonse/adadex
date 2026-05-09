@@ -358,15 +358,7 @@ const drawMark = (
   ctx.lineWidth = Math.max(1.5, unit * 0.22);
   ctx.stroke();
 
-  drawAccessoryHair(
-    ctx,
-    accessory,
-    resolveHairColor(hairColor),
-    headCy,
-    headRx,
-    headRy,
-    unit,
-  );
+  drawAccessoryHair(ctx, accessory, resolveHairColor(hairColor), headCy, headRx, headRy, unit);
 
   ctx.globalAlpha = alpha;
   const eyeY = headCy - unit * 0.35;
@@ -463,7 +455,16 @@ export const MascotSprite = ({
         "#a3e635");
 
     const drawFrame = () => {
-      drawMark(ctx, accentColor, unit, frameRef.current, animation, expression, accessory, hairColor);
+      drawMark(
+        ctx,
+        accentColor,
+        unit,
+        frameRef.current,
+        animation,
+        expression,
+        accessory,
+        hairColor,
+      );
     };
 
     frameRef.current = 0;
@@ -479,7 +480,17 @@ export const MascotSprite = ({
     }, speedMs);
 
     return () => window.clearInterval(id);
-  }, [animation, expression, accessory, hairColor, color, unit, speedMs, canvasSize, resolutionScale]);
+  }, [
+    animation,
+    expression,
+    accessory,
+    hairColor,
+    color,
+    unit,
+    speedMs,
+    canvasSize,
+    resolutionScale,
+  ]);
 
   return (
     <canvas
