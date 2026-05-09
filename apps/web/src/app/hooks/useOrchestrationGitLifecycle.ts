@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 import {
-  buildTentacleGitCommitUrl,
-  buildTentacleGitPullRequestMergeUrl,
-  buildTentacleGitPullRequestUrl,
-  buildTentacleGitPushUrl,
-  buildTentacleGitStatusUrl,
-  buildTentacleGitSyncUrl,
+  buildOrchestrationGitCommitUrl,
+  buildOrchestrationGitPullRequestMergeUrl,
+  buildOrchestrationGitPullRequestUrl,
+  buildOrchestrationGitPushUrl,
+  buildOrchestrationGitStatusUrl,
+  buildOrchestrationGitSyncUrl,
 } from "../../runtime/runtimeEndpoints";
 import type {
   CoordinationGitStatusSnapshot,
@@ -15,30 +15,30 @@ import type {
   TerminalView,
 } from "../types";
 
-type UseTentacleGitLifecycleOptions = {
+type UseOrchestrationGitLifecycleOptions = {
   columns: TerminalView;
 };
 
-type UseTentacleGitLifecycleResult = {
-  gitStatusByTentacleId: Record<string, CoordinationGitStatusSnapshot>;
-  gitStatusLoadingByTentacleId: Record<string, boolean>;
-  pullRequestByTentacleId: Record<string, CoordinationPullRequestSnapshot>;
-  pullRequestLoadingByTentacleId: Record<string, boolean>;
-  openGitTentacleId: string | null;
-  openGitTentacleStatus: CoordinationGitStatusSnapshot | null;
-  openGitTentaclePullRequest: CoordinationPullRequestSnapshot | null;
+type UseOrchestrationGitLifecycleResult = {
+  gitStatusByOrchestrationId: Record<string, CoordinationGitStatusSnapshot>;
+  gitStatusLoadingByOrchestrationId: Record<string, boolean>;
+  pullRequestByOrchestrationId: Record<string, CoordinationPullRequestSnapshot>;
+  pullRequestLoadingByOrchestrationId: Record<string, boolean>;
+  openGitOrchestrationId: string | null;
+  openGitOrchestrationStatus: CoordinationGitStatusSnapshot | null;
+  openGitOrchestrationPullRequest: CoordinationPullRequestSnapshot | null;
   gitCommitMessageDraft: string;
   gitDialogError: string | null;
   isGitDialogLoading: boolean;
   isGitDialogMutating: boolean;
   setGitCommitMessageDraft: Dispatch<SetStateAction<string>>;
-  openTentacleGitActions: (coordinationId: string) => void;
-  closeTentacleGitActions: () => void;
-  commitTentacleChanges: () => Promise<void>;
-  commitAndPushTentacleBranch: () => Promise<void>;
-  pushTentacleBranch: () => Promise<void>;
-  syncTentacleBranch: () => Promise<void>;
-  mergeTentaclePullRequest: () => Promise<void>;
+  openOrchestrationGitActions: (coordinationId: string) => void;
+  closeOrchestrationGitActions: () => void;
+  commitOrchestrationChanges: () => Promise<void>;
+  commitAndPushOrchestrationBranch: () => Promise<void>;
+  pushOrchestrationBranch: () => Promise<void>;
+  syncOrchestrationBranch: () => Promise<void>;
+  mergeOrchestrationPullRequest: () => Promise<void>;
 };
 
 const parseGitError = async (response: Response, fallback: string) => {
@@ -54,7 +54,7 @@ const parseGitError = async (response: Response, fallback: string) => {
   return fallback;
 };
 
-const parseTentacleGitStatus = (payload: unknown): CoordinationGitStatusSnapshot | null => {
+const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSnapshot | null => {
   if (payload === null || payload === undefined || typeof payload !== "object") {
     return null;
   }
@@ -92,7 +92,7 @@ const parseTentacleGitStatus = (payload: unknown): CoordinationGitStatusSnapshot
   };
 };
 
-const parseTentaclePullRequest = (payload: unknown): CoordinationPullRequestSnapshot | null => {
+const parseOrchestrationPullRequest = (payload: unknown): CoordinationPullRequestSnapshot | null => {
   if (payload === null || payload === undefined || typeof payload !== "object") {
     return null;
   }
@@ -135,40 +135,40 @@ const parseTentaclePullRequest = (payload: unknown): CoordinationPullRequestSnap
   };
 };
 
-export const useTentacleGitLifecycle = ({
+export const useOrchestrationGitLifecycle = ({
   columns,
-}: UseTentacleGitLifecycleOptions): UseTentacleGitLifecycleResult => {
-  const [gitStatusByTentacleId, setGitStatusByTentacleId] = useState<
+}: UseOrchestrationGitLifecycleOptions): UseOrchestrationGitLifecycleResult => {
+  const [gitStatusByOrchestrationId, setGitStatusByOrchestrationId] = useState<
     Record<string, CoordinationGitStatusSnapshot>
   >({});
-  const [gitStatusLoadingByTentacleId, setGitStatusLoadingByTentacleId] = useState<
+  const [gitStatusLoadingByOrchestrationId, setGitStatusLoadingByOrchestrationId] = useState<
     Record<string, boolean>
   >({});
-  const [gitStatusAttemptedTentacleIds, setGitStatusAttemptedTentacleIds] = useState<
+  const [gitStatusAttemptedOrchestrationIds, setGitStatusAttemptedOrchestrationIds] = useState<
     Record<string, boolean>
   >({});
-  const [pullRequestByTentacleId, setPullRequestByTentacleId] = useState<
+  const [pullRequestByOrchestrationId, setPullRequestByOrchestrationId] = useState<
     Record<string, CoordinationPullRequestSnapshot>
   >({});
-  const [pullRequestLoadingByTentacleId, setPullRequestLoadingByTentacleId] = useState<
+  const [pullRequestLoadingByOrchestrationId, setPullRequestLoadingByOrchestrationId] = useState<
     Record<string, boolean>
   >({});
-  const [pullRequestAttemptedTentacleIds, setPullRequestAttemptedTentacleIds] = useState<
+  const [pullRequestAttemptedOrchestrationIds, setPullRequestAttemptedOrchestrationIds] = useState<
     Record<string, boolean>
   >({});
-  const [openGitTentacleId, setOpenGitTentacleId] = useState<string | null>(null);
+  const [openGitOrchestrationId, setOpenGitOrchestrationId] = useState<string | null>(null);
   const [gitCommitMessageDraft, setGitCommitMessageDraft] = useState("");
   const [gitDialogError, setGitDialogError] = useState<string | null>(null);
   const [isGitDialogMutating, setIsGitDialogMutating] = useState(false);
 
-  const fetchTentacleGitStatus = useCallback(async (coordinationId: string) => {
-    setGitStatusLoadingByTentacleId((current) => ({
+  const fetchOrchestrationGitStatus = useCallback(async (coordinationId: string) => {
+    setGitStatusLoadingByOrchestrationId((current) => ({
       ...current,
       [coordinationId]: true,
     }));
 
     try {
-      const response = await fetch(buildTentacleGitStatusUrl(coordinationId), {
+      const response = await fetch(buildOrchestrationGitStatusUrl(coordinationId), {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -182,32 +182,32 @@ export const useTentacleGitLifecycle = ({
         throw new Error(errorMessage);
       }
 
-      const payload = parseTentacleGitStatus(await response.json());
+      const payload = parseOrchestrationGitStatus(await response.json());
       if (!payload) {
         throw new Error("Unable to parse git status response.");
       }
 
-      setGitStatusByTentacleId((current) => ({
+      setGitStatusByOrchestrationId((current) => ({
         ...current,
         [coordinationId]: payload,
       }));
       return payload;
     } finally {
-      setGitStatusLoadingByTentacleId((current) => ({
+      setGitStatusLoadingByOrchestrationId((current) => ({
         ...current,
         [coordinationId]: false,
       }));
     }
   }, []);
 
-  const fetchTentaclePullRequest = useCallback(async (coordinationId: string) => {
-    setPullRequestLoadingByTentacleId((current) => ({
+  const fetchOrchestrationPullRequest = useCallback(async (coordinationId: string) => {
+    setPullRequestLoadingByOrchestrationId((current) => ({
       ...current,
       [coordinationId]: true,
     }));
 
     try {
-      const response = await fetch(buildTentacleGitPullRequestUrl(coordinationId), {
+      const response = await fetch(buildOrchestrationGitPullRequestUrl(coordinationId), {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -221,25 +221,25 @@ export const useTentacleGitLifecycle = ({
         throw new Error(errorMessage);
       }
 
-      const payload = parseTentaclePullRequest(await response.json());
+      const payload = parseOrchestrationPullRequest(await response.json());
       if (!payload) {
         throw new Error("Unable to parse pull request response.");
       }
 
-      setPullRequestByTentacleId((current) => ({
+      setPullRequestByOrchestrationId((current) => ({
         ...current,
         [coordinationId]: payload,
       }));
       return payload;
     } finally {
-      setPullRequestLoadingByTentacleId((current) => ({
+      setPullRequestLoadingByOrchestrationId((current) => ({
         ...current,
         [coordinationId]: false,
       }));
     }
   }, []);
 
-  const worktreeTentacleIds = useMemo(
+  const worktreeOrchestrationIds = useMemo(
     () =>
       columns
         .filter((column) => column.workspaceMode === "worktree")
@@ -248,96 +248,96 @@ export const useTentacleGitLifecycle = ({
   );
 
   useEffect(() => {
-    const activeTentacleIds = new Set(columns.map((column) => column.coordinationId));
-    setGitStatusByTentacleId((current) =>
+    const activeOrchestrationIds = new Set(columns.map((column) => column.coordinationId));
+    setGitStatusByOrchestrationId((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeTentacleIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
       ),
     );
-    setGitStatusLoadingByTentacleId((current) =>
+    setGitStatusLoadingByOrchestrationId((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeTentacleIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
       ),
     );
-    setGitStatusAttemptedTentacleIds((current) =>
+    setGitStatusAttemptedOrchestrationIds((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeTentacleIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
       ),
     );
-    setPullRequestByTentacleId((current) =>
+    setPullRequestByOrchestrationId((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeTentacleIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
       ),
     );
-    setPullRequestLoadingByTentacleId((current) =>
+    setPullRequestLoadingByOrchestrationId((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeTentacleIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
       ),
     );
-    setPullRequestAttemptedTentacleIds((current) =>
+    setPullRequestAttemptedOrchestrationIds((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeTentacleIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
       ),
     );
-    if (openGitTentacleId && !activeTentacleIds.has(openGitTentacleId)) {
-      setOpenGitTentacleId(null);
+    if (openGitOrchestrationId && !activeOrchestrationIds.has(openGitOrchestrationId)) {
+      setOpenGitOrchestrationId(null);
       setGitDialogError(null);
       setGitCommitMessageDraft("");
     }
-  }, [columns, openGitTentacleId]);
+  }, [columns, openGitOrchestrationId]);
 
   useEffect(() => {
-    for (const coordinationId of worktreeTentacleIds) {
-      if (gitStatusAttemptedTentacleIds[coordinationId]) {
+    for (const coordinationId of worktreeOrchestrationIds) {
+      if (gitStatusAttemptedOrchestrationIds[coordinationId]) {
         continue;
       }
 
-      setGitStatusAttemptedTentacleIds((current) => ({
+      setGitStatusAttemptedOrchestrationIds((current) => ({
         ...current,
         [coordinationId]: true,
       }));
-      void fetchTentacleGitStatus(coordinationId).catch((error: unknown) => {
-        console.warn(`[git] Failed to fetch status for tentacle ${coordinationId}:`, error);
+      void fetchOrchestrationGitStatus(coordinationId).catch((error: unknown) => {
+        console.warn(`[git] Failed to fetch status for orchestration ${coordinationId}:`, error);
       });
     }
-  }, [fetchTentacleGitStatus, gitStatusAttemptedTentacleIds, worktreeTentacleIds]);
+  }, [fetchOrchestrationGitStatus, gitStatusAttemptedOrchestrationIds, worktreeOrchestrationIds]);
 
   useEffect(() => {
-    for (const coordinationId of worktreeTentacleIds) {
-      if (pullRequestAttemptedTentacleIds[coordinationId]) {
+    for (const coordinationId of worktreeOrchestrationIds) {
+      if (pullRequestAttemptedOrchestrationIds[coordinationId]) {
         continue;
       }
 
-      setPullRequestAttemptedTentacleIds((current) => ({
+      setPullRequestAttemptedOrchestrationIds((current) => ({
         ...current,
         [coordinationId]: true,
       }));
-      void fetchTentaclePullRequest(coordinationId).catch((error: unknown) => {
-        console.warn(`[git] Failed to fetch pull request for tentacle ${coordinationId}:`, error);
+      void fetchOrchestrationPullRequest(coordinationId).catch((error: unknown) => {
+        console.warn(`[git] Failed to fetch pull request for orchestration ${coordinationId}:`, error);
       });
     }
-  }, [fetchTentaclePullRequest, pullRequestAttemptedTentacleIds, worktreeTentacleIds]);
+  }, [fetchOrchestrationPullRequest, pullRequestAttemptedOrchestrationIds, worktreeOrchestrationIds]);
 
-  const openTentacleGitActions = useCallback(
+  const openOrchestrationGitActions = useCallback(
     (coordinationId: string) => {
-      setOpenGitTentacleId(coordinationId);
+      setOpenGitOrchestrationId(coordinationId);
       setGitDialogError(null);
       setGitCommitMessageDraft("");
 
       void Promise.all([
-        fetchTentacleGitStatus(coordinationId),
-        fetchTentaclePullRequest(coordinationId),
+        fetchOrchestrationGitStatus(coordinationId),
+        fetchOrchestrationPullRequest(coordinationId),
       ]).catch((error: unknown) => {
         setGitDialogError(
           error instanceof Error ? error.message : "Unable to fetch git lifecycle data.",
         );
       });
     },
-    [fetchTentacleGitStatus, fetchTentaclePullRequest],
+    [fetchOrchestrationGitStatus, fetchOrchestrationPullRequest],
   );
 
-  const closeTentacleGitActions = useCallback(() => {
-    setOpenGitTentacleId(null);
+  const closeOrchestrationGitActions = useCallback(() => {
+    setOpenGitOrchestrationId(null);
     setGitDialogError(null);
     setGitCommitMessageDraft("");
   }, []);
@@ -347,16 +347,16 @@ export const useTentacleGitLifecycle = ({
       action: "commit" | "push" | "sync",
       request: { body?: string; headers?: Record<string, string> } = {},
     ): Promise<CoordinationGitStatusSnapshot | null> => {
-      if (!openGitTentacleId) {
+      if (!openGitOrchestrationId) {
         return null;
       }
 
       const endpoint =
         action === "commit"
-          ? buildTentacleGitCommitUrl(openGitTentacleId)
+          ? buildOrchestrationGitCommitUrl(openGitOrchestrationId)
           : action === "push"
-            ? buildTentacleGitPushUrl(openGitTentacleId)
-            : buildTentacleGitSyncUrl(openGitTentacleId);
+            ? buildOrchestrationGitPushUrl(openGitOrchestrationId)
+            : buildOrchestrationGitSyncUrl(openGitOrchestrationId);
 
       setIsGitDialogMutating(true);
       setGitDialogError(null);
@@ -378,35 +378,35 @@ export const useTentacleGitLifecycle = ({
           throw new Error(errorMessage);
         }
 
-        const payload = parseTentacleGitStatus(await response.json());
+        const payload = parseOrchestrationGitStatus(await response.json());
         if (!payload) {
           throw new Error("Unable to parse git lifecycle response.");
         }
 
-        setGitStatusByTentacleId((current) => ({
+        setGitStatusByOrchestrationId((current) => ({
           ...current,
-          [openGitTentacleId]: payload,
+          [openGitOrchestrationId]: payload,
         }));
         return payload;
       } catch (error) {
         setGitDialogError(
-          error instanceof Error ? error.message : `Unable to ${action} tentacle worktree.`,
+          error instanceof Error ? error.message : `Unable to ${action} orchestration worktree.`,
         );
         return null;
       } finally {
         setIsGitDialogMutating(false);
       }
     },
-    [openGitTentacleId],
+    [openGitOrchestrationId],
   );
 
   const runPullRequestMutation = useCallback(
     async (request: { body?: string; headers?: Record<string, string> } = {}) => {
-      if (!openGitTentacleId) {
+      if (!openGitOrchestrationId) {
         return;
       }
 
-      const endpoint = buildTentacleGitPullRequestMergeUrl(openGitTentacleId);
+      const endpoint = buildOrchestrationGitPullRequestMergeUrl(openGitOrchestrationId);
 
       setIsGitDialogMutating(true);
       setGitDialogError(null);
@@ -428,14 +428,14 @@ export const useTentacleGitLifecycle = ({
           throw new Error(errorMessage);
         }
 
-        const payload = parseTentaclePullRequest(await response.json());
+        const payload = parseOrchestrationPullRequest(await response.json());
         if (!payload) {
           throw new Error("Unable to parse pull request response.");
         }
 
-        setPullRequestByTentacleId((current) => ({
+        setPullRequestByOrchestrationId((current) => ({
           ...current,
-          [openGitTentacleId]: payload,
+          [openGitOrchestrationId]: payload,
         }));
       } catch (error) {
         setGitDialogError(error instanceof Error ? error.message : "Unable to merge pull request.");
@@ -443,10 +443,10 @@ export const useTentacleGitLifecycle = ({
         setIsGitDialogMutating(false);
       }
     },
-    [openGitTentacleId],
+    [openGitOrchestrationId],
   );
 
-  const commitTentacleChanges = useCallback(async () => {
+  const commitOrchestrationChanges = useCallback(async () => {
     const message = gitCommitMessageDraft.trim();
     if (message.length === 0) {
       setGitDialogError("Commit message cannot be empty.");
@@ -464,7 +464,7 @@ export const useTentacleGitLifecycle = ({
     }
   }, [gitCommitMessageDraft, runGitMutation]);
 
-  const commitAndPushTentacleBranch = useCallback(async () => {
+  const commitAndPushOrchestrationBranch = useCallback(async () => {
     const message = gitCommitMessageDraft.trim();
     if (message.length === 0) {
       setGitDialogError("Commit message cannot be empty.");
@@ -484,47 +484,47 @@ export const useTentacleGitLifecycle = ({
     await runGitMutation("push");
   }, [gitCommitMessageDraft, runGitMutation]);
 
-  const pushTentacleBranch = useCallback(async () => {
+  const pushOrchestrationBranch = useCallback(async () => {
     await runGitMutation("push");
   }, [runGitMutation]);
 
-  const syncTentacleBranch = useCallback(async () => {
+  const syncOrchestrationBranch = useCallback(async () => {
     await runGitMutation("sync");
   }, [runGitMutation]);
 
-  const mergeTentaclePullRequest = useCallback(async () => {
+  const mergeOrchestrationPullRequest = useCallback(async () => {
     await runPullRequestMutation();
   }, [runPullRequestMutation]);
 
-  const openGitTentacleStatus =
-    openGitTentacleId !== null ? (gitStatusByTentacleId[openGitTentacleId] ?? null) : null;
-  const openGitTentaclePullRequest =
-    openGitTentacleId !== null ? (pullRequestByTentacleId[openGitTentacleId] ?? null) : null;
+  const openGitOrchestrationStatus =
+    openGitOrchestrationId !== null ? (gitStatusByOrchestrationId[openGitOrchestrationId] ?? null) : null;
+  const openGitOrchestrationPullRequest =
+    openGitOrchestrationId !== null ? (pullRequestByOrchestrationId[openGitOrchestrationId] ?? null) : null;
   const isGitDialogLoading =
-    openGitTentacleId !== null
-      ? (gitStatusLoadingByTentacleId[openGitTentacleId] ?? false) ||
-        (pullRequestLoadingByTentacleId[openGitTentacleId] ?? false)
+    openGitOrchestrationId !== null
+      ? (gitStatusLoadingByOrchestrationId[openGitOrchestrationId] ?? false) ||
+        (pullRequestLoadingByOrchestrationId[openGitOrchestrationId] ?? false)
       : false;
 
   return {
-    gitStatusByTentacleId,
-    gitStatusLoadingByTentacleId,
-    pullRequestByTentacleId,
-    pullRequestLoadingByTentacleId,
-    openGitTentacleId,
-    openGitTentacleStatus,
-    openGitTentaclePullRequest,
+    gitStatusByOrchestrationId,
+    gitStatusLoadingByOrchestrationId,
+    pullRequestByOrchestrationId,
+    pullRequestLoadingByOrchestrationId,
+    openGitOrchestrationId,
+    openGitOrchestrationStatus,
+    openGitOrchestrationPullRequest,
     gitCommitMessageDraft,
     gitDialogError,
     isGitDialogLoading,
     isGitDialogMutating,
     setGitCommitMessageDraft,
-    openTentacleGitActions,
-    closeTentacleGitActions,
-    commitTentacleChanges,
-    commitAndPushTentacleBranch,
-    pushTentacleBranch,
-    syncTentacleBranch,
-    mergeTentaclePullRequest,
+    openOrchestrationGitActions,
+    closeOrchestrationGitActions,
+    commitOrchestrationChanges,
+    commitAndPushOrchestrationBranch,
+    pushOrchestrationBranch,
+    syncOrchestrationBranch,
+    mergeOrchestrationPullRequest,
   };
 };

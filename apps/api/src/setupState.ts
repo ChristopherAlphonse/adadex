@@ -38,8 +38,8 @@ export const readSetupState = (stateDir: string): SetupState => {
     const coordinationsInitializedAt =
       typeof raw.coordinationsInitializedAt === "string"
         ? raw.coordinationsInitializedAt
-        : typeof raw.tentaclesInitializedAt === "string"
-          ? raw.tentaclesInitializedAt
+        : typeof raw.orchestrationsInitializedAt === "string"
+          ? raw.orchestrationsInitializedAt
           : undefined;
 
     return {

@@ -69,8 +69,8 @@ describe("resolvePrompt", () => {
   });
 
   it("reads and interpolates a template", async () => {
-    await writeFile(join(promptsDir, "tentacle-init.md"), "You are the {{coordinationId}} agent.");
-    const result = await resolvePrompt(promptsDir, "tentacle-init", {
+    await writeFile(join(promptsDir, "orchestration-init.md"), "You are the {{coordinationId}} agent.");
+    const result = await resolvePrompt(promptsDir, "orchestration-init", {
       coordinationId: "sandbox",
     });
     expect(result).toBe("You are the sandbox agent.");

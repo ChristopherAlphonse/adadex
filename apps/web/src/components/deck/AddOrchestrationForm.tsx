@@ -1,25 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { DeckAvailableSkill } from "@adadex/core";
-import type { OctopusAccessory, OctopusAnimation, OctopusExpression } from "../EmptyOctopus";
-import { OctopusGlyph } from "../EmptyOctopus";
-import { ACCESSORIES, ANIMATIONS, EXPRESSIONS, OCTOPUS_COLORS } from "./octopusVisuals";
+import type { MascotAccessory, MascotAnimation, MascotExpression } from "../MascotSprite";
+import { MascotSprite } from "../MascotSprite";
+import { ACCESSORIES, ANIMATIONS, EXPRESSIONS, MASCOT_COLORS } from "./mascotVisuals";
 
-// ─── Add tentacle form ───────────────────────────────────────────────────────
+// ─── Add coordination form ─────────────────────────────────────────────────
 
-export type OctopusAppearancePayload = {
+export type MascotAppearancePayload = {
   animation: string;
   expression: string;
   accessory: string;
   hairColor: string;
 };
 
-export type AddTentacleFormProps = {
+export type AddOrchestrationFormProps = {
   onSubmit: (
     name: string,
     description: string,
     color: string,
-    octopus: OctopusAppearancePayload,
+    mascot: MascotAppearancePayload,
     suggestedSkills: string[],
   ) => void;
   onCancel: () => void;
@@ -28,14 +28,14 @@ export type AddTentacleFormProps = {
   availableSkills: DeckAvailableSkill[];
 };
 
-export const EXPRESSION_OPTIONS: { value: OctopusExpression; label: string }[] = [
+export const EXPRESSION_OPTIONS: { value: MascotExpression; label: string }[] = [
   { value: "normal", label: "Normal" },
   { value: "happy", label: "Happy" },
   { value: "angry", label: "Angry" },
   { value: "surprised", label: "Surprised" },
 ];
 
-export const ACCESSORY_OPTIONS: { value: OctopusAccessory; label: string }[] = [
+export const ACCESSORY_OPTIONS: { value: MascotAccessory; label: string }[] = [
   { value: "none", label: "None" },
   { value: "long", label: "Long" },
   { value: "mohawk", label: "Mohawk" },
@@ -54,28 +54,28 @@ export const HAIR_COLORS = [
   "#1e90ff",
 ];
 
-export const AddTentacleForm = ({
+export const AddOrchestrationForm = ({
   onSubmit,
   onCancel,
   isSubmitting,
   error,
   availableSkills,
-}: AddTentacleFormProps) => {
+}: AddOrchestrationFormProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState(
-    () => OCTOPUS_COLORS[Math.floor(Math.random() * OCTOPUS_COLORS.length)] as string,
+    () => MASCOT_COLORS[Math.floor(Math.random() * MASCOT_COLORS.length)] as string,
   );
-  const [selectedExpression, setSelectedExpression] = useState<OctopusExpression>(() => {
-    const pick = EXPRESSIONS[Math.floor(Math.random() * EXPRESSIONS.length)] as OctopusExpression;
+  const [selectedExpression, setSelectedExpression] = useState<MascotExpression>(() => {
+    const pick = EXPRESSIONS[Math.floor(Math.random() * EXPRESSIONS.length)] as MascotExpression;
     return pick;
   });
-  const [selectedAccessory, setSelectedAccessory] = useState<OctopusAccessory>(() => {
-    const pick = ACCESSORIES[Math.floor(Math.random() * ACCESSORIES.length)] as OctopusAccessory;
+  const [selectedAccessory, setSelectedAccessory] = useState<MascotAccessory>(() => {
+    const pick = ACCESSORIES[Math.floor(Math.random() * ACCESSORIES.length)] as MascotAccessory;
     return pick;
   });
-  const [selectedAnimation] = useState<OctopusAnimation>(() => {
-    const pick = ANIMATIONS[Math.floor(Math.random() * ANIMATIONS.length)] as OctopusAnimation;
+  const [selectedAnimation] = useState<MascotAnimation>(() => {
+    const pick = ANIMATIONS[Math.floor(Math.random() * ANIMATIONS.length)] as MascotAnimation;
     return pick;
   });
   const [selectedHairColor, setSelectedHairColor] = useState(
@@ -119,19 +119,17 @@ export const AddTentacleForm = ({
         <button type="button" className="deck-add-form-back" onClick={onCancel}>
           ← Back
         </button>
-        <span className="deck-add-form-title">New Tentacle</span>
+        <span className="deck-add-form-title">New Coordination</span>
       </div>
 
       <div className="deck-add-form-body">
         <div className="deck-add-form-preview">
-          <OctopusGlyph
+          <MascotSprite
             color={selectedColor}
-            animation={selectedAnimation}
-            expression={selectedExpression}
-            accessory={selectedAccessory}
-            hairColor={selectedHairColor}
-            scale={8}
-          />
+              speedMs={16}
+              size={160}
+            />
+
         </div>
 
         <label className="deck-add-form-label">
@@ -152,7 +150,7 @@ export const AddTentacleForm = ({
             className="deck-add-form-textarea"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="What this tentacle is responsible for..."
+            placeholder="What this coordination is responsible for..."
             rows={3}
           />
         </label>
@@ -189,7 +187,7 @@ export const AddTentacleForm = ({
         <div className="deck-add-form-label">
           Color
           <div className="deck-add-form-colors">
-            {OCTOPUS_COLORS.map((c) => (
+            {MASCOT_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
@@ -261,7 +259,7 @@ export const AddTentacleForm = ({
           className="deck-add-form-submit"
           disabled={isSubmitting || name.trim().length === 0}
         >
-          {isSubmitting ? "Creating..." : "Create Tentacle"}
+          {isSubmitting ? "Creating..." : "Create Coordination"}
         </button>
       </div>
     </form>

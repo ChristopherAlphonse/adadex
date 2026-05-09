@@ -79,15 +79,15 @@ const buildSingleTodoWorkerPrompt = async ({
   });
 };
 
-export const handleDeckTentaclesRoute: ApiRouteHandler = async (
+export const handleDeckOrchestrationsRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { workspaceCwd, projectStateDir },
 ) => {
   if (requestUrl.pathname !== "/api/deck/coordinations") return false;
 
   if (request.method === "GET") {
-    const tentacles = readDeckCoordinations(workspaceCwd, projectStateDir);
-    writeJson(response, 200, tentacles, corsOrigin);
+    const orchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
+    writeJson(response, 200, orchestrations, corsOrigin);
     return true;
   }
 
@@ -104,20 +104,22 @@ export const handleDeckTentaclesRoute: ApiRouteHandler = async (
         ? body.suggestedSkills.filter((skill): skill is string => typeof skill === "string")
         : [];
 
-    const rawOctopus =
-      body && typeof body.octopus === "object" && body.octopus !== null
-        ? (body.octopus as Record<string, unknown>)
-        : {};
-    const octopus = {
-      animation: typeof rawOctopus.animation === "string" ? rawOctopus.animation : null,
-      expression: typeof rawOctopus.expression === "string" ? rawOctopus.expression : null,
-      accessory: typeof rawOctopus.accessory === "string" ? rawOctopus.accessory : null,
-      hairColor: typeof rawOctopus.hairColor === "string" ? rawOctopus.hairColor : null,
+    const rawAppearance =
+      body && typeof body.mascot === "object" && body.mascot !== null
+        ? (body.mascot as Record<string, unknown>)
+        : body && typeof body.octopus === "object" && body.octopus !== null
+          ? (body.octopus as Record<string, unknown>)
+          : {};
+    const mascot = {
+      animation: typeof rawAppearance.animation === "string" ? rawAppearance.animation : null,
+      expression: typeof rawAppearance.expression === "string" ? rawAppearance.expression : null,
+      accessory: typeof rawAppearance.accessory === "string" ? rawAppearance.accessory : null,
+      hairColor: typeof rawAppearance.hairColor === "string" ? rawAppearance.hairColor : null,
     };
 
     const result = createDeckCoordination(
       workspaceCwd,
-      { name, description, color, octopus, suggestedSkills },
+      { name, description, color, mascot, suggestedSkills },
       projectStateDir,
     );
     if (!result.ok) {
@@ -148,13 +150,13 @@ export const handleDeckSkillsRoute: ApiRouteHandler = async (
   return true;
 };
 
-const DECK_TENTACLE_ITEM_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)$/;
+const DECK_COORDINATION_ITEM_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)$/;
 
-export const handleDeckTentacleItemRoute: ApiRouteHandler = async (
+export const handleDeckOrchestrationItemRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { workspaceCwd, projectStateDir },
 ) => {
-  const match = requestUrl.pathname.match(DECK_TENTACLE_ITEM_PATTERN);
+  const match = requestUrl.pathname.match(DECK_COORDINATION_ITEM_PATTERN);
   if (!match) return false;
 
   if (request.method !== "DELETE") {
@@ -199,13 +201,13 @@ export const handleDeckVaultFileRoute: ApiRouteHandler = async (
   return true;
 };
 
-const DECK_TENTACLE_SKILLS_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/skills$/;
+const DECK_COORDINATION_SKILLS_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/skills$/;
 
-export const handleDeckTentacleSkillsRoute: ApiRouteHandler = async (
+export const handleDeckOrchestrationSkillsRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { workspaceCwd, projectStateDir },
 ) => {
-  const match = requestUrl.pathname.match(DECK_TENTACLE_SKILLS_PATTERN);
+  const match = requestUrl.pathname.match(DECK_COORDINATION_SKILLS_PATTERN);
   if (!match) return false;
   if (request.method !== "PATCH") {
     writeMethodNotAllowed(response, corsOrigin);
@@ -464,8 +466,8 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
     return true;
   }
 
-  const deckTentacles = readDeckCoordinations(workspaceCwd, projectStateDir);
-  const deckEntry = deckTentacles.find((tentacle) => tentacle.coordinationId === coordinationId);
+  const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
+  const deckEntry = deckOrchestrations.find((orchestration) => orchestration.coordinationId === coordinationId);
   const coordinationName = deckEntry?.displayName ?? coordinationId;
 
   try {
@@ -518,13 +520,13 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
 // Deck — Swarm
 // ---------------------------------------------------------------------------
 
-const DECK_TENTACLE_SWARM_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/swarm$/;
+const DECK_COORDINATION_SWARM_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/swarm$/;
 
-export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
+export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime, workspaceCwd, projectStateDir, promptsDir, getApiPort },
 ) => {
-  const match = requestUrl.pathname.match(DECK_TENTACLE_SWARM_PATTERN);
+  const match = requestUrl.pathname.match(DECK_COORDINATION_SWARM_PATTERN);
   if (!match) return false;
 
   if (request.method !== "POST") {
@@ -617,8 +619,8 @@ export const handleDeckTentacleSwarmRoute: ApiRouteHandler = async (
     : "HEAD";
 
   // Resolve the coordination display name for prompts.
-  const deckTentacles = readDeckCoordinations(workspaceCwd, projectStateDir);
-  const deckEntry = deckTentacles.find((t) => t.coordinationId === coordinationId);
+  const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
+  const deckEntry = deckOrchestrations.find((t) => t.coordinationId === coordinationId);
   const coordinationName = deckEntry?.displayName ?? coordinationId;
 
   const apiPort = getApiPort();

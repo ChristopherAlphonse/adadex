@@ -13,9 +13,13 @@ import type {
   DeckAvailableSkill,
   DeckCoordinationStatus,
   DeckCoordinationSummary,
-  DeckOctopusAppearance,
+  DeckMascotAppearance,
 } from "@adadex/core";
-import { COORDINATIONS_DIR_SEGMENT, WORKSPACE_RUNTIME_DIR } from "@adadex/core";
+import {
+  COORDINATIONS_DIR_SEGMENT,
+  LEGACY_DECK_STATE_MAP_KEY,
+  WORKSPACE_RUNTIME_DIR,
+} from "@adadex/core";
 
 import {
   applySuggestedSkillsToContext,
@@ -33,7 +37,7 @@ const VALID_STATUSES: ReadonlySet<string> = new Set(["idle", "active", "blocked"
 type DeckCoordinationState = {
   color: string | null;
   status: DeckCoordinationStatus;
-  octopus: DeckOctopusAppearance;
+  mascot: DeckMascotAppearance;
   scope: { paths: string[]; tags: string[] };
 };
 
@@ -48,7 +52,7 @@ const readDeckState = (projectStateDir: string): DeckStateDocument => {
     if (raw && typeof raw === "object") {
       const coordinations: Record<string, DeckCoordinationState> = {};
       const fromNew = raw.coordinations;
-      const fromLegacy = raw.tentacles;
+      const fromLegacy = raw[LEGACY_DECK_STATE_MAP_KEY];
       if (fromNew && typeof fromNew === "object" && fromNew !== null) {
         for (const [key, val] of Object.entries(fromNew)) {
           coordinations[key] = parseCoordinationState(val);
@@ -80,7 +84,7 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
   const defaults: DeckCoordinationState = {
     color: null,
     status: "idle",
-    octopus: { animation: null, expression: null, accessory: null, hairColor: null },
+    mascot: { animation: null, expression: null, accessory: null, hairColor: null },
     scope: { paths: [], tags: [] },
   };
 
@@ -94,18 +98,23 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
       ? (rec.status as DeckCoordinationStatus)
       : "idle";
 
-  const octopus: DeckOctopusAppearance = {
+  const mascot: DeckMascotAppearance = {
     animation: null,
     expression: null,
     accessory: null,
     hairColor: null,
   };
-  if (rec.octopus !== null && typeof rec.octopus === "object") {
-    const o = rec.octopus as Record<string, unknown>;
-    if (typeof o.animation === "string") octopus.animation = o.animation;
-    if (typeof o.expression === "string") octopus.expression = o.expression;
-    if (typeof o.accessory === "string") octopus.accessory = o.accessory;
-    if (typeof o.hairColor === "string") octopus.hairColor = o.hairColor;
+  const appearanceRaw =
+    rec.mascot !== null && typeof rec.mascot === "object"
+      ? (rec.mascot as Record<string, unknown>)
+      : rec.octopus !== null && typeof rec.octopus === "object"
+        ? (rec.octopus as Record<string, unknown>)
+        : null;
+  if (appearanceRaw !== null) {
+    if (typeof appearanceRaw.animation === "string") mascot.animation = appearanceRaw.animation;
+    if (typeof appearanceRaw.expression === "string") mascot.expression = appearanceRaw.expression;
+    if (typeof appearanceRaw.accessory === "string") mascot.accessory = appearanceRaw.accessory;
+    if (typeof appearanceRaw.hairColor === "string") mascot.hairColor = appearanceRaw.hairColor;
   }
 
   const scope = { paths: [] as string[], tags: [] as string[] };
@@ -119,7 +128,7 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
     }
   }
 
-  return { color, status, octopus, scope };
+  return { color, status, mascot, scope };
 };
 
 // ─── Parse CONTEXT.md for title and description ───────────────────────────────
@@ -179,18 +188,18 @@ export const parseTodoProgress = (
   return { total, done, items };
 };
 
-// ─── Read all tentacles ─────────────────────────────────────────────────────
+// ─── Read all deck coordinations ───────────────────────────────────────────
 
 export const readDeckCoordinations = (
   workspaceCwd: string,
   projectStateDir?: string,
 ): DeckCoordinationSummary[] => {
-  const tentaclesRoot = join(workspaceCwd, COORDINATIONS_DIR);
-  if (!existsSync(tentaclesRoot)) return [];
+  const coordinationsRoot = join(workspaceCwd, COORDINATIONS_DIR);
+  if (!existsSync(coordinationsRoot)) return [];
 
   let entries: string[];
   try {
-    entries = readdirSync(tentaclesRoot);
+    entries = readdirSync(coordinationsRoot);
   } catch {
     return [];
   }
@@ -199,10 +208,10 @@ export const readDeckCoordinations = (
   const results: DeckCoordinationSummary[] = [];
 
   for (const entry of entries) {
-    const entryPath = join(tentaclesRoot, entry);
+    const entryPath = join(coordinationsRoot, entry);
     if (!statSync(entryPath).isDirectory()) continue;
 
-    // A tentacle folder must have CONTEXT.md
+    // A coordination folder must have CONTEXT.md
     const contextMdPath = join(entryPath, "CONTEXT.md");
     if (!existsSync(contextMdPath)) continue;
 
@@ -219,7 +228,7 @@ export const readDeckCoordinations = (
     // App metadata from deck state
     const state = parseCoordinationState(deckState.coordinations[entry]);
 
-    // List markdown files in the tentacle folder (excluding CONTEXT.md itself)
+    // List markdown files in the coordination folder (excluding CONTEXT.md itself)
     let vaultFiles: string[] = [];
     try {
       vaultFiles = readdirSync(entryPath)
@@ -256,7 +265,7 @@ export const readDeckCoordinations = (
       description: agentInfo.description,
       status: state.status,
       color: state.color,
-      octopus: state.octopus,
+      mascot: state.mascot,
       scope: state.scope,
       vaultFiles,
       todoTotal,
@@ -269,7 +278,7 @@ export const readDeckCoordinations = (
   return results;
 };
 
-// ─── Read a vault file from a tentacle ──────────────────────────────────────
+// ─── Read a vault file from a coordination ─────────────────────────────────
 
 export const readDeckVaultFile = (
   workspaceCwd: string,
@@ -292,7 +301,7 @@ export const readDeckVaultFile = (
 };
 
 /**
- * Toggle a todo checkbox in a tentacle's todo.md by item index.
+ * Toggle a todo checkbox in a coordination's todo.md by item index.
  */
 export const toggleTodoItem = (
   workspaceCwd: string,
@@ -343,7 +352,7 @@ export const toggleTodoItem = (
 };
 
 /**
- * Edit the text of a todo item in a tentacle's todo.md by item index.
+ * Edit the text of a todo item in a coordination's todo.md by item index.
  */
 export const editTodoItem = (
   workspaceCwd: string,
@@ -394,7 +403,7 @@ export const editTodoItem = (
 };
 
 /**
- * Add a new todo item to a tentacle's todo.md.
+ * Add a new todo item to a coordination's todo.md.
  */
 export const addTodoItem = (
   workspaceCwd: string,
@@ -426,7 +435,7 @@ export const addTodoItem = (
 };
 
 /**
- * Delete a todo item from a tentacle's todo.md by item index.
+ * Delete a todo item from a coordination's todo.md by item index.
  */
 export const deleteTodoItem = (
   workspaceCwd: string,
@@ -473,13 +482,13 @@ export const deleteTodoItem = (
   return parseTodoProgress(updated);
 };
 
-// ─── Create a new tentacle ──────────────────────────────────────────────────
+// ─── Create a new deck coordination ────────────────────────────────────────
 
 type CreateDeckCoordinationInput = {
   name: string;
   description: string;
   color: string;
-  octopus: DeckOctopusAppearance;
+  mascot: DeckMascotAppearance;
   suggestedSkills?: string[];
 };
 
@@ -501,13 +510,13 @@ export const createDeckCoordination = (
     return { ok: false, error: "Name contains invalid characters" };
   }
 
-  const tentacleDir = join(workspaceCwd, COORDINATIONS_DIR, name);
-  if (existsSync(tentacleDir)) {
+  const coordinationDir = join(workspaceCwd, COORDINATIONS_DIR, name);
+  if (existsSync(coordinationDir)) {
     return { ok: false, error: "A coordination with this name already exists" };
   }
 
-  // Create the tentacle folder with agent-facing files
-  mkdirSync(tentacleDir, { recursive: true });
+  // Create the coordination folder with agent-facing files
+  mkdirSync(coordinationDir, { recursive: true });
 
   const description = input.description.trim();
   const baseContextMd = description.length > 0 ? `# ${name}\n\n${description}\n` : `# ${name}\n`;
@@ -515,15 +524,15 @@ export const createDeckCoordination = (
     .filter((skill) => skill.length > 0)
     .sort((a, b) => a.localeCompare(b));
   const contextMd = applySuggestedSkillsToContext(baseContextMd, suggestedSkills);
-  writeFileSync(join(tentacleDir, "CONTEXT.md"), contextMd);
-  writeFileSync(join(tentacleDir, "todo.md"), "# Todo\n");
+  writeFileSync(join(coordinationDir, "CONTEXT.md"), contextMd);
+  writeFileSync(join(coordinationDir, "todo.md"), "# Todo\n");
 
   // Persist app metadata in deck state
   const deckState = readDeckState(stateDir);
   deckState.coordinations[name] = {
     color: input.color,
     status: "idle",
-    octopus: input.octopus,
+    mascot: input.mascot,
     scope: { paths: [], tags: [] },
   };
   writeDeckState(stateDir, deckState);
@@ -537,7 +546,7 @@ export const createDeckCoordination = (
       description,
       status: "idle",
       color: input.color,
-      octopus: input.octopus,
+      mascot: input.mascot,
       scope: { paths: [], tags: [] },
       vaultFiles: [],
       todoTotal: 0,
@@ -577,7 +586,7 @@ export const updateDeckCoordinationSuggestedSkills = (
   );
 };
 
-// ─── Delete a tentacle ──────────────────────────────────────────────────────
+// ─── Delete a coordination ─────────────────────────────────────────────────
 
 export const deleteDeckCoordination = (
   workspaceCwd: string,
@@ -589,12 +598,12 @@ export const deleteDeckCoordination = (
     return { ok: false, error: "Invalid coordination ID" };
   }
 
-  const tentacleDir = join(workspaceCwd, COORDINATIONS_DIR, coordinationId);
-  if (!existsSync(tentacleDir)) {
+  const coordinationDir = join(workspaceCwd, COORDINATIONS_DIR, coordinationId);
+  if (!existsSync(coordinationDir)) {
     return { ok: false, error: "Coordination not found" };
   }
 
-  rmSync(tentacleDir, { recursive: true, force: true });
+  rmSync(coordinationDir, { recursive: true, force: true });
 
   // Remove from deck state
   const deckState = readDeckState(stateDir);

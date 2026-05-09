@@ -188,7 +188,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
           : {};
 
       // Auto-inject terminalId variable so callers don't have to guess it.
-      // The runtime hasn't allocated the ID yet, so we use the tentacle name
+      // The runtime hasn't allocated the ID yet, so we use the orchestration name
       // when provided (sandbox always passes its name).
       if (!templateVars.terminalId && createTerminalInput.coordinationName) {
         templateVars.terminalId = createTerminalInput.coordinationName;
@@ -206,9 +206,9 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 
       // Auto-inject existingTerminals summary so planner-style prompts have context.
       if (!templateVars.existingTerminals) {
-        const deckTentacles = readDeckCoordinations(workspaceCwd, projectStateDir);
-        if (deckTentacles.length > 0) {
-          const listing = deckTentacles
+        const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
+        if (deckOrchestrations.length > 0) {
+          const listing = deckOrchestrations
             .map(
               (t) =>
                 `- **${t.displayName}** (\`${t.coordinationId}\`): ${t.description || "(no description)"}`,

@@ -2,7 +2,8 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_START_PORT = 8787;
 const MAX_PORT_ATTEMPTS = 200;
@@ -70,7 +71,8 @@ const findOpenPort = async (startPort) => {
   throw new Error(`Unable to find an open port starting from ${startPort}`);
 };
 
-const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+// Windows: spawn("pnpm.cmd", ...) throws EINVAL on recent Node; use the shell to resolve pnpm.
+const pnpmSpawnShell = process.platform === "win32";
 const startPort = parseStartPort(
   process.env.ADADEX_DEV_START_PORT ?? process.env.OCTOGENT_DEV_START_PORT,
 );
@@ -79,7 +81,7 @@ const apiOrigin = `http://127.0.0.1:${apiPort}`;
 
 console.log(`[adadex-dev] using api port ${apiPort}`);
 
-const monorepoRoot = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+const monorepoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 // Resolve project state dir from global registry.
 const resolveProjectStateDir = (workspaceCwd) => {
@@ -140,10 +142,11 @@ const workspaceCwd =
 const projectStateDir = resolveProjectStateDir(workspaceCwd);
 
 const child = spawn(
-  pnpmCommand,
+  "pnpm",
   ["-r", "--parallel", "--filter", "@adadex/api", "--filter", "@adadex/web", "dev"],
   {
     stdio: "inherit",
+    shell: pnpmSpawnShell,
     env: {
       ...process.env,
       ADADEX_API_PORT: String(apiPort),

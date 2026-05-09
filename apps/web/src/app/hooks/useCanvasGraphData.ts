@@ -1,27 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { DeckCoordinationSummary } from "@adadex/core";
-import { buildConversationsUrl, buildDeckTentaclesUrl } from "../../runtime/runtimeEndpoints";
+import { buildConversationsUrl, buildDeckOrchestrationsUrl } from "../../runtime/runtimeEndpoints";
 import type { GraphEdge, GraphNode } from "../canvas/types";
 import { normalizeConversationSessionSummary } from "../conversationNormalizers";
 import type { ConversationSessionSummary, TerminalView } from "../types";
 import type { AgentRuntimeStateInfo } from "./useAgentRuntimeStates";
 
-const TENTACLE_RADIUS = 40;
+const ORCHESTRATION_NODE_RADIUS = 40;
 const ACTIVE_SESSION_RADIUS = 12;
 const INACTIVE_SESSION_RADIUS = 10;
 
-const OCTOBOSS_RADIUS = 52;
-export const OCTOBOSS_ID = "__octoboss__";
-const OCTOBOSS_NODE_ID = `t:${OCTOBOSS_ID}`;
+const DECK_LEAD_RADIUS = 52;
+/** Synthetic coordination id for the canvas hub terminal; prefer this for new sessions. */
+export const DECK_LEAD_ID = "__deck_lead__";
+/** Legacy id from pre-rebrand builds; still accepted for persisted terminals and graph restore. */
+const LEGACY_DECK_LEAD_ID = "__octoboss__";
+const DECK_LEAD_NODE_ID = `t:${DECK_LEAD_ID}`;
+const LEGACY_DECK_LEAD_NODE_ID = `t:${LEGACY_DECK_LEAD_ID}`;
+
+const isDeckLeadCoordinationId = (id: string): boolean =>
+  id === DECK_LEAD_ID || id === LEGACY_DECK_LEAD_ID;
 
 const getAccentPrimary = (): string =>
   (typeof document !== "undefined"
     ? getComputedStyle(document.documentElement).getPropertyValue("--accent-primary").trim()
     : "") || "#d4a017";
 
-// Must match the Deck tab's OCTOPUS_COLORS for consistent tentacle colors
-const OCTOPUS_COLORS = [
+// Must match the Deck tab's MASCOT_COLORS for consistent coordination colors
+const MASCOT_COLORS = [
   "#ff6b2b",
   "#ff2d6b",
   "#00ffaa",
@@ -42,10 +49,10 @@ function hashString(str: string): number {
   return Math.abs(h);
 }
 
-const tentacleColor = (coordinationId: string, deckColor: string | null | undefined) =>
+const orchestrationColor = (coordinationId: string, deckColor: string | null | undefined) =>
   deckColor && deckColor.length > 0
     ? deckColor
-    : (OCTOPUS_COLORS[hashString(coordinationId) % OCTOPUS_COLORS.length] as string);
+    : (MASCOT_COLORS[hashString(coordinationId) % MASCOT_COLORS.length] as string);
 
 type UseCanvasGraphDataOptions = {
   columns: TerminalView;
@@ -56,13 +63,13 @@ type UseCanvasGraphDataOptions = {
 type UseCanvasGraphDataResult = {
   nodes: GraphNode[];
   edges: GraphEdge[];
-  tentacleById: ReadonlyMap<string, DeckCoordinationSummary>;
-  sessionsByTentacleId: ReadonlyMap<string, ConversationSessionSummary[]>;
+  orchestrationById: ReadonlyMap<string, DeckCoordinationSummary>;
+  sessionsByOrchestrationId: ReadonlyMap<string, ConversationSessionSummary[]>;
   refresh: () => Promise<void>;
-  refreshDeckTentacles: () => Promise<void>;
+  refreshDeckOrchestrations: () => Promise<void>;
 };
 
-const buildTentacleNodeId = (coordinationId: string) => `t:${coordinationId}`;
+const buildOrchestrationNodeId = (coordinationId: string) => `t:${coordinationId}`;
 const buildActiveSessionNodeId = (agentId: string) => `a:${agentId}`;
 const buildInactiveSessionNodeId = (sessionId: string) => `i:${sessionId}`;
 
@@ -100,10 +107,12 @@ const normalizeDeckCoordinationSummary = (value: unknown): DeckCoordinationSumma
     record.scope !== null && typeof record.scope === "object"
       ? (record.scope as Record<string, unknown>)
       : null;
-  const octopusRecord =
-    record.octopus !== null && typeof record.octopus === "object"
-      ? (record.octopus as Record<string, unknown>)
-      : null;
+  const appearanceRecord =
+    record.mascot !== null && typeof record.mascot === "object"
+      ? (record.mascot as Record<string, unknown>)
+      : record.octopus !== null && typeof record.octopus === "object"
+        ? (record.octopus as Record<string, unknown>)
+        : null;
 
   const status =
     record.status === "idle" ||
@@ -120,11 +129,15 @@ const normalizeDeckCoordinationSummary = (value: unknown): DeckCoordinationSumma
     description: typeof record.description === "string" ? record.description : "",
     status,
     color: typeof record.color === "string" ? record.color : null,
-    octopus: {
-      animation: typeof octopusRecord?.animation === "string" ? octopusRecord.animation : null,
-      expression: typeof octopusRecord?.expression === "string" ? octopusRecord.expression : null,
-      accessory: typeof octopusRecord?.accessory === "string" ? octopusRecord.accessory : null,
-      hairColor: typeof octopusRecord?.hairColor === "string" ? octopusRecord.hairColor : null,
+    mascot: {
+      animation:
+        typeof appearanceRecord?.animation === "string" ? appearanceRecord.animation : null,
+      expression:
+        typeof appearanceRecord?.expression === "string" ? appearanceRecord.expression : null,
+      accessory:
+        typeof appearanceRecord?.accessory === "string" ? appearanceRecord.accessory : null,
+      hairColor:
+        typeof appearanceRecord?.hairColor === "string" ? appearanceRecord.hairColor : null,
     },
     scope: {
       paths: Array.isArray(scopeRecord?.paths)
@@ -157,13 +170,13 @@ export const useCanvasGraphData = ({
   enabled,
   agentRuntimeStates,
 }: UseCanvasGraphDataOptions): UseCanvasGraphDataResult => {
-  const [deckTentacles, setDeckTentacles] = useState<DeckCoordinationSummary[]>([]);
+  const [deckOrchestrations, setDeckOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [inactiveSessions, setInactiveSessions] = useState<ConversationSessionSummary[]>([]);
   const prevNodesRef = useRef<Map<string, GraphNode>>(new Map());
 
-  const fetchDeckTentacles = useCallback(async () => {
+  const fetchDeckOrchestrations = useCallback(async () => {
     try {
-      const response = await fetch(buildDeckTentaclesUrl(), {
+      const response = await fetch(buildDeckOrchestrationsUrl(), {
         method: "GET",
         headers: { Accept: "application/json" },
       });
@@ -173,7 +186,7 @@ export const useCanvasGraphData = ({
       const items = payload
         .map((entry) => normalizeDeckCoordinationSummary(entry))
         .filter((entry): entry is DeckCoordinationSummary => entry !== null);
-      setDeckTentacles(items);
+      setDeckOrchestrations(items);
     } catch {
       // silent
     }
@@ -200,39 +213,39 @@ export const useCanvasGraphData = ({
 
   useEffect(() => {
     if (!enabled) {
-      setDeckTentacles([]);
+      setDeckOrchestrations([]);
       setInactiveSessions([]);
       return;
     }
-    void fetchDeckTentacles();
+    void fetchDeckOrchestrations();
     void fetchInactiveSessions();
-  }, [enabled, fetchDeckTentacles, fetchInactiveSessions]);
+  }, [enabled, fetchDeckOrchestrations, fetchInactiveSessions]);
 
   const refresh = useCallback(async () => {
-    await Promise.all([fetchDeckTentacles(), fetchInactiveSessions()]);
-  }, [fetchDeckTentacles, fetchInactiveSessions]);
-  const refreshDeckTentacles = useCallback(async () => {
-    await fetchDeckTentacles();
-  }, [fetchDeckTentacles]);
+    await Promise.all([fetchDeckOrchestrations(), fetchInactiveSessions()]);
+  }, [fetchDeckOrchestrations, fetchInactiveSessions]);
+  const refreshDeckOrchestrations = useCallback(async () => {
+    await fetchDeckOrchestrations();
+  }, [fetchDeckOrchestrations]);
 
   const activeTerminalIds = new Set(columns.map((terminal) => terminal.terminalId));
 
-  // Build a map of deck tentacles for color/label lookup
+  // Build a map of deck orchestrations for color/label lookup
   const deckMap = new Map<string, DeckCoordinationSummary>();
-  for (const dt of deckTentacles) {
+  for (const dt of deckOrchestrations) {
     deckMap.set(dt.coordinationId, dt);
   }
 
-  const sessionsByTentacleId = new Map<string, ConversationSessionSummary[]>();
+  const sessionsByOrchestrationId = new Map<string, ConversationSessionSummary[]>();
   for (const session of inactiveSessions) {
     if (!session.coordinationId) {
       continue;
     }
-    const tentacleSessions = sessionsByTentacleId.get(session.coordinationId);
-    if (tentacleSessions) {
-      tentacleSessions.push(session);
+    const orchestrationSessions = sessionsByOrchestrationId.get(session.coordinationId);
+    if (orchestrationSessions) {
+      orchestrationSessions.push(session);
     } else {
-      sessionsByTentacleId.set(session.coordinationId, [session]);
+      sessionsByOrchestrationId.set(session.coordinationId, [session]);
     }
   }
 
@@ -240,69 +253,69 @@ export const useCanvasGraphData = ({
   const edges: GraphEdge[] = [];
   const prevNodes = prevNodesRef.current;
   const currentNodesById = new Map<string, GraphNode>();
-  const seenTentacleIds = new Set<string>();
+  const seenOrchestrationIds = new Set<string>();
 
-  // Build a map of active terminals by coordinationId (multiple terminals can share a tentacle)
-  const activeTerminalsByTentacle = new Map<string, TerminalView>();
+  // Build a map of active terminals by coordinationId (multiple terminals can share a orchestration)
+  const activeTerminalsByOrchestration = new Map<string, TerminalView>();
   for (const terminal of columns) {
-    const group = activeTerminalsByTentacle.get(terminal.coordinationId);
+    const group = activeTerminalsByOrchestration.get(terminal.coordinationId);
     if (group) {
       group.push(terminal);
     } else {
-      activeTerminalsByTentacle.set(terminal.coordinationId, [terminal]);
+      activeTerminalsByOrchestration.set(terminal.coordinationId, [terminal]);
     }
   }
 
-  // Build tentacle list: only deck tentacles (sandbox and other non-deck
+  // Build orchestration list: only deck orchestrations (sandbox and other non-deck
   // terminals are excluded from the graph).
-  const allTentacleIds: string[] = [];
-  for (const dt of deckTentacles) {
-    allTentacleIds.push(dt.coordinationId);
-    seenTentacleIds.add(dt.coordinationId);
+  const allOrchestrationIds: string[] = [];
+  for (const dt of deckOrchestrations) {
+    allOrchestrationIds.push(dt.coordinationId);
+    seenOrchestrationIds.add(dt.coordinationId);
   }
 
-  const totalTentacles = allTentacleIds.length;
+  const totalOrchestrations = allOrchestrationIds.length;
 
-  for (let i = 0; i < allTentacleIds.length; i++) {
-    const coordinationId = allTentacleIds[i];
+  for (let i = 0; i < allOrchestrationIds.length; i++) {
+    const coordinationId = allOrchestrationIds[i];
     if (!coordinationId) continue;
-    const tentacleNodeId = buildTentacleNodeId(coordinationId);
-    const prev = prevNodes.get(tentacleNodeId);
+    const orchestrationNodeId = buildOrchestrationNodeId(coordinationId);
+    const prev = prevNodes.get(orchestrationNodeId);
     const deck = deckMap.get(coordinationId);
-    const activeTerminals = activeTerminalsByTentacle.get(coordinationId);
+    const activeTerminals = activeTerminalsByOrchestration.get(coordinationId);
     const firstActiveTerminal = activeTerminals?.[0];
-    const color = tentacleColor(coordinationId, deck?.color);
+    const color = orchestrationColor(coordinationId, deck?.color);
     const label = deck?.displayName ?? firstActiveTerminal?.coordinationName ?? coordinationId;
 
-    const angle = (2 * Math.PI * i) / Math.max(totalTentacles, 1);
+    const angle = (2 * Math.PI * i) / Math.max(totalOrchestrations, 1);
     const spread = 300;
 
     const node: GraphNode = {
-      id: tentacleNodeId,
-      type: "tentacle",
+      id: orchestrationNodeId,
+      type: "orchestration",
       x: prev?.x ?? Math.cos(angle) * spread,
       y: prev?.y ?? Math.sin(angle) * spread,
       vx: prev?.vx ?? 0,
       vy: prev?.vy ?? 0,
       pinned: prev?.pinned ?? false,
-      radius: TENTACLE_RADIUS,
+      radius: ORCHESTRATION_NODE_RADIUS,
       coordinationId,
       label,
       color,
       ...(firstActiveTerminal ? { workspaceMode: firstActiveTerminal.workspaceMode } : {}),
-      ...(deck?.octopus ? { octopus: deck.octopus } : {}),
+      ...(deck?.mascot ? { mascot: deck.mascot } : {}),
     };
     nodes.push(node);
-    currentNodesById.set(tentacleNodeId, node);
+    currentNodesById.set(orchestrationNodeId, node);
 
-    // Active terminal session nodes — one per terminal in this tentacle
+    // Active terminal session nodes — one per terminal in this orchestration
     if (activeTerminals) {
       for (const activeTerminal of activeTerminals) {
         const sessionNodeId = buildActiveSessionNodeId(activeTerminal.terminalId);
         const prevSession = prevNodes.get(sessionNodeId);
         const parentNodeId = activeTerminal.parentTerminalId
           ? buildActiveSessionNodeId(activeTerminal.parentTerminalId)
-          : tentacleNodeId;
+          : orchestrationNodeId;
         const parentNode = currentNodesById.get(parentNodeId) ?? node;
         const jitter = () => (Math.random() - 0.5) * 60;
 
@@ -336,33 +349,34 @@ export const useCanvasGraphData = ({
     }
   }
 
-  // Octoboss — synthetic always-present node
-  const prevBoss = prevNodes.get(OCTOBOSS_NODE_ID);
-  const octobossColor = getAccentPrimary();
-  const octobossNode: GraphNode = {
-    id: OCTOBOSS_NODE_ID,
-    type: "octoboss",
+  // Deck lead — synthetic always-present hub node
+  const prevBoss =
+    prevNodes.get(DECK_LEAD_NODE_ID) ?? prevNodes.get(LEGACY_DECK_LEAD_NODE_ID) ?? null;
+  const deckLeadColor = getAccentPrimary();
+  const deckLeadNode: GraphNode = {
+    id: DECK_LEAD_NODE_ID,
+    type: "deck-lead",
     x: prevBoss?.x ?? 0,
     y: prevBoss?.y ?? 0,
     vx: prevBoss?.vx ?? 0,
     vy: prevBoss?.vy ?? 0,
     pinned: prevBoss?.pinned ?? false,
-    radius: OCTOBOSS_RADIUS,
-    coordinationId: OCTOBOSS_ID,
-    label: "Octoboss",
-    color: octobossColor,
+    radius: DECK_LEAD_RADIUS,
+    coordinationId: DECK_LEAD_ID,
+    label: "Deck lead",
+    color: deckLeadColor,
   };
-  nodes.push(octobossNode);
-  currentNodesById.set(OCTOBOSS_NODE_ID, octobossNode);
+  nodes.push(deckLeadNode);
+  currentNodesById.set(DECK_LEAD_NODE_ID, deckLeadNode);
 
-  // Connect octoboss to every tentacle node
-  for (const coordinationId of allTentacleIds) {
-    edges.push({ source: OCTOBOSS_NODE_ID, target: buildTentacleNodeId(coordinationId) });
+  // Connect deck lead to every coordination node
+  for (const coordinationId of allOrchestrationIds) {
+    edges.push({ source: DECK_LEAD_NODE_ID, target: buildOrchestrationNodeId(coordinationId) });
   }
 
-  // Link active terminals belonging to octoboss
+  // Link active terminals belonging to the deck lead hub
   for (const terminal of columns) {
-    if (terminal.coordinationId !== OCTOBOSS_ID) continue;
+    if (!isDeckLeadCoordinationId(terminal.coordinationId)) continue;
     const sessionNodeId = buildActiveSessionNodeId(terminal.terminalId);
     const prevSession = prevNodes.get(sessionNodeId);
     const jitter = () => (Math.random() - 0.5) * 60;
@@ -371,15 +385,15 @@ export const useCanvasGraphData = ({
     const sessionNode: GraphNode = {
       id: sessionNodeId,
       type: "active-session",
-      x: prevSession?.x ?? octobossNode.x + jitter(),
-      y: prevSession?.y ?? octobossNode.y + jitter(),
+      x: prevSession?.x ?? deckLeadNode.x + jitter(),
+      y: prevSession?.y ?? deckLeadNode.y + jitter(),
       vx: prevSession?.vx ?? 0,
       vy: prevSession?.vy ?? 0,
       pinned: prevSession?.pinned ?? false,
       radius: ACTIVE_SESSION_RADIUS,
-      coordinationId: OCTOBOSS_ID,
+      coordinationId: terminal.coordinationId,
       label: terminal.coordinationName || terminal.terminalId,
-      color: octobossColor,
+      color: deckLeadColor,
       sessionId: terminal.terminalId,
       agentState: terminal.state,
       hasUserPrompt: terminal.hasUserPrompt ?? false,
@@ -390,22 +404,22 @@ export const useCanvasGraphData = ({
     };
     nodes.push(sessionNode);
     currentNodesById.set(sessionNodeId, sessionNode);
-    edges.push({ source: OCTOBOSS_NODE_ID, target: sessionNodeId });
+    edges.push({ source: DECK_LEAD_NODE_ID, target: sessionNodeId });
   }
 
   // Inactive sessions from conversations
   for (const session of inactiveSessions) {
-    if (!session.coordinationId || !seenTentacleIds.has(session.coordinationId)) continue;
+    if (!session.coordinationId || !seenOrchestrationIds.has(session.coordinationId)) continue;
     if (activeTerminalIds.has(session.sessionId)) continue;
 
-    const tentacleNodeId = buildTentacleNodeId(session.coordinationId);
+    const orchestrationNodeId = buildOrchestrationNodeId(session.coordinationId);
     const sessionNodeId = buildInactiveSessionNodeId(session.sessionId);
     const prevSession = prevNodes.get(sessionNodeId);
 
-    const parentNode = nodes.find((n) => n.id === tentacleNodeId);
+    const parentNode = nodes.find((n) => n.id === orchestrationNodeId);
     const parentX = parentNode?.x ?? 0;
     const parentY = parentNode?.y ?? 0;
-    const color = tentacleColor(session.coordinationId, deckMap.get(session.coordinationId)?.color);
+    const color = orchestrationColor(session.coordinationId, deckMap.get(session.coordinationId)?.color);
     const jitter = () => (Math.random() - 0.5) * 60;
 
     const sessionNode: GraphNode = {
@@ -429,7 +443,7 @@ export const useCanvasGraphData = ({
     };
     nodes.push(sessionNode);
     currentNodesById.set(sessionNodeId, sessionNode);
-    edges.push({ source: tentacleNodeId, target: sessionNodeId });
+    edges.push({ source: orchestrationNodeId, target: sessionNodeId });
   }
 
   // Update position cache
@@ -442,9 +456,9 @@ export const useCanvasGraphData = ({
   return {
     nodes,
     edges,
-    tentacleById: deckMap,
-    sessionsByTentacleId,
+    orchestrationById: deckMap,
+    sessionsByOrchestrationId,
     refresh,
-    refreshDeckTentacles,
+    refreshDeckOrchestrations,
   };
 };

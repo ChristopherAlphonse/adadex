@@ -67,7 +67,7 @@ class FakeGitClient implements GitClient {
     defaultBaseBranchName: string | null;
   } {
     return {
-      branchName: "adadex/tentacle-1",
+      branchName: "adadex/orchestration-1",
       upstreamBranchName: null,
       isDirty: false,
       aheadCount: 0,

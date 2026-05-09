@@ -16,10 +16,10 @@ export const createGitOperations = (deps: {
 }) => {
   const { terminals, worktreeManager, gitClient } = deps;
 
-  const resolveWorktreeTentacleContext = (
+  const resolveWorktreeOrchestrationContext = (
     coordinationId: string,
   ): { terminal: PersistedTerminal; workspaceCwd: string } | null => {
-    // Find any terminal belonging to this tentacle
+    // Find any terminal belonging to this orchestration
     let terminal: PersistedTerminal | undefined;
     for (const t of terminals.values()) {
       if (t.coordinationId === coordinationId) {
@@ -39,7 +39,7 @@ export const createGitOperations = (deps: {
 
     return {
       terminal,
-      workspaceCwd: worktreeManager.getTentacleWorkspaceCwd(
+      workspaceCwd: worktreeManager.getOrchestrationWorkspaceCwd(
         terminal.worktreeId ?? terminal.coordinationId,
       ),
     };
@@ -129,8 +129,8 @@ export const createGitOperations = (deps: {
   };
 
   return {
-    readTentacleGitStatus(coordinationId: string): CoordinationGitStatusSnapshot | null {
-      const context = resolveWorktreeTentacleContext(coordinationId);
+    readOrchestrationGitStatus(coordinationId: string): CoordinationGitStatusSnapshot | null {
+      const context = resolveWorktreeOrchestrationContext(coordinationId);
       if (!context) {
         return null;
       }
@@ -138,11 +138,11 @@ export const createGitOperations = (deps: {
       return readWorktreeGitStatus(coordinationId, context.terminal, context.workspaceCwd);
     },
 
-    commitTentacleWorktree(
+    commitOrchestrationWorktree(
       coordinationId: string,
       message: string,
     ): CoordinationGitStatusSnapshot | null {
-      const context = resolveWorktreeTentacleContext(coordinationId);
+      const context = resolveWorktreeOrchestrationContext(coordinationId);
       if (!context) {
         return null;
       }
@@ -168,8 +168,8 @@ export const createGitOperations = (deps: {
       return readWorktreeGitStatus(coordinationId, context.terminal, context.workspaceCwd);
     },
 
-    pushTentacleWorktree(coordinationId: string): CoordinationGitStatusSnapshot | null {
-      const context = resolveWorktreeTentacleContext(coordinationId);
+    pushOrchestrationWorktree(coordinationId: string): CoordinationGitStatusSnapshot | null {
+      const context = resolveWorktreeOrchestrationContext(coordinationId);
       if (!context) {
         return null;
       }
@@ -187,11 +187,11 @@ export const createGitOperations = (deps: {
       return readWorktreeGitStatus(coordinationId, context.terminal, context.workspaceCwd);
     },
 
-    syncTentacleWorktree(
+    syncOrchestrationWorktree(
       coordinationId: string,
       baseRef?: string,
     ): CoordinationGitStatusSnapshot | null {
-      const context = resolveWorktreeTentacleContext(coordinationId);
+      const context = resolveWorktreeOrchestrationContext(coordinationId);
       if (!context) {
         return null;
       }
@@ -230,8 +230,8 @@ export const createGitOperations = (deps: {
       return readWorktreeGitStatus(coordinationId, context.terminal, context.workspaceCwd);
     },
 
-    readTentaclePullRequest(coordinationId: string): CoordinationPullRequestSnapshot | null {
-      const context = resolveWorktreeTentacleContext(coordinationId);
+    readOrchestrationPullRequest(coordinationId: string): CoordinationPullRequestSnapshot | null {
+      const context = resolveWorktreeOrchestrationContext(coordinationId);
       if (!context) {
         return null;
       }
@@ -239,11 +239,11 @@ export const createGitOperations = (deps: {
       return readWorktreePullRequest(coordinationId, context.terminal, context.workspaceCwd);
     },
 
-    createTentaclePullRequest(
+    createOrchestrationPullRequest(
       coordinationId: string,
       input: { title: string; body?: string; baseRef?: string },
     ): CoordinationPullRequestSnapshot | null {
-      const context = resolveWorktreeTentacleContext(coordinationId);
+      const context = resolveWorktreeOrchestrationContext(coordinationId);
       if (!context) {
         return null;
       }
@@ -307,8 +307,8 @@ export const createGitOperations = (deps: {
       }
     },
 
-    mergeTentaclePullRequest(coordinationId: string): CoordinationPullRequestSnapshot | null {
-      const context = resolveWorktreeTentacleContext(coordinationId);
+    mergeOrchestrationPullRequest(coordinationId: string): CoordinationPullRequestSnapshot | null {
+      const context = resolveWorktreeOrchestrationContext(coordinationId);
       if (!context) {
         return null;
       }

@@ -9,13 +9,13 @@ import {
   buildMonitorConfigUrl,
   buildMonitorFeedUrl,
   buildMonitorRefreshUrl,
-  buildTentacleGitCommitUrl,
-  buildTentacleGitPullRequestMergeUrl,
-  buildTentacleGitPullRequestUrl,
-  buildTentacleGitPushUrl,
-  buildTentacleGitStatusUrl,
-  buildTentacleGitSyncUrl,
-  buildTentacleRenameUrl,
+  buildOrchestrationGitCommitUrl,
+  buildOrchestrationGitPullRequestMergeUrl,
+  buildOrchestrationGitPullRequestUrl,
+  buildOrchestrationGitPushUrl,
+  buildOrchestrationGitStatusUrl,
+  buildOrchestrationGitSyncUrl,
+  buildOrchestrationRenameUrl,
   buildTerminalEventsSocketUrl,
   buildTerminalSnapshotsUrl,
   buildTerminalSocketUrl,
@@ -80,14 +80,14 @@ describe("runtimeEndpoints", () => {
 
   it("builds conversations URLs on same origin by default", () => {
     expect(buildConversationsUrl()).toBe("/api/conversations");
-    expect(buildConversationSessionUrl("tentacle-1-root")).toBe(
-      "/api/conversations/tentacle-1-root",
+    expect(buildConversationSessionUrl("orchestration-1-root")).toBe(
+      "/api/conversations/orchestration-1-root",
     );
-    expect(buildConversationExportUrl("tentacle-1-root", "json")).toBe(
-      "/api/conversations/tentacle-1-root/export?format=json",
+    expect(buildConversationExportUrl("orchestration-1-root", "json")).toBe(
+      "/api/conversations/orchestration-1-root/export?format=json",
     );
-    expect(buildConversationExportUrl("tentacle-1-root", "md")).toBe(
-      "/api/conversations/tentacle-1-root/export?format=md",
+    expect(buildConversationExportUrl("orchestration-1-root", "md")).toBe(
+      "/api/conversations/orchestration-1-root/export?format=md",
     );
   });
 
@@ -95,12 +95,12 @@ describe("runtimeEndpoints", () => {
     expect(buildConversationsUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/conversations",
     );
-    expect(buildConversationSessionUrl("tentacle-1-root", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/conversations/tentacle-1-root",
+    expect(buildConversationSessionUrl("orchestration-1-root", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/conversations/orchestration-1-root",
     );
     expect(
-      buildConversationExportUrl("tentacle-1-root", "json", "https://runtime.example.com"),
-    ).toBe("https://runtime.example.com/api/conversations/tentacle-1-root/export?format=json");
+      buildConversationExportUrl("orchestration-1-root", "json", "https://runtime.example.com"),
+    ).toBe("https://runtime.example.com/api/conversations/orchestration-1-root/export?format=json");
   });
 
   it("builds absolute monitor URLs when runtime base URL is configured", () => {
@@ -141,76 +141,76 @@ describe("runtimeEndpoints", () => {
     );
   });
 
-  it("builds tentacle rename URL on same origin by default", () => {
-    expect(buildTentacleRenameUrl("tentacle-main")).toBe("/api/coordinations/tentacle-main");
+  it("builds orchestration rename URL on same origin by default", () => {
+    expect(buildOrchestrationRenameUrl("orchestration-main")).toBe("/api/coordinations/orchestration-main");
   });
 
-  it("builds absolute tentacle rename URL when runtime base URL is configured", () => {
-    expect(buildTentacleRenameUrl("tentacle-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/coordinations/tentacle-main",
-    );
-  });
-
-  it("builds tentacle git lifecycle URLs on same origin by default", () => {
-    expect(buildTentacleGitStatusUrl("tentacle-main")).toBe(
-      "/api/coordinations/tentacle-main/git/status",
-    );
-    expect(buildTentacleGitCommitUrl("tentacle-main")).toBe(
-      "/api/coordinations/tentacle-main/git/commit",
-    );
-    expect(buildTentacleGitPushUrl("tentacle-main")).toBe(
-      "/api/coordinations/tentacle-main/git/push",
-    );
-    expect(buildTentacleGitSyncUrl("tentacle-main")).toBe(
-      "/api/coordinations/tentacle-main/git/sync",
-    );
-    expect(buildTentacleGitPullRequestUrl("tentacle-main")).toBe(
-      "/api/coordinations/tentacle-main/git/pr",
-    );
-    expect(buildTentacleGitPullRequestMergeUrl("tentacle-main")).toBe(
-      "/api/coordinations/tentacle-main/git/pr/merge",
+  it("builds absolute orchestration rename URL when runtime base URL is configured", () => {
+    expect(buildOrchestrationRenameUrl("orchestration-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/coordinations/orchestration-main",
     );
   });
 
-  it("builds absolute tentacle git lifecycle URLs when runtime base URL is configured", () => {
-    expect(buildTentacleGitStatusUrl("tentacle-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/coordinations/tentacle-main/git/status",
+  it("builds orchestration git lifecycle URLs on same origin by default", () => {
+    expect(buildOrchestrationGitStatusUrl("orchestration-main")).toBe(
+      "/api/coordinations/orchestration-main/git/status",
     );
-    expect(buildTentacleGitCommitUrl("tentacle-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/coordinations/tentacle-main/git/commit",
+    expect(buildOrchestrationGitCommitUrl("orchestration-main")).toBe(
+      "/api/coordinations/orchestration-main/git/commit",
     );
-    expect(buildTentacleGitPushUrl("tentacle-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/coordinations/tentacle-main/git/push",
+    expect(buildOrchestrationGitPushUrl("orchestration-main")).toBe(
+      "/api/coordinations/orchestration-main/git/push",
     );
-    expect(buildTentacleGitSyncUrl("tentacle-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/coordinations/tentacle-main/git/sync",
+    expect(buildOrchestrationGitSyncUrl("orchestration-main")).toBe(
+      "/api/coordinations/orchestration-main/git/sync",
     );
-    expect(buildTentacleGitPullRequestUrl("tentacle-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/coordinations/tentacle-main/git/pr",
+    expect(buildOrchestrationGitPullRequestUrl("orchestration-main")).toBe(
+      "/api/coordinations/orchestration-main/git/pr",
+    );
+    expect(buildOrchestrationGitPullRequestMergeUrl("orchestration-main")).toBe(
+      "/api/coordinations/orchestration-main/git/pr/merge",
+    );
+  });
+
+  it("builds absolute orchestration git lifecycle URLs when runtime base URL is configured", () => {
+    expect(buildOrchestrationGitStatusUrl("orchestration-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/coordinations/orchestration-main/git/status",
+    );
+    expect(buildOrchestrationGitCommitUrl("orchestration-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/coordinations/orchestration-main/git/commit",
+    );
+    expect(buildOrchestrationGitPushUrl("orchestration-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/coordinations/orchestration-main/git/push",
+    );
+    expect(buildOrchestrationGitSyncUrl("orchestration-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/coordinations/orchestration-main/git/sync",
+    );
+    expect(buildOrchestrationGitPullRequestUrl("orchestration-main", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/coordinations/orchestration-main/git/pr",
     );
     expect(
-      buildTentacleGitPullRequestMergeUrl("tentacle-main", "https://runtime.example.com"),
-    ).toBe("https://runtime.example.com/api/coordinations/tentacle-main/git/pr/merge");
+      buildOrchestrationGitPullRequestMergeUrl("orchestration-main", "https://runtime.example.com"),
+    ).toBe("https://runtime.example.com/api/coordinations/orchestration-main/git/pr/merge");
   });
 
   it("builds same-origin websocket URL by default", () => {
     expect(
       buildTerminalSocketUrl(
-        "tentacle-main",
+        "orchestration-main",
         undefined,
         new URL("https://workspace.example.com/dashboard") as unknown as Location,
       ),
-    ).toBe("wss://workspace.example.com/api/terminals/tentacle-main/ws");
+    ).toBe("wss://workspace.example.com/api/terminals/orchestration-main/ws");
   });
 
   it("builds websocket URL from configured runtime base URL", () => {
     expect(
       buildTerminalSocketUrl(
-        "tentacle-main",
+        "orchestration-main",
         "http://127.0.0.1:8787",
         new URL("https://workspace.example.com/dashboard") as unknown as Location,
       ),
-    ).toBe("ws://127.0.0.1:8787/api/terminals/tentacle-main/ws");
+    ).toBe("ws://127.0.0.1:8787/api/terminals/orchestration-main/ws");
   });
 
   it("builds same-origin terminal events websocket URL by default", () => {

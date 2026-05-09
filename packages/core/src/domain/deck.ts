@@ -1,6 +1,6 @@
 export type DeckCoordinationStatus = "idle" | "active" | "blocked" | "needs-review";
 
-export type DeckOctopusAppearance = {
+export type DeckMascotAppearance = {
   animation: string | null;
   /** Valid: "normal" | "happy" | "angry" | "surprised". "sleepy" is reserved for idle state — never assign on creation. */
   expression: string | null;
@@ -20,7 +20,7 @@ export type DeckCoordinationSummary = {
   description: string;
   status: DeckCoordinationStatus;
   color: string | null;
-  octopus: DeckOctopusAppearance;
+  mascot: DeckMascotAppearance;
   scope: {
     paths: string[];
     tags: string[];

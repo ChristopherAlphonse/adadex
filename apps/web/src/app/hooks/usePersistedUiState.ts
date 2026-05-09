@@ -245,7 +245,7 @@ export const usePersistedUiState = ({
   const applyHydratedUiState = useCallback(
     (snapshot: FrontendUiStateSnapshot | null, nextColumns: TerminalView) => {
       const activeTerminalIds = new Set(nextColumns.map((entry) => entry.terminalId));
-      const activeTentacleIds = new Set(nextColumns.map((entry) => entry.coordinationId));
+      const activeOrchestrationIds = new Set(nextColumns.map((entry) => entry.coordinationId));
       const hasPersistedSnapshot = snapshot !== null && Object.keys(snapshot).length > 0;
       setHasHydratedUiStateSnapshot(hasPersistedSnapshot);
 
@@ -280,7 +280,7 @@ export const usePersistedUiState = ({
         ? retainActiveTerminalIds(snapshot.canvasOpenTerminalIds, activeTerminalIds)
         : DEFAULT_CANVAS_OPEN_TERMINAL_IDS;
       const nextCanvasOpenCoordinationIds = snapshot.canvasOpenCoordinationIds
-        ? retainActiveTerminalIds(snapshot.canvasOpenCoordinationIds, activeTentacleIds)
+        ? retainActiveTerminalIds(snapshot.canvasOpenCoordinationIds, activeOrchestrationIds)
         : DEFAULT_CANVAS_OPEN_COORDINATION_IDS;
 
       lastPersistedUiStateRef.current = buildPersistedUiStateSnapshot({
@@ -381,11 +381,11 @@ export const usePersistedUiState = ({
 
   useEffect(() => {
     const activeTerminalIds = new Set(columns.map((entry) => entry.terminalId));
-    const activeTentacleIds = new Set(columns.map((entry) => entry.coordinationId));
+    const activeOrchestrationIds = new Set(columns.map((entry) => entry.coordinationId));
     setMinimizedTerminalIds((current) => retainActiveTerminalIds(current, activeTerminalIds));
     setTerminalWidths((current) => retainActiveTerminalEntries(current, activeTerminalIds));
     setCanvasOpenTerminalIds((current) => retainActiveTerminalIds(current, activeTerminalIds));
-    setCanvasOpenCoordinationIds((current) => retainActiveTerminalIds(current, activeTentacleIds));
+    setCanvasOpenCoordinationIds((current) => retainActiveTerminalIds(current, activeOrchestrationIds));
   }, [columns]);
 
   useEffect(() => {

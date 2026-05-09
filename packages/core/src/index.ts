@@ -1,5 +1,6 @@
 export * from "./application/buildTerminalList";
 export * from "./adapters/InMemoryTerminalSnapshotReader";
+export * from "./domain/legacyProductKeys";
 export * from "./domain/runtimeLayout";
 export * from "./domain/terminal";
 export * from "./domain/deck";

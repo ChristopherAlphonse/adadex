@@ -267,7 +267,7 @@ export const createTerminalRuntime = ({
     terminals,
     sessions,
     resolveTerminalSession,
-    getTentacleWorkspaceCwd: worktreeManager.getTentacleWorkspaceCwd,
+    getOrchestrationWorkspaceCwd: worktreeManager.getOrchestrationWorkspaceCwd,
     isDebugPtyLogsEnabled,
     ptyLogDir,
     transcriptDirectoryPath,
@@ -316,7 +316,7 @@ export const createTerminalRuntime = ({
         continue;
       }
 
-      if (worktreeManager.hasTentacleWorktree(candidateId)) {
+      if (worktreeManager.hasOrchestrationWorktree(candidateId)) {
         candidateNumber += 1;
         continue;
       }
@@ -461,7 +461,7 @@ export const createTerminalRuntime = ({
       }
     }
 
-    // Allow explicit coordinationId so multiple terminals can share a tentacle context (e.g. swarm workers).
+    // Allow explicit coordinationId so multiple terminals can share a orchestration context (e.g. swarm workers).
     const coordinationId = requestedCoordinationId ?? terminalId;
     const effectiveName = coordinationName ?? allocateDefaultTerminalName();
 
@@ -491,13 +491,13 @@ export const createTerminalRuntime = ({
     const effectiveWorktreeId = worktreeId ?? coordinationId;
     const shouldCreateWorktree = workspaceMode === "worktree";
     if (shouldCreateWorktree) {
-      worktreeManager.createTentacleWorktree(effectiveWorktreeId, baseRef);
+      worktreeManager.createOrchestrationWorktree(effectiveWorktreeId, baseRef);
     }
 
     if (terminal.agentProvider === "codex") {
       try {
         const hookTargetCwd = shouldCreateWorktree
-          ? worktreeManager.getTentacleWorkspaceCwd(effectiveWorktreeId)
+          ? worktreeManager.getOrchestrationWorkspaceCwd(effectiveWorktreeId)
           : workspaceCwd;
         hookProcessor.installHooksInDirectory(hookTargetCwd);
       } catch {
@@ -751,7 +751,7 @@ export const createTerminalRuntime = ({
 
         sessionRuntime.closeSession(cascadeTerminalId);
         if (cascadeTerminal.workspaceMode === "worktree") {
-          worktreeManager.removeTentacleWorktree(
+          worktreeManager.removeOrchestrationWorktree(
             cascadeTerminal.worktreeId ?? cascadeTerminal.coordinationId,
           );
         }

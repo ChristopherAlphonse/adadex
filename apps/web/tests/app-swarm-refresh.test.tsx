@@ -106,27 +106,27 @@ vi.mock("../src/app/hooks/usePersistedUiState", () => ({
   usePersistedUiState: () => persistedUiStateMock,
 }));
 
-vi.mock("../src/app/hooks/useTentacleGitLifecycle", () => ({
-  useTentacleGitLifecycle: () => ({
-    gitStatusByTentacleId: new Map(),
-    gitStatusLoadingByTentacleId: new Map(),
-    pullRequestByTentacleId: new Map(),
-    pullRequestLoadingByTentacleId: new Map(),
-    openGitTentacleId: null,
-    openGitTentacleStatus: null,
-    openGitTentaclePullRequest: null,
+vi.mock("../src/app/hooks/useOrchestrationGitLifecycle", () => ({
+  useOrchestrationGitLifecycle: () => ({
+    gitStatusByOrchestrationId: new Map(),
+    gitStatusLoadingByOrchestrationId: new Map(),
+    pullRequestByOrchestrationId: new Map(),
+    pullRequestLoadingByOrchestrationId: new Map(),
+    openGitOrchestrationId: null,
+    openGitOrchestrationStatus: null,
+    openGitOrchestrationPullRequest: null,
     gitCommitMessageDraft: "",
     gitDialogError: null,
     isGitDialogLoading: false,
     isGitDialogMutating: false,
     setGitCommitMessageDraft: vi.fn(),
-    openTentacleGitActions: vi.fn(),
-    closeTentacleGitActions: vi.fn(),
-    commitTentacleChanges: vi.fn(),
-    commitAndPushTentacleBranch: vi.fn(),
-    pushTentacleBranch: vi.fn(),
-    syncTentacleBranch: vi.fn(),
-    mergeTentaclePullRequest: vi.fn(),
+    openOrchestrationGitActions: vi.fn(),
+    closeOrchestrationGitActions: vi.fn(),
+    commitOrchestrationChanges: vi.fn(),
+    commitAndPushOrchestrationBranch: vi.fn(),
+    pushOrchestrationBranch: vi.fn(),
+    syncOrchestrationBranch: vi.fn(),
+    mergeOrchestrationPullRequest: vi.fn(),
   }),
 }));
 

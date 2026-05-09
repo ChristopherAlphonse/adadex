@@ -32,7 +32,7 @@ adadex projects
 adadex coordination create <name> --description "API runtime and routes"
 ```
 
-`adadex tentacle create` remains available as an alias for compatibility. Adadex must already be running for this command.
+`adadex orchestration create` remains available as an alias for compatibility. Adadex must already be running for this command.
 
 ## List coordinations
 
@@ -40,7 +40,7 @@ adadex coordination create <name> --description "API runtime and routes"
 adadex coordination list
 ```
 
-`adadex tentacle list` remains available as an alias.
+`adadex orchestration list` remains available as an alias.
 
 ## Create a terminal
 
@@ -54,7 +54,7 @@ Options:
 - `--workspace-mode`, `-w`: `shared` or `worktree`
 - `--initial-prompt`, `-p`: raw initial prompt text
 - `--terminal-id`: explicit terminal ID
-- `--coordination-id`: existing coordination ID to attach to (legacy: `--tentacle-id`)
+- `--coordination-id`: existing coordination ID to attach to (legacy: `--orchestration-id`)
 - `--worktree-id`: explicit worktree ID
 - `--parent-terminal-id`: parent terminal ID for child terminals
 - `--prompt-template`: prompt template name

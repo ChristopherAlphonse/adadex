@@ -3,19 +3,19 @@ import { useEffect, useState } from "react";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import { ConfirmationDialog } from "./ui/ConfirmationDialog";
 
-type DeleteTentacleDialogProps = {
+type DeleteOrchestrationDialogProps = {
   pendingDeleteTerminal: PendingDeleteTerminal;
   isDeletingTerminalId: string | null;
   onCancel: () => void;
   onConfirmDelete: () => void;
 };
 
-export const DeleteTentacleDialog = ({
+export const DeleteOrchestrationDialog = ({
   pendingDeleteTerminal,
   isDeletingTerminalId,
   onCancel,
   onConfirmDelete,
-}: DeleteTentacleDialogProps) => {
+}: DeleteOrchestrationDialogProps) => {
   const [cleanupConfirmationInput, setCleanupConfirmationInput] = useState("");
   const isCleanupIntent =
     pendingDeleteTerminal.intent === "cleanup-worktree" &&
@@ -23,7 +23,8 @@ export const DeleteTentacleDialog = ({
   const isCloseIntent = pendingDeleteTerminal.intent === "close-terminal";
   const isCleanupConfirmationValid =
     !isCleanupIntent || cleanupConfirmationInput.trim() === pendingDeleteTerminal.terminalId;
-  const isDeleting = isDeletingTerminalId !== null;
+  // Only treat *this* orchestration as busy. A stale `isDeletingTerminalId` for another id would
+  // otherwise keep confirm/cancel disabled and make the dialog feel "stuck".
   const isThisDeleting = isDeletingTerminalId === pendingDeleteTerminal.terminalId;
   const dialogResetKey = `${pendingDeleteTerminal.terminalId}:${pendingDeleteTerminal.intent}`;
 
@@ -36,17 +37,17 @@ export const DeleteTentacleDialog = ({
     <ConfirmationDialog
       title={
         isCleanupIntent
-          ? "Cleanup Worktree Tentacle"
+          ? "Cleanup Worktree Orchestration"
           : isCloseIntent
             ? "Close Terminal"
-            : "Delete Tentacle"
+            : "Delete Orchestration"
       }
       ariaLabel={`${isCloseIntent ? "Close" : "Delete"} confirmation for ${pendingDeleteTerminal.terminalId}`}
       message={
         isCleanupIntent ? (
           <>
             Cleanup <strong>{pendingDeleteTerminal.coordinationName}</strong> and delete the
-            tentacle session metadata.
+            orchestration session metadata.
           </>
         ) : isCloseIntent ? (
           <>
@@ -76,8 +77,8 @@ export const DeleteTentacleDialog = ({
               ? "Close"
               : "Delete"
       }
-      isConfirmDisabled={isDeleting || !isCleanupConfirmationValid}
-      isBusy={isDeleting}
+      isConfirmDisabled={isThisDeleting || !isCleanupConfirmationValid}
+      isBusy={isThisDeleting}
       cancelAriaLabel="Cancel delete"
       onCancel={onCancel}
       onConfirm={onConfirmDelete}
@@ -98,9 +99,9 @@ export const DeleteTentacleDialog = ({
       </dl>
       {isCleanupIntent && (
         <div className="delete-confirm-typed-check">
-          <label htmlFor="cleanup-confirm-id-input">Type tentacle ID to confirm cleanup</label>
+          <label htmlFor="cleanup-confirm-id-input">Type orchestration ID to confirm cleanup</label>
           <input
-            aria-label="Type tentacle ID to confirm cleanup"
+            aria-label="Type orchestration ID to confirm cleanup"
             id="cleanup-confirm-id-input"
             onChange={(event) => setCleanupConfirmationInput(event.target.value)}
             type="text"

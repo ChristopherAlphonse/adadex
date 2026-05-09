@@ -1,4 +1,4 @@
-export const parseTentacleCommitMessage = (
+export const parseOrchestrationCommitMessage = (
   payload: unknown,
 ): { message: string | null; error: string | null } => {
   if (payload === null || payload === undefined || typeof payload !== "object") {
@@ -30,7 +30,7 @@ export const parseTentacleCommitMessage = (
   };
 };
 
-export const parseTentacleSyncBaseRef = (
+export const parseOrchestrationSyncBaseRef = (
   payload: unknown,
 ): { baseRef: string | null; error: string | null } => {
   if (payload === null || payload === undefined) {
@@ -76,7 +76,7 @@ export const parseTentacleSyncBaseRef = (
   };
 };
 
-export const parseTentaclePullRequestCreateInput = (
+export const parseOrchestrationPullRequestCreateInput = (
   payload: unknown,
 ): {
   title: string | null;

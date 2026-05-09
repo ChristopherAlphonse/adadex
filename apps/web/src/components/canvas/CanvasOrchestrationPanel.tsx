@@ -11,72 +11,16 @@ import {
   buildDeckTodoSolveUrl,
   buildDeckTodoToggleUrl,
 } from "../../runtime/runtimeEndpoints";
-import {
-  type OctopusAccessory,
-  type OctopusAnimation,
-  type OctopusExpression,
-  OctopusGlyph,
-} from "../EmptyOctopus";
+import { MascotGlyph } from "../MascotSprite";
+import { deriveMascotVisuals } from "../deck/mascotVisuals";
 
-const OCTOPUS_COLORS = [
-  "#ff6b2b",
-  "#ff2d6b",
-  "#00ffaa",
-  "#bf5fff",
-  "#00c8ff",
-  "#ffee00",
-  "#39ff14",
-  "#ff4df0",
-  "#00fff7",
-  "#ff9500",
-];
-const ANIMATIONS: OctopusAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
-const EXPRESSIONS: OctopusExpression[] = ["normal", "happy", "angry", "surprised"];
-const ACCESSORIES: OctopusAccessory[] = ["none", "none", "long", "mohawk", "side-sweep", "curly"];
-
-function hashStr(str: string): number {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-}
-
-function seededRng(seed: number): () => number {
-  let s = seed;
-  return () => {
-    s = (s * 16807 + 0) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
-
-function deriveVisuals(tentacle: DeckCoordinationSummary) {
-  const rng = seededRng(hashStr(tentacle.coordinationId));
-  const stored = tentacle.octopus;
-  return {
-    color:
-      tentacle.color ??
-      (OCTOPUS_COLORS[hashStr(tentacle.coordinationId) % OCTOPUS_COLORS.length] as string),
-    animation:
-      (stored?.animation as OctopusAnimation | null) ??
-      (ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as OctopusAnimation),
-    expression:
-      (stored?.expression as OctopusExpression | null) ??
-      (EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as OctopusExpression),
-    accessory:
-      (stored?.accessory as OctopusAccessory | null) ??
-      (ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as OctopusAccessory),
-    hairColor: stored?.hairColor ?? undefined,
-  };
-}
-
-type CanvasTentaclePanelProps = {
+type CanvasOrchestrationPanelProps = {
   node: GraphNode;
   isFocused?: boolean;
   onClose: () => void;
   onFocus?: () => void;
   panelRef?: Ref<HTMLDivElement> | undefined;
-  tentacle: DeckCoordinationSummary | null;
+  orchestration: DeckCoordinationSummary | null;
   sessions: ConversationSessionSummary[];
   onCreateAgent?: ((coordinationId: string) => void) | undefined;
   onSolveTodoItem?: ((coordinationId: string, itemIndex: number) => void) | undefined;
@@ -84,7 +28,7 @@ type CanvasTentaclePanelProps = {
     | ((coordinationId: string, workspaceMode: CoordinationWorkspaceMode) => void)
     | undefined;
   onNavigateToConversation?: ((sessionId: string) => void) | undefined;
-  onRefreshTentacleData?: (() => Promise<void>) | undefined;
+  onRefreshOrchestrationData?: (() => Promise<void>) | undefined;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -108,29 +52,29 @@ const formatTime = (isoString: string | null): string => {
   return `${diffDay}d ago`;
 };
 
-export const CanvasTentaclePanel = ({
+export const CanvasOrchestrationPanel = ({
   node,
   isFocused,
   onClose,
   onFocus,
   panelRef,
-  tentacle,
+  orchestration,
   sessions,
   onCreateAgent,
   onSolveTodoItem,
   onSpawnSwarm,
   onNavigateToConversation,
-  onRefreshTentacleData,
-}: CanvasTentaclePanelProps) => {
-  const visuals = useMemo(() => (tentacle ? deriveVisuals(tentacle) : null), [tentacle]);
+  onRefreshOrchestrationData,
+}: CanvasOrchestrationPanelProps) => {
+  const visuals = useMemo(() => (orchestration ? deriveMascotVisuals(orchestration) : null), [orchestration]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [addingTodo, setAddingTodo] = useState(false);
   const [addText, setAddText] = useState("");
   const [solvingTodoIndex, setSolvingTodoIndex] = useState<number | null>(null);
-  const refreshTentacleData = useCallback(async () => {
-    await onRefreshTentacleData?.();
-  }, [onRefreshTentacleData]);
+  const refreshOrchestrationData = useCallback(async () => {
+    await onRefreshOrchestrationData?.();
+  }, [onRefreshOrchestrationData]);
 
   const handleTodoToggle = useCallback(
     async (itemIndex: number, done: boolean) => {
@@ -141,12 +85,12 @@ export const CanvasTentaclePanel = ({
           body: JSON.stringify({ itemIndex, done }),
         });
         if (!response.ok) return;
-        await refreshTentacleData();
+        await refreshOrchestrationData();
       } catch {
         // silent
       }
     },
-    [node.coordinationId, refreshTentacleData],
+    [node.coordinationId, refreshOrchestrationData],
   );
 
   const handleTodoEdit = useCallback(
@@ -160,12 +104,12 @@ export const CanvasTentaclePanel = ({
         });
         if (!response.ok) return;
         setEditingIndex(null);
-        await refreshTentacleData();
+        await refreshOrchestrationData();
       } catch {
         // silent
       }
     },
-    [node.coordinationId, refreshTentacleData],
+    [node.coordinationId, refreshOrchestrationData],
   );
 
   const handleTodoAdd = useCallback(
@@ -180,12 +124,12 @@ export const CanvasTentaclePanel = ({
         if (!response.ok) return;
         setAddingTodo(false);
         setAddText("");
-        await refreshTentacleData();
+        await refreshOrchestrationData();
       } catch {
         // silent
       }
     },
-    [node.coordinationId, refreshTentacleData],
+    [node.coordinationId, refreshOrchestrationData],
   );
 
   const handleTodoDelete = useCallback(
@@ -197,12 +141,12 @@ export const CanvasTentaclePanel = ({
           body: JSON.stringify({ itemIndex }),
         });
         if (!response.ok) return;
-        await refreshTentacleData();
+        await refreshOrchestrationData();
       } catch {
         // silent
       }
     },
-    [node.coordinationId, refreshTentacleData],
+    [node.coordinationId, refreshOrchestrationData],
   );
 
   const handleTodoSolve = useCallback(
@@ -226,8 +170,8 @@ export const CanvasTentaclePanel = ({
   );
 
   const progressPct =
-    tentacle && tentacle.todoTotal > 0
-      ? Math.round((tentacle.todoDone / tentacle.todoTotal) * 100)
+    orchestration && orchestration.todoTotal > 0
+      ? Math.round((orchestration.todoDone / orchestration.todoTotal) * 100)
       : 0;
 
   return (
@@ -244,10 +188,10 @@ export const CanvasTentaclePanel = ({
           background: `linear-gradient(180deg, color-mix(in srgb, ${node.color ?? "var(--accent-primary)"} 90%, #ffd89d 10%) 0%, color-mix(in srgb, ${node.color ?? "var(--accent-primary)"} 78%, #d9851c 22%) 100%)`,
         }}
       >
-        <span className="detail-title">{tentacle?.displayName ?? node.label}</span>
-        {tentacle && (
+        <span className="detail-title">{orchestration?.displayName ?? node.label}</span>
+        {orchestration && (
           <span className="detail-type-badge">
-            {STATUS_LABELS[tentacle.status] ?? tentacle.status}
+            {STATUS_LABELS[orchestration.status] ?? orchestration.status}
           </span>
         )}
         <button className="detail-close" type="button" onClick={onClose} aria-label="Close panel">
@@ -261,7 +205,7 @@ export const CanvasTentaclePanel = ({
         <div className="detail-identity">
           {visuals && (
             <div className="detail-glyph">
-              <OctopusGlyph
+              <MascotGlyph
                 color={visuals.color}
                 animation={visuals.animation}
                 expression={visuals.expression}
@@ -272,15 +216,15 @@ export const CanvasTentaclePanel = ({
             </div>
           )}
           <div className="detail-identity-info">
-            <div className="detail-name">{tentacle?.displayName ?? node.label}</div>
+            <div className="detail-name">{orchestration?.displayName ?? node.label}</div>
             <div className="detail-row">
               <span className="detail-label">ID</span>
               <span className="detail-value detail-value--mono">{node.coordinationId}</span>
             </div>
-            {tentacle?.description && (
+            {orchestration?.description && (
               <div className="detail-row">
                 <span className="detail-label">Description</span>
-                <span className="detail-value">{tentacle.description}</span>
+                <span className="detail-value">{orchestration.description}</span>
               </div>
             )}
           </div>
@@ -315,10 +259,10 @@ export const CanvasTentaclePanel = ({
         </div>
 
         {/* Progress section */}
-        {tentacle && (
+        {orchestration && (
           <div className="detail-section">
             <div className="detail-section-title">Progress</div>
-            {tentacle.todoTotal > 0 && (
+            {orchestration.todoTotal > 0 && (
               <div className="detail-progress">
                 <div className="detail-progress-bar">
                   <div
@@ -327,13 +271,13 @@ export const CanvasTentaclePanel = ({
                   />
                 </div>
                 <span className="detail-progress-label">
-                  {tentacle.todoDone}/{tentacle.todoTotal}
+                  {orchestration.todoDone}/{orchestration.todoTotal}
                 </span>
               </div>
             )}
-            {tentacle.todoItems.length > 0 && (
+            {orchestration.todoItems.length > 0 && (
               <ul className="detail-todos">
-                {tentacle.todoItems.map((item, i) => (
+                {orchestration.todoItems.map((item, i) => (
                   <li
                     key={`${i}-${item.text}`}
                     className={`detail-todo${item.done ? " detail-todo--done" : ""}`}
@@ -428,11 +372,11 @@ export const CanvasTentaclePanel = ({
         )}
 
         {/* Vault files */}
-        {tentacle && tentacle.vaultFiles.length > 0 && (
+        {orchestration && orchestration.vaultFiles.length > 0 && (
           <div className="detail-section">
             <div className="detail-section-title">Vault Files</div>
             <div className="detail-labels-list">
-              {tentacle.vaultFiles.map((file) => (
+              {orchestration.vaultFiles.map((file) => (
                 <span key={file} className="detail-label-tag">
                   {file}
                 </span>
@@ -441,11 +385,11 @@ export const CanvasTentaclePanel = ({
           </div>
         )}
 
-        {tentacle && tentacle.suggestedSkills.length > 0 && (
+        {orchestration && orchestration.suggestedSkills.length > 0 && (
           <div className="detail-section">
             <div className="detail-section-title">Suggested Skills</div>
             <div className="detail-labels-list">
-              {tentacle.suggestedSkills.map((skill) => (
+              {orchestration.suggestedSkills.map((skill) => (
                 <span key={skill} className="detail-label-tag">
                   {skill}
                 </span>

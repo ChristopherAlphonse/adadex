@@ -62,7 +62,7 @@ export const CanvasTerminalColumn = ({
           </h2>
         </div>
         <div className="canvas-terminal-column-actions">
-          <span className="canvas-terminal-column-tentacle-tag" style={{ background: node.color }}>
+          <span className="canvas-terminal-column-orchestration-tag" style={{ background: node.color }}>
             {node.coordinationId}
           </span>
           <AgentStateBadge state={agentState} />

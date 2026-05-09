@@ -40,7 +40,7 @@ type CreateSessionRuntimeOptions = {
     sessionId: string;
     coordinationId: string;
   } | null;
-  getTentacleWorkspaceCwd: (coordinationId: string) => string;
+  getOrchestrationWorkspaceCwd: (coordinationId: string) => string;
   isDebugPtyLogsEnabled: boolean;
   ptyLogDir: string;
   transcriptDirectoryPath: string;
@@ -63,7 +63,7 @@ export const createSessionRuntime = ({
   terminals,
   sessions,
   resolveTerminalSession,
-  getTentacleWorkspaceCwd,
+  getOrchestrationWorkspaceCwd,
   isDebugPtyLogsEnabled,
   ptyLogDir,
   transcriptDirectoryPath,
@@ -538,9 +538,9 @@ export const createSessionRuntime = ({
 
     const terminalRecord = terminals.get(sessionId);
 
-    const tentacleCwd = getTentacleWorkspaceCwd(coordinationId);
-    if (!existsSync(tentacleCwd)) {
-      throw new Error(`Terminal working directory does not exist: ${tentacleCwd}`);
+    const orchestrationCwd = getOrchestrationWorkspaceCwd(coordinationId);
+    if (!existsSync(orchestrationCwd)) {
+      throw new Error(`Terminal working directory does not exist: ${orchestrationCwd}`);
     }
 
     ensureNodePtySpawnHelperExecutable();
@@ -551,7 +551,7 @@ export const createSessionRuntime = ({
       pty = spawn(shellLaunch.command, shellLaunch.args, {
         cols: DEFAULT_PTY_COLS,
         rows: DEFAULT_PTY_ROWS,
-        cwd: tentacleCwd,
+        cwd: orchestrationCwd,
         env: createShellEnvironment({ adadexSessionId: sessionId }),
         name: "xterm-256color",
       });
@@ -587,7 +587,7 @@ export const createSessionRuntime = ({
     }
     session.transcriptLog = transcriptLog;
 
-    appendDebugLog(session, `session-start session=${sessionId} tentacle=${coordinationId}`);
+    appendDebugLog(session, `session-start session=${sessionId} orchestration=${coordinationId}`);
     const processId =
       typeof pty.pid === "number" && Number.isInteger(pty.pid) && pty.pid > 0 ? pty.pid : undefined;
     onSessionStart?.(sessionId, {

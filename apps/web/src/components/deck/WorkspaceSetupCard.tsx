@@ -1,5 +1,10 @@
-import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@adadex/core";
-import { OctopusGlyph } from "../EmptyOctopus";
+import type {
+  WorkspaceSetupSnapshot,
+  WorkspaceSetupStepId,
+} from "@adadex/core";
+import { Minimize2, X } from "lucide-react";
+
+import { MascotSprite } from "../MascotSprite";
 
 type WorkspaceSetupCardProps = {
   compact?: boolean;
@@ -10,11 +15,18 @@ type WorkspaceSetupCardProps = {
   onLaunchAgent: () => void;
   isLaunchingAgent?: boolean;
   isRunningStepId?: WorkspaceSetupStepId | null;
+  /** Canvas overlay: collapse to a slim bar (same session). */
+  onMinimize?: () => void;
+  /** Canvas overlay: hide until reopened from the canvas toolbar. */
+  onDismiss?: () => void;
 };
 
-const buildStepSummary = (stepId: WorkspaceSetupStepId, description: string) => {
+const buildStepSummary = (
+  stepId: WorkspaceSetupStepId,
+  description: string,
+) => {
   if (stepId === "create-coordinations") {
-    return "Launch Codex so it can plan and create the first tentacles.";
+    return "Launch Codex so it can plan and create your first coordinations.";
   }
 
   return description;
@@ -29,25 +41,50 @@ export const WorkspaceSetupCard = ({
   onLaunchAgent,
   isLaunchingAgent,
   isRunningStepId,
+  onMinimize,
+  onDismiss,
 }: WorkspaceSetupCardProps) => (
   <section
     className={`workspace-setup-card${compact ? " workspace-setup-card--compact" : ""}`}
     aria-label="Workspace setup"
   >
+    {onMinimize || onDismiss ? (
+      <div
+        className="workspace-setup-card-overlay-actions"
+        role="toolbar"
+        aria-label="Workspace setup panel"
+      >
+        {onMinimize ? (
+          <button
+            type="button"
+            className="workspace-setup-card-overlay-btn"
+            aria-label="Minimize workspace setup"
+            onClick={onMinimize}
+          >
+            <Minimize2 size={16} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
+        {onDismiss ? (
+          <button
+            type="button"
+            className="workspace-setup-card-overlay-btn"
+            aria-label="Hide workspace setup"
+            onClick={onDismiss}
+          >
+            <X size={16} strokeWidth={2} aria-hidden />
+          </button>
+        ) : null}
+      </div>
+    ) : null}
     <header className="workspace-setup-card-header">
       <div className="workspace-setup-card-glyph">
-        <OctopusGlyph
-          color="#d4a017"
-          animation={compact ? "idle" : "walk"}
-          expression="happy"
-          accessory="none"
-          scale={compact ? 4 : 7}
-        />
+        <MascotSprite color="#d4a017" speedMs={16} size={compact ? 112 : 128} />
       </div>
       <div className="workspace-setup-card-copy">
         <h2 className="workspace-setup-card-title">Workspace Setup</h2>
         <p className="workspace-setup-card-desc">
-          Run each step explicitly. Adadex only marks it done after the workspace is checked again.
+          Run each step explicitly. Adadex only marks it done after the
+          workspace is checked again.
         </p>
       </div>
     </header>
@@ -57,19 +94,31 @@ export const WorkspaceSetupCard = ({
     <div className="workspace-setup-step-list">
       {(workspaceSetup?.steps ?? []).map((step) => {
         const isCreateCoordinationsStep = step.id === "create-coordinations";
-        const buttonLabel = isCreateCoordinationsStep ? "Launch Codex" : step.actionLabel;
-        const isButtonDisabled = isCreateCoordinationsStep ? isLaunchingAgent : isLoading;
+        const buttonLabel = isCreateCoordinationsStep
+          ? "Launch Codex"
+          : step.actionLabel;
+        const isButtonDisabled = isCreateCoordinationsStep
+          ? isLaunchingAgent
+          : isLoading;
         const isButtonRunning = isCreateCoordinationsStep
           ? isLaunchingAgent
           : isRunningStepId === step.id;
 
         return (
-          <article key={step.id} className="workspace-setup-step" data-complete={step.complete}>
+          <article
+            key={step.id}
+            className="workspace-setup-step"
+            data-complete={step.complete}
+          >
             <div className="workspace-setup-step-main">
               <div className="workspace-setup-step-title-row">
                 <span className="workspace-setup-step-title">{step.title}</span>
                 <span className="workspace-setup-step-state">
-                  {step.complete ? "Done" : step.required ? "Required" : "Optional"}
+                  {step.complete
+                    ? "Done"
+                    : step.required
+                      ? "Required"
+                      : "Optional"}
                 </span>
               </div>
               <p className="workspace-setup-step-desc">

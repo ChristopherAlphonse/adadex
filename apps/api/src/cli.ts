@@ -315,7 +315,7 @@ const pick = <T>(items: T[]): T => items[Math.floor(Math.random() * items.length
 
 const randomAppearance = () => ({
   color: pick(COLORS),
-  octopus: {
+  mascot: {
     animation: pick(ANIMATIONS),
     expression: pick(EXPRESSIONS),
     accessory: pick(ACCESSORIES),
@@ -360,14 +360,14 @@ const coordinationCreate = async () => {
   }
 
   const description = parseFlag("--description") ?? parseFlag("-d") ?? "";
-  const { color, octopus } = randomAppearance();
+  const { color, mascot } = randomAppearance();
   const apiBase = resolveRuntimeApiBase();
 
   try {
     const response = await fetch(`${apiBase}/api/deck/coordinations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description, color, octopus }),
+      body: JSON.stringify({ name, description, color, mascot }),
     });
     const data = (await response.json()) as Record<string, unknown>;
     if (!response.ok) {
@@ -410,7 +410,7 @@ const terminalCreate = async () => {
   const initialPrompt = parseFlag("--initial-prompt") ?? parseFlag("-p");
   const workspaceMode = parseFlag("--workspace-mode") ?? parseFlag("-w") ?? "shared";
   const terminalId = parseFlag("--terminal-id");
-  const coordinationId = parseFlag("--coordination-id") ?? parseFlag("--tentacle-id");
+  const coordinationId = parseFlag("--coordination-id") ?? parseFlag("--orchestration-id");
   const worktreeId = parseFlag("--worktree-id");
   const parentTerminalId = parseFlag("--parent-terminal-id");
   const nameOrigin = parseFlag("--name-origin");
@@ -653,8 +653,8 @@ const main = async () => {
   if (
     command === "coordination" ||
     command === "coordinations" ||
-    command === "tentacle" ||
-    command === "tentacles"
+    command === "orchestration" ||
+    command === "orchestrations"
   ) {
     if (args[1] === "create") {
       return coordinationCreate();

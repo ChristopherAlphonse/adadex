@@ -29,6 +29,8 @@ vi.mock("node-pty", () => ({
   spawn: spawnMock,
 }));
 
+import { LEGACY_DECK_NEXT_NUMBER_KEY, LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY } from "@adadex/core";
+
 import { createApiServer } from "../src/createApiServer";
 import type { GitHubRepoSummarySnapshot } from "../src/githubRepoSummary";
 import { MAX_CHILDREN_PER_PARENT } from "../src/terminalRuntime";
@@ -1172,7 +1174,7 @@ describe("createApiServer", () => {
     expect(gitignoreResponse.status).toBe(200);
     expect(readFileSync(join(workspaceCwd, ".gitignore"), "utf8")).toContain(".adadex");
 
-    const createTentacleResponse = await fetch(`${baseUrl}/api/deck/coordinations`, {
+    const createOrchestrationResponse = await fetch(`${baseUrl}/api/deck/coordinations`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -1183,7 +1185,7 @@ describe("createApiServer", () => {
         description: "Docs and guides",
       }),
     });
-    expect(createTentacleResponse.status).toBe(201);
+    expect(createOrchestrationResponse.status).toBe(201);
 
     const finalResponse = await fetch(`${baseUrl}/api/setup`, {
       headers: { Accept: "application/json" },
@@ -1207,7 +1209,7 @@ describe("createApiServer", () => {
     );
   });
 
-  it("returns 413 when create tentacle body exceeds size limit", async () => {
+  it("returns 413 when create orchestration body exceeds size limit", async () => {
     const baseUrl = await startServer();
 
     const response = await fetch(`${baseUrl}/api/terminals`, {
@@ -1332,7 +1334,7 @@ describe("createApiServer", () => {
     ]);
   });
 
-  it("creates tentacles with suggested skills and appends the managed context block", async () => {
+  it("creates orchestrations with suggested skills and appends the managed context block", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({ workspaceCwd });
@@ -1381,7 +1383,7 @@ describe("createApiServer", () => {
     );
   });
 
-  it("updates tentacle suggested skills and removes the managed context block when cleared", async () => {
+  it("updates orchestration suggested skills and removes the managed context block when cleared", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({ workspaceCwd });
@@ -1443,7 +1445,7 @@ describe("createApiServer", () => {
     expect(readFileSync(contextPath, "utf8")).not.toContain("adadex:suggested-skills:start");
   });
 
-  it("returns 400 for unsupported tentacle completion sound values", async () => {
+  it("returns 400 for unsupported orchestration completion sound values", async () => {
     const baseUrl = await startServer();
 
     const response = await fetch(`${baseUrl}/api/ui-state`, {
@@ -1552,7 +1554,7 @@ describe("createApiServer", () => {
     });
   });
 
-  it("creates new tentacles with unique incremental ids", async () => {
+  it("creates new orchestrations with unique incremental ids", async () => {
     const baseUrl = await startServer();
 
     const createFirstResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -1638,7 +1640,7 @@ describe("createApiServer", () => {
     );
   });
 
-  it("reuses the minimum available tentacle number after deletions", async () => {
+  it("reuses the minimum available orchestration number after deletions", async () => {
     const baseUrl = await startServer();
 
     const createFirstResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -1679,7 +1681,7 @@ describe("createApiServer", () => {
     );
   });
 
-  it("ignores stale persisted nextTentacleNumber values and starts from the minimum available id", async () => {
+  it("ignores stale persisted nextOrchestrationNumber values and starts from the minimum available id", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".adadex", "state", "coordinations.json");
@@ -1689,8 +1691,8 @@ describe("createApiServer", () => {
       `${JSON.stringify(
         {
           version: 2,
-          nextTentacleNumber: 19,
-          tentacles: [],
+          [LEGACY_DECK_NEXT_NUMBER_KEY]: 19,
+          [LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY]: [],
         },
         null,
         2,
@@ -1716,7 +1718,7 @@ describe("createApiServer", () => {
     );
   });
 
-  it("skips tentacle ids that already have an existing worktree directory", async () => {
+  it("skips orchestration ids that already have an existing worktree directory", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     mkdirSync(join(workspaceCwd, ".adadex", "worktrees", "terminal-1"), {
@@ -1741,7 +1743,7 @@ describe("createApiServer", () => {
     );
   });
 
-  it("persists tentacle metadata without runtime bootstrap flags", async () => {
+  it("persists orchestration metadata without runtime bootstrap flags", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({
@@ -1814,15 +1816,15 @@ describe("createApiServer", () => {
     );
   });
 
-  it("injects a default tentacle context prompt for tentacle terminals", async () => {
+  it("injects a default orchestration context prompt for orchestration terminals", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
-    const tentacleDir = join(workspaceCwd, ".adadex", "coordinations", "docs");
-    const relativeTentacleDir = ".adadex/coordinations/docs";
+    const orchestrationDir = join(workspaceCwd, ".adadex", "coordinations", "docs");
+    const relativeOrchestrationDir = ".adadex/coordinations/docs";
     const promptsDir = resolveRepoPromptsDir();
-    mkdirSync(tentacleDir, { recursive: true });
-    writeFileSync(join(tentacleDir, "CONTEXT.md"), "# Docs\n\nDocumentation team.\n", "utf8");
-    writeFileSync(join(tentacleDir, "todo.md"), "# Todo\n", "utf8");
+    mkdirSync(orchestrationDir, { recursive: true });
+    writeFileSync(join(orchestrationDir, "CONTEXT.md"), "# Docs\n\nDocumentation team.\n", "utf8");
+    writeFileSync(join(orchestrationDir, "todo.md"), "# Todo\n", "utf8");
     const baseUrl = await startServer({
       workspaceCwd,
       promptsDir,
@@ -1841,7 +1843,7 @@ describe("createApiServer", () => {
       expect.objectContaining({
         terminalId: "terminal-1",
         coordinationId: "docs",
-        initialInputDraft: `You are working on the Docs section. For tool-list items, context, and docs, check ${relativeTentacleDir}.`,
+        initialInputDraft: `You are working on the Docs section. For tool-list items, context, and docs, check ${relativeOrchestrationDir}.`,
       }),
     );
 
@@ -1922,7 +1924,7 @@ describe("createApiServer", () => {
     );
   });
 
-  it("returns git status for worktree tentacles", async () => {
+  it("returns git status for worktree orchestrations", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
@@ -1980,7 +1982,7 @@ describe("createApiServer", () => {
     });
   });
 
-  it("returns 409 for git status on shared tentacles", async () => {
+  it("returns 409 for git status on shared orchestrations", async () => {
     const baseUrl = await startServer();
 
     const createResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -2227,7 +2229,7 @@ describe("createApiServer", () => {
     });
   });
 
-  it("returns PR status for worktree tentacles", async () => {
+  it("returns PR status for worktree orchestrations", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
@@ -2283,7 +2285,7 @@ describe("createApiServer", () => {
     });
   });
 
-  it("creates PR for worktree tentacles and returns PR snapshot", async () => {
+  it("creates PR for worktree orchestrations and returns PR snapshot", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
@@ -2326,7 +2328,7 @@ describe("createApiServer", () => {
       },
       body: JSON.stringify({
         title: "feat: expose worktree lifecycle actions",
-        body: "Adds PR controls in the tentacle header.",
+        body: "Adds PR controls in the orchestration header.",
         baseRef: "main",
       }),
     });
@@ -2412,7 +2414,7 @@ describe("createApiServer", () => {
     expect(gitClient.getPullRequestState(worktreePath)).toBe("OPEN");
   });
 
-  it("merges the current branch PR for worktree tentacles", async () => {
+  it("merges the current branch PR for worktree orchestrations", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
@@ -2469,7 +2471,7 @@ describe("createApiServer", () => {
     });
   });
 
-  it("returns 409 for PR actions on shared tentacles", async () => {
+  it("returns 409 for PR actions on shared orchestrations", async () => {
     const baseUrl = await startServer();
 
     const createResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -2492,7 +2494,7 @@ describe("createApiServer", () => {
     });
   });
 
-  it("removes isolated worktree metadata when deleting a worktree tentacle", async () => {
+  it("removes isolated worktree metadata when deleting a worktree orchestration", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
@@ -2532,7 +2534,7 @@ describe("createApiServer", () => {
     expect(gitClient.hasBranch("adadex/terminal-1")).toBe(false);
   });
 
-  it("returns 409 and keeps tentacle state when worktree deletion fails", async () => {
+  it("returns 409 and keeps orchestration state when worktree deletion fails", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
@@ -2680,7 +2682,7 @@ describe("createApiServer", () => {
     });
   });
 
-  it("returns 400 when creating worktree tentacle outside a git repository", async () => {
+  it("returns 400 when creating worktree orchestration outside a git repository", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
@@ -2715,7 +2717,7 @@ describe("createApiServer", () => {
     await expect(listResponse.json()).resolves.toEqual([]);
   });
 
-  it("returns 400 when tentacle name is empty after trimming", async () => {
+  it("returns 400 when orchestration name is empty after trimming", async () => {
     const baseUrl = await startServer();
 
     const createResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -2918,7 +2920,7 @@ describe("createApiServer", () => {
     );
   });
 
-  it("deletes a tentacle and removes it from snapshots", async () => {
+  it("deletes a orchestration and removes it from snapshots", async () => {
     const baseUrl = await startServer();
 
     const createResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -3024,7 +3026,7 @@ describe("createApiServer", () => {
     ]);
   });
 
-  it("restores tentacles across API restarts using persisted registry", async () => {
+  it("restores orchestrations across API restarts using persisted registry", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
 

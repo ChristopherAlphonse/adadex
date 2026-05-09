@@ -13,7 +13,7 @@ export const DeckBottomActions = ({ onClearAll }: DeckBottomActionsProps) => {
     <div className="deck-sidebar-clear">
       {confirmingClear ? (
         <div className="deck-bottom-clear-confirm">
-          <span className="deck-bottom-clear-label">Clear all tentacles?</span>
+          <span className="deck-bottom-clear-label">Clear all orchestrations?</span>
           <button
             type="button"
             className="deck-bottom-clear-btn deck-bottom-clear-btn--danger"

@@ -25,7 +25,7 @@ Deck does not maintain a separate database copy of the coordination context. It 
 - every other `.md` file becomes a vault file, with `todo.md` sorted first
 - checkbox lines in `todo.md` become progress and worker inputs
 
-Deck-specific metadata such as color, status, octopus appearance, paths, and tags lives separately in runtime state. That keeps UI preferences out of the agent-facing markdown files.
+Deck-specific metadata such as color, status, deck mascot appearance, paths, and tags lives separately in runtime state. That keeps UI preferences out of the agent-facing markdown files.
 
 ## What a coordination is for
 

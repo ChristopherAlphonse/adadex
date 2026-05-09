@@ -16,10 +16,18 @@ globalThis.ResizeObserver = class ResizeObserver {
 
 const canvasContextStub = {
   imageSmoothingEnabled: true,
+  globalAlpha: 1,
+  fillStyle: "",
+  strokeStyle: "",
+  lineWidth: 1,
+  lineCap: "butt",
+  lineJoin: "miter",
   clearRect() {},
   fillRect() {},
   save() {},
   restore() {},
+  translate() {},
+  rotate() {},
   beginPath() {},
   moveTo() {},
   quadraticCurveTo() {},

@@ -10,8 +10,6 @@ import type { MonitorRepository, PersistedMonitorCache, PersistedMonitorConfig }
 
 const MONITOR_CONFIG_VERSION = 1 as const;
 const MONITOR_CACHE_VERSION = 1 as const;
-const MONITOR_CONFIG_RELATIVE_PATH = ".octogent/state/monitor-config.json";
-const MONITOR_CACHE_RELATIVE_PATH = ".octogent/state/monitor-cache.json";
 const VALID_MONITOR_SEARCH_WINDOW_DAYS = new Set([1, 3, 7]);
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>

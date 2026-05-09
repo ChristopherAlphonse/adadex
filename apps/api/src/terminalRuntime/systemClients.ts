@@ -188,7 +188,7 @@ export const createDefaultGitClient = (): GitClient => ({
     try {
       execFileSync("git", ["--version"], { stdio: "ignore" });
     } catch (error) {
-      throw new Error(`git is required for worktree tentacles: ${toErrorMessage(error)}`);
+      throw new Error(`git is required for worktree orchestrations: ${toErrorMessage(error)}`);
     }
   },
 

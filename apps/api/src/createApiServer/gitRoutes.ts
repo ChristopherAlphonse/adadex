@@ -1,8 +1,8 @@
 import { RuntimeInputError } from "../terminalRuntime";
 import {
-  parseTentacleCommitMessage,
-  parseTentaclePullRequestCreateInput,
-  parseTentacleSyncBaseRef,
+  parseOrchestrationCommitMessage,
+  parseOrchestrationPullRequestCreateInput,
+  parseOrchestrationSyncBaseRef,
 } from "./gitParsers";
 import type { ApiRouteHandler } from "./routeHelpers";
 import { readJsonBodyOrWriteError, writeJson, writeMethodNotAllowed } from "./routeHelpers";
@@ -13,7 +13,7 @@ const COORDINATION_GIT_PULL_REQUEST_PATH_PATTERN = /^\/api\/coordinations\/([^/]
 const COORDINATION_GIT_PULL_REQUEST_MERGE_PATH_PATTERN =
   /^\/api\/coordinations\/([^/]+)\/git\/pr\/merge$/;
 
-export const handleTentacleGitRoute: ApiRouteHandler = async (
+export const handleOrchestrationGitRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime },
 ) => {
@@ -32,9 +32,9 @@ export const handleTentacleGitRoute: ApiRouteHandler = async (
         return true;
       }
 
-      const payload = runtime.readTentacleGitStatus(coordinationId);
+      const payload = runtime.readOrchestrationGitStatus(coordinationId);
       if (!payload) {
-        writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+        writeJson(response, 404, { error: "Orchestration not found." }, corsOrigin);
         return true;
       }
 
@@ -53,7 +53,7 @@ export const handleTentacleGitRoute: ApiRouteHandler = async (
         return true;
       }
 
-      const commitMessageResult = parseTentacleCommitMessage(bodyReadResult.payload);
+      const commitMessageResult = parseOrchestrationCommitMessage(bodyReadResult.payload);
       if (commitMessageResult.error || !commitMessageResult.message) {
         writeJson(
           response,
@@ -64,9 +64,9 @@ export const handleTentacleGitRoute: ApiRouteHandler = async (
         return true;
       }
 
-      const payload = runtime.commitTentacleWorktree(coordinationId, commitMessageResult.message);
+      const payload = runtime.commitOrchestrationWorktree(coordinationId, commitMessageResult.message);
       if (!payload) {
-        writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+        writeJson(response, 404, { error: "Orchestration not found." }, corsOrigin);
         return true;
       }
 
@@ -80,9 +80,9 @@ export const handleTentacleGitRoute: ApiRouteHandler = async (
         return true;
       }
 
-      const payload = runtime.pushTentacleWorktree(coordinationId);
+      const payload = runtime.pushOrchestrationWorktree(coordinationId);
       if (!payload) {
-        writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+        writeJson(response, 404, { error: "Orchestration not found." }, corsOrigin);
         return true;
       }
 
@@ -100,18 +100,18 @@ export const handleTentacleGitRoute: ApiRouteHandler = async (
       return true;
     }
 
-    const baseRefResult = parseTentacleSyncBaseRef(bodyReadResult.payload);
+    const baseRefResult = parseOrchestrationSyncBaseRef(bodyReadResult.payload);
     if (baseRefResult.error) {
       writeJson(response, 400, { error: baseRefResult.error }, corsOrigin);
       return true;
     }
 
-    const payload = runtime.syncTentacleWorktree(
+    const payload = runtime.syncOrchestrationWorktree(
       coordinationId,
       baseRefResult.baseRef ?? undefined,
     );
     if (!payload) {
-      writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+      writeJson(response, 404, { error: "Orchestration not found." }, corsOrigin);
       return true;
     }
 
@@ -126,7 +126,7 @@ export const handleTentacleGitRoute: ApiRouteHandler = async (
   }
 };
 
-export const handleTentacleGitPullRequestRoute: ApiRouteHandler = async (
+export const handleOrchestrationGitPullRequestRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime },
 ) => {
@@ -139,9 +139,9 @@ export const handleTentacleGitPullRequestRoute: ApiRouteHandler = async (
 
     const coordinationId = decodeURIComponent(mergeMatch[1] ?? "");
     try {
-      const payload = runtime.mergeTentaclePullRequest(coordinationId);
+      const payload = runtime.mergeOrchestrationPullRequest(coordinationId);
       if (!payload) {
-        writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+        writeJson(response, 404, { error: "Orchestration not found." }, corsOrigin);
         return true;
       }
 
@@ -165,9 +165,9 @@ export const handleTentacleGitPullRequestRoute: ApiRouteHandler = async (
 
   try {
     if (request.method === "GET") {
-      const payload = runtime.readTentaclePullRequest(coordinationId);
+      const payload = runtime.readOrchestrationPullRequest(coordinationId);
       if (!payload) {
-        writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+        writeJson(response, 404, { error: "Orchestration not found." }, corsOrigin);
         return true;
       }
 
@@ -185,7 +185,7 @@ export const handleTentacleGitPullRequestRoute: ApiRouteHandler = async (
       return true;
     }
 
-    const pullRequestInput = parseTentaclePullRequestCreateInput(bodyReadResult.payload);
+    const pullRequestInput = parseOrchestrationPullRequestCreateInput(bodyReadResult.payload);
     if (pullRequestInput.error || !pullRequestInput.title) {
       writeJson(
         response,
@@ -196,13 +196,13 @@ export const handleTentacleGitPullRequestRoute: ApiRouteHandler = async (
       return true;
     }
 
-    const payload = runtime.createTentaclePullRequest(coordinationId, {
+    const payload = runtime.createOrchestrationPullRequest(coordinationId, {
       title: pullRequestInput.title,
       ...(pullRequestInput.body.length > 0 ? { body: pullRequestInput.body } : {}),
       ...(pullRequestInput.baseRef !== null ? { baseRef: pullRequestInput.baseRef } : {}),
     });
     if (!payload) {
-      writeJson(response, 404, { error: "Tentacle not found." }, corsOrigin);
+      writeJson(response, 404, { error: "Orchestration not found." }, corsOrigin);
       return true;
     }
 

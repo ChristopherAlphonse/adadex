@@ -1,14 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { AddTentacleForm } from "../src/components/deck/AddTentacleForm";
+import { AddOrchestrationForm } from "../src/components/deck/AddOrchestrationForm";
 
-describe("AddTentacleForm", () => {
+describe("AddOrchestrationForm", () => {
   it("submits selected suggested skills", () => {
     const onSubmit = vi.fn();
 
     render(
-      <AddTentacleForm
+      <AddOrchestrationForm
         onSubmit={onSubmit}
         onCancel={() => {}}
         isSubmitting={false}
@@ -30,7 +30,7 @@ describe("AddTentacleForm", () => {
 
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "docs" } });
     fireEvent.click(screen.getByLabelText(/docs-writer/i));
-    fireEvent.click(screen.getByRole("button", { name: /create tentacle/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create coordination/i }));
 
     expect(onSubmit).toHaveBeenCalledWith(
       "docs",

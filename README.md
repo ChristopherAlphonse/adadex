@@ -42,6 +42,10 @@ This repo is a personal exploration of what an AI coding environment might look 
 </table>
 </div>
 
+## Mascot and copy
+
+The UI includes a small **deck mascot** (rounded head and curved arms) drawn on canvas in [`apps/web/src/components/MascotSprite.tsx`](./apps/web/src/components/MascotSprite.tsx). The favicon is the pixel variant at [`apps/web/public/adadex-favicon.svg`](./apps/web/public/adadex-favicon.svg). Product language emphasizes **orchestration** and **coordinations** rather than cephalopod metaphors.
+
 ## What Adadex Does for You
 
 - **Creates coordinations as context layers** so agents can work with scoped markdown files instead of broad, messy chat context
@@ -166,8 +170,8 @@ PTY sessions survive browser reloads during the idle grace period, but they do *
 
 This rename is a **breaking change** for scripts and clients that assumed Octogent paths or API routes.
 
-- **On disk:** Starting the API migrates a legacy workspace when `.octogent/` exists and `.adadex/` does not: project dir `.octogent` → `.adadex`, `state/tentacles.json` → `state/coordinations.json`, `tentacles/` → `coordinations/`, and global `~/.octogent` → `~/.adadex` with the same inner renames. Prefer a backup before upgrading production checkouts.
-- **HTTP API:** `/api/deck/tentacles` and nested routes are now `/api/deck/coordinations/...`. Git routes moved from `/api/tentacles/:id/git/...` to `/api/coordinations/:coordinationId/git/...`.
+- **On disk:** Starting the API migrates a legacy workspace when `.octogent/` exists and `.adadex/` does not: project dir `.octogent` → `.adadex`, legacy filenames under `state/` are renamed to `coordinations.json`, agent-facing directories are consolidated under `coordinations/`, and global `~/.octogent` → `~/.adadex` with the same inner renames. Prefer a backup before upgrading production checkouts.
+- **HTTP API:** Deck resources are served under `/api/deck/coordinations/...`. Git helpers use `/api/coordinations/:coordinationId/git/...`.
 - **CLI and env:** Prefer the `adadex` command and `ADADEX_*` variables; many code paths still accept the former `octogent` / `OCTOGENT_*` names for compatibility.
 
 ## Docs

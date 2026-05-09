@@ -4,29 +4,29 @@ import type {
   CoordinationPullRequestSnapshot,
   TerminalView,
 } from "../app/types";
-import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
-import { TentacleGitActionsDialog } from "./TentacleGitActionsDialog";
+import { DeleteOrchestrationDialog } from "./DeleteOrchestrationDialog";
+import { OrchestrationGitActionsDialog } from "./OrchestrationGitActionsDialog";
 
 type SidebarActionPanelProps = {
   pendingDeleteTerminal: PendingDeleteTerminal | null;
   isDeletingTerminalId: string | null;
   clearPendingDeleteTerminal: () => void;
   confirmDeleteTerminal: () => Promise<void>;
-  openGitTentacleId: string | null;
+  openGitOrchestrationId: string | null;
   columns: TerminalView;
-  openGitTentacleStatus: CoordinationGitStatusSnapshot | null;
-  openGitTentaclePullRequest: CoordinationPullRequestSnapshot | null;
+  openGitOrchestrationStatus: CoordinationGitStatusSnapshot | null;
+  openGitOrchestrationPullRequest: CoordinationPullRequestSnapshot | null;
   gitCommitMessageDraft: string;
   gitDialogError: string | null;
   isGitDialogLoading: boolean;
   isGitDialogMutating: boolean;
   setGitCommitMessageDraft: (value: string) => void;
-  closeTentacleGitActions: () => void;
-  commitTentacleChanges: () => Promise<void>;
-  commitAndPushTentacleBranch: () => Promise<void>;
-  pushTentacleBranch: () => Promise<void>;
-  syncTentacleBranch: () => Promise<void>;
-  mergeTentaclePullRequest: () => Promise<void>;
+  closeOrchestrationGitActions: () => void;
+  commitOrchestrationChanges: () => Promise<void>;
+  commitAndPushOrchestrationBranch: () => Promise<void>;
+  pushOrchestrationBranch: () => Promise<void>;
+  syncOrchestrationBranch: () => Promise<void>;
+  mergeOrchestrationPullRequest: () => Promise<void>;
   requestDeleteTerminal: (
     coordinationId: string,
     coordinationName: string,
@@ -42,31 +42,31 @@ export const SidebarActionPanel = ({
   isDeletingTerminalId,
   clearPendingDeleteTerminal,
   confirmDeleteTerminal,
-  openGitTentacleId,
+  openGitOrchestrationId,
   columns,
-  openGitTentacleStatus,
-  openGitTentaclePullRequest,
+  openGitOrchestrationStatus,
+  openGitOrchestrationPullRequest,
   gitCommitMessageDraft,
   gitDialogError,
   isGitDialogLoading,
   isGitDialogMutating,
   setGitCommitMessageDraft,
-  closeTentacleGitActions,
-  commitTentacleChanges,
-  commitAndPushTentacleBranch,
-  pushTentacleBranch,
-  syncTentacleBranch,
-  mergeTentaclePullRequest,
+  closeOrchestrationGitActions,
+  commitOrchestrationChanges,
+  commitAndPushOrchestrationBranch,
+  pushOrchestrationBranch,
+  syncOrchestrationBranch,
+  mergeOrchestrationPullRequest,
   requestDeleteTerminal,
 }: SidebarActionPanelProps) => {
-  const openGitTentacleTerminal =
-    openGitTentacleId !== null
-      ? columns.find((terminal) => terminal.coordinationId === openGitTentacleId)
+  const openGitOrchestrationTerminal =
+    openGitOrchestrationId !== null
+      ? columns.find((terminal) => terminal.coordinationId === openGitOrchestrationId)
       : null;
 
   if (pendingDeleteTerminal) {
     return (
-      <DeleteTentacleDialog
+      <DeleteOrchestrationDialog
         isDeletingTerminalId={isDeletingTerminalId}
         onCancel={clearPendingDeleteTerminal}
         onConfirmDelete={() => {
@@ -77,46 +77,46 @@ export const SidebarActionPanel = ({
     );
   }
 
-  if (openGitTentacleTerminal && openGitTentacleTerminal.workspaceMode === "worktree") {
+  if (openGitOrchestrationTerminal && openGitOrchestrationTerminal.workspaceMode === "worktree") {
     return (
-      <TentacleGitActionsDialog
+      <OrchestrationGitActionsDialog
         errorMessage={gitDialogError}
         gitCommitMessage={gitCommitMessageDraft}
-        gitPullRequest={openGitTentaclePullRequest}
-        gitStatus={openGitTentacleStatus}
+        gitPullRequest={openGitOrchestrationPullRequest}
+        gitStatus={openGitOrchestrationStatus}
         isLoading={isGitDialogLoading}
         isMutating={isGitDialogMutating}
-        onClose={closeTentacleGitActions}
+        onClose={closeOrchestrationGitActions}
         onCommit={() => {
-          void commitTentacleChanges();
+          void commitOrchestrationChanges();
         }}
         onCommitAndPush={() => {
-          void commitAndPushTentacleBranch();
+          void commitAndPushOrchestrationBranch();
         }}
         onCommitMessageChange={setGitCommitMessageDraft}
         onMergePullRequest={() => {
-          void mergeTentaclePullRequest();
+          void mergeOrchestrationPullRequest();
         }}
         onPush={() => {
-          void pushTentacleBranch();
+          void pushOrchestrationBranch();
         }}
         onSync={() => {
-          void syncTentacleBranch();
+          void syncOrchestrationBranch();
         }}
         onCleanupWorktree={() => {
           requestDeleteTerminal(
-            openGitTentacleTerminal.terminalId,
-            openGitTentacleTerminal.coordinationName ?? openGitTentacleTerminal.coordinationId,
+            openGitOrchestrationTerminal.terminalId,
+            openGitOrchestrationTerminal.coordinationName ?? openGitOrchestrationTerminal.coordinationId,
             {
-              workspaceMode: openGitTentacleTerminal.workspaceMode ?? "shared",
+              workspaceMode: openGitOrchestrationTerminal.workspaceMode ?? "shared",
               intent: "cleanup-worktree",
             },
           );
-          closeTentacleGitActions();
+          closeOrchestrationGitActions();
         }}
-        coordinationId={openGitTentacleTerminal.coordinationId}
+        coordinationId={openGitOrchestrationTerminal.coordinationId}
         coordinationName={
-          openGitTentacleTerminal.coordinationName ?? openGitTentacleTerminal.coordinationId
+          openGitOrchestrationTerminal.coordinationName ?? openGitOrchestrationTerminal.coordinationId
         }
       />
     );

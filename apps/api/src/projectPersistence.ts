@@ -151,7 +151,7 @@ export const migrateLegacyGlobalLayout = (): void => {
   }
 };
 
-/** Rename `.octogent` → `.adadex` and `tentacles` → `coordinations` when present. */
+/** Rename `.octogent` → `.adadex` and `orchestrations` → `coordinations` when present. */
 export const migrateLegacyWorkspaceLayout = (workspaceCwd: string): void => {
   const legacyRoot = join(workspaceCwd, LEGACY_WORKSPACE_RUNTIME_DIR);
   const nextRoot = join(workspaceCwd, WORKSPACE_RUNTIME_DIR);

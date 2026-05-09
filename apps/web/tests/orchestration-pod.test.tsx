@@ -1,21 +1,21 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { TentaclePod } from "../src/components/deck/TentaclePod";
+import { OrchestrationPod } from "../src/components/deck/OrchestrationPod";
 
-describe("TentaclePod skill editor", () => {
+describe("OrchestrationPod skill editor", () => {
   it("saves suggested skills from the deck pod", async () => {
     const onSaveSuggestedSkills = vi.fn().mockResolvedValue(true);
 
     render(
-      <TentaclePod
-        tentacle={{
+      <OrchestrationPod
+        orchestration={{
           coordinationId: "docs",
           displayName: "Docs",
           description: "Docs and knowledge.",
           status: "idle",
           color: "#ff6b2b",
-          octopus: {
+          mascot: {
             animation: null,
             expression: null,
             accessory: null,

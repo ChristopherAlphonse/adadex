@@ -2,12 +2,12 @@ import type {
   AgentRuntimeState,
   AgentState,
   CoordinationWorkspaceMode,
-  DeckOctopusAppearance,
+  DeckMascotAppearance,
 } from "@adadex/core";
 
 export type GraphNode = {
   id: string;
-  type: "tentacle" | "octoboss" | "active-session" | "inactive-session";
+  type: "orchestration" | "deck-lead" | "active-session" | "inactive-session";
   x: number;
   y: number;
   vx: number;
@@ -25,7 +25,7 @@ export type GraphNode = {
   workspaceMode?: CoordinationWorkspaceMode;
   parentTerminalId?: string;
   firstPromptPreview?: string;
-  octopus?: DeckOctopusAppearance;
+  mascot?: DeckMascotAppearance;
 };
 
 export type GraphEdge = {

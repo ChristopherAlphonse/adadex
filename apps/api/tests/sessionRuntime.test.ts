@@ -126,7 +126,7 @@ describe("createSessionRuntime", () => {
   });
 
   it("keeps a session alive across reconnects and replays scrollback history", () => {
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -149,7 +149,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -188,7 +188,7 @@ describe("createSessionRuntime", () => {
   it("closes idle sessions after the configured grace timeout", () => {
     vi.useFakeTimers();
 
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -211,7 +211,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -238,7 +238,7 @@ describe("createSessionRuntime", () => {
   });
 
   it("disposes PTY subscriptions when a session is closed", () => {
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -261,7 +261,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -286,7 +286,7 @@ describe("createSessionRuntime", () => {
   it("clears delayed prompt timers when a prompted session is closed", () => {
     vi.useFakeTimers();
 
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -310,7 +310,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -333,7 +333,7 @@ describe("createSessionRuntime", () => {
   it("releases headless prompted sessions after keepalive is dropped", () => {
     vi.useFakeTimers();
 
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -357,7 +357,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -381,7 +381,7 @@ describe("createSessionRuntime", () => {
   });
 
   it("removes exited sessions without killing the already-exited PTY", () => {
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -404,7 +404,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -426,21 +426,21 @@ describe("createSessionRuntime", () => {
   it("enforces the configured max concurrent terminal sessions before spawning", () => {
     const terminals = new Map<string, PersistedTerminal>([
       [
-        "tentacle-1",
+        "orchestration-1",
         {
-          terminalId: "tentacle-1",
-          coordinationId: "tentacle-1",
-          coordinationName: "tentacle-1",
+          terminalId: "orchestration-1",
+          coordinationId: "orchestration-1",
+          coordinationName: "orchestration-1",
           createdAt: new Date().toISOString(),
           workspaceMode: "shared",
         },
       ],
       [
-        "tentacle-2",
+        "orchestration-2",
         {
-          terminalId: "tentacle-2",
-          coordinationId: "tentacle-2",
-          coordinationName: "tentacle-2",
+          terminalId: "orchestration-2",
+          coordinationId: "orchestration-2",
+          coordinationName: "orchestration-2",
           createdAt: new Date().toISOString(),
           workspaceMode: "shared",
         },
@@ -456,7 +456,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -465,18 +465,18 @@ describe("createSessionRuntime", () => {
       maxConcurrentSessions: 1,
     });
 
-    expect(runtime.startSession("tentacle-1")).toBe(true);
-    expect(runtime.startSession("tentacle-2")).toBe(false);
+    expect(runtime.startSession("orchestration-1")).toBe(true);
+    expect(runtime.startSession("orchestration-2")).toBe(false);
 
     expect(spawnMock).toHaveBeenCalledTimes(1);
-    expect(sessions.has("tentacle-1")).toBe(true);
-    expect(sessions.has("tentacle-2")).toBe(false);
+    expect(sessions.has("orchestration-1")).toBe(true);
+    expect(sessions.has("orchestration-2")).toBe(false);
 
     runtime.close();
   });
 
   it("truncates oversize chunks to the configured scrollback size", () => {
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -499,7 +499,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -531,7 +531,7 @@ describe("createSessionRuntime", () => {
   });
 
   it("strips a broken leading ANSI fragment from replayed history after truncation", () => {
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -554,7 +554,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -586,7 +586,7 @@ describe("createSessionRuntime", () => {
   });
 
   it("ignores duplicate resize payloads for the same terminal size", () => {
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -609,7 +609,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -634,7 +634,7 @@ describe("createSessionRuntime", () => {
   });
 
   it("writes normalized transcript events for each terminal session", async () => {
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -657,7 +657,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -710,7 +710,7 @@ describe("createSessionRuntime", () => {
   it("can start a prompted session headlessly and submits the prompt automatically", () => {
     vi.useFakeTimers();
 
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -734,7 +734,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -764,7 +764,7 @@ describe("createSessionRuntime", () => {
   it("pastes an initial input draft without submitting it", () => {
     vi.useFakeTimers();
 
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -788,7 +788,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -814,7 +814,7 @@ describe("createSessionRuntime", () => {
   });
 
   it("reports runtime state changes through the state-change callback", () => {
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -838,7 +838,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,
@@ -861,7 +861,7 @@ describe("createSessionRuntime", () => {
   });
 
   it("reports session lifecycle start and exit through callbacks", () => {
-    const coordinationId = "tentacle-1";
+    const coordinationId = "orchestration-1";
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -887,7 +887,7 @@ describe("createSessionRuntime", () => {
       websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
-      getTentacleWorkspaceCwd: () => process.cwd(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
       isDebugPtyLogsEnabled: false,
       ptyLogDir: process.cwd(),
       transcriptDirectoryPath,

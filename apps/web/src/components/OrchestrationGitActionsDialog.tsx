@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { CoordinationGitStatusSnapshot, CoordinationPullRequestSnapshot } from "../app/types";
 import { ActionButton } from "./ui/ActionButton";
 
-type TentacleGitActionsDialogProps = {
+type OrchestrationGitActionsDialogProps = {
   coordinationId: string;
   coordinationName: string;
   gitStatus: CoordinationGitStatusSnapshot | null;
@@ -25,7 +25,7 @@ type TentacleGitActionsDialogProps = {
 
 const renderDirtyState = (isDirty: boolean) => (isDirty ? "Dirty" : "Clean");
 
-export const TentacleGitActionsDialog = ({
+export const OrchestrationGitActionsDialog = ({
   coordinationId,
   coordinationName,
   gitStatus,
@@ -42,7 +42,7 @@ export const TentacleGitActionsDialog = ({
   onSync,
   onMergePullRequest,
   onCleanupWorktree,
-}: TentacleGitActionsDialogProps) => {
+}: OrchestrationGitActionsDialogProps) => {
   const [isCommitMenuOpen, setIsCommitMenuOpen] = useState(false);
 
   useEffect(() => {

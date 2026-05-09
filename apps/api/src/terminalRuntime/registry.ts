@@ -2,6 +2,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
+import {
+  LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY,
+  LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY,
+  LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY,
+  LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY,
+} from "@adadex/core";
+
 import { TERMINAL_REGISTRY_VERSION } from "./constants";
 
 import { toErrorMessage } from "./systemClients";
@@ -123,10 +130,13 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
     nextState.canvasOpenCoordinationIds = value.canvasOpenCoordinationIds.filter(
       (id): id is string => typeof id === "string",
     );
-  } else if (Array.isArray(value.canvasOpenTentacleIds)) {
-    nextState.canvasOpenCoordinationIds = value.canvasOpenTentacleIds.filter(
-      (id): id is string => typeof id === "string",
-    );
+  } else {
+    const legacyCanvasOpen = value[LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY];
+    if (Array.isArray(legacyCanvasOpen)) {
+      nextState.canvasOpenCoordinationIds = legacyCanvasOpen.filter(
+        (id): id is string => typeof id === "string",
+      );
+    }
   }
 
   if (
@@ -170,43 +180,45 @@ export const pruneUiStateTerminalReferences = (
 
 /**
  * Migrate a v1/v2 registry document to v3 terminal format.
- * Each old tentacle entry becomes a terminal where terminalId = coordinationId.
+ * Each old coordination entry becomes a terminal where terminalId = coordinationId.
  * Child agents are dropped.
  */
 const migrateV2ToV3 = (
   record: Record<string, unknown>,
   registryPath: string,
 ): Map<string, PersistedTerminal> => {
-  const rawTentacles = record.tentacles;
-  if (!Array.isArray(rawTentacles)) {
-    throw new Error(`Invalid registry tentacles array (${registryPath}).`);
+  const rawList = record[LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY];
+  if (!Array.isArray(rawList)) {
+    throw new Error(`Invalid registry coordination list (${registryPath}).`);
   }
 
   const terminals = new Map<string, PersistedTerminal>();
-  for (const item of rawTentacles) {
+  for (const item of rawList) {
     if (item === null || typeof item !== "object") {
-      throw new Error(`Invalid tentacle entry in registry (${registryPath}).`);
+      throw new Error(`Invalid registry coordination entry (${registryPath}).`);
     }
 
     const entry = item as Record<string, unknown>;
+    const legacyCoordinationId = entry[LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY];
+    const legacyCoordinationName = entry[LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY];
     const coordinationIdRaw =
       typeof entry.coordinationId === "string"
         ? entry.coordinationId
-        : typeof entry.tentacleId === "string"
-          ? entry.tentacleId
+        : typeof legacyCoordinationId === "string"
+          ? legacyCoordinationId
           : null;
     const coordinationNameRaw =
       typeof entry.coordinationName === "string"
         ? entry.coordinationName
-        : typeof entry.tentacleName === "string"
-          ? entry.tentacleName
+        : typeof legacyCoordinationName === "string"
+          ? legacyCoordinationName
           : null;
     const coordinationId = coordinationIdRaw;
     const coordinationName = coordinationNameRaw;
     const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
 
     if (!coordinationId || !coordinationName || !createdAt) {
-      throw new Error(`Incomplete tentacle entry in registry (${registryPath}).`);
+      throw new Error(`Incomplete registry coordination entry (${registryPath}).`);
     }
 
     const rawWorkspaceMode = entry.workspaceMode;
@@ -216,7 +228,7 @@ const migrateV2ToV3 = (
         : "shared";
 
     if (terminals.has(coordinationId)) {
-      throw new Error(`Duplicate tentacle id in registry (${registryPath}): ${coordinationId}`);
+      throw new Error(`Duplicate coordination id in registry (${registryPath}): ${coordinationId}`);
     }
 
     terminals.set(coordinationId, {
@@ -249,17 +261,19 @@ const parseV3Terminals = (
 
     const entry = item as Record<string, unknown>;
     const terminalId = typeof entry.terminalId === "string" ? entry.terminalId : null;
+    const legacyCoordinationId = entry[LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY];
+    const legacyCoordinationName = entry[LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY];
     const coordinationId =
       typeof entry.coordinationId === "string"
         ? entry.coordinationId
-        : typeof entry.tentacleId === "string"
-          ? entry.tentacleId
+        : typeof legacyCoordinationId === "string"
+          ? legacyCoordinationId
           : null;
     const coordinationName =
       typeof entry.coordinationName === "string"
         ? entry.coordinationName
-        : typeof entry.tentacleName === "string"
-          ? entry.tentacleName
+        : typeof legacyCoordinationName === "string"
+          ? legacyCoordinationName
           : null;
     const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
 

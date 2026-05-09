@@ -4,8 +4,8 @@ import { retainActiveTerminalEntries, retainActiveTerminalIds } from "../src/app
 
 describe("terminalState helpers", () => {
   it("retains active terminal ids and preserves reference when unchanged", () => {
-    const currentTerminalIds = ["tentacle-1", "tentacle-2"];
-    const activeTerminalIds = new Set(["tentacle-1", "tentacle-2", "tentacle-3"]);
+    const currentTerminalIds = ["orchestration-1", "orchestration-2"];
+    const activeTerminalIds = new Set(["orchestration-1", "orchestration-2", "orchestration-3"]);
 
     const nextTerminalIds = retainActiveTerminalIds(currentTerminalIds, activeTerminalIds);
 
@@ -13,20 +13,20 @@ describe("terminalState helpers", () => {
   });
 
   it("filters removed terminal ids", () => {
-    const currentTerminalIds = ["tentacle-1", "tentacle-2"];
-    const activeTerminalIds = new Set(["tentacle-2"]);
+    const currentTerminalIds = ["orchestration-1", "orchestration-2"];
+    const activeTerminalIds = new Set(["orchestration-2"]);
 
     const nextTerminalIds = retainActiveTerminalIds(currentTerminalIds, activeTerminalIds);
 
-    expect(nextTerminalIds).toEqual(["tentacle-2"]);
+    expect(nextTerminalIds).toEqual(["orchestration-2"]);
   });
 
   it("retains active terminal state entries and preserves reference when unchanged", () => {
     const currentState = {
-      "tentacle-1": "idle",
-      "tentacle-2": "processing",
+      "orchestration-1": "idle",
+      "orchestration-2": "processing",
     };
-    const activeTerminalIds = new Set(["tentacle-1", "tentacle-2"]);
+    const activeTerminalIds = new Set(["orchestration-1", "orchestration-2"]);
 
     const nextState = retainActiveTerminalEntries(currentState, activeTerminalIds);
 
@@ -35,15 +35,15 @@ describe("terminalState helpers", () => {
 
   it("filters removed terminal state entries", () => {
     const currentState = {
-      "tentacle-1": "idle",
-      "tentacle-2": "processing",
+      "orchestration-1": "idle",
+      "orchestration-2": "processing",
     };
-    const activeTerminalIds = new Set(["tentacle-2"]);
+    const activeTerminalIds = new Set(["orchestration-2"]);
 
     const nextState = retainActiveTerminalEntries(currentState, activeTerminalIds);
 
     expect(nextState).toEqual({
-      "tentacle-2": "processing",
+      "orchestration-2": "processing",
     });
   });
 });

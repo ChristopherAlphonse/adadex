@@ -1,4 +1,11 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type {
   DeckAvailableSkill,
@@ -10,34 +17,37 @@ import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";
 import {
   buildDeckSkillsUrl,
-  buildDeckTentacleSkillsUrl,
-  buildDeckTentacleUrl,
-  buildDeckTentaclesUrl,
+  buildDeckOrchestrationSkillsUrl,
+  buildDeckOrchestrationUrl,
+  buildDeckOrchestrationsUrl,
   buildDeckTodoToggleUrl,
   buildDeckVaultFileUrl,
   buildTerminalsUrl,
 } from "../runtime/runtimeEndpoints";
-import { OctopusGlyph } from "./EmptyOctopus";
+import { MascotSprite } from "./MascotSprite";
 import { Terminal } from "./Terminal";
 import { ActionCards } from "./deck/ActionCards";
-import { AddTentacleForm } from "./deck/AddTentacleForm";
-import type { OctopusAppearancePayload } from "./deck/AddTentacleForm";
+import { AddOrchestrationForm } from "./deck/AddOrchestrationForm";
+import type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
 import { DeckBottomActions } from "./deck/DeckBottomActions";
-import { TentaclePod } from "./deck/TentaclePod";
+import { OrchestrationPod } from "./deck/OrchestrationPod";
 import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
-import { type OctopusVisuals, deriveOctopusVisuals } from "./deck/octopusVisuals";
+import { type MascotVisuals, deriveMascotVisuals } from "./deck/mascotVisuals";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
-export type { OctopusAppearancePayload } from "./deck/AddTentacleForm";
+export type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
 
-const normalizeDeckAvailableSkill = (value: unknown): DeckAvailableSkill | null => {
+const normalizeDeckAvailableSkill = (
+  value: unknown,
+): DeckAvailableSkill | null => {
   if (value === null || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   if (typeof record.name !== "string") return null;
 
   return {
     name: record.name,
-    description: typeof record.description === "string" ? record.description : "",
+    description:
+      typeof record.description === "string" ? record.description : "",
     source: record.source === "project" ? "project" : "user",
   };
 };
@@ -57,7 +67,9 @@ type DeckPrimaryViewProps = {
   isWorkspaceSetupLoading: boolean;
   workspaceSetupError: string | null;
   onRefreshWorkspaceSetup: () => Promise<WorkspaceSetupSnapshot | null>;
-  onRunWorkspaceSetupStep: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
+  onRunWorkspaceSetupStep: (
+    stepId: WorkspaceSetupStepId,
+  ) => Promise<WorkspaceSetupSnapshot | null>;
   suppressWorkspaceSetupCard?: boolean;
 };
 
@@ -70,17 +82,22 @@ export const DeckPrimaryView = ({
   onRunWorkspaceSetupStep,
   suppressWorkspaceSetupCard = false,
 }: DeckPrimaryViewProps) => {
-  const [tentacles, setTentacles] = useState<DeckCoordinationSummary[]>([]);
+  const [orchestrations, setOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [focus, setFocus] = useState<FocusState | null>(null);
   const [vaultContent, setVaultContent] = useState<string | null>(null);
   const [loadingVault, setLoadingVault] = useState(false);
   const [emptyViewMode, setEmptyViewMode] = useState<EmptyViewMode>("idle");
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [availableSkills, setAvailableSkills] = useState<DeckAvailableSkill[]>([]);
-  const [savingTentacleSkillsId, setSavingTentacleSkillsId] = useState<string | null>(null);
+  const [availableSkills, setAvailableSkills] = useState<DeckAvailableSkill[]>(
+    [],
+  );
+  const [savingOrchestrationSkillsId, setSavingOrchestrationSkillsId] = useState<
+    string | null
+  >(null);
 
-  const [selectedAgent, setSelectedAgent] = useState<TerminalAgentProvider>("codex");
+  const [selectedAgent, setSelectedAgent] =
+    useState<TerminalAgentProvider>("codex");
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
   const agentMenuRef = useRef<HTMLDivElement>(null);
   const [isLaunchingAgent, setIsLaunchingAgent] = useState(false);
@@ -94,15 +111,15 @@ export const DeckPrimaryView = ({
     | null
   >(null);
 
-  // Fetch tentacle list
-  const fetchTentacles = useCallback(async () => {
+  // Fetch orchestration list
+  const fetchOrchestrations = useCallback(async () => {
     try {
-      const response = await fetch(buildDeckTentaclesUrl(), {
+      const response = await fetch(buildDeckOrchestrationsUrl(), {
         headers: { Accept: "application/json" },
       });
       if (!response.ok) return;
       const data = await response.json();
-      setTentacles(data);
+      setOrchestrations(data);
       await onRefreshWorkspaceSetup();
     } catch {
       // silently ignore
@@ -110,8 +127,8 @@ export const DeckPrimaryView = ({
   }, [onRefreshWorkspaceSetup]);
 
   useEffect(() => {
-    void fetchTentacles();
-  }, [fetchTentacles]);
+    void fetchOrchestrations();
+  }, [fetchOrchestrations]);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,14 +158,14 @@ export const DeckPrimaryView = ({
     };
   }, []);
 
-  // Precompute visuals for all tentacles
+  // Precompute visuals for all orchestrations
   const visualsMap = useMemo(() => {
-    const map = new Map<string, OctopusVisuals>();
-    for (const t of tentacles) {
-      map.set(t.coordinationId, deriveOctopusVisuals(t));
+    const map = new Map<string, MascotVisuals>();
+    for (const t of orchestrations) {
+      map.set(t.coordinationId, deriveMascotVisuals(t));
     }
     return map;
-  }, [tentacles]);
+  }, [orchestrations]);
 
   // Fetch vault file content when focus changes
   useEffect(() => {
@@ -161,9 +178,12 @@ export const DeckPrimaryView = ({
     setLoadingVault(true);
     const fetchVault = async () => {
       try {
-        const response = await fetch(buildDeckVaultFileUrl(focus.coordinationId, focus.fileName), {
-          headers: { Accept: "text/markdown" },
-        });
+        const response = await fetch(
+          buildDeckVaultFileUrl(focus.coordinationId, focus.fileName),
+          {
+            headers: { Accept: "text/markdown" },
+          },
+        );
         if (cancelled) return;
         if (!response.ok) {
           setVaultContent(null);
@@ -192,9 +212,12 @@ export const DeckPrimaryView = ({
   const handleDismissAgentMenu = useCallback(() => setAgentMenuOpen(false), []);
   useClickOutside(agentMenuRef, agentMenuOpen, handleDismissAgentMenu);
 
-  const handleVaultFileClick = useCallback((coordinationId: string, fileName: string) => {
-    setFocus({ type: "vault", coordinationId, fileName });
-  }, []);
+  const handleVaultFileClick = useCallback(
+    (coordinationId: string, fileName: string) => {
+      setFocus({ type: "vault", coordinationId, fileName });
+    },
+    [],
+  );
 
   const handleClose = useCallback(() => {
     setFocus(null);
@@ -205,7 +228,10 @@ export const DeckPrimaryView = ({
     try {
       const response = await fetch(buildTerminalsUrl(), {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify({
           name: "coordination-planner",
           workspaceMode: "shared",
@@ -216,14 +242,18 @@ export const DeckPrimaryView = ({
       if (!response.ok) return;
       const data = await response.json();
       const agentId = (data.terminalId ?? data.coordinationId) as string;
-      setFocus({ type: "terminal", agentId, terminalLabel: "Tentacle Planner" });
-      await fetchTentacles();
+      setFocus({
+        type: "terminal",
+        agentId,
+        terminalLabel: "Orchestration Planner",
+      });
+      await fetchOrchestrations();
     } catch {
       // silently ignore
     } finally {
       setIsLaunchingAgent(false);
     }
-  }, [selectedAgent, fetchTentacles]);
+  }, [selectedAgent, fetchOrchestrations]);
 
   const handleRunSetupStep = useCallback(
     async (
@@ -238,43 +268,58 @@ export const DeckPrimaryView = ({
       setRunningSetupStepId(stepId);
       try {
         await onRunWorkspaceSetupStep(stepId);
-        if (stepId === "initialize-workspace" || stepId === "ensure-gitignore") {
-          await fetchTentacles();
+        if (
+          stepId === "initialize-workspace" ||
+          stepId === "ensure-gitignore"
+        ) {
+          await fetchOrchestrations();
         }
       } finally {
         setRunningSetupStepId(null);
       }
     },
-    [fetchTentacles, onRunWorkspaceSetupStep],
+    [fetchOrchestrations, onRunWorkspaceSetupStep],
   );
 
-  const handleCreateTentacle = useCallback(
+  const handleCreateCoordination = useCallback(
     async (
       name: string,
       description: string,
       color: string,
-      octopus: OctopusAppearancePayload,
+      mascot: MascotAppearancePayload,
       suggestedSkills: string[],
     ) => {
       setIsCreating(true);
       setCreateError(null);
       try {
-        const response = await fetch(buildDeckTentaclesUrl(), {
+        const response = await fetch(buildDeckOrchestrationsUrl(), {
           method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ name, description, color, octopus, suggestedSkills }),
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            description,
+            color,
+            mascot,
+            suggestedSkills,
+          }),
         });
         if (!response.ok) {
           const body = await response.json().catch(() => null);
           const msg =
-            body && typeof body === "object" && "error" in body && typeof body.error === "string"
+            body &&
+            typeof body === "object" &&
+            "error" in body &&
+            typeof body.error === "string"
               ? body.error
-              : "Failed to create tentacle";
+              : "Failed to create orchestration";
           setCreateError(msg);
           return;
         }
         setEmptyViewMode("idle");
-        await fetchTentacles();
+        await fetchOrchestrations();
         await onRefreshWorkspaceSetup();
       } catch {
         setCreateError("Network error");
@@ -282,46 +327,58 @@ export const DeckPrimaryView = ({
         setIsCreating(false);
       }
     },
-    [fetchTentacles, onRefreshWorkspaceSetup],
+    [fetchOrchestrations, onRefreshWorkspaceSetup],
   );
 
-  const handleTentacleSkillsSave = useCallback(
+  const handleOrchestrationSkillsSave = useCallback(
     async (coordinationId: string, suggestedSkills: string[]) => {
-      setSavingTentacleSkillsId(coordinationId);
+      setSavingOrchestrationSkillsId(coordinationId);
       try {
-        const response = await fetch(buildDeckTentacleSkillsUrl(coordinationId), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ suggestedSkills }),
-        });
+        const response = await fetch(
+          buildDeckOrchestrationSkillsUrl(coordinationId),
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({ suggestedSkills }),
+          },
+        );
         if (!response.ok) return false;
-        await fetchTentacles();
+        await fetchOrchestrations();
         return true;
       } catch {
         return false;
       } finally {
-        setSavingTentacleSkillsId((current) => (current === coordinationId ? null : current));
+        setSavingOrchestrationSkillsId((current) =>
+          current === coordinationId ? null : current,
+        );
       }
     },
-    [fetchTentacles],
+    [fetchOrchestrations],
   );
 
-  const [deletingTentacleId, setDeletingTentacleId] = useState<string | null>(null);
+  const [deletingOrchestrationId, setDeletingOrchestrationId] = useState<string | null>(
+    null,
+  );
 
-  const handleDeleteTentacle = useCallback(
+  const handleDeleteOrchestration = useCallback(
     async (coordinationId: string) => {
-      setDeletingTentacleId(coordinationId);
+      setDeletingOrchestrationId(coordinationId);
       try {
-        const response = await fetch(buildDeckTentacleUrl(coordinationId), { method: "DELETE" });
+        const response = await fetch(buildDeckOrchestrationUrl(coordinationId), {
+          method: "DELETE",
+        });
         if (!response.ok) return;
-        await fetchTentacles();
+        await fetchOrchestrations();
       } catch {
         // silently ignore
       } finally {
-        setDeletingTentacleId(null);
+        setDeletingOrchestrationId(null);
       }
     },
-    [fetchTentacles],
+    [fetchOrchestrations],
   );
 
   const handleTodoToggle = useCallback(
@@ -333,26 +390,30 @@ export const DeckPrimaryView = ({
           body: JSON.stringify({ itemIndex, done }),
         });
         if (!response.ok) return;
-        await fetchTentacles();
+        await fetchOrchestrations();
       } catch {
         // silently ignore
       }
     },
-    [fetchTentacles],
+    [fetchOrchestrations],
   );
 
-  const focusedTentacle =
+  const focusedOrchestration =
     focus?.type === "vault" || focus?.type === "vault-browser"
-      ? tentacles.find((t) => t.coordinationId === focus.coordinationId)
+      ? orchestrations.find((t) => t.coordinationId === focus.coordinationId)
       : null;
   const mode = focus ? "detail" : "grid";
   const shouldShowWorkspaceSetup =
-    !suppressWorkspaceSetupCard && tentacles.length === 0 && workspaceSetup?.shouldShowSetupCard;
+    !suppressWorkspaceSetupCard &&
+    orchestrations.length === 0 &&
+    workspaceSetup?.shouldShowSetupCard;
 
   // Push sidebar content to the shared sidebar
   const sidebarContent = useMemo(
     () =>
-      tentacles.length > 0 || focus?.type === "terminal" || shouldShowWorkspaceSetup ? (
+      orchestrations.length > 0 ||
+      focus?.type === "terminal" ||
+      shouldShowWorkspaceSetup ? (
         <div className="deck-sidebar-content">
           <div className="deck-sidebar-content-top">
             {shouldShowWorkspaceSetup ? (
@@ -383,14 +444,16 @@ export const DeckPrimaryView = ({
               />
             )}
           </div>
-          {tentacles.length > 0 && (
+          {orchestrations.length > 0 && (
             <div className="deck-sidebar-content-bottom">
               <DeckBottomActions
                 onClearAll={async () => {
-                  for (const t of tentacles) {
-                    await fetch(buildDeckTentacleUrl(t.coordinationId), { method: "DELETE" });
+                  for (const t of orchestrations) {
+                    await fetch(buildDeckOrchestrationUrl(t.coordinationId), {
+                      method: "DELETE",
+                    });
                   }
-                  await fetchTentacles();
+                  await fetchOrchestrations();
                 }}
               />
             </div>
@@ -399,7 +462,7 @@ export const DeckPrimaryView = ({
       ) : null,
     [
       agentMenuOpen,
-      fetchTentacles,
+      fetchOrchestrations,
       focus?.type,
       handleLaunchAgent,
       handleRunSetupStep,
@@ -408,7 +471,7 @@ export const DeckPrimaryView = ({
       runningSetupStepId,
       selectedAgent,
       shouldShowWorkspaceSetup,
-      tentacles,
+      orchestrations,
       workspaceSetup,
       workspaceSetupError,
     ],
@@ -419,9 +482,9 @@ export const DeckPrimaryView = ({
     return () => onSidebarContent?.(null);
   }, [onSidebarContent, sidebarContent]);
 
-  // ─── Empty state (no tentacles) ─────────────────────────────────────────────
+  // ─── Empty state (no orchestrations) ─────────────────────────────────────────────
 
-  if (tentacles.length === 0 && focus?.type !== "terminal") {
+  if (orchestrations.length === 0 && focus?.type !== "terminal") {
     return (
       <section
         className="deck-view"
@@ -431,14 +494,8 @@ export const DeckPrimaryView = ({
       >
         <div className="deck-empty-state">
           <div className="deck-empty-left">
-            <div className="deck-empty-octopus">
-              <OctopusGlyph
-                color="#d4a017"
-                animation="walk"
-                expression="happy"
-                accessory="none"
-                scale={20}
-              />
+            <div className="deck-empty-mascot">
+              <MascotSprite color="#d4a017" speedMs={16} size={280} />
             </div>
             {shouldShowWorkspaceSetup ? (
               <WorkspaceSetupCard
@@ -468,8 +525,8 @@ export const DeckPrimaryView = ({
           </div>
           {emptyViewMode === "adding" && (
             <div className="deck-empty-right">
-              <AddTentacleForm
-                onSubmit={handleCreateTentacle}
+              <AddOrchestrationForm
+                onSubmit={handleCreateCoordination}
                 onCancel={() => setEmptyViewMode("idle")}
                 isSubmitting={isCreating}
                 error={createError}
@@ -488,11 +545,11 @@ export const DeckPrimaryView = ({
     <section
       className="deck-view"
       data-mode={mode}
-      data-has-pods={tentacles.length > 0}
+      data-has-pods={orchestrations.length > 0}
       aria-label="Deck"
     >
       <div className="deck-pods-container">
-        {tentacles.map((t) => {
+        {orchestrations.map((t) => {
           const isThis =
             (focus?.type === "vault" || focus?.type === "vault-browser") &&
             focus.coordinationId === t.coordinationId;
@@ -502,24 +559,33 @@ export const DeckPrimaryView = ({
               className="deck-pod-slot"
               data-pod-role={isThis ? "focused" : focus ? "other" : "idle"}
             >
-              <TentaclePod
-                tentacle={t}
-                visuals={visualsMap.get(t.coordinationId) as OctopusVisuals}
+              <OrchestrationPod
+                orchestration={t}
+                visuals={visualsMap.get(t.coordinationId) as MascotVisuals}
                 isFocused={isThis}
-                activeFileName={focus?.type === "vault" && isThis ? focus.fileName : undefined}
+                activeFileName={
+                  focus?.type === "vault" && isThis ? focus.fileName : undefined
+                }
                 onVaultFileClick={(fileName) =>
-                  setFocus({ type: "vault", coordinationId: t.coordinationId, fileName })
+                  setFocus({
+                    type: "vault",
+                    coordinationId: t.coordinationId,
+                    fileName,
+                  })
                 }
                 onVaultBrowse={() =>
-                  setFocus({ type: "vault-browser", coordinationId: t.coordinationId })
+                  setFocus({
+                    type: "vault-browser",
+                    coordinationId: t.coordinationId,
+                  })
                 }
                 onClose={handleClose}
-                onDelete={() => handleDeleteTentacle(t.coordinationId)}
-                isDeleting={deletingTentacleId === t.coordinationId}
+                onDelete={() => handleDeleteOrchestration(t.coordinationId)}
+                isDeleting={deletingOrchestrationId === t.coordinationId}
                 onTodoToggle={handleTodoToggle}
                 availableSkills={availableSkills}
-                isSavingSkills={savingTentacleSkillsId === t.coordinationId}
-                onSaveSuggestedSkills={handleTentacleSkillsSave}
+                isSavingSkills={savingOrchestrationSkillsId === t.coordinationId}
+                onSaveSuggestedSkills={handleOrchestrationSkillsSave}
               />
             </div>
           );
@@ -527,23 +593,27 @@ export const DeckPrimaryView = ({
       </div>
 
       <div className="deck-detail-main">
-        {focus?.type === "vault-browser" && focusedTentacle && (
+        {focus?.type === "vault-browser" && focusedOrchestration && (
           <>
             <header className="deck-detail-main-header">
-              <button type="button" className="deck-add-form-back" onClick={handleClose}>
+              <button
+                type="button"
+                className="deck-add-form-back"
+                onClick={handleClose}
+              >
                 ← Back
               </button>
               <span className="deck-detail-main-path">
-                <strong>{focusedTentacle.displayName}</strong> / vault
+                <strong>{focusedOrchestration.displayName}</strong> / vault
               </span>
             </header>
             <div className="deck-detail-main-content deck-vault-browser">
               <pre className="deck-vault-tree">
                 <span className="deck-vault-tree-dir">
-                  .adadex/coordinations/{focusedTentacle.coordinationId}/
+                  .adadex/coordinations/{focusedOrchestration.coordinationId}/
                 </span>
                 {(() => {
-                  const files = [...focusedTentacle.vaultFiles, "CONTEXT.md"];
+                  const files = [...focusedOrchestration.vaultFiles, "CONTEXT.md"];
                   return files.map((file, i) => {
                     const isLast = i === files.length - 1;
                     const prefix = isLast ? "└── " : "├── ";
@@ -571,20 +641,24 @@ export const DeckPrimaryView = ({
             </div>
           </>
         )}
-        {focus?.type === "vault" && focusedTentacle && (
+        {focus?.type === "vault" && focusedOrchestration && (
           <>
             <header className="deck-detail-main-header">
               <button
                 type="button"
                 className="deck-add-form-back"
                 onClick={() =>
-                  setFocus({ type: "vault-browser", coordinationId: focus.coordinationId })
+                  setFocus({
+                    type: "vault-browser",
+                    coordinationId: focus.coordinationId,
+                  })
                 }
               >
                 ← Back
               </button>
               <span className="deck-detail-main-path">
-                {focusedTentacle.displayName} / <strong>{focus.fileName}</strong>
+                {focusedOrchestration.displayName} /{" "}
+                <strong>{focus.fileName}</strong>
               </span>
             </header>
             <div
@@ -594,7 +668,10 @@ export const DeckPrimaryView = ({
               {loadingVault ? (
                 <span className="deck-detail-loading">Loading…</span>
               ) : vaultContent !== null ? (
-                <MarkdownContent content={vaultContent} className="deck-detail-markdown" />
+                <MarkdownContent
+                  content={vaultContent}
+                  className="deck-detail-markdown"
+                />
               ) : (
                 <span className="deck-detail-loading">File not found.</span>
               )}
@@ -604,14 +681,21 @@ export const DeckPrimaryView = ({
         {focus?.type === "terminal" && (
           <div className="deck-detail-terminal" key={focus.agentId}>
             <header className="deck-detail-main-header">
-              <button type="button" className="deck-add-form-back" onClick={handleClose}>
+              <button
+                type="button"
+                className="deck-add-form-back"
+                onClick={handleClose}
+              >
                 ← Back
               </button>
               <span className="deck-detail-main-path">
                 <strong>{focus.terminalLabel}</strong>
               </span>
             </header>
-            <Terminal terminalId={focus.agentId} terminalLabel={focus.terminalLabel} />
+            <Terminal
+              terminalId={focus.agentId}
+              terminalLabel={focus.terminalLabel}
+            />
           </div>
         )}
       </div>

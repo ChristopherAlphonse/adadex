@@ -21,8 +21,8 @@ describe("useAgentRuntimeStates", () => {
     const socketSpy = globalThis.WebSocket;
     const columns = [
       {
-        terminalId: "tentacle-idle",
-        label: "tentacle-idle",
+        terminalId: "orchestration-idle",
+        label: "orchestration-idle",
         state: "live",
         coordinationId: "docs-knowledge",
         createdAt: "2026-04-09T10:00:00.000Z",

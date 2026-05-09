@@ -5,7 +5,7 @@ import { CanvasPrimaryView } from "../src/components/CanvasPrimaryView";
 
 type MockCanvasNode = {
   id: string;
-  type: "tentacle" | "active-session";
+  type: "orchestration" | "active-session";
   coordinationId: string;
   label: string;
   color: string;
@@ -22,10 +22,10 @@ type MockCanvasNode = {
 
 const nodes: MockCanvasNode[] = [
   {
-    id: "t:tentacle-a",
-    type: "tentacle" as const,
-    coordinationId: "tentacle-a",
-    label: "tentacle-a",
+    id: "t:orchestration-a",
+    type: "orchestration" as const,
+    coordinationId: "orchestration-a",
+    label: "orchestration-a",
     color: "#ff6b2b",
     x: 80,
     y: 80,
@@ -35,7 +35,7 @@ const nodes: MockCanvasNode[] = [
     id: "a:terminal-1",
     type: "active-session" as const,
     sessionId: "terminal-1",
-    coordinationId: "tentacle-a",
+    coordinationId: "orchestration-a",
     label: "terminal-1",
     color: "#ff6b2b",
     x: 120,
@@ -56,10 +56,10 @@ vi.mock("../src/app/hooks/useCanvasGraphData", () => ({
   useCanvasGraphData: () => ({
     nodes,
     edges: [],
-    tentacleById: new Map(),
-    sessionsByTentacleId: new Map(),
+    orchestrationById: new Map(),
+    sessionsByOrchestrationId: new Map(),
     refresh: vi.fn(),
-    refreshDeckTentacles: vi.fn(),
+    refreshDeckOrchestrations: vi.fn(),
   }),
 }));
 
@@ -149,8 +149,8 @@ vi.mock("../src/components/canvas/CanvasTerminalColumn", () => ({
   ),
 }));
 
-vi.mock("../src/components/canvas/CanvasTentaclePanel", () => ({
-  CanvasTentaclePanel: () => null,
+vi.mock("../src/components/canvas/CanvasOrchestrationPanel", () => ({
+  CanvasOrchestrationPanel: () => null,
 }));
 
 describe("CanvasPrimaryView", () => {
@@ -205,7 +205,7 @@ describe("CanvasPrimaryView", () => {
             terminalId: "terminal-1",
             label: "terminal-1",
             state: "live",
-            coordinationId: "tentacle-a",
+            coordinationId: "orchestration-a",
             coordinationName: "terminal one",
             workspaceMode: "shared",
             createdAt: "2026-02-24T10:00:00.000Z",
@@ -246,7 +246,7 @@ describe("CanvasPrimaryView", () => {
             terminalId: "terminal-1",
             label: "terminal-1",
             state: "live",
-            coordinationId: "tentacle-a",
+            coordinationId: "orchestration-a",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
         ]}
@@ -268,7 +268,7 @@ describe("CanvasPrimaryView", () => {
       id: "a:terminal-2",
       type: "active-session" as const,
       sessionId: "terminal-2",
-      coordinationId: "tentacle-a",
+      coordinationId: "orchestration-a",
       label: "terminal-2",
       color: "#ff6b2b",
       x: 160,
@@ -288,15 +288,15 @@ describe("CanvasPrimaryView", () => {
             terminalId: "terminal-1",
             label: "terminal-1",
             state: "live",
-            coordinationId: "tentacle-a",
+            coordinationId: "orchestration-a",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
           {
             terminalId: "terminal-2",
             label: "terminal-2",
             state: "live",
-            coordinationId: "tentacle-a",
-            coordinationName: "tentacle-a",
+            coordinationId: "orchestration-a",
+            coordinationName: "orchestration-a",
             parentTerminalId: "terminal-1",
             workspaceMode: "shared",
             createdAt: "2026-02-24T10:05:00.000Z",
@@ -308,8 +308,8 @@ describe("CanvasPrimaryView", () => {
           terminalId: "terminal-2",
           label: "terminal-2",
           state: "live",
-          coordinationId: "tentacle-a",
-          coordinationName: "tentacle-a",
+          coordinationId: "orchestration-a",
+          coordinationName: "orchestration-a",
           parentTerminalId: "terminal-1",
           workspaceMode: "shared",
           createdAt: "2026-02-24T10:05:00.000Z",
@@ -331,8 +331,8 @@ describe("CanvasPrimaryView", () => {
             terminalId: "terminal-1",
             label: "terminal-1",
             state: "live",
-            coordinationId: "tentacle-a",
-            coordinationName: "tentacle-a",
+            coordinationId: "orchestration-a",
+            coordinationName: "orchestration-a",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
         ]}
@@ -348,7 +348,7 @@ describe("CanvasPrimaryView", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("panel-a:terminal-1")).toHaveTextContent(
-        "panel a:terminal-1 label tentacle-a",
+        "panel a:terminal-1 label orchestration-a",
       );
     });
 
@@ -359,8 +359,8 @@ describe("CanvasPrimaryView", () => {
             terminalId: "terminal-1",
             label: "terminal-1",
             state: "live",
-            coordinationId: "tentacle-a",
-            coordinationName: "renamed-tentacle",
+            coordinationId: "orchestration-a",
+            coordinationName: "renamed-orchestration",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
         ]}
@@ -370,30 +370,30 @@ describe("CanvasPrimaryView", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("panel-a:terminal-1")).toHaveTextContent(
-        "panel a:terminal-1 label renamed-tentacle",
+        "panel a:terminal-1 label renamed-orchestration",
       );
     });
   });
 
-  it("shows tentacle maintenance actions in the context menu and passes the tentacle ID", async () => {
-    const onTentacleAction = vi.fn().mockResolvedValue(undefined);
+  it("shows orchestration maintenance actions in the context menu and passes the orchestration ID", async () => {
+    const onOrchestrationAction = vi.fn().mockResolvedValue(undefined);
 
     const { container } = render(
-      <CanvasPrimaryView columns={[]} isUiStateHydrated onTentacleAction={onTentacleAction} />,
+      <CanvasPrimaryView columns={[]} isUiStateHydrated onOrchestrationAction={onOrchestrationAction} />,
     );
 
-    const tentacleNode = container.querySelector('[data-node-id="t:tentacle-a"]');
-    expect(tentacleNode).not.toBeNull();
+    const orchestrationNode = container.querySelector('[data-node-id="t:orchestration-a"]');
+    expect(orchestrationNode).not.toBeNull();
 
-    fireEvent.contextMenu(tentacleNode as Element, { clientX: 160, clientY: 120 });
+    fireEvent.contextMenu(orchestrationNode as Element, { clientX: 160, clientY: 120 });
 
     expect(await screen.findByRole("button", { name: "Update To-Do List" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Update Tentacle" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Update Orchestration" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Update To-Do List" }));
 
     await waitFor(() => {
-      expect(onTentacleAction).toHaveBeenCalledWith("tentacle-a", "coordination-reorganize-todos");
+      expect(onOrchestrationAction).toHaveBeenCalledWith("orchestration-a", "coordination-reorganize-todos");
     });
   });
 });

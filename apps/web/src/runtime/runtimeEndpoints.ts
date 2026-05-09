@@ -203,25 +203,25 @@ export const buildConversationExportUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
-export const buildTentacleRenameUrl = (
+export const buildOrchestrationRenameUrl = (
   coordinationId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
-  const encodedTentacleId = encodeURIComponent(coordinationId);
+  const encodedOrchestrationId = encodeURIComponent(coordinationId);
   if (!runtimeBaseUrl) {
-    return `/api/coordinations/${encodedTentacleId}`;
+    return `/api/coordinations/${encodedOrchestrationId}`;
   }
 
-  return buildAbsoluteUrl(runtimeBaseUrl, `/api/coordinations/${encodedTentacleId}`);
+  return buildAbsoluteUrl(runtimeBaseUrl, `/api/coordinations/${encodedOrchestrationId}`);
 };
 
-const buildTentacleGitActionUrl = (
+const buildOrchestrationGitActionUrl = (
   coordinationId: string,
   action: "status" | "commit" | "push" | "sync",
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
-  const encodedTentacleId = encodeURIComponent(coordinationId);
-  const path = `/api/coordinations/${encodedTentacleId}/git/${action}`;
+  const encodedOrchestrationId = encodeURIComponent(coordinationId);
+  const path = `/api/coordinations/${encodedOrchestrationId}/git/${action}`;
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -229,32 +229,32 @@ const buildTentacleGitActionUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
-export const buildTentacleGitStatusUrl = (
+export const buildOrchestrationGitStatusUrl = (
   coordinationId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
-) => buildTentacleGitActionUrl(coordinationId, "status", runtimeBaseUrl);
+) => buildOrchestrationGitActionUrl(coordinationId, "status", runtimeBaseUrl);
 
-export const buildTentacleGitCommitUrl = (
+export const buildOrchestrationGitCommitUrl = (
   coordinationId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
-) => buildTentacleGitActionUrl(coordinationId, "commit", runtimeBaseUrl);
+) => buildOrchestrationGitActionUrl(coordinationId, "commit", runtimeBaseUrl);
 
-export const buildTentacleGitPushUrl = (
+export const buildOrchestrationGitPushUrl = (
   coordinationId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
-) => buildTentacleGitActionUrl(coordinationId, "push", runtimeBaseUrl);
+) => buildOrchestrationGitActionUrl(coordinationId, "push", runtimeBaseUrl);
 
-export const buildTentacleGitSyncUrl = (
+export const buildOrchestrationGitSyncUrl = (
   coordinationId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
-) => buildTentacleGitActionUrl(coordinationId, "sync", runtimeBaseUrl);
+) => buildOrchestrationGitActionUrl(coordinationId, "sync", runtimeBaseUrl);
 
-export const buildTentacleGitPullRequestUrl = (
+export const buildOrchestrationGitPullRequestUrl = (
   coordinationId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
-  const encodedTentacleId = encodeURIComponent(coordinationId);
-  const path = `/api/coordinations/${encodedTentacleId}/git/pr`;
+  const encodedOrchestrationId = encodeURIComponent(coordinationId);
+  const path = `/api/coordinations/${encodedOrchestrationId}/git/pr`;
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -262,12 +262,12 @@ export const buildTentacleGitPullRequestUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
-export const buildTentacleGitPullRequestMergeUrl = (
+export const buildOrchestrationGitPullRequestMergeUrl = (
   coordinationId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
-  const encodedTentacleId = encodeURIComponent(coordinationId);
-  const path = `/api/coordinations/${encodedTentacleId}/git/pr/merge`;
+  const encodedOrchestrationId = encodeURIComponent(coordinationId);
+  const path = `/api/coordinations/${encodedOrchestrationId}/git/pr/merge`;
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -275,7 +275,7 @@ export const buildTentacleGitPullRequestMergeUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
-export const buildDeckTentaclesUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
+export const buildDeckOrchestrationsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
     return "/api/deck/coordinations";
   }
@@ -291,12 +291,12 @@ export const buildDeckSkillsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/deck/skills");
 };
 
-export const buildDeckTentacleUrl = (
+export const buildDeckOrchestrationUrl = (
   coordinationId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
-  const encodedTentacleId = encodeURIComponent(coordinationId);
-  const path = `/api/deck/coordinations/${encodedTentacleId}`;
+  const encodedOrchestrationId = encodeURIComponent(coordinationId);
+  const path = `/api/deck/coordinations/${encodedOrchestrationId}`;
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -304,7 +304,7 @@ export const buildDeckTentacleUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
-export const buildDeckTentacleSkillsUrl = (
+export const buildDeckOrchestrationSkillsUrl = (
   coordinationId: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
@@ -321,9 +321,9 @@ export const buildDeckVaultFileUrl = (
   fileName: string,
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
-  const encodedTentacleId = encodeURIComponent(coordinationId);
+  const encodedOrchestrationId = encodeURIComponent(coordinationId);
   const encodedFileName = encodeURIComponent(fileName);
-  const path = `/api/deck/coordinations/${encodedTentacleId}/files/${encodedFileName}`;
+  const path = `/api/deck/coordinations/${encodedOrchestrationId}/files/${encodedFileName}`;
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -399,15 +399,15 @@ export const buildTerminalSocketUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
   location: LocationLike = window.location,
 ) => {
-  const encodedTentacleId = encodeURIComponent(coordinationId);
+  const encodedOrchestrationId = encodeURIComponent(coordinationId);
   if (!runtimeBaseUrl) {
-    return localWebSocketUrl(location, encodedTentacleId);
+    return localWebSocketUrl(location, encodedOrchestrationId);
   }
 
   const webSocketBase = toWebSocketBase(runtimeBaseUrl);
   if (!webSocketBase) {
-    return localWebSocketUrl(location, encodedTentacleId);
+    return localWebSocketUrl(location, encodedOrchestrationId);
   }
 
-  return buildAbsoluteUrl(webSocketBase, `/api/terminals/${encodedTentacleId}/ws`);
+  return buildAbsoluteUrl(webSocketBase, `/api/terminals/${encodedOrchestrationId}/ws`);
 };

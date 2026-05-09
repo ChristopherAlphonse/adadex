@@ -15,7 +15,7 @@ type CreateWorktreeManagerOptions = {
   terminals: Map<string, PersistedTerminal>;
 };
 
-type RemoveTentacleWorktreeOptions = {
+type RemoveOrchestrationWorktreeOptions = {
   bestEffort?: boolean;
 };
 
@@ -41,19 +41,19 @@ export const createWorktreeManager = ({
   gitClient,
   terminals,
 }: CreateWorktreeManagerOptions) => {
-  const getTentacleWorktreePath = (coordinationId: string) =>
+  const getOrchestrationWorktreePath = (coordinationId: string) =>
     join(workspaceCwd, COORDINATION_WORKTREE_RELATIVE_PATH, coordinationId);
-  const getTentacleBranchName = (coordinationId: string) =>
+  const getOrchestrationBranchName = (coordinationId: string) =>
     `${COORDINATION_WORKTREE_BRANCH_PREFIX}${coordinationId}`;
 
-  const getTentacleWorkspaceCwd = (worktreeIdentifier: string) => {
+  const getOrchestrationWorkspaceCwd = (worktreeIdentifier: string) => {
     const terminal = findTerminalForWorktree(terminals, worktreeIdentifier);
     if (!terminal) {
       throw new Error(`No terminal found for worktree: ${worktreeIdentifier}`);
     }
 
     if (terminal.workspaceMode === "worktree") {
-      return getTentacleWorktreePath(worktreeIdentifier);
+      return getOrchestrationWorktreePath(worktreeIdentifier);
     }
 
     return workspaceCwd;
@@ -68,9 +68,9 @@ export const createWorktreeManager = ({
     }
   };
 
-  const createTentacleWorktree = (coordinationId: string, baseRef = "HEAD") => {
+  const createOrchestrationWorktree = (coordinationId: string, baseRef = "HEAD") => {
     assertWorktreeCreationSupported();
-    const worktreePath = getTentacleWorktreePath(coordinationId);
+    const worktreePath = getOrchestrationWorktreePath(coordinationId);
     if (existsSync(worktreePath)) {
       throw new RuntimeInputError(`Worktree path already exists: ${worktreePath}`);
     }
@@ -87,16 +87,16 @@ export const createWorktreeManager = ({
     }
   };
 
-  const hasTentacleWorktree = (coordinationId: string): boolean =>
-    existsSync(getTentacleWorktreePath(coordinationId));
+  const hasOrchestrationWorktree = (coordinationId: string): boolean =>
+    existsSync(getOrchestrationWorktreePath(coordinationId));
 
-  const removeTentacleWorktree = (
+  const removeOrchestrationWorktree = (
     coordinationId: string,
-    options: RemoveTentacleWorktreeOptions = {},
+    options: RemoveOrchestrationWorktreeOptions = {},
   ) => {
     const { bestEffort = false } = options;
-    const worktreePath = getTentacleWorktreePath(coordinationId);
-    const branchName = getTentacleBranchName(coordinationId);
+    const worktreePath = getOrchestrationWorktreePath(coordinationId);
+    const branchName = getOrchestrationBranchName(coordinationId);
 
     if (existsSync(worktreePath)) {
       try {
@@ -130,9 +130,9 @@ export const createWorktreeManager = ({
   };
 
   return {
-    getTentacleWorkspaceCwd,
-    createTentacleWorktree,
-    hasTentacleWorktree,
-    removeTentacleWorktree,
+    getOrchestrationWorkspaceCwd,
+    createOrchestrationWorktree,
+    hasOrchestrationWorktree,
+    removeOrchestrationWorktree,
   };
 };

@@ -1,15 +1,15 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CanvasTentaclePanel } from "../src/components/canvas/CanvasTentaclePanel";
+import { CanvasOrchestrationPanel } from "../src/components/canvas/CanvasOrchestrationPanel";
 
-const tentacle = {
+const orchestration = {
   coordinationId: "docs-knowledge",
   displayName: "Docs & Knowledge",
   description: "Keep docs aligned with the product.",
   status: "active" as const,
   color: "#ff6b2b",
-  octopus: {
+  mascot: {
     animation: null,
     expression: null,
     accessory: null,
@@ -26,7 +26,7 @@ const tentacle = {
   suggestedSkills: ["docs-writer", "release-helper"],
 };
 
-describe("CanvasTentaclePanel actions", () => {
+describe("CanvasOrchestrationPanel actions", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
@@ -36,10 +36,10 @@ describe("CanvasTentaclePanel actions", () => {
     const onSpawnSwarm = vi.fn();
 
     render(
-      <CanvasTentaclePanel
+      <CanvasOrchestrationPanel
         node={{
           id: "docs-knowledge",
-          type: "tentacle",
+          type: "orchestration",
           x: 0,
           y: 0,
           vx: 0,
@@ -50,7 +50,7 @@ describe("CanvasTentaclePanel actions", () => {
           label: "Docs & Knowledge",
           color: "#ff6b2b",
         }}
-        tentacle={tentacle}
+        orchestration={orchestration}
         sessions={[]}
         onClose={() => {}}
         onSpawnSwarm={onSpawnSwarm}
@@ -90,10 +90,10 @@ describe("CanvasTentaclePanel actions", () => {
     });
 
     render(
-      <CanvasTentaclePanel
+      <CanvasOrchestrationPanel
         node={{
           id: "docs-knowledge",
-          type: "tentacle",
+          type: "orchestration",
           x: 0,
           y: 0,
           vx: 0,
@@ -104,7 +104,7 @@ describe("CanvasTentaclePanel actions", () => {
           label: "Docs & Knowledge",
           color: "#ff6b2b",
         }}
-        tentacle={tentacle}
+        orchestration={orchestration}
         sessions={[]}
         onClose={() => {}}
         onSolveTodoItem={onSolveTodoItem}
@@ -122,8 +122,8 @@ describe("CanvasTentaclePanel actions", () => {
     });
   });
 
-  it("refreshes centralized tentacle data after mutating todo items", async () => {
-    const onRefreshTentacleData = vi.fn().mockResolvedValue(undefined);
+  it("refreshes centralized orchestration data after mutating todo items", async () => {
+    const onRefreshOrchestrationData = vi.fn().mockResolvedValue(undefined);
 
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
@@ -138,10 +138,10 @@ describe("CanvasTentaclePanel actions", () => {
     });
 
     render(
-      <CanvasTentaclePanel
+      <CanvasOrchestrationPanel
         node={{
           id: "docs-knowledge",
-          type: "tentacle",
+          type: "orchestration",
           x: 0,
           y: 0,
           vx: 0,
@@ -152,26 +152,26 @@ describe("CanvasTentaclePanel actions", () => {
           label: "Docs & Knowledge",
           color: "#ff6b2b",
         }}
-        tentacle={tentacle}
+        orchestration={orchestration}
         sessions={[]}
         onClose={() => {}}
-        onRefreshTentacleData={onRefreshTentacleData}
+        onRefreshOrchestrationData={onRefreshOrchestrationData}
       />,
     );
 
     fireEvent.click((await screen.findAllByRole("checkbox"))[0] as HTMLElement);
 
     await waitFor(() => {
-      expect(onRefreshTentacleData).toHaveBeenCalledTimes(1);
+      expect(onRefreshOrchestrationData).toHaveBeenCalledTimes(1);
     });
   });
 
-  it("shows suggested skills in the tentacle detail panel", async () => {
+  it("shows suggested skills in the orchestration detail panel", async () => {
     render(
-      <CanvasTentaclePanel
+      <CanvasOrchestrationPanel
         node={{
           id: "docs-knowledge",
-          type: "tentacle",
+          type: "orchestration",
           x: 0,
           y: 0,
           vx: 0,
@@ -182,7 +182,7 @@ describe("CanvasTentaclePanel actions", () => {
           label: "Docs & Knowledge",
           color: "#ff6b2b",
         }}
-        tentacle={tentacle}
+        orchestration={orchestration}
         sessions={[]}
         onClose={() => {}}
       />,

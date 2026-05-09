@@ -37,8 +37,8 @@ describe("DeleteAllTerminalsDialog", () => {
             terminalId: "terminal-a",
             label: "terminal-a",
             state: "live",
-            coordinationId: "tentacle-a",
-            coordinationName: "Tentacle A",
+            coordinationId: "orchestration-a",
+            coordinationName: "Orchestration A",
             createdAt: "2026-02-24T10:00:00.000Z",
           },
         ]}
@@ -52,7 +52,7 @@ describe("DeleteAllTerminalsDialog", () => {
             vy: 0,
             pinned: false,
             radius: 12,
-            coordinationId: "tentacle-a",
+            coordinationId: "orchestration-a",
             label: "session-1",
             color: "#ff6b2b",
             sessionId: "session-1",
@@ -70,7 +70,7 @@ describe("DeleteAllTerminalsDialog", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Failed to delete 1 item: Tentacle A: Terminal is busy.",
+      "Failed to delete 1 item: Orchestration A: Terminal is busy.",
     );
   });
 });

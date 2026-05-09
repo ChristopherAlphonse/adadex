@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GITHUB_SPARKLINE_HEIGHT, GITHUB_SPARKLINE_WIDTH } from "../app/constants";
 import type { UsageChartData } from "../app/hooks/useUsageHeatmapPolling";
 import type { CodexUsageSnapshot } from "../app/types";
-import { OctopusGlyph } from "./EmptyOctopus";
+import { MascotSprite } from "./MascotSprite";
 
 type RuntimeStatusStripProps = {
   sparklinePoints: string;
@@ -189,11 +189,10 @@ export const RuntimeStatusStrip = ({
   return (
     <section className="console-status-strip" aria-label="Runtime status strip">
       <div className="console-status-main">
-        <OctopusGlyph
-          className="console-status-octopus-icon"
-          animation="sway"
-          expression="normal"
-          scale={2}
+        <MascotSprite
+          className="console-status-mascot-icon"
+          speedMs={16}
+          size={24}
         />
         <span className="console-status-brand">ADADEX</span>
       </div>

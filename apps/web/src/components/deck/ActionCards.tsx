@@ -1,11 +1,12 @@
 import { Check } from "lucide-react";
 
 import type { TerminalAgentProvider } from "../../app/types";
-import { OctopusGlyph } from "../EmptyOctopus";
+import { MascotSprite } from "../MascotSprite";
 
-export const AGENT_PROVIDER_OPTIONS: { value: TerminalAgentProvider; label: string }[] = [
-  { value: "codex", label: "Codex" },
-];
+export const AGENT_PROVIDER_OPTIONS: {
+  value: TerminalAgentProvider;
+  label: string;
+}[] = [{ value: "codex", label: "Codex" }];
 
 export type ActionCardsProps = {
   compact?: boolean;
@@ -30,30 +31,28 @@ export const ActionCards = ({
   onLaunchAgent,
   isLaunchingAgent,
 }: ActionCardsProps) => (
-  <div className={`deck-empty-actions${compact ? " deck-empty-actions--compact" : ""}`}>
+  <div
+    className={`deck-empty-actions${compact ? " deck-empty-actions--compact" : ""}`}
+  >
     <button type="button" className="deck-empty-card" onClick={onAddManually}>
       <div className="deck-empty-card-icon">
-        <OctopusGlyph
-          color="#d4a017"
-          animation="idle"
-          expression="normal"
-          accessory="none"
-          scale={compact ? 3 : 4}
-        />
+        <MascotSprite color="#d4a017" speedMs={16} size={compact ? 160 : 280} />
       </div>
       <div className="deck-empty-card-text">
-        <span className="deck-empty-card-title">Create First Tentacle</span>
+        <span className="deck-empty-card-title">Create First Orchestration</span>
         <span className="deck-empty-card-desc">
-          Start the deck by creating a tentacle for your codebase
+          Start the deck by creating a orchestration for your codebase
         </span>
       </div>
     </button>
     <div className="deck-empty-card">
-      <span className="deck-empty-card-icon deck-empty-card-icon--terminal">&gt;_</span>
+      <span className="deck-empty-card-icon deck-empty-card-icon--terminal">
+        &gt;_
+      </span>
       <div className="deck-empty-card-text">
         <span className="deck-empty-card-title">Open Agent</span>
         <span className="deck-empty-card-desc">
-          Launch your coding agent to create tentacles based on your codebase
+          Launch your coding agent to create orchestrations based on your codebase
         </span>
         <div className="deck-empty-agent-select-row">
           <div className="deck-empty-agent-picker" ref={agentMenuRef}>
@@ -64,9 +63,21 @@ export const ActionCards = ({
               aria-haspopup="menu"
               onClick={() => setAgentMenuOpen((p: boolean) => !p)}
             >
-              {AGENT_PROVIDER_OPTIONS.find((o) => o.value === selectedAgent)?.label}
-              <svg className="deck-empty-agent-chevron" viewBox="0 0 10 6" aria-hidden="true">
-                <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              {
+                AGENT_PROVIDER_OPTIONS.find((o) => o.value === selectedAgent)
+                  ?.label
+              }
+              <svg
+                className="deck-empty-agent-chevron"
+                viewBox="0 0 10 6"
+                aria-hidden="true"
+              >
+                <path
+                  d="M1 1l4 4 4-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
               </svg>
             </button>
             {agentMenuOpen && (
@@ -106,11 +117,13 @@ export const ActionCards = ({
       </div>
     </div>
     <button type="button" className="deck-empty-card" onClick={onAddManually}>
-      <span className="deck-empty-card-icon deck-empty-card-icon--terminal">+</span>
+      <span className="deck-empty-card-icon deck-empty-card-icon--terminal">
+        +
+      </span>
       <div className="deck-empty-card-text">
-        <span className="deck-empty-card-title">Add Tentacle Manually</span>
+        <span className="deck-empty-card-title">Add Orchestration Manually</span>
         <span className="deck-empty-card-desc">
-          Create a custom tentacle with your own configuration
+          Create a custom orchestration with your own configuration
         </span>
       </div>
     </button>

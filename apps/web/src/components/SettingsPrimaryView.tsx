@@ -27,8 +27,8 @@ export const SettingsPrimaryView = ({
   <section className="settings-view" aria-label="Settings primary view">
     <section className="settings-panel" aria-label="Completion notification settings">
       <header className="settings-panel-header">
-        <h2>Tentacle completion sound</h2>
-        <p>Play a notification when a tentacle moves from processing to idle.</p>
+        <h2>Orchestration completion sound</h2>
+        <p>Play a notification when a orchestration moves from processing to idle.</p>
       </header>
 
       <div className="settings-sound-picker">

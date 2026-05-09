@@ -2,7 +2,7 @@ import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
-import { OCTOBOSS_ID } from "./app/hooks/useCanvasGraphData";
+import { DECK_LEAD_ID } from "./app/hooks/useCanvasGraphData";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
 import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShortcuts";
 import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
@@ -10,7 +10,7 @@ import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
 import { useMonitorRuntime } from "./app/hooks/useMonitorRuntime";
 import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
-import { useTentacleGitLifecycle } from "./app/hooks/useTentacleGitLifecycle";
+import { useOrchestrationGitLifecycle } from "./app/hooks/useOrchestrationGitLifecycle";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
@@ -147,26 +147,26 @@ export const App = () => {
   });
 
   const {
-    gitStatusByTentacleId,
-    gitStatusLoadingByTentacleId,
-    pullRequestByTentacleId,
-    pullRequestLoadingByTentacleId,
-    openGitTentacleId,
-    openGitTentacleStatus,
-    openGitTentaclePullRequest,
+    gitStatusByOrchestrationId,
+    gitStatusLoadingByOrchestrationId,
+    pullRequestByOrchestrationId,
+    pullRequestLoadingByOrchestrationId,
+    openGitOrchestrationId,
+    openGitOrchestrationStatus,
+    openGitOrchestrationPullRequest,
     gitCommitMessageDraft,
     gitDialogError,
     isGitDialogLoading,
     isGitDialogMutating,
     setGitCommitMessageDraft,
-    openTentacleGitActions,
-    closeTentacleGitActions,
-    commitTentacleChanges,
-    commitAndPushTentacleBranch,
-    pushTentacleBranch,
-    syncTentacleBranch,
-    mergeTentaclePullRequest,
-  } = useTentacleGitLifecycle({
+    openOrchestrationGitActions,
+    closeOrchestrationGitActions,
+    commitOrchestrationChanges,
+    commitAndPushOrchestrationBranch,
+    pushOrchestrationBranch,
+    syncOrchestrationBranch,
+    mergeOrchestrationPullRequest,
+  } = useOrchestrationGitLifecycle({
     columns: terminals,
   });
 
@@ -336,8 +336,8 @@ export const App = () => {
   const hasSidebarActionPanel =
     conversationsActionPanel !== null ||
     pendingDeleteTerminal !== null ||
-    (openGitTentacleId !== null &&
-      terminals.find((terminal) => terminal.coordinationId === openGitTentacleId)?.workspaceMode ===
+    (openGitOrchestrationId !== null &&
+      terminals.find((terminal) => terminal.coordinationId === openGitOrchestrationId)?.workspaceMode ===
         "worktree");
 
   const sidebarActionPanel = hasSidebarActionPanel ? (
@@ -349,21 +349,21 @@ export const App = () => {
         isDeletingTerminalId={isDeletingTerminalId}
         clearPendingDeleteTerminal={clearPendingDeleteTerminal}
         confirmDeleteTerminal={confirmDeleteTerminal}
-        openGitTentacleId={openGitTentacleId}
+        openGitOrchestrationId={openGitOrchestrationId}
         columns={terminals}
-        openGitTentacleStatus={openGitTentacleStatus}
-        openGitTentaclePullRequest={openGitTentaclePullRequest}
+        openGitOrchestrationStatus={openGitOrchestrationStatus}
+        openGitOrchestrationPullRequest={openGitOrchestrationPullRequest}
         gitCommitMessageDraft={gitCommitMessageDraft}
         gitDialogError={gitDialogError}
         isGitDialogLoading={isGitDialogLoading}
         isGitDialogMutating={isGitDialogMutating}
         setGitCommitMessageDraft={setGitCommitMessageDraft}
-        closeTentacleGitActions={closeTentacleGitActions}
-        commitTentacleChanges={commitTentacleChanges}
-        commitAndPushTentacleBranch={commitAndPushTentacleBranch}
-        pushTentacleBranch={pushTentacleBranch}
-        syncTentacleBranch={syncTentacleBranch}
-        mergeTentaclePullRequest={mergeTentaclePullRequest}
+        closeOrchestrationGitActions={closeOrchestrationGitActions}
+        commitOrchestrationChanges={commitOrchestrationChanges}
+        commitAndPushOrchestrationBranch={commitAndPushOrchestrationBranch}
+        pushOrchestrationBranch={pushOrchestrationBranch}
+        syncOrchestrationBranch={syncOrchestrationBranch}
+        mergeOrchestrationPullRequest={mergeOrchestrationPullRequest}
         requestDeleteTerminal={requestDeleteTerminal}
       />
     )
@@ -537,18 +537,18 @@ export const App = () => {
                 return snapshot.terminalId;
               },
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
-              onCanvasOpenTentacleIdsChange: setCanvasOpenCoordinationIds,
+              onCanvasOpenOrchestrationIdsChange: setCanvasOpenCoordinationIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
               onCreateAgent: async (coordinationId) => {
                 return await createTerminal("shared", undefined, coordinationId);
               },
               onCreateTerminal: async () => {
-                return await createTerminal("shared", undefined, OCTOBOSS_ID);
+                return await createTerminal("shared", undefined, DECK_LEAD_ID);
               },
               onCreateWorktreeTerminal: async () => {
-                return await createTerminal("worktree", undefined, OCTOBOSS_ID);
+                return await createTerminal("worktree", undefined, DECK_LEAD_ID);
               },
-              onCreateTentacle: async () => {
+              onCreateOrchestration: async () => {
                 const response = await fetch("/api/deck/coordinations", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -568,13 +568,13 @@ export const App = () => {
                 );
                 if (!response.ok) return;
               },
-              onOctobossAction: async (action) => {
+              onDeckLeadAction: async (action) => {
                 const response = await fetch("/api/terminals", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     workspaceMode: "shared",
-                    coordinationId: OCTOBOSS_ID,
+                    coordinationId: DECK_LEAD_ID,
                     promptTemplate: action,
                   }),
                 });
@@ -583,7 +583,7 @@ export const App = () => {
                 await refreshColumns();
                 return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
               },
-              onTentacleAction: async (coordinationId, action) => {
+              onOrchestrationAction: async (coordinationId, action) => {
                 const response = await fetch("/api/terminals", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },

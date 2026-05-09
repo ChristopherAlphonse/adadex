@@ -2,11 +2,11 @@ import { useMemo } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
 import {
-  type OctopusAccessory,
-  type OctopusAnimation,
-  type OctopusExpression,
-  OctopusGlyph,
-} from "../EmptyOctopus";
+  type MascotAccessory,
+  type MascotAnimation,
+  type MascotExpression,
+  MascotGlyph,
+} from "../MascotSprite";
 
 const LINE_MAX = 22;
 
@@ -31,9 +31,9 @@ const splitLabel = (label: string): [string] | [string, string] => {
   ];
 };
 
-const ANIMATIONS: OctopusAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
-const EXPRESSIONS: OctopusExpression[] = ["normal", "happy", "angry", "surprised"];
-const ACCESSORIES: OctopusAccessory[] = ["none", "none", "long", "mohawk", "side-sweep", "curly"];
+const ANIMATIONS: MascotAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
+const EXPRESSIONS: MascotExpression[] = ["normal", "happy", "angry", "surprised"];
+const ACCESSORIES: MascotAccessory[] = ["none", "none", "long", "mohawk", "side-sweep", "curly"];
 
 function hashString(str: string): number {
   let h = 0;
@@ -51,31 +51,31 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-type OctopusVisuals = {
-  animation: OctopusAnimation;
-  expression: OctopusExpression;
-  accessory: OctopusAccessory;
+type LocalMascotVisuals = {
+  animation: MascotAnimation;
+  expression: MascotExpression;
+  accessory: MascotAccessory;
   hairColor?: string | undefined;
 };
 
-function deriveOctopusVisuals(node: GraphNode): OctopusVisuals {
+function deriveNodeMascotVisuals(node: GraphNode): LocalMascotVisuals {
   const rng = seededRandom(hashString(node.coordinationId));
-  const stored = node.octopus;
+  const stored = node.mascot;
   return {
     animation:
-      (stored?.animation as OctopusAnimation | null) ??
-      (ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as OctopusAnimation),
+      (stored?.animation as MascotAnimation | null) ??
+      (ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as MascotAnimation),
     expression:
-      (stored?.expression as OctopusExpression | null) ??
-      (EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as OctopusExpression),
+      (stored?.expression as MascotExpression | null) ??
+      (EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as MascotExpression),
     accessory:
-      (stored?.accessory as OctopusAccessory | null) ??
-      (ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as OctopusAccessory),
+      (stored?.accessory as MascotAccessory | null) ??
+      (ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as MascotAccessory),
     hairColor: stored?.hairColor ?? undefined,
   };
 }
 
-type OctopusNodeProps = {
+type MascotNodeProps = {
   node: GraphNode;
   connectedNodes: GraphNode[];
   isSelected: boolean;
@@ -180,7 +180,7 @@ const renderEdgeActivityDots = (path: string, color: string, keyPrefix: string) 
     </circle>,
   ]);
 
-export const OctopusNode = ({
+export const MascotNode = ({
   node,
   connectedNodes,
   isSelected,
@@ -188,25 +188,25 @@ export const OctopusNode = ({
   selectedNodeColor,
   onPointerDown,
   onClick,
-}: OctopusNodeProps) => {
+}: MascotNodeProps) => {
   const showFocus = isSelected;
-  const isOctoboss = node.type === "octoboss";
+  const isDeckLead = node.type === "deck-lead";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);
   const visuals = useMemo(
     () =>
-      isOctoboss
-        ? ({ animation: "sway", expression: "normal", accessory: "none" } as OctopusVisuals)
-        : deriveOctopusVisuals(node),
-    [node, isOctoboss],
+      isDeckLead
+        ? ({ animation: "sway", expression: "normal", accessory: "none" } as LocalMascotVisuals)
+        : deriveNodeMascotVisuals(node),
+    [node, isDeckLead],
   );
-  const glyphScale = isOctoboss ? 6 : GLYPH_SCALE;
+  const glyphScale = isDeckLead ? 6 : GLYPH_SCALE;
   const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
   const glyphH = Math.round(GLYPH_H * (glyphScale / GLYPH_SCALE));
   const color = node.color;
 
   return (
     <g
-      className={`canvas-node canvas-node--tentacle${showFocus ? " canvas-node--selected" : ""}`}
+      className={`canvas-node canvas-node--orchestration${showFocus ? " canvas-node--selected" : ""}`}
       data-node-id={node.id}
       transform={`translate(${node.x}, ${node.y})`}
       onPointerDown={(e) => {
@@ -257,7 +257,7 @@ export const OctopusNode = ({
       {/* Focused glow — same style as session nodes */}
       {showFocus && <circle className="canvas-node-focus-glow" r={node.radius - 4} fill={color} />}
 
-      {/* Octopus glyph via foreignObject */}
+      {/* Mascot glyph via foreignObject */}
       <foreignObject
         x={-glyphW / 2}
         y={-glyphH / 2}
@@ -275,8 +275,8 @@ export const OctopusNode = ({
             pointerEvents: "none",
           }}
         >
-          <OctopusGlyph
-            {...(isOctoboss ? {} : { color })}
+          <MascotGlyph
+            {...(isDeckLead ? {} : { color })}
             animation={visuals.animation}
             expression={visuals.expression}
             accessory={visuals.accessory}
@@ -290,8 +290,8 @@ export const OctopusNode = ({
       <text
         y={glyphH / 2 - 12}
         textAnchor="middle"
-        className="canvas-node-label canvas-node-label--tentacle canvas-node-label--always"
-        fill={isOctoboss ? "var(--accent-primary, #d4a017)" : "#faa32c"}
+        className="canvas-node-label canvas-node-label--orchestration canvas-node-label--always"
+        fill={isDeckLead ? "var(--accent-primary, #d4a017)" : "#faa32c"}
       >
         <tspan x="0" dy="0">
           {lines[0]}

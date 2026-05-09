@@ -4,6 +4,7 @@ import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@adadex/core"
 import {
   Check as CheckIcon,
   ChevronDown,
+  ChevronUp,
   GitBranch,
   Hexagon,
   Layers,
@@ -28,18 +29,18 @@ import {
   createTerminalRuntimeStateStore,
 } from "../app/terminalRuntimeStateStore";
 import type { TerminalView, TerminalWorkspaceMode } from "../app/types";
-import { DeleteTentacleDialog } from "./DeleteTentacleDialog";
-import { CanvasTentaclePanel } from "./canvas/CanvasTentaclePanel";
+import { DeleteOrchestrationDialog } from "./DeleteOrchestrationDialog";
+import { CanvasOrchestrationPanel } from "./canvas/CanvasOrchestrationPanel";
 import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
 import { DeleteAllTerminalsDialog } from "./canvas/DeleteAllTerminalsDialog";
-import { OctopusNode } from "./canvas/OctopusNode";
+import { MascotNode } from "./canvas/MascotNode";
 import { SessionNode } from "./canvas/SessionNode";
 import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
 
 type ContextMenuState =
   | { kind: "canvas"; x: number; y: number }
-  | { kind: "tentacle"; x: number; y: number; coordinationId: string }
-  | { kind: "octoboss"; x: number; y: number }
+  | { kind: "orchestration"; x: number; y: number; coordinationId: string }
+  | { kind: "deck-lead"; x: number; y: number }
   | {
       kind: "active-session";
       x: number;
@@ -66,16 +67,16 @@ type CanvasPrimaryViewProps = {
   onLaunchWorkspaceSetupPlanner?: () => Promise<string | undefined> | undefined;
   recentlyCreatedTerminal?: TerminalView[number] | null;
   onCanvasOpenTerminalIdsChange?: (ids: string[]) => void;
-  onCanvasOpenTentacleIdsChange?: (ids: string[]) => void;
+  onCanvasOpenOrchestrationIdsChange?: (ids: string[]) => void;
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
   onCreateAgent?: (coordinationId: string) => Promise<string | undefined> | undefined;
   onCreateTerminal?: () => Promise<string | undefined> | undefined;
   onCreateWorktreeTerminal?: () => Promise<string | undefined> | undefined;
-  onCreateTentacle?: () => void;
+  onCreateOrchestration?: () => void;
   onSpawnSwarm?: (coordinationId: string, workspaceMode: TerminalWorkspaceMode) => Promise<void>;
   onSolveTodoItem?: (coordinationId: string, itemIndex: number) => Promise<void> | void;
-  onOctobossAction?: (action: string) => Promise<string | undefined> | undefined;
-  onTentacleAction?: (
+  onDeckLeadAction?: (action: string) => Promise<string | undefined> | undefined;
+  onOrchestrationAction?: (
     coordinationId: string,
     action: string,
   ) => Promise<string | undefined> | undefined;
@@ -96,11 +97,12 @@ type CanvasPrimaryViewProps = {
 };
 
 const CLICK_THRESHOLD = 5;
+const WORKSPACE_SETUP_OVERLAY_STORAGE_KEY = "adadex.canvas.workspaceSetupOverlay";
 const GRAPH_MIN_WIDTH = 300;
 const TERMINAL_MIN_WIDTH = 370;
 const ACTIVE_SESSION_RADIUS = 12;
 const buildActiveSessionNodeId = (terminalId: string) => `a:${terminalId}`;
-const buildTentacleNodeId = (coordinationId: string) => `t:${coordinationId}`;
+const buildOrchestrationNodeId = (coordinationId: string) => `t:${coordinationId}`;
 
 const buildCanvasEdgePath = (
   source: GraphNode,
@@ -204,16 +206,16 @@ export const CanvasPrimaryView = ({
   onLaunchWorkspaceSetupPlanner,
   recentlyCreatedTerminal,
   onCanvasOpenTerminalIdsChange,
-  onCanvasOpenTentacleIdsChange,
+  onCanvasOpenOrchestrationIdsChange,
   onCanvasTerminalsPanelWidthChange,
   onCreateAgent,
   onCreateTerminal,
   onCreateWorktreeTerminal,
-  onCreateTentacle,
+  onCreateOrchestration,
   onSpawnSwarm,
   onSolveTodoItem,
-  onOctobossAction,
-  onTentacleAction,
+  onDeckLeadAction,
+  onOrchestrationAction,
   onNavigateToConversation,
   onCloseActiveSession,
   onDeleteActiveSession,
@@ -233,7 +235,7 @@ export const CanvasPrimaryView = ({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [openTerminals, setOpenTerminals] = useState<Map<string, GraphNode>>(new Map());
-  const [openTentacles, setOpenTentacles] = useState<Map<string, GraphNode>>(new Map());
+  const [openOrchestrations, setOpenOrchestrations] = useState<Map<string, GraphNode>>(new Map());
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [terminalsPanelWidth, setTerminalsPanelWidth] = useState<number | null>(null);
@@ -241,7 +243,7 @@ export const CanvasPrimaryView = ({
   const [hideIdleTerminals, setHideIdleTerminals] = useState(false);
   const [isLaunchingWorkspaceSetupPlanner, setIsLaunchingWorkspaceSetupPlanner] = useState(false);
   const hasHydratedTerminals = useRef(false);
-  const hasHydratedTentacles = useRef(false);
+  const hasHydratedOrchestrations = useRef(false);
   const lastHandledCreatedTerminalIdRef = useRef<string | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const nodeClickedRef = useRef(false);
@@ -251,16 +253,42 @@ export const CanvasPrimaryView = ({
   const panelRefs = useRef(new Map<string, HTMLElement>());
   const lastFocusedPanelIdRef = useRef<string | null>(null);
   const shouldShowWorkspaceSetupCard = Boolean(workspaceSetup?.shouldShowSetupCard);
+  const [workspaceSetupOverlay, setWorkspaceSetupOverlay] = useState<
+    "expanded" | "minimized" | "hidden"
+  >(() => {
+    if (typeof sessionStorage === "undefined") {
+      return "expanded";
+    }
+    const raw = sessionStorage.getItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY);
+    if (raw === "minimized" || raw === "hidden" || raw === "expanded") {
+      return raw;
+    }
+    return "expanded";
+  });
+
+  const incompleteWorkspaceSetupSteps = useMemo(
+    () => (workspaceSetup?.steps ?? []).filter((step) => !step.complete).length,
+    [workspaceSetup],
+  );
+
+  useEffect(() => {
+    if (!shouldShowWorkspaceSetupCard) {
+      sessionStorage.removeItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY);
+      setWorkspaceSetupOverlay("expanded");
+      return;
+    }
+    sessionStorage.setItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY, workspaceSetupOverlay);
+  }, [shouldShowWorkspaceSetupCard, workspaceSetupOverlay]);
 
   const agentRuntimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
 
   const {
     nodes,
     edges,
-    tentacleById,
-    sessionsByTentacleId,
+    orchestrationById,
+    sessionsByOrchestrationId,
     refresh: refreshGraphData,
-    refreshDeckTentacles,
+    refreshDeckOrchestrations,
   } = useCanvasGraphData({ columns, enabled: true, agentRuntimeStates });
 
   const {
@@ -301,12 +329,12 @@ export const CanvasPrimaryView = ({
 
       const parentNodeId = terminal.parentTerminalId
         ? buildActiveSessionNodeId(terminal.parentTerminalId)
-        : buildTentacleNodeId(terminal.coordinationId);
+        : buildOrchestrationNodeId(terminal.coordinationId);
       const anchorNode =
         existingNode?.type === "active-session"
           ? existingNode
           : (nodesById.get(parentNodeId) ??
-            nodesById.get(buildTentacleNodeId(terminal.coordinationId)));
+            nodesById.get(buildOrchestrationNodeId(terminal.coordinationId)));
 
       return {
         id: nodeId,
@@ -436,36 +464,36 @@ export const CanvasPrimaryView = ({
     });
   }, [columns]);
 
-  // Hydrate open tentacles from persisted IDs.
-  // Gate on tentacle-type nodes being present (deck API fetch is async).
-  const hasTentacleNodes = simulatedNodes.some((n) => n.type === "tentacle");
-  const openTentacleCount = openTentacles.size;
+  // Hydrate open orchestrations from persisted IDs.
+  // Gate on orchestration-type nodes being present (deck API fetch is async).
+  const hasOrchestrationNodes = simulatedNodes.some((n) => n.type === "orchestration");
+  const openOrchestrationCount = openOrchestrations.size;
   useEffect(() => {
-    if (hasHydratedTentacles.current) return;
+    if (hasHydratedOrchestrations.current) return;
     if (!isUiStateHydrated) return;
-    if (!hasTentacleNodes) return;
+    if (!hasOrchestrationNodes) return;
 
     if (canvasOpenCoordinationIds && canvasOpenCoordinationIds.length > 0) {
       const restoredMap = new Map<string, GraphNode>();
       for (const nodeId of canvasOpenCoordinationIds) {
         const node = nodesById.get(nodeId);
-        if (node && (node.type === "tentacle" || node.type === "octoboss")) {
+        if (node && (node.type === "orchestration" || node.type === "deck-lead")) {
           restoredMap.set(nodeId, { ...node });
         }
       }
       if (restoredMap.size > 0) {
-        setOpenTentacles(restoredMap);
+        setOpenOrchestrations(restoredMap);
       }
     }
 
-    hasHydratedTentacles.current = true;
-  }, [isUiStateHydrated, canvasOpenCoordinationIds, hasTentacleNodes, nodesById]);
+    hasHydratedOrchestrations.current = true;
+  }, [isUiStateHydrated, canvasOpenCoordinationIds, hasOrchestrationNodes, nodesById]);
 
-  // Persist open tentacle IDs when they change
+  // Persist open orchestration IDs when they change
   useEffect(() => {
-    if (!hasHydratedTentacles.current) return;
-    onCanvasOpenTentacleIdsChange?.(Array.from(openTentacles.keys()));
-  }, [openTentacles, onCanvasOpenTentacleIdsChange]);
+    if (!hasHydratedOrchestrations.current) return;
+    onCanvasOpenOrchestrationIdsChange?.(Array.from(openOrchestrations.keys()));
+  }, [openOrchestrations, onCanvasOpenOrchestrationIdsChange]);
 
   // Persist terminals panel width only when user has explicitly dragged the divider
   useEffect(() => {
@@ -516,8 +544,8 @@ export const CanvasPrimaryView = ({
           }
           return next;
         });
-      } else if (node.type === "tentacle" || node.type === "octoboss") {
-        setOpenTentacles((prev) => {
+      } else if (node.type === "orchestration" || node.type === "deck-lead") {
+        setOpenOrchestrations((prev) => {
           const next = new Map(prev);
           if (next.has(nodeId)) {
             next.delete(nodeId);
@@ -544,8 +572,8 @@ export const CanvasPrimaryView = ({
     [],
   );
 
-  const handleCloseTentacle = useCallback((nodeId: string) => {
-    setOpenTentacles((prev) => {
+  const handleCloseOrchestration = useCallback((nodeId: string) => {
+    setOpenOrchestrations((prev) => {
       const next = new Map(prev);
       next.delete(nodeId);
       return next;
@@ -610,7 +638,7 @@ export const CanvasPrimaryView = ({
 
   // Convert vertical wheel to horizontal scroll only when hovering terminal headers
   useEffect(() => {
-    if (!isHydratingTerminals && openTerminalCount === 0 && openTentacleCount === 0) return;
+    if (!isHydratingTerminals && openTerminalCount === 0 && openOrchestrationCount === 0) return;
     const panel = terminalsPanelRef.current;
     if (!panel) return;
     const handler = (e: WheelEvent) => {
@@ -623,7 +651,7 @@ export const CanvasPrimaryView = ({
     };
     panel.addEventListener("wheel", handler, { passive: false });
     return () => panel.removeEventListener("wheel", handler);
-  }, [isHydratingTerminals, openTerminalCount, openTentacleCount]);
+  }, [isHydratingTerminals, openTerminalCount, openOrchestrationCount]);
 
   const handleSvgPointerUp = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
@@ -693,18 +721,18 @@ export const CanvasPrimaryView = ({
       const node = nodesByIdRef.current.get(nodeId);
       if (!node) return;
 
-      if (node.type === "octoboss") {
+      if (node.type === "deck-lead") {
         e.preventDefault();
         e.stopPropagation();
-        setContextMenu({ kind: "octoboss", x: e.clientX, y: e.clientY });
+        setContextMenu({ kind: "deck-lead", x: e.clientX, y: e.clientY });
         return;
       }
 
-      if (node.type === "tentacle") {
+      if (node.type === "orchestration") {
         e.preventDefault();
         e.stopPropagation();
         setContextMenu({
-          kind: "tentacle",
+          kind: "orchestration",
           x: e.clientX,
           y: e.clientY,
           coordinationId: node.coordinationId,
@@ -761,30 +789,30 @@ export const CanvasPrimaryView = ({
     [onSpawnSwarm],
   );
 
-  const handleOctobossAction = useCallback(
+  const handleDeckLeadAction = useCallback(
     (action: string) => {
       setContextMenu(null);
-      const result = onOctobossAction?.(action);
+      const result = onDeckLeadAction?.(action);
       if (result && typeof result.then === "function") {
         void result.then((agentId) => {
           if (agentId) setPendingOpenAgentId(agentId);
         });
       }
     },
-    [onOctobossAction],
+    [onDeckLeadAction],
   );
 
-  const handleTentacleAction = useCallback(
+  const handleOrchestrationAction = useCallback(
     (coordinationId: string, action: string) => {
       setContextMenu(null);
-      const result = onTentacleAction?.(coordinationId, action);
+      const result = onOrchestrationAction?.(coordinationId, action);
       if (result && typeof result.then === "function") {
         void result.then((agentId) => {
           if (agentId) setPendingOpenAgentId(agentId);
         });
       }
     },
-    [onTentacleAction],
+    [onOrchestrationAction],
   );
 
   // Auto-open terminal for newly created agent once it appears in the graph
@@ -838,7 +866,7 @@ export const CanvasPrimaryView = ({
       lastFocusedPanelIdRef.current = null;
       return;
     }
-    if (!openTerminals.has(selectedNodeId) && !openTentacles.has(selectedNodeId)) {
+    if (!openTerminals.has(selectedNodeId) && !openOrchestrations.has(selectedNodeId)) {
       if (lastFocusedPanelIdRef.current === selectedNodeId) {
         lastFocusedPanelIdRef.current = null;
       }
@@ -866,14 +894,14 @@ export const CanvasPrimaryView = ({
     return () => {
       window.cancelAnimationFrame(rafId);
     };
-  }, [selectedNodeId, openTerminals, openTentacles]);
+  }, [selectedNodeId, openTerminals, openOrchestrations]);
 
-  // Separate tentacle and session nodes for render order
-  const tentacleNodes = simulatedNodes.filter(
-    (n) => n.type === "tentacle" || n.type === "octoboss",
+  // Separate orchestration and session nodes for render order
+  const orchestrationNodes = simulatedNodes.filter(
+    (n) => n.type === "orchestration" || n.type === "deck-lead",
   );
   const sessionNodes = simulatedNodes.filter((n) => {
-    if (n.type === "tentacle" || n.type === "octoboss") return false;
+    if (n.type === "orchestration" || n.type === "deck-lead") return false;
     if (hideIdleTerminals && n.type === "inactive-session") return false;
     if (
       hideIdleTerminals &&
@@ -952,7 +980,7 @@ export const CanvasPrimaryView = ({
     });
   }
 
-  const hasPanels = isHydratingTerminals || openTerminals.size > 0 || openTentacles.size > 0;
+  const hasPanels = isHydratingTerminals || openTerminals.size > 0 || openOrchestrations.size > 0;
   const terminalLayoutVersion = useMemo(() => {
     const openIds = Array.from(openTerminals.keys()).join("|");
     return `${openIds}::${terminalsPanelWidth ?? "auto"}`;
@@ -1032,8 +1060,8 @@ export const CanvasPrimaryView = ({
               }),
             )}
 
-            {/* Render tentacle nodes (with arms) first */}
-            {tentacleNodes.map((node) => {
+            {/* Render orchestration nodes (with arms) first */}
+            {orchestrationNodes.map((node) => {
               const connected = edges
                 .filter((e) => e.source === node.id)
                 .map((e) => nodesById.get(e.target))
@@ -1054,7 +1082,7 @@ export const CanvasPrimaryView = ({
                 : null;
 
               return (
-                <OctopusNode
+                <MascotNode
                   key={node.id}
                   node={node}
                   connectedNodes={connected}
@@ -1116,11 +1144,11 @@ export const CanvasPrimaryView = ({
             </span>
             <span className="canvas-toolbar-label">Worktree</span>
           </button>
-          <button type="button" className="canvas-toolbar-btn" onClick={onCreateTentacle}>
+          <button type="button" className="canvas-toolbar-btn" onClick={onCreateOrchestration}>
             <span className="canvas-toolbar-icon">
               <Hexagon size={14} />
             </span>
-            <span className="canvas-toolbar-label">Tentacle</span>
+            <span className="canvas-toolbar-label">Orchestration</span>
           </button>
           <div className="canvas-toolbar-separator" />
           <button type="button" className="canvas-toolbar-btn" onClick={handleFitView}>
@@ -1148,6 +1176,21 @@ export const CanvasPrimaryView = ({
               {hideIdleTerminals ? "Show Idle" : "Hide Idle"}
             </span>
           </button>
+          {shouldShowWorkspaceSetupCard && workspaceSetupOverlay === "hidden" ? (
+            <>
+              <div className="canvas-toolbar-separator" />
+              <button
+                type="button"
+                className="canvas-toolbar-btn"
+                onClick={() => setWorkspaceSetupOverlay("expanded")}
+              >
+                <span className="canvas-toolbar-icon">
+                  <ListTodo size={14} />
+                </span>
+                <span className="canvas-toolbar-label">Setup</span>
+              </button>
+            </>
+          ) : null}
           <div className="canvas-toolbar-separator" />
           <button
             type="button"
@@ -1188,7 +1231,7 @@ export const CanvasPrimaryView = ({
           </div>
         )}
 
-        {shouldShowWorkspaceSetupCard && (
+        {shouldShowWorkspaceSetupCard && workspaceSetupOverlay === "expanded" ? (
           <div className="canvas-setup-overlay">
             <WorkspaceSetupCard
               workspaceSetup={workspaceSetup}
@@ -1202,9 +1245,34 @@ export const CanvasPrimaryView = ({
               }}
               isLaunchingAgent={isLaunchingWorkspaceSetupPlanner}
               isRunningStepId={runningWorkspaceSetupStepId}
+              onMinimize={() => setWorkspaceSetupOverlay("minimized")}
+              onDismiss={() => setWorkspaceSetupOverlay("hidden")}
             />
           </div>
-        )}
+        ) : null}
+        {shouldShowWorkspaceSetupCard && workspaceSetupOverlay === "minimized" ? (
+          <div className="canvas-setup-overlay canvas-setup-overlay--minimized">
+            <button
+              type="button"
+              className="workspace-setup-minimized-bar"
+              aria-label={
+                incompleteWorkspaceSetupSteps > 0
+                  ? `Expand workspace setup, ${incompleteWorkspaceSetupSteps} steps incomplete`
+                  : "Expand workspace setup"
+              }
+              onClick={() => setWorkspaceSetupOverlay("expanded")}
+            >
+              <ListTodo size={16} strokeWidth={2} aria-hidden />
+              <span className="workspace-setup-minimized-bar-label">
+                Workspace setup
+                {incompleteWorkspaceSetupSteps > 0
+                  ? ` · ${incompleteWorkspaceSetupSteps} incomplete`
+                  : ""}
+              </span>
+              <ChevronUp size={16} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {hasPanels && (
@@ -1225,15 +1293,15 @@ export const CanvasPrimaryView = ({
               terminalsPanelWidth != null ? { flex: `0 0 ${terminalsPanelWidth}px` } : undefined
             }
           >
-            {Array.from(openTentacles.entries()).map(([nodeId, node]) => (
-              <CanvasTentaclePanel
+            {Array.from(openOrchestrations.entries()).map(([nodeId, node]) => (
+              <CanvasOrchestrationPanel
                 key={nodeId}
                 node={node}
                 isFocused={selectedNodeId === nodeId}
                 panelRef={setPanelRef(nodeId)}
-                tentacle={tentacleById.get(node.coordinationId) ?? null}
-                sessions={sessionsByTentacleId.get(node.coordinationId) ?? []}
-                onClose={() => handleCloseTentacle(nodeId)}
+                orchestration={orchestrationById.get(node.coordinationId) ?? null}
+                sessions={sessionsByOrchestrationId.get(node.coordinationId) ?? []}
+                onClose={() => handleCloseOrchestration(nodeId)}
                 onFocus={() => setSelectedNodeId(nodeId)}
                 onCreateAgent={(coordinationId) => {
                   handleCreateAgent(coordinationId);
@@ -1245,7 +1313,7 @@ export const CanvasPrimaryView = ({
                   handleSpawnSwarm(coordinationId, workspaceMode);
                 }}
                 onNavigateToConversation={onNavigateToConversation}
-                onRefreshTentacleData={refreshDeckTentacles}
+                onRefreshOrchestrationData={refreshDeckOrchestrations}
               />
             ))}
             {isHydratingTerminals && openTerminals.size === 0 && (
@@ -1339,13 +1407,13 @@ export const CanvasPrimaryView = ({
                   className="canvas-context-menu-item"
                   onClick={() => {
                     setContextMenu(null);
-                    onCreateTentacle?.();
+                    onCreateOrchestration?.();
                   }}
                 >
                   <span className="canvas-context-menu-icon">
                     <Hexagon size={14} />
                   </span>
-                  New Tentacle
+                  New Orchestration
                 </button>
                 <button
                   type="button"
@@ -1385,7 +1453,7 @@ export const CanvasPrimaryView = ({
                 </button>
               </>
             )}
-            {contextMenu.kind === "tentacle" && (
+            {contextMenu.kind === "orchestration" && (
               <>
                 <button
                   type="button"
@@ -1419,7 +1487,7 @@ export const CanvasPrimaryView = ({
                   type="button"
                   className="canvas-context-menu-item"
                   onClick={() =>
-                    handleTentacleAction(
+                    handleOrchestrationAction(
                       contextMenu.coordinationId,
                       "coordination-reorganize-todos",
                     )
@@ -1434,13 +1502,13 @@ export const CanvasPrimaryView = ({
                   type="button"
                   className="canvas-context-menu-item"
                   onClick={() =>
-                    handleTentacleAction(contextMenu.coordinationId, "coordination-update")
+                    handleOrchestrationAction(contextMenu.coordinationId, "coordination-update")
                   }
                 >
                   <span className="canvas-context-menu-icon">
                     <Hexagon size={14} />
                   </span>
-                  Update Tentacle
+                  Update Orchestration
                 </button>
                 <button
                   type="button"
@@ -1464,12 +1532,12 @@ export const CanvasPrimaryView = ({
                 </button>
               </>
             )}
-            {contextMenu.kind === "octoboss" && (
+            {contextMenu.kind === "deck-lead" && (
               <>
                 <button
                   type="button"
                   className="canvas-context-menu-item"
-                  onClick={() => handleOctobossAction("octoboss-reorganize-todos")}
+                  onClick={() => handleDeckLeadAction("deck-lead-reorganize-todos")}
                 >
                   <span className="canvas-context-menu-icon">
                     <ListTodo size={14} />
@@ -1479,22 +1547,22 @@ export const CanvasPrimaryView = ({
                 <button
                   type="button"
                   className="canvas-context-menu-item"
-                  onClick={() => handleOctobossAction("octoboss-reorganize-tentacles")}
+                  onClick={() => handleDeckLeadAction("deck-lead-reorganize-coordinations")}
                 >
                   <span className="canvas-context-menu-icon">
                     <Hexagon size={14} />
                   </span>
-                  Reorganize Tentacles
+                  Reorganize Coordinations
                 </button>
                 <button
                   type="button"
                   className="canvas-context-menu-item"
-                  onClick={() => handleOctobossAction("octoboss-clean-contexts")}
+                  onClick={() => handleDeckLeadAction("deck-lead-clean-contexts")}
                 >
                   <span className="canvas-context-menu-icon">
                     <Sparkles size={14} />
                   </span>
-                  Clean Tentacle Contexts
+                  Clean Coordination Contexts
                 </button>
               </>
             )}
@@ -1523,7 +1591,7 @@ export const CanvasPrimaryView = ({
 
       {pendingDeleteTerminal && onCancelDelete && onConfirmDelete && (
         <div className="canvas-delete-dialog">
-          <DeleteTentacleDialog
+          <DeleteOrchestrationDialog
             pendingDeleteTerminal={pendingDeleteTerminal}
             isDeletingTerminalId={isDeletingTerminalId ?? null}
             onCancel={onCancelDelete}

@@ -18,10 +18,10 @@ import {
 } from "./conversationRoutes";
 import {
   handleDeckSkillsRoute,
-  handleDeckTentacleItemRoute,
-  handleDeckTentacleSkillsRoute,
-  handleDeckTentacleSwarmRoute,
-  handleDeckTentaclesRoute,
+  handleDeckOrchestrationItemRoute,
+  handleDeckOrchestrationSkillsRoute,
+  handleDeckOrchestrationSwarmRoute,
+  handleDeckOrchestrationsRoute,
   handleDeckTodoAddRoute,
   handleDeckTodoDeleteRoute,
   handleDeckTodoEditRoute,
@@ -29,7 +29,7 @@ import {
   handleDeckTodoToggleRoute,
   handleDeckVaultFileRoute,
 } from "./deckRoutes";
-import { handleTentacleGitPullRequestRoute, handleTentacleGitRoute } from "./gitRoutes";
+import { handleOrchestrationGitPullRequestRoute, handleOrchestrationGitRoute } from "./gitRoutes";
 import {
   handleChannelMessagesRoute,
   handleHookRoute,
@@ -108,11 +108,11 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     "deck",
     [
       handleDeckSkillsRoute,
-      handleDeckTentaclesRoute,
-      handleDeckTentacleItemRoute,
-      handleDeckTentacleSkillsRoute,
+      handleDeckOrchestrationsRoute,
+      handleDeckOrchestrationItemRoute,
+      handleDeckOrchestrationSkillsRoute,
       handleDeckTodoSolveRoute,
-      handleDeckTentacleSwarmRoute,
+      handleDeckOrchestrationSwarmRoute,
       handleDeckTodoToggleRoute,
       handleDeckTodoEditRoute,
       handleDeckTodoAddRoute,
@@ -145,7 +145,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
       handleTerminalItemRoute,
     ],
   ],
-  ["coordinations", [handleTentacleGitRoute, handleTentacleGitPullRequestRoute]],
+  ["coordinations", [handleOrchestrationGitRoute, handleOrchestrationGitPullRequestRoute]],
   ["code-intel", [handleCodeIntelEventsRoute]],
 ]);
 
