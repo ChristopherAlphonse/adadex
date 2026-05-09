@@ -205,7 +205,7 @@ describe("App swarm actions", () => {
     resetAppTestHarness();
   });
 
-  it("does not force a terminal snapshot refresh after spawning a swarm", async () => {
+  it("refreshes terminal snapshots after spawning a swarm", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
     let terminalSnapshotReads = 0;
@@ -246,6 +246,8 @@ describe("App swarm actions", () => {
       ).toBe(true);
     });
 
-    expect(terminalSnapshotReads).toBe(0);
+    await waitFor(() => {
+      expect(terminalSnapshotReads).toBe(1);
+    });
   });
 });
