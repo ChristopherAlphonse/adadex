@@ -72,9 +72,28 @@ export const CanvasOrchestrationPanel = ({
   const [addingTodo, setAddingTodo] = useState(false);
   const [addText, setAddText] = useState("");
   const [solvingTodoIndex, setSolvingTodoIndex] = useState<number | null>(null);
+  const [spawningSwarmMode, setSpawningSwarmMode] = useState<CoordinationWorkspaceMode | null>(
+    null,
+  );
+  const [spawnSwarmError, setSpawnSwarmError] = useState<string | null>(null);
   const refreshOrchestrationData = useCallback(async () => {
     await onRefreshOrchestrationData?.();
   }, [onRefreshOrchestrationData]);
+
+  const handleSpawnSwarm = useCallback(
+    async (workspaceMode: CoordinationWorkspaceMode) => {
+      try {
+        setSpawnSwarmError(null);
+        setSpawningSwarmMode(workspaceMode);
+        await onSpawnSwarm?.(node.coordinationId, workspaceMode);
+      } catch (error) {
+        setSpawnSwarmError(error instanceof Error ? error.message : "Failed to spawn swarm.");
+      } finally {
+        setSpawningSwarmMode((current) => (current === workspaceMode ? null : current));
+      }
+    },
+    [node.coordinationId, onSpawnSwarm],
+  );
 
   const handleTodoToggle = useCallback(
     async (itemIndex: number, done: boolean) => {
@@ -244,18 +263,21 @@ export const CanvasOrchestrationPanel = ({
             <button
               type="button"
               className="detail-action-btn"
-              onClick={() => onSpawnSwarm?.(node.coordinationId, "worktree")}
+              disabled={spawningSwarmMode !== null}
+              onClick={() => void handleSpawnSwarm("worktree")}
             >
-              &#x2263; Spawn Swarm (Worktrees)
+              {spawningSwarmMode === "worktree" ? "Spawning..." : "≣ Spawn Swarm (Worktrees)"}
             </button>
             <button
               type="button"
               className="detail-action-btn"
-              onClick={() => onSpawnSwarm?.(node.coordinationId, "shared")}
+              disabled={spawningSwarmMode !== null}
+              onClick={() => void handleSpawnSwarm("shared")}
             >
-              &#x2263; Spawn Swarm (Normal)
+              {spawningSwarmMode === "shared" ? "Spawning..." : "≣ Spawn Swarm (Normal)"}
             </button>
           </div>
+          {spawnSwarmError ? <div className="deck-add-form-error">{spawnSwarmError}</div> : null}
         </div>
 
         {/* Progress section */}

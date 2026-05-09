@@ -553,7 +553,19 @@ export const App = () => {
                     body: JSON.stringify({ workspaceMode }),
                   },
                 );
-                if (!response.ok) return;
+                if (!response.ok) {
+                  let message = "Failed to spawn swarm.";
+                  try {
+                    const body = (await response.json()) as { error?: unknown };
+                    if (typeof body.error === "string" && body.error.trim().length > 0) {
+                      message = body.error;
+                    }
+                  } catch {
+                    // Fall back to the generic message when the server returns a non-JSON error.
+                  }
+                  throw new Error(message);
+                }
+                await refreshColumns();
               },
               onDeckLeadAction: async (action) => {
                 const response = await fetch("/api/terminals", {

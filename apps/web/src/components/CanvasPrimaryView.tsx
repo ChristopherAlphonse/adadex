@@ -802,11 +802,12 @@ export const CanvasPrimaryView = ({
   );
 
   const handleSpawnSwarm = useCallback(
-    (coordinationId: string, workspaceMode: TerminalWorkspaceMode) => {
+    async (coordinationId: string, workspaceMode: TerminalWorkspaceMode) => {
       setContextMenu(null);
-      void onSpawnSwarm?.(coordinationId, workspaceMode);
+      await onSpawnSwarm?.(coordinationId, workspaceMode);
+      refreshGraphData();
     },
-    [onSpawnSwarm],
+    [onSpawnSwarm, refreshGraphData],
   );
 
   const handleDeckLeadAction = useCallback(
@@ -1331,7 +1332,7 @@ export const CanvasPrimaryView = ({
                   void onSolveTodoItem?.(coordinationId, itemIndex);
                 }}
                 onSpawnSwarm={(coordinationId, workspaceMode) => {
-                  handleSpawnSwarm(coordinationId, workspaceMode);
+                  return handleSpawnSwarm(coordinationId, workspaceMode);
                 }}
                 onNavigateToConversation={onNavigateToConversation}
                 onRefreshOrchestrationData={refreshDeckOrchestrations}
@@ -1534,7 +1535,9 @@ export const CanvasPrimaryView = ({
                 <button
                   type="button"
                   className="canvas-context-menu-item"
-                  onClick={() => handleSpawnSwarm(contextMenu.coordinationId, "worktree")}
+                  onClick={() => {
+                    void handleSpawnSwarm(contextMenu.coordinationId, "worktree");
+                  }}
                 >
                   <span className="canvas-context-menu-icon">
                     <Layers size={14} />
@@ -1544,7 +1547,9 @@ export const CanvasPrimaryView = ({
                 <button
                   type="button"
                   className="canvas-context-menu-item"
-                  onClick={() => handleSpawnSwarm(contextMenu.coordinationId, "shared")}
+                  onClick={() => {
+                    void handleSpawnSwarm(contextMenu.coordinationId, "shared");
+                  }}
                 >
                   <span className="canvas-context-menu-icon">
                     <Layers size={14} />
