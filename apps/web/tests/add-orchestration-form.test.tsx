@@ -45,4 +45,32 @@ describe("AddOrchestrationForm", () => {
       ["docs-writer"],
     );
   });
+
+  it("submits the selected hair color", () => {
+    const onSubmit = vi.fn();
+
+    render(
+      <AddOrchestrationForm
+        onSubmit={onSubmit}
+        onCancel={() => {}}
+        isSubmitting={false}
+        error={null}
+        availableSkills={[]}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "docs" } });
+    fireEvent.click(screen.getByLabelText("Select hair color #E04020 · rgb(224, 64, 32)"));
+    fireEvent.click(screen.getByRole("button", { name: /create coordination/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      "docs",
+      "",
+      expect.any(String),
+      expect.objectContaining({
+        hairColor: "#e04020",
+      }),
+      [],
+    );
+  });
 });
