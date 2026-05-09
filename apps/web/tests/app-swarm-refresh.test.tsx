@@ -131,6 +131,7 @@ vi.mock("../src/app/hooks/useTerminalCompletionNotification", () => ({
 vi.mock("../src/app/hooks/useTerminalMutations", () => ({
   useTerminalMutations: () => ({
     clearPendingDeleteTerminal: vi.fn(),
+    closeTerminal: vi.fn(),
     confirmDeleteTerminal: vi.fn(),
     createTerminal: vi.fn(),
     isCreatingTerminal: false,

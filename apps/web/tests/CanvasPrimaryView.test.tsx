@@ -226,7 +226,7 @@ describe("CanvasPrimaryView", () => {
     expect(HTMLElement.prototype.focus).not.toHaveBeenCalled();
   });
 
-  it("minimizes a terminal panel separately from closing the terminal session", async () => {
+  it("minimizes a terminal panel separately from shutting down the terminal session", async () => {
     const onCloseActiveSession = vi.fn();
     render(
       <CanvasPrimaryView

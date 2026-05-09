@@ -81,7 +81,11 @@ type CanvasPrimaryViewProps = {
     action: string,
   ) => Promise<string | undefined> | undefined;
   onNavigateToConversation?: (sessionId: string) => void;
-  onCloseActiveSession?: (terminalId: string, terminalName: string, workspaceMode?: string) => void;
+  onCloseActiveSession?: (
+    terminalId: string,
+    terminalName: string,
+    workspaceMode?: string,
+  ) => boolean | Promise<boolean> | void;
   onDeleteActiveSession?: (
     terminalId: string,
     terminalName: string,
@@ -609,11 +613,35 @@ export const CanvasPrimaryView = ({
       setSelectedNodeId((prev) => (prev === node.id ? null : prev));
 
       const terminal = columns.find((entry) => entry.terminalId === node.sessionId);
-      onCloseActiveSession?.(
+      const closeResult = onCloseActiveSession?.(
         node.sessionId,
         terminal?.coordinationName ?? node.label,
         terminal?.workspaceMode ?? node.workspaceMode,
       );
+
+      const closePanel = () => {
+        setOpenTerminals((prev) => {
+          const next = new Map(prev);
+          next.delete(node.id);
+          return next;
+        });
+        setSelectedNodeId((prev) => (prev === node.id ? null : prev));
+      };
+
+      if (closeResult && typeof closeResult === "object" && "then" in closeResult) {
+        void closeResult
+          .then((didClose) => {
+            if (didClose !== false) {
+              closePanel();
+            }
+          })
+          .catch(() => {});
+        return;
+      }
+
+      if (closeResult !== false) {
+        closePanel();
+      }
     },
     [columns, onCloseActiveSession],
   );
