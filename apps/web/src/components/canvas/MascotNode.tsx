@@ -126,6 +126,12 @@ const GLYPH_SCALE = 4;
 const GLYPH_W = 112;
 const GLYPH_H = 120;
 
+/** Ground shadow ellipse in `MascotSprite` drawMark: cy = unit * 3.2, ry = unit * 1.35 */
+const MASCOT_SHADOW_BOTTOM_IN_UNITS = 3.2 + 1.35;
+const LABEL_BELOW_SHADOW_PX = 8;
+const LABEL_OFFSET_X_PX = 7;
+const LABEL_OFFSET_Y_PX = 10;
+
 const isEdgeActivityVisible = (target: GraphNode): boolean =>
   target.type === "active-session" &&
   target.hasUserPrompt !== false &&
@@ -296,18 +302,21 @@ export const MascotNode = ({
         </div>
       </foreignObject>
 
-      {/* Label — always visible, up to two lines */}
+      {/* Label — just below sprite shadow; glyph box is taller than the square canvas */}
       <text
-        y={glyphH / 2 - 12}
+        x={LABEL_OFFSET_X_PX}
+        y={Math.round(
+          glyphScale * MASCOT_SHADOW_BOTTOM_IN_UNITS + LABEL_BELOW_SHADOW_PX + LABEL_OFFSET_Y_PX,
+        )}
         textAnchor="middle"
         className="canvas-node-label canvas-node-label--orchestration canvas-node-label--always"
         fill={isDeckLead ? "var(--accent-primary, #a3e635)" : "var(--accent-secondary, #eab308)"}
       >
-        <tspan x="0" dy="0">
+        <tspan x={LABEL_OFFSET_X_PX} dy="0">
           {lines[0]}
         </tspan>
         {lines[1] && (
-          <tspan x="0" dy="1.2em">
+          <tspan x={LABEL_OFFSET_X_PX} dy="1.2em">
             {lines[1]}
           </tspan>
         )}
