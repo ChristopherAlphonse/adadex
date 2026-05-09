@@ -60,7 +60,7 @@ describe("App shell and navigation", () => {
     expect(await screen.findByLabelText("Runtime status strip")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
-    expect(screen.getByLabelText("Telemetry ticker tape")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
     expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
     expect(screen.getByText("Press 1-8 to navigate")).toBeInTheDocument();
   });

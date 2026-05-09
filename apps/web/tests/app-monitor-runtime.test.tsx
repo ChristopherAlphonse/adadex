@@ -199,15 +199,7 @@ describe("App Monitor runtime", () => {
       }),
     );
 
-    const telemetryTape = screen.getByLabelText("Telemetry ticker tape");
-    await waitFor(() => {
-      expect(within(telemetryTape).getAllByText("@octogent")).toHaveLength(2);
-      expect(within(telemetryTape).getAllByText("♥ 123")).toHaveLength(2);
-      expect(within(telemetryTape).getAllByText("𝕏")).toHaveLength(2);
-      const resourceLinks = within(telemetryTape).getAllByRole("link");
-      expect(resourceLinks.length).toBeGreaterThan(0);
-      expect(resourceLinks[0]).toHaveAttribute("href", "https://x.com/octogent/status/1");
-    });
+    expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
 
     const monitorView = await screen.findByLabelText("Monitor primary view");
     expect(within(monitorView).getByRole("button", { name: "Resources" })).toHaveAttribute(
@@ -428,122 +420,7 @@ describe("App Monitor runtime", () => {
     expect(feedRequestCount).toBeGreaterThanOrEqual(2);
   });
 
-  it("hydrates the bottom telemetry tape after reload without opening the monitor view", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
-      const url = String(input);
-      const method = init?.method ?? "GET";
-
-      if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
-        return jsonResponse([]);
-      }
-
-      if (url.endsWith("/api/codex/usage") && method === "GET") {
-        return jsonResponse({
-          status: "unavailable",
-          source: "none",
-          fetchedAt: "2026-02-28T12:00:00.000Z",
-        });
-      }
-
-      if (url.endsWith("/api/github/summary") && method === "GET") {
-        return jsonResponse({
-          status: "unavailable",
-          source: "none",
-          fetchedAt: "2026-02-28T12:00:00.000Z",
-          commitsPerDay: [],
-        });
-      }
-
-      if (url.includes("/api/analytics/usage-heatmap") && method === "GET") {
-        return jsonResponse({
-          days: [],
-          projects: [],
-          models: [],
-        });
-      }
-
-      if (url.endsWith("/api/ui-state") && method === "GET") {
-        return jsonResponse({
-          isMonitorVisible: true,
-          isBottomTelemetryVisible: true,
-        });
-      }
-
-      if (url.endsWith("/api/ui-state") && method === "PATCH") {
-        return jsonResponse({});
-      }
-
-      if (url.endsWith("/api/monitor/config") && method === "GET") {
-        return jsonResponse({
-          providerId: "x",
-          queryTerms: ["Codex"],
-          refreshPolicy: {
-            maxCacheAgeMs: 86400000,
-            maxPosts: 30,
-            searchWindowDays: 7,
-          },
-          providers: {
-            x: {
-              credentials: {
-                isConfigured: true,
-                bearerTokenHint: "****oken",
-                apiKeyHint: null,
-                hasApiSecret: false,
-                hasAccessToken: false,
-                hasAccessTokenSecret: false,
-                updatedAt: "2026-02-28T12:00:00.000Z",
-              },
-            },
-          },
-        });
-      }
-
-      if (url.endsWith("/api/monitor/feed") && method === "GET") {
-        return jsonResponse({
-          providerId: "x",
-          queryTerms: ["Codex"],
-          refreshPolicy: {
-            maxCacheAgeMs: 86400000,
-            maxPosts: 30,
-            searchWindowDays: 7,
-          },
-          lastFetchedAt: "2026-02-28T12:00:00.000Z",
-          staleAfter: "2026-03-01T12:00:00.000Z",
-          isStale: false,
-          lastError: null,
-          usage: null,
-          posts: [
-            {
-              source: "x",
-              id: "1",
-              text: "Telemetry should hydrate without visiting monitor",
-              author: "octogent",
-              createdAt: "2026-02-28T10:00:00.000Z",
-              likeCount: 123,
-              permalink: "https://x.com/octogent/status/1",
-              matchedQueryTerm: "Codex",
-            },
-          ],
-        });
-      }
-
-      return notFoundResponse();
-    });
-
-    render(<App />);
-
-    const telemetryTape = await screen.findByLabelText("Telemetry ticker tape");
-    await waitFor(() => {
-      expect(within(telemetryTape).getAllByText("@octogent")).toHaveLength(2);
-      expect(
-        within(telemetryTape).queryByText("Waiting for X resources..."),
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  it("does not call monitor APIs when Monitor is disabled, even if bottom telemetry is enabled", async () => {
+  it("does not call monitor APIs when Monitor is disabled", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     let monitorConfigCalls = 0;
     let monitorFeedCalls = 0;
@@ -585,7 +462,6 @@ describe("App Monitor runtime", () => {
       if (url.endsWith("/api/ui-state") && method === "GET") {
         return jsonResponse({
           isMonitorVisible: false,
-          isBottomTelemetryVisible: true,
         });
       }
 

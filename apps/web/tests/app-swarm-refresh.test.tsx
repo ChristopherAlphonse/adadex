@@ -9,7 +9,6 @@ const persistedUiStateMock = {
   applyHydratedUiState: vi.fn(),
   isActiveAgentsSectionExpanded: true,
   isAgentsSidebarVisible: false,
-  isBottomTelemetryVisible: false,
   isCodexUsageSectionExpanded: true,
   isMonitorVisible: false,
   isRuntimeStatusStripVisible: false,
@@ -18,7 +17,6 @@ const persistedUiStateMock = {
   readUiState: vi.fn(),
   setIsActiveAgentsSectionExpanded: vi.fn(),
   setIsAgentsSidebarVisible: vi.fn(),
-  setIsBottomTelemetryVisible: vi.fn(),
   setIsCodexUsageSectionExpanded: vi.fn(),
   setIsMonitorVisible: vi.fn(),
   setIsRuntimeStatusStripVisible: vi.fn(),
@@ -202,10 +200,6 @@ vi.mock("../src/components/RuntimeStatusStrip", () => ({
 
 vi.mock("../src/components/SidebarActionPanel", () => ({
   SidebarActionPanel: () => null,
-}));
-
-vi.mock("../src/components/TelemetryTape", () => ({
-  TelemetryTape: () => null,
 }));
 
 import { App } from "../src/App";

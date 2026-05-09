@@ -51,7 +51,6 @@ describe("App UI state persistence", () => {
           activePrimaryNav: 8,
           isRuntimeStatusStripVisible: false,
           isMonitorVisible: false,
-          isBottomTelemetryVisible: false,
           terminalCompletionSound: "retro-beep",
         });
       }
