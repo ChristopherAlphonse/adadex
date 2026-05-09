@@ -7,7 +7,6 @@ export type PersistedUiState = {
   isActiveAgentsSectionExpanded?: boolean;
   isRuntimeStatusStripVisible?: boolean;
   isMonitorVisible?: boolean;
-  isBottomTelemetryVisible?: boolean;
   isCodexUsageVisible?: boolean;
   isCodexUsageSectionExpanded?: boolean;
   terminalCompletionSound?: TerminalCompletionSoundId;

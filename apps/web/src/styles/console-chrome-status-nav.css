@@ -1,6 +1,6 @@
 .console-shell {
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   background: var(--bg-canvas);
 }
 
@@ -18,7 +18,7 @@
 
 .console-shell .chrome-left h1 {
   margin: 0;
-  color: #f7d5d8;
+  color: #d9f99d;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-size: 0.8rem;
@@ -68,7 +68,7 @@
 }
 
 .console-shell .chrome-sidebar-toggle[data-active="false"] {
-  color: #f4d0d3;
+  color: #84cc16;
   background: color-mix(in srgb, #000000 16%, transparent);
 }
 
@@ -162,9 +162,10 @@
 .console-status-sparkline {
   min-width: 120px;
   width: min(22vw, 220px);
+  min-height: 1.25rem;
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.45rem;
 }
 
@@ -186,7 +187,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.2;
+  line-height: 1;
   text-align: left;
 }
 
@@ -205,10 +206,11 @@
 .console-status-usage-mini {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.45rem;
   min-width: 120px;
   width: min(22vw, 220px);
+  min-height: 1.25rem;
 }
 
 .console-status-usage-mini-chart {
@@ -397,10 +399,6 @@
 
 .console-shell .console-main-canvas {
   grid-row: 4;
-}
-
-.console-shell .console-telemetry-tape {
-  grid-row: 5;
 }
 
 .console-primary-nav-tabs {

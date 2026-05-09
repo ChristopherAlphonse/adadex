@@ -21,7 +21,6 @@ const DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE = true;
 const DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED = true;
 const DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE = true;
 const DEFAULT_IS_MONITOR_VISIBLE = true;
-const DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE = true;
 const DEFAULT_IS_CODEX_USAGE_VISIBLE = true;
 const DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED = true;
 const DEFAULT_MINIMIZED_TERMINAL_IDS: string[] = [];
@@ -67,7 +66,6 @@ const buildPersistedUiStateSnapshot = ({
   isActiveAgentsSectionExpanded,
   isRuntimeStatusStripVisible,
   isMonitorVisible,
-  isBottomTelemetryVisible,
   isCodexUsageVisible,
   isCodexUsageSectionExpanded,
   terminalCompletionSound,
@@ -83,7 +81,6 @@ const buildPersistedUiStateSnapshot = ({
   isActiveAgentsSectionExpanded: boolean;
   isRuntimeStatusStripVisible: boolean;
   isMonitorVisible: boolean;
-  isBottomTelemetryVisible: boolean;
   isCodexUsageVisible: boolean;
   isCodexUsageSectionExpanded: boolean;
   terminalCompletionSound: TerminalCompletionSoundId;
@@ -99,7 +96,6 @@ const buildPersistedUiStateSnapshot = ({
   isActiveAgentsSectionExpanded,
   isRuntimeStatusStripVisible,
   isMonitorVisible,
-  isBottomTelemetryVisible,
   isCodexUsageVisible,
   isCodexUsageSectionExpanded,
   terminalCompletionSound,
@@ -121,7 +117,6 @@ const areUiStateSnapshotsEqual = (
   left.isActiveAgentsSectionExpanded === right.isActiveAgentsSectionExpanded &&
   left.isRuntimeStatusStripVisible === right.isRuntimeStatusStripVisible &&
   left.isMonitorVisible === right.isMonitorVisible &&
-  left.isBottomTelemetryVisible === right.isBottomTelemetryVisible &&
   left.isCodexUsageVisible === right.isCodexUsageVisible &&
   left.isCodexUsageSectionExpanded === right.isCodexUsageSectionExpanded &&
   left.terminalCompletionSound === right.terminalCompletionSound &&
@@ -147,8 +142,6 @@ type UsePersistedUiStateResult = {
   setIsRuntimeStatusStripVisible: Dispatch<SetStateAction<boolean>>;
   isMonitorVisible: boolean;
   setIsMonitorVisible: Dispatch<SetStateAction<boolean>>;
-  isBottomTelemetryVisible: boolean;
-  setIsBottomTelemetryVisible: Dispatch<SetStateAction<boolean>>;
   isCodexUsageVisible: boolean;
   setIsCodexUsageVisible: Dispatch<SetStateAction<boolean>>;
   isCodexUsageSectionExpanded: boolean;
@@ -189,9 +182,6 @@ export const usePersistedUiState = ({
     DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
   );
   const [isMonitorVisible, setIsMonitorVisible] = useState(DEFAULT_IS_MONITOR_VISIBLE);
-  const [isBottomTelemetryVisible, setIsBottomTelemetryVisible] = useState(
-    DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE,
-  );
   const [isCodexUsageVisible, setIsCodexUsageVisible] = useState(DEFAULT_IS_CODEX_USAGE_VISIBLE);
   const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(
     DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
@@ -257,7 +247,6 @@ export const usePersistedUiState = ({
           isActiveAgentsSectionExpanded: DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
           isRuntimeStatusStripVisible: DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
           isMonitorVisible: DEFAULT_IS_MONITOR_VISIBLE,
-          isBottomTelemetryVisible: DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE,
           isCodexUsageVisible: DEFAULT_IS_CODEX_USAGE_VISIBLE,
           isCodexUsageSectionExpanded: DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
           terminalCompletionSound: DEFAULT_TERMINAL_COMPLETION_SOUND,
@@ -298,8 +287,6 @@ export const usePersistedUiState = ({
         isRuntimeStatusStripVisible:
           snapshot.isRuntimeStatusStripVisible ?? DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
         isMonitorVisible: snapshot.isMonitorVisible ?? DEFAULT_IS_MONITOR_VISIBLE,
-        isBottomTelemetryVisible:
-          snapshot.isBottomTelemetryVisible ?? DEFAULT_IS_BOTTOM_TELEMETRY_VISIBLE,
         isCodexUsageVisible: snapshot.isCodexUsageVisible ?? DEFAULT_IS_CODEX_USAGE_VISIBLE,
         isCodexUsageSectionExpanded:
           snapshot.isCodexUsageSectionExpanded ?? DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
@@ -338,10 +325,6 @@ export const usePersistedUiState = ({
 
       if (snapshot.isMonitorVisible !== undefined) {
         setIsMonitorVisible(snapshot.isMonitorVisible);
-      }
-
-      if (snapshot.isBottomTelemetryVisible !== undefined) {
-        setIsBottomTelemetryVisible(snapshot.isBottomTelemetryVisible);
       }
 
       if (snapshot.isCodexUsageVisible !== undefined) {
@@ -400,7 +383,6 @@ export const usePersistedUiState = ({
       isActiveAgentsSectionExpanded,
       isRuntimeStatusStripVisible,
       isMonitorVisible,
-      isBottomTelemetryVisible,
       isCodexUsageVisible,
       isCodexUsageSectionExpanded,
       terminalCompletionSound,
@@ -445,7 +427,6 @@ export const usePersistedUiState = ({
     canvasTerminalsPanelWidth,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
-    isBottomTelemetryVisible,
     isRuntimeStatusStripVisible,
     isMonitorVisible,
     isCodexUsageVisible,
@@ -473,8 +454,6 @@ export const usePersistedUiState = ({
     setIsRuntimeStatusStripVisible,
     isMonitorVisible,
     setIsMonitorVisible,
-    isBottomTelemetryVisible,
-    setIsBottomTelemetryVisible,
     isCodexUsageVisible,
     setIsCodexUsageVisible,
     isCodexUsageSectionExpanded,

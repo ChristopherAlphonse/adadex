@@ -600,9 +600,6 @@ export const createTerminalRuntime = ({
       if (patch.isMonitorVisible !== undefined) {
         uiState.isMonitorVisible = patch.isMonitorVisible;
       }
-      if (patch.isBottomTelemetryVisible !== undefined) {
-        uiState.isBottomTelemetryVisible = patch.isBottomTelemetryVisible;
-      }
       if (patch.isCodexUsageVisible !== undefined) {
         uiState.isCodexUsageVisible = patch.isCodexUsageVisible;
       }

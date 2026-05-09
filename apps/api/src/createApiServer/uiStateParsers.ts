@@ -77,16 +77,6 @@ export const parseUiStatePatch = (
     patch.isMonitorVisible = record.isMonitorVisible;
   }
 
-  if (record.isBottomTelemetryVisible !== undefined) {
-    if (typeof record.isBottomTelemetryVisible !== "boolean") {
-      return {
-        patch: null,
-        error: "isBottomTelemetryVisible must be a boolean.",
-      };
-    }
-    patch.isBottomTelemetryVisible = record.isBottomTelemetryVisible;
-  }
-
   if (record.isCodexUsageVisible !== undefined) {
     if (typeof record.isCodexUsageVisible !== "boolean") {
       return {

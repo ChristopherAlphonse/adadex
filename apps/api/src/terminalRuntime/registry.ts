@@ -83,10 +83,6 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
     nextState.isMonitorVisible = value.isMonitorVisible;
   }
 
-  if (typeof value.isBottomTelemetryVisible === "boolean") {
-    nextState.isBottomTelemetryVisible = value.isBottomTelemetryVisible;
-  }
-
   if (typeof value.isCodexUsageVisible === "boolean") {
     nextState.isCodexUsageVisible = value.isCodexUsageVisible;
   }

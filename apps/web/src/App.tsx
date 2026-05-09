@@ -29,7 +29,6 @@ import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
-import { TelemetryTape } from "./components/TelemetryTape";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import {
   buildTerminalEventsSocketUrl,
@@ -68,7 +67,6 @@ export const App = () => {
     applyHydratedUiState,
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
-    isBottomTelemetryVisible,
     isMonitorVisible,
     isRuntimeStatusStripVisible,
     isUiStateHydrated,
@@ -76,7 +74,6 @@ export const App = () => {
     readUiState,
     setIsActiveAgentsSectionExpanded,
     setIsAgentsSidebarVisible,
-    setIsBottomTelemetryVisible,
     setIsMonitorVisible,
     setIsRuntimeStatusStripVisible,
     setIsUiStateHydrated,
@@ -637,9 +634,6 @@ export const App = () => {
         </div>
       </section>
 
-      {isUiStateHydrated && isMonitorVisible && isBottomTelemetryVisible && (
-        <TelemetryTape monitorFeed={monitorRuntime.monitorFeed} />
-      )}
     </div>
   );
 };
