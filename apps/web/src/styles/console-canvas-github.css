@@ -296,6 +296,21 @@
   letter-spacing: 0.07em;
 }
 
+.github-overview-recent-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.github-overview-export {
+  --action-button-font-size: 0.62rem;
+  --action-button-padding-y: 0.12rem;
+  --action-button-padding-x: 0.28rem;
+}
+
 .github-overview-recent-list {
   margin: 0;
   padding: 0;

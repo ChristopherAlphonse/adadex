@@ -77,6 +77,7 @@ describe("App GitHub runtime views", () => {
   afterEach(() => {
     cleanup();
     resetAppTestHarness();
+    vi.restoreAllMocks();
   });
 
   it("renders github repo metrics in the runtime status strip", async () => {
@@ -110,6 +111,9 @@ describe("App GitHub runtime views", () => {
     ).toBeInTheDocument();
     expect(within(githubView).getByText("Recent commits")).toBeInTheDocument();
     expect(within(githubView).getByText("Showing last 50")).toBeInTheDocument();
+    expect(
+      within(githubView).getByRole("button", { name: "Export git history as CSV" }),
+    ).toBeInTheDocument();
     expect(within(githubView).getByText("recent commit 1")).toBeInTheDocument();
     expect(within(githubView).getByText("recent commit 50")).toBeInTheDocument();
     expect(within(githubView).getAllByRole("listitem")).toHaveLength(50);
@@ -150,5 +154,45 @@ describe("App GitHub runtime views", () => {
     const graphTooltip = container.querySelector(".github-overview-graph-tooltip");
     expect(graphTooltip).not.toBeNull();
     expect(graphTooltip).toHaveTextContent("2026-02-27 · 8 commits");
+  });
+
+  it("exports the visible git history as CSV from the Activity view", async () => {
+    mockGithubRuntimeRequests();
+    const createObjectUrl = vi.fn(() => "blob:git-history");
+    const revokeObjectUrl = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectUrl,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectUrl,
+    });
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    render(<App />);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "[3] Activity",
+      }),
+    );
+
+    const githubView = await screen.findByLabelText("GitHub primary view");
+    fireEvent.click(within(githubView).getByRole("button", { name: "Export git history as CSV" }));
+
+    expect(anchorClick).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:git-history");
+
+    const blob = createObjectUrl.mock.calls[0]?.[0];
+    expect(blob).toBeInstanceOf(Blob);
+    await expect((blob as Blob).text()).resolves.toContain(
+      "hash,shortHash,authoredAt,authorName,authorEmail,subject,body,filesChanged,insertions,deletions",
+    );
+    await expect((blob as Blob).text()).resolves.toContain(
+      "hash-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1,short1,2026-02-27T10:12:00.000Z,Hesam Sheikh,hesam@example.com,recent commit 1,body for commit 1,2,10,2",
+    );
+
+    const anchor = document.querySelector("a[download='hesamsheikh-octogent-git-history.csv']");
+    expect(anchor).toBeNull();
   });
 });
