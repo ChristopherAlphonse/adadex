@@ -265,6 +265,7 @@ describe("CanvasPrimaryView", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Close terminal session" }));
+    expect(screen.queryByTestId("panel-a:terminal-1")).not.toBeInTheDocument();
     expect(onCloseActiveSession).toHaveBeenCalledWith("terminal-1", "terminal one", "shared");
   });
 

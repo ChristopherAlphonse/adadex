@@ -601,6 +601,13 @@ export const CanvasPrimaryView = ({
         return;
       }
 
+      setOpenTerminals((prev) => {
+        const next = new Map(prev);
+        next.delete(node.id);
+        return next;
+      });
+      setSelectedNodeId((prev) => (prev === node.id ? null : prev));
+
       const terminal = columns.find((entry) => entry.terminalId === node.sessionId);
       onCloseActiveSession?.(
         node.sessionId,

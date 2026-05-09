@@ -40,6 +40,7 @@ type UseTerminalMutationsResult = {
       intent?: "close-terminal" | "delete-terminal" | "cleanup-worktree";
     },
   ) => void;
+  closeTerminal: (terminalId: string) => Promise<boolean>;
   confirmDeleteTerminal: () => Promise<void>;
   clearPendingDeleteTerminal: () => void;
   cancelTerminalRename: () => void;
@@ -191,12 +192,7 @@ export const useTerminalMutations = ({
     [setLoadError],
   );
 
-  const confirmDeleteTerminal = useCallback(async () => {
-    if (!pendingDeleteTerminal) {
-      return;
-    }
-
-    const { terminalId } = pendingDeleteTerminal;
+  const closeTerminal = useCallback(async (terminalId: string) => {
     try {
       setLoadError(null);
       setIsDeletingTerminalId(terminalId);
@@ -222,20 +218,25 @@ export const useTerminalMutations = ({
 
       const nextColumns = await readColumns();
       setColumns(nextColumns);
-      setPendingDeleteTerminal(null);
+      return true;
     } catch {
       setLoadError("Unable to delete terminal.");
+      return false;
     } finally {
       setIsDeletingTerminalId(null);
     }
-  }, [
-    editingTerminalId,
-    pendingDeleteTerminal,
-    readColumns,
-    setColumns,
-    setLoadError,
-    setMinimizedTerminalIds,
-  ]);
+  }, [editingTerminalId, readColumns, setColumns, setLoadError, setMinimizedTerminalIds]);
+
+  const confirmDeleteTerminal = useCallback(async () => {
+    if (!pendingDeleteTerminal) {
+      return;
+    }
+
+    const didClose = await closeTerminal(pendingDeleteTerminal.terminalId);
+    if (didClose) {
+      setPendingDeleteTerminal(null);
+    }
+  }, [closeTerminal, pendingDeleteTerminal]);
 
   const clearPendingDeleteTerminal = useCallback(() => {
     setPendingDeleteTerminal(null);
@@ -259,6 +260,7 @@ export const useTerminalMutations = ({
     submitTerminalRename,
     createTerminal,
     requestDeleteTerminal,
+    closeTerminal,
     confirmDeleteTerminal,
     clearPendingDeleteTerminal,
     cancelTerminalRename,
