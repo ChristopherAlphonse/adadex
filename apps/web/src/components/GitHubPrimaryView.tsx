@@ -25,46 +25,32 @@ type GitHubPrimaryViewProps = {
 const GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET = 8;
 const GITHUB_RECENT_COMMITS_LIMIT = 50;
 
-const escapeCsvField = (value: string | number): string => {
-  const text = String(value);
-  if (!/[",\n\r]/.test(text)) {
-    return text;
+/** Plain-text export for download (UTF-8 `.txt`). */
+export const buildGitHistoryText = (
+  commits: GitHubRecentCommit[],
+  repoLabel: string,
+): string => {
+  const title = repoLabel.trim() || "repository";
+  const lines: string[] = [`Git history — ${title}`, `Commits: ${commits.length}`, ""];
+  for (let i = 0; i < commits.length; i++) {
+    const c = commits[i];
+    if (!c) continue;
+    lines.push("─".repeat(64));
+    lines.push(`${c.shortHash}  ${c.subject}`);
+    lines.push(`  Hash: ${c.hash}`);
+    lines.push(`  Authored: ${c.authoredAt}`);
+    lines.push(`  Author: ${c.authorName} <${c.authorEmail}>`);
+    const body = c.body.trim();
+    if (body.length > 0) {
+      lines.push("  Body:");
+      for (const line of body.split("\n")) {
+        lines.push(`    ${line}`);
+      }
+    }
+    lines.push(`  Stats: ${c.filesChanged} files | +${c.insertions} -${c.deletions}`);
+    lines.push("");
   }
-
-  return `"${text.replace(/"/g, '""')}"`;
-};
-
-const buildGitHistoryCsv = (commits: GitHubRecentCommit[]): string => {
-  const header = [
-    "hash",
-    "shortHash",
-    "authoredAt",
-    "authorName",
-    "authorEmail",
-    "subject",
-    "body",
-    "filesChanged",
-    "insertions",
-    "deletions",
-  ];
-  const rows = commits.map((commit) =>
-    [
-      commit.hash,
-      commit.shortHash,
-      commit.authoredAt,
-      commit.authorName,
-      commit.authorEmail,
-      commit.subject,
-      commit.body,
-      commit.filesChanged,
-      commit.insertions,
-      commit.deletions,
-    ]
-      .map(escapeCsvField)
-      .join(","),
-  );
-
-  return [header.join(","), ...rows].join("\n");
+  return lines.join("\n");
 };
 
 const buildGitHistoryFilename = (repoLabel: string): string => {
@@ -74,7 +60,7 @@ const buildGitHistoryFilename = (repoLabel: string): string => {
     .replace(/[^a-z0-9._-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return `${normalizedRepo || "github"}-git-history.csv`;
+  return `${normalizedRepo || "github"}-git-history.txt`;
 };
 
 const formatSparkDate = (date: string): string => {
@@ -164,7 +150,9 @@ export const GitHubPrimaryView = ({
       return;
     }
 
-    const blob = new Blob([buildGitHistoryCsv(githubRecentCommits)], { type: "text/csv" });
+    const blob = new Blob([buildGitHistoryText(githubRecentCommits, githubRepoLabel)], {
+      type: "text/plain;charset=utf-8",
+    });
     const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = objectUrl;
@@ -449,14 +437,14 @@ export const GitHubPrimaryView = ({
                 <h3>Recent commits</h3>
                 <div className="github-overview-recent-actions">
                   <ActionButton
-                    aria-label="Export git history as CSV"
+                    aria-label="Download git history"
                     className="github-overview-export"
                     disabled={!hasGitHistoryExport}
                     onClick={exportGitHistory}
                     size="dense"
                     variant="accent"
                   >
-                    Export CSV
+                    Download git history
                   </ActionButton>
                   <span>{`Showing last ${GITHUB_RECENT_COMMITS_LIMIT}`}</span>
                 </div>

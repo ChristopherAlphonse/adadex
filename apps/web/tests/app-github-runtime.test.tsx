@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
+import { buildGitHistoryText } from "../src/components/GitHubPrimaryView";
 import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-utils/appTestHarness";
 
 const buildRecentCommits = () =>
@@ -112,7 +113,7 @@ describe("App GitHub runtime views", () => {
     expect(within(githubView).getByText("Recent commits")).toBeInTheDocument();
     expect(within(githubView).getByText("Showing last 50")).toBeInTheDocument();
     expect(
-      within(githubView).getByRole("button", { name: "Export git history as CSV" }),
+      within(githubView).getByRole("button", { name: "Download git history" }),
     ).toBeInTheDocument();
     expect(within(githubView).getByText("recent commit 1")).toBeInTheDocument();
     expect(within(githubView).getByText("recent commit 50")).toBeInTheDocument();
@@ -156,9 +157,9 @@ describe("App GitHub runtime views", () => {
     expect(graphTooltip).toHaveTextContent("2026-02-27 · 8 commits");
   });
 
-  it("exports the visible git history as CSV from the Activity view", async () => {
+  it("downloads the visible git history as plain text from the Activity view", async () => {
     mockGithubRuntimeRequests();
-    const createObjectUrl = vi.fn(() => "blob:git-history");
+    const createObjectUrl = vi.fn((_blob: Blob | MediaSource) => "blob:git-history");
     const revokeObjectUrl = vi.fn();
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
@@ -178,21 +179,50 @@ describe("App GitHub runtime views", () => {
     );
 
     const githubView = await screen.findByLabelText("GitHub primary view");
-    fireEvent.click(within(githubView).getByRole("button", { name: "Export git history as CSV" }));
+    fireEvent.click(within(githubView).getByRole("button", { name: "Download git history" }));
 
     expect(anchorClick).toHaveBeenCalledTimes(1);
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:git-history");
 
     const blob = createObjectUrl.mock.calls[0]?.[0];
     expect(blob).toBeInstanceOf(Blob);
-    await expect((blob as Blob).text()).resolves.toContain(
-      "hash,shortHash,authoredAt,authorName,authorEmail,subject,body,filesChanged,insertions,deletions",
-    );
-    await expect((blob as Blob).text()).resolves.toContain(
-      "hash-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1,short1,2026-02-27T10:12:00.000Z,Hesam Sheikh,hesam@example.com,recent commit 1,body for commit 1,2,10,2",
+    expect((blob as Blob).type).toBe("text/plain;charset=utf-8");
+    const exported = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(blob as Blob);
+    });
+    expect(exported).toBe(buildGitHistoryText(buildRecentCommits(), "hesamsheikh/octogent"));
+
+    expect(document.querySelector("a[download]")).toBeNull();
+  });
+
+  it("formats exported git history as plain text", () => {
+    const text = buildGitHistoryText(
+      [
+        {
+          hash: "hash-1",
+          shortHash: "short1",
+          subject: 'recent commit, with "quotes"',
+          authorName: "Hesam Sheikh",
+          authorEmail: "hesam@example.com",
+          authoredAt: "2026-02-27T10:12:00.000Z",
+          body: "body for commit 1\nsecond line",
+          filesChanged: 2,
+          insertions: 10,
+          deletions: 2,
+        },
+      ],
+      "owner/repo",
     );
 
-    const anchor = document.querySelector("a[download='hesamsheikh-octogent-git-history.csv']");
-    expect(anchor).toBeNull();
+    expect(text).toContain("Git history — owner/repo");
+    expect(text).toContain("Commits: 1");
+    expect(text).toContain("Hash: hash-1");
+    expect(text).toContain('recent commit, with "quotes"');
+    expect(text).toContain("body for commit 1");
+    expect(text).toContain("second line");
+    expect(text).toContain("Stats: 2 files | +10 -2");
   });
 });
