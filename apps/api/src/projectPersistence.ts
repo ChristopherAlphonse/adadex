@@ -352,29 +352,32 @@ export const hasAdadexGitignoreEntry = (workspaceCwd: string) => {
 
   const content = readFileSync(gitignorePath, "utf-8");
   const lines = content.split("\n").map((line) => line.trim());
-  return lines.includes(WORKSPACE_RUNTIME_DIR) || lines.includes(LEGACY_WORKSPACE_RUNTIME_DIR);
+  const hasRuntimeEntry =
+    lines.includes(WORKSPACE_RUNTIME_DIR) ||
+    lines.includes(`${WORKSPACE_RUNTIME_DIR}/`) ||
+    lines.includes(LEGACY_WORKSPACE_RUNTIME_DIR) ||
+    lines.includes(`${LEGACY_WORKSPACE_RUNTIME_DIR}/`);
+  return hasRuntimeEntry && lines.includes(".planning/");
 };
 
 export const ensureAdadexGitignoreEntry = (workspaceCwd: string) => {
   const gitignorePath = join(workspaceCwd, ".gitignore");
-  const entry = WORKSPACE_RUNTIME_DIR;
+  const requiredEntries = [`${WORKSPACE_RUNTIME_DIR}/`, ".planning/"];
 
   if (existsSync(gitignorePath)) {
     const content = readFileSync(gitignorePath, "utf-8");
-    if (
-      content
-        .split("\n")
-        .map((line) => line.trim())
-        .includes(entry)
-    ) {
+    const lines = content.split("\n").map((line) => line.trim());
+    const missingEntries = requiredEntries.filter((entry) => !lines.includes(entry));
+
+    if (missingEntries.length === 0) {
       return { changed: false };
     }
 
-    appendFileSync(gitignorePath, `\n${entry}\n`, "utf-8");
+    appendFileSync(gitignorePath, `\n${missingEntries.join("\n")}\n`, "utf-8");
     return { changed: true };
   }
 
-  writeFileSync(gitignorePath, `${entry}\n`, "utf-8");
+  writeFileSync(gitignorePath, `${requiredEntries.join("\n")}\n`, "utf-8");
   return { changed: true };
 };
 

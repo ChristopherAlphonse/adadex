@@ -1172,7 +1172,10 @@ describe("createApiServer", () => {
       headers: { Accept: "application/json" },
     });
     expect(gitignoreResponse.status).toBe(200);
-    expect(readFileSync(join(workspaceCwd, ".gitignore"), "utf8")).toContain(".adadex");
+    const gitignoreContent = readFileSync(join(workspaceCwd, ".gitignore"), "utf8");
+    expect(gitignoreContent.split(/\r?\n/)).toEqual(
+      expect.arrayContaining([".adadex/", ".planning/"]),
+    );
 
     const createOrchestrationResponse = await fetch(`${baseUrl}/api/deck/coordinations`, {
       method: "POST",

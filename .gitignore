@@ -1,8 +1,6 @@
 .DS_Store
-/.claude
 /.codex
 /context
-/.octogent
 /node_modules
 /dist
 /coverage
@@ -11,4 +9,5 @@
 **/.vite/
 **/coverage/
 
-.octogent
+.adadex/
+.planning/

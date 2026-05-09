@@ -27,15 +27,16 @@ const buildSetupSnapshot = (
     },
     {
       id: "ensure-gitignore",
-      title: "Ignore .adadex",
-      description: "Add .adadex to .gitignore, or create .gitignore when it is missing.",
+      title: "Ignore local planning files",
+      description:
+        "Add .adadex/ and .planning/ to .gitignore, or create .gitignore when it is missing.",
       complete: false,
       required: true,
       actionLabel: "Update .gitignore",
-      statusText: "Add .adadex to .gitignore before creating coordinations.",
+      statusText: "Add .adadex/ and .planning/ to .gitignore before creating coordinations.",
       guidance:
-        "Git ignore entry is missing. Create or update .gitignore with the Adadex workspace path.",
-      command: "printf '.adadex\\n' >> .gitignore",
+        "Git ignore entries are missing. Create or update .gitignore with the Adadex workspace and planning paths.",
+      command: "printf '.adadex/\\n.planning/\\n' >> .gitignore",
     },
     {
       id: "check-codex",
