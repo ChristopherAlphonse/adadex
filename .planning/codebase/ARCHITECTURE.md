@@ -62,7 +62,7 @@
 ## Layers
 
 **Presentation (web):**
-- Purpose: Visualize tentacles/terminals, drive CRUD and setup flows through REST and WebSockets.
+- Purpose: Visualize coordinations and terminals, drive CRUD and setup flows through REST and WebSockets.
 - Location: `apps/web/src/`
 - Contains: React components, hooks, CSS modules manifest via `apps/web/src/styles.css`.
 - Depends on: `@octogent/core`, browser `fetch`, `WebSocket`, Vite env `import.meta.env.VITE_OCTOGENT_API_ORIGIN`.
@@ -83,8 +83,8 @@
 - Used by: `apps/api` and `apps/web` via package exports in `packages/core/src/index.ts`.
 
 **Infrastructure state:**
-- Purpose: Durable tentacle registry, transcripts, prompts mirror, logs, monitor config.
-- Location: Resolved `projectStateDir` (often `<workspaceCwd>/.octogent` or global dirs from CLI persistence—see `apps/api/src/projectPersistence.ts` references from `apps/api/src/cli.ts`).
+- Purpose: Durable coordination registry, transcripts, prompts mirror, logs, monitor config.
+- Location: Resolved `projectStateDir` (often `<workspaceCwd>/.adadex` or global dirs from CLI persistence—see `apps/api/src/projectPersistence.ts` references from `apps/api/src/cli.ts`).
 - Depends on: Local filesystem layouts documented in repo docs (`docs/reference/filesystem-layout.md`).
 - Used by: `createTerminalRuntime` and related persistence modules (`apps/api/src/terminalRuntime/registry.ts`, etc.).
 
@@ -174,7 +174,7 @@
 
 ### Duplicating business rules in React instead of calling the API
 
-**What happens:** Components reimplement tentacle lifecycle or transcript rules.
+**What happens:** Components reimplement coordination lifecycle or transcript rules.
 **Why it's wrong:** `apps/web/AGENTS.md` reserves orchestration for the API; drift breaks multi-client consistency.
 **Do this instead:** Add or extend `/api` handlers and keep UI as a thin client (pattern in `apps/web/src/app/hooks/*.ts`).
 

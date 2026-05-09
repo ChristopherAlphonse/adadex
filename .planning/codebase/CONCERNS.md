@@ -8,7 +8,7 @@
 - Issue: Multiple deck, vault, todo, and swarm route handlers live in a single large file, which increases merge conflict risk and makes navigation harder than a one-route-per-file layout.
 - Files: `apps/api/src/createApiServer/deckRoutes.ts`
 - Impact: Slower reviews, higher chance of inconsistent patterns when adding endpoints.
-- Fix approach: Split by subdomain (for example `deckTentacleRoutes.ts`, `deckTodoRoutes.ts`, `deckVaultRoutes.ts`) and re-export from a thin `deckRoutes` barrel, matching how `gitRoutes.ts` / `terminalRoutes.ts` stay focused.
+- Fix approach: Split by subdomain (for example `deckCoordinationRoutes.ts`, `deckTodoRoutes.ts`, `deckVaultRoutes.ts`) and re-export from a thin `deckRoutes` barrel, matching how `gitRoutes.ts` / `terminalRoutes.ts` stay focused.
 
 **Oversized API integration test module:**
 - Issue: A very large proportion of HTTP contract coverage sits in one test file.
@@ -72,11 +72,11 @@ Not detected from static review (no `TODO` / `FIXME` markers in `apps/` or `pack
 - Cause: Single-process architecture with synchronous filesystem writes on some transcript events.
 - Improvement path: Batch transcript writes, move heavy persistence off the PTY read loop via a bounded queue, profile under many concurrent terminals.
 
-**Large deck listing and tentacle aggregation:**
-- Problem: Reading and assembling deck state may walk many tentacle directories and vault files.
-- Files: `apps/api/src/deck/readDeckTentacles.ts`
+**Large deck listing and coordination aggregation:**
+- Problem: Reading and assembling deck state may walk many coordination directories and vault files.
+- Files: `apps/api/src/deck/readDeckCoordinations.ts`
 - Cause: File-system–bound aggregation without caching layer.
-- Improvement path: Incremental cache keyed by `tentacles.json` mtime or explicit invalidation from mutation routes.
+- Improvement path: Incremental cache keyed by `coordinations.json` mtime or explicit invalidation from mutation routes.
 
 ---
 
@@ -147,7 +147,7 @@ Not detected from static review (no `TODO` / `FIXME` markers in `apps/` or `pack
 
 ## Test Coverage Gaps
 
-**`@octogent/core` domain surface:**
+**`@adadex/core` domain surface:**
 - What's not tested: Types and helpers across `packages/core/src/domain/*.ts`, `packages/core/src/util/typeCoercion.ts`, and adapters other than what `buildTerminalList` exercises.
 - Files: `packages/core/src/` (16 modules), tests only in `packages/core/tests/buildTerminalList.test.ts`
 - Risk: Regressions in shared contracts propagate to `apps/web` and `apps/api` before detection.
@@ -160,8 +160,8 @@ Not detected from static review (no `TODO` / `FIXME` markers in `apps/` or `pack
 - Priority: Medium
 
 **Deck vault path hardening:**
-- What's partially tested: `readDeckVaultFile` rejects `..` and `/` segments (`apps/api/src/deck/readDeckTentacles.ts`); explicit tests for edge encodings may be sparse.
-- Files: `apps/api/src/deck/readDeckTentacles.ts`, `apps/api/src/createApiServer/deckRoutes.ts`
+- What's partially tested: `readDeckVaultFile` rejects `..` and `/` segments (`apps/api/src/deck/readDeckCoordinations.ts`); explicit tests for edge encodings may be sparse.
+- Files: `apps/api/src/deck/readDeckCoordinations.ts`, `apps/api/src/createApiServer/deckRoutes.ts`
 - Risk: Odd `fileName` encodings or platform-specific path joins could bypass assumptions.
 - Priority: Medium
 

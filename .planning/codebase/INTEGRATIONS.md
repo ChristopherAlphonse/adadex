@@ -23,7 +23,7 @@
 
 **Process-spawn integration:**
 
-- **User’s shell / terminal tools** — `node-pty` launches configured shell (`apps/api/src/terminalRuntime/sessionRuntime.ts`). **Git** binary invoked for worktrees and repo operations (multiple modules under `apps/api/src`, e.g. `githubRepoSummary.ts`, tentacle git hooks).
+- **User’s shell / terminal tools** — `node-pty` launches configured shell (`apps/api/src/terminalRuntime/sessionRuntime.ts`). **Git** binary invoked for worktrees and repo operations (multiple modules under `apps/api/src`, e.g. `githubRepoSummary.ts`, coordination-scoped git routes).
 - **`claude` / `codex` CLIs** — Used for usage capture paths in `apps/api/src/claudeUsage.ts` (spawn) and related flows; depend on user installation and PATH.
 
 ## Data Storage
@@ -34,7 +34,7 @@
 
 **File storage:**
 
-- **Local filesystem** — Project workspace and runtime state under `.octogent/` (see `docs/reference/filesystem-layout.md`, `AGENTS.md`). State files include `state/tentacles.json`, `state/transcripts/*.jsonl`, worktrees under `worktrees/<tentacleId>`. API respects `OCTOGENT_PROJECT_STATE_DIR`, `OCTOGENT_WORKSPACE_CWD`, `OCTOGENT_PROMPTS_DIR` (`apps/api/src/server.ts`).
+- **Local filesystem** — Project workspace and runtime state under `.adadex/` (see `docs/reference/filesystem-layout.md`, `AGENTS.md`). State files include `state/coordinations.json`, `state/transcripts/*.jsonl`, worktrees under `worktrees/<coordinationId>`. API respects `ADADEX_PROJECT_STATE_DIR` (and legacy `OCTOGENT_*` aliases where documented), `ADADEX_WORKSPACE_CWD`, `ADADEX_PROMPTS_DIR` (`apps/api/src/server.ts`).
 
 **Caching:**
 

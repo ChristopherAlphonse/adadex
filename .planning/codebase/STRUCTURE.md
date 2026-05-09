@@ -69,7 +69,7 @@ octogent/
 - `tsconfig.base.json`: Shared compiler options inherited by packages.
 
 **Core Logic:**
-- `apps/api/src/terminalRuntime.ts` and `apps/api/src/terminalRuntime/**`: Tentacle/session lifecycle.
+- `apps/api/src/terminalRuntime.ts` and `apps/api/src/terminalRuntime/**`: Coordination and session lifecycle.
 - `apps/api/src/createApiServer/requestHandler.ts`: Central HTTP dispatcher.
 - `packages/core/src/application/buildTerminalList.ts`: Shared list normalization.
 
@@ -118,8 +118,8 @@ octogent/
 
 ## Special Directories
 
-**`.octogent/` (per project workspace, not always committed):**
-- Purpose: Runtime state—`state/tentacles.json`, `state/transcripts/*.jsonl`, worktrees, mirrored prompts.
+**`.adadex/` (per project workspace, not always committed):**
+- Purpose: Runtime state—`state/coordinations.json`, `state/transcripts/*.jsonl`, worktrees, mirrored prompts.
 - Generated: Yes, by running the API/CLI.
 - Committed: Typically gitignored except intentional fixtures; see `docs/reference/filesystem-layout.md`.
 
