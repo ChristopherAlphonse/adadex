@@ -4,16 +4,10 @@ import type { MascotAccessory, MascotAnimation, MascotExpression } from "../Masc
 // ─── Mascot visual derivation (seeded from coordination id) ───────────────
 
 export const MASCOT_COLORS = [
-  "#ff6b2b",
-  "#ff2d6b",
-  "#00ffaa",
-  "#bf5fff",
-  "#00c8ff",
-  "#ffee00",
-  "#39ff14",
-  "#ff4df0",
-  "#00fff7",
-  "#ff9500",
+  "#a3e635",
+  "#eab308",
+  "#84cc16",
+  "#d9f99d",
 ];
 
 export const ANIMATIONS: MascotAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];

@@ -877,8 +877,8 @@
 }
 
 .deck-pod-status--needs-review {
-  color: #d4a017;
-  background: rgba(212, 160, 23, 0.1);
+  color: var(--accent-secondary, #eab308);
+  background: color-mix(in srgb, var(--accent-secondary, #eab308) 12%, transparent);
 }
 
 .deck-pod-identity-text {
@@ -1383,20 +1383,24 @@
 }
 
 .workspace-setup-card-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem 1.25rem;
+  align-items: center;
 }
 
 .workspace-setup-card-glyph {
-  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .workspace-setup-card-copy {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  min-width: 0;
 }
 
 .workspace-setup-card-title {
@@ -1541,12 +1545,22 @@
 }
 
 .workspace-setup-card--compact .workspace-setup-card-header {
-  flex-direction: row;
-  align-items: center;
+  gap: 0.65rem 1rem;
 }
+
 @media (max-width: 720px) {
+  .workspace-setup-card-header {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    justify-items: center;
+  }
+
+  .workspace-setup-card-copy {
+    justify-self: stretch;
+    text-align: left;
+  }
+
   .workspace-setup-step,
-  .workspace-setup-card-header,
   .workspace-setup-card-actions-row {
     flex-direction: column;
     align-items: stretch;

@@ -1,19 +1,21 @@
 @import url("https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap");
 
 :root {
-  --bg-canvas: #000000;
-  --bg-surface-1: #040404;
-  --bg-surface-2: #191919;
-  --border-subtle: #5c5c5c;
+  --bg-canvas: #020403;
+  --bg-surface-1: #07120a;
+  --bg-surface-2: #07120a;
+  --border-subtle: #1a2e05;
   --text-primary: #f0f0f0;
-  --text-secondary: #c8c8c8;
-  --accent-primary: #faa32c;
+  --text-secondary: #d9f99d;
+  --text-muted: #84cc16;
+  --accent-primary: #a3e635;
+  --accent-secondary: #eab308;
   --term-red: #880f1e;
   --term-green: #33ff66;
   --term-blue: #1e59a3;
   --term-warning: #ffb020;
-  --control-border-strong: #121212;
-  --control-bg-strong: #000000;
+  --control-border-strong: #1a2e05;
+  --control-bg-strong: #07120a;
   --sidebar-canvas: color-mix(in srgb, var(--bg-surface-1) 84%, #131a23 16%);
   --sidebar-panel: color-mix(in srgb, var(--bg-surface-1) 78%, #1b2430 22%);
   --sidebar-card: color-mix(in srgb, var(--bg-surface-1) 82%, #16202a 18%);

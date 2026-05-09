@@ -1089,6 +1089,7 @@ export const CanvasPrimaryView = ({
                   isSelected={selectedNodeId === node.id}
                   selectedNodeId={selectedNodeId}
                   selectedNodeColor={selectedColor}
+                  graphScale={transform.scale}
                   onPointerDown={handleNodePointerDown}
                   onClick={handleNodeClick}
                 />

@@ -78,7 +78,7 @@ export const WorkspaceSetupCard = ({
     ) : null}
     <header className="workspace-setup-card-header">
       <div className="workspace-setup-card-glyph">
-        <MascotSprite color="#d4a017" speedMs={16} size={compact ? 112 : 128} />
+        <MascotSprite color="#a3e635" speedMs={16} size={compact ? 112 : 128} />
       </div>
       <div className="workspace-setup-card-copy">
         <h2 className="workspace-setup-card-title">Workspace Setup</h2>

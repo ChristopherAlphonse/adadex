@@ -36,7 +36,7 @@ export const ActionCards = ({
   >
     <button type="button" className="deck-empty-card" onClick={onAddManually}>
       <div className="deck-empty-card-icon">
-        <MascotSprite color="#d4a017" speedMs={16} size={compact ? 160 : 280} />
+        <MascotSprite color="#a3e635" speedMs={16} size={compact ? 160 : 280} />
       </div>
       <div className="deck-empty-card-text">
         <span className="deck-empty-card-title">Create First Orchestration</span>

@@ -24,6 +24,11 @@ type MascotSpriteProps = {
   className?: string;
   color?: string;
   testId?: string;
+  /**
+   * When the sprite lives inside an SVG that applies a zoom `scale(...)` (e.g. canvas graph),
+   * multiply backing-store resolution by this factor so the bitmap stays sharp when zoomed in.
+   */
+  graphScale?: number;
 };
 
 const getMotionOffset = (animation: MascotAnimation, frame: number, unit: number) => {
@@ -208,6 +213,15 @@ const drawMark = (
   ctx.restore();
 };
 
+const MAX_CANVAS_RESOLUTION_SCALE = 4;
+
+const resolveCanvasResolutionScale = (graphScale?: number): number => {
+  if (typeof window === "undefined") return 1;
+  const dpr = window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
+  const zoom = typeof graphScale === "number" && graphScale > 0 ? graphScale : 1;
+  return Math.min(MAX_CANVAS_RESOLUTION_SCALE, Math.max(1, dpr * zoom));
+};
+
 export const MascotSprite = ({
   animation = "sway",
   expression = "normal",
@@ -219,6 +233,7 @@ export const MascotSprite = ({
   className,
   color,
   testId,
+  graphScale,
 }: MascotSpriteProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
@@ -226,6 +241,7 @@ export const MascotSprite = ({
   const canvasSize = MARK_UNITS * unit;
   void _accessory;
   void _hairColor;
+  const resolutionScale = resolveCanvasResolutionScale(graphScale);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -233,12 +249,16 @@ export const MascotSprite = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const backing = Math.max(1, Math.round(canvasSize * resolutionScale));
+    canvas.width = backing;
+    canvas.height = backing;
+    ctx.setTransform(resolutionScale, 0, 0, resolutionScale, 0, 0);
     ctx.imageSmoothingEnabled = true;
 
     const accentColor =
       color ??
       (getComputedStyle(document.documentElement).getPropertyValue("--accent-primary").trim() ||
-        "#d4a017");
+        "#a3e635");
 
     const drawFrame = () => {
       drawMark(ctx, accentColor, unit, frameRef.current, animation, expression);
@@ -257,14 +277,19 @@ export const MascotSprite = ({
     }, speedMs);
 
     return () => window.clearInterval(id);
-  }, [animation, expression, color, unit, speedMs]);
+  }, [animation, expression, color, unit, speedMs, canvasSize, resolutionScale]);
 
   return (
     <canvas
       ref={canvasRef}
       className={className}
-      width={canvasSize}
-      height={canvasSize}
+      width={Math.max(1, Math.round(canvasSize * resolutionScale))}
+      height={Math.max(1, Math.round(canvasSize * resolutionScale))}
+      style={{
+        width: `${canvasSize}px`,
+        height: `${canvasSize}px`,
+        display: "block",
+      }}
       data-testid={testId}
     />
   );

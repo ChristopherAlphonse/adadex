@@ -12,7 +12,7 @@ const LABEL_WIDTH = 100;
 const PADDING_Y = 8;
 const MAX_ARCS = 40;
 
-const ACCENT = "#d4a017";
+const ACCENT = "var(--accent-primary, #a3e635)";
 
 export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
   const containerRef = useRef<HTMLDivElement>(null);

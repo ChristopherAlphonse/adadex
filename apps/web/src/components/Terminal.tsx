@@ -274,7 +274,7 @@ export const Terminal = ({
           theme: {
             background: terminalBackground,
             foreground: "#f0f0f0",
-            cursor: "#faa32c",
+            cursor: "#a3e635",
             cursorAccent: terminalBackground,
           },
         });

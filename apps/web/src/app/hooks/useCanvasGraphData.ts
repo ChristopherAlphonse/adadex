@@ -25,20 +25,14 @@ const isDeckLeadCoordinationId = (id: string): boolean =>
 const getAccentPrimary = (): string =>
   (typeof document !== "undefined"
     ? getComputedStyle(document.documentElement).getPropertyValue("--accent-primary").trim()
-    : "") || "#d4a017";
+    : "") || "#a3e635";
 
 // Must match the Deck tab's MASCOT_COLORS for consistent coordination colors
 const MASCOT_COLORS = [
-  "#ff6b2b",
-  "#ff2d6b",
-  "#00ffaa",
-  "#bf5fff",
-  "#00c8ff",
-  "#ffee00",
-  "#39ff14",
-  "#ff4df0",
-  "#00fff7",
-  "#ff9500",
+  "#a3e635",
+  "#eab308",
+  "#84cc16",
+  "#d9f99d",
 ];
 
 function hashString(str: string): number {

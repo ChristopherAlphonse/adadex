@@ -33,13 +33,13 @@
 }
 
 .code-intel-stat-icon {
-  color: var(--accent-primary, #d4a017);
+  color: var(--accent-primary, #a3e635);
   line-height: 1;
   opacity: 0.6;
 }
 
 .code-intel-stat-value {
-  color: var(--accent-primary, #d4a017);
+  color: var(--accent-primary, #a3e635);
   font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -51,8 +51,8 @@
 }
 
 .code-intel-view-header .action-button {
-  --action-button-bg: var(--accent-primary, #d4a017);
-  --action-button-border: var(--accent-primary, #d4a017);
+  --action-button-bg: var(--accent-primary, #a3e635);
+  --action-button-border: var(--accent-primary, #a3e635);
   --action-button-color: #0b0d10;
   padding-inline: 1.6rem;
 }
@@ -161,7 +161,7 @@
 }
 
 .code-intel-tooltip-value {
-  color: #d4a017;
+  color: var(--accent-primary, #a3e635);
   font-size: 0.78rem;
   margin-top: 0.16rem;
 }
@@ -222,6 +222,6 @@
 }
 
 .code-intel-tooltip-coupling-count {
-  color: #d4a017;
+  color: var(--accent-primary, #a3e635);
   font-weight: 600;
 }

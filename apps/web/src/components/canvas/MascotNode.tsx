@@ -81,6 +81,8 @@ type MascotNodeProps = {
   isSelected: boolean;
   selectedNodeId: string | null;
   selectedNodeColor: string | null;
+  /** SVG parent `scale(...)` from canvas zoom — keeps raster mascot sharp when > 1. */
+  graphScale: number;
   onPointerDown: (e: React.PointerEvent, nodeId: string) => void;
   onClick: (nodeId: string) => void;
 };
@@ -186,6 +188,7 @@ export const MascotNode = ({
   isSelected,
   selectedNodeId,
   selectedNodeColor,
+  graphScale,
   onPointerDown,
   onClick,
 }: MascotNodeProps) => {
@@ -226,8 +229,14 @@ export const MascotNode = ({
       }}
       style={{ cursor: "grab" }}
     >
-      {/* Invisible hit area for pointer events */}
-      <rect x={-glyphW / 2} y={-glyphH / 2} width={glyphW} height={glyphH} fill="transparent" />
+      {/* Invisible hit area — half-pixel alignment reduces blur on transformed SVG */}
+      <rect
+        x={Math.round(-glyphW / 2)}
+        y={Math.round(-glyphH / 2)}
+        width={glyphW}
+        height={glyphH}
+        fill="transparent"
+      />
 
       {/* Edges — highlight when either endpoint is selected */}
       {connectedNodes.map((target) => {
@@ -259,8 +268,8 @@ export const MascotNode = ({
 
       {/* Mascot glyph via foreignObject */}
       <foreignObject
-        x={-glyphW / 2}
-        y={-glyphH / 2}
+        x={Math.round(-glyphW / 2)}
+        y={Math.round(-glyphH / 2)}
         width={glyphW}
         height={glyphH}
         style={{ overflow: "visible", pointerEvents: "none" }}
@@ -282,6 +291,7 @@ export const MascotNode = ({
             accessory={visuals.accessory}
             {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
             scale={glyphScale}
+            graphScale={graphScale}
           />
         </div>
       </foreignObject>
@@ -291,7 +301,7 @@ export const MascotNode = ({
         y={glyphH / 2 - 12}
         textAnchor="middle"
         className="canvas-node-label canvas-node-label--orchestration canvas-node-label--always"
-        fill={isDeckLead ? "var(--accent-primary, #d4a017)" : "#faa32c"}
+        fill={isDeckLead ? "var(--accent-primary, #a3e635)" : "var(--accent-secondary, #eab308)"}
       >
         <tspan x="0" dy="0">
           {lines[0]}

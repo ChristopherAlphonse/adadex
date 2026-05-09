@@ -28,6 +28,7 @@ const canvasContextStub = {
   restore() {},
   translate() {},
   rotate() {},
+  setTransform() {},
   beginPath() {},
   moveTo() {},
   quadraticCurveTo() {},

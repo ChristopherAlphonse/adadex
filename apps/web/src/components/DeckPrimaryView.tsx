@@ -495,7 +495,7 @@ export const DeckPrimaryView = ({
         <div className="deck-empty-state">
           <div className="deck-empty-left">
             <div className="deck-empty-mascot">
-              <MascotSprite color="#d4a017" speedMs={16} size={280} />
+              <MascotSprite color="#a3e635" speedMs={16} size={280} />
             </div>
             {shouldShowWorkspaceSetup ? (
               <WorkspaceSetupCard
