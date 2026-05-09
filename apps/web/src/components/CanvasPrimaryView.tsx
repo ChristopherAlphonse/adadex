@@ -572,6 +572,11 @@ export const CanvasPrimaryView = ({
     [],
   );
 
+  const handlePanelFocus = useCallback((nodeId: string) => {
+    lastFocusedPanelIdRef.current = nodeId;
+    setSelectedNodeId(nodeId);
+  }, []);
+
   const handleCloseOrchestration = useCallback((nodeId: string) => {
     setOpenOrchestrations((prev) => {
       const next = new Map(prev);
@@ -1303,7 +1308,7 @@ export const CanvasPrimaryView = ({
                 orchestration={orchestrationById.get(node.coordinationId) ?? null}
                 sessions={sessionsByOrchestrationId.get(node.coordinationId) ?? []}
                 onClose={() => handleCloseOrchestration(nodeId)}
-                onFocus={() => setSelectedNodeId(nodeId)}
+                onFocus={() => handlePanelFocus(nodeId)}
                 onCreateAgent={(coordinationId) => {
                   handleCreateAgent(coordinationId);
                 }}
@@ -1337,7 +1342,7 @@ export const CanvasPrimaryView = ({
                 panelRef={setPanelRef(nodeId)}
                 onMinimize={() => handleMinimizeTerminal(nodeId)}
                 onClose={() => handleCloseTerminal(node)}
-                onFocus={() => setSelectedNodeId(nodeId)}
+                onFocus={() => handlePanelFocus(nodeId)}
                 onTerminalRenamed={onTerminalRenamed}
                 onTerminalActivity={onTerminalActivity}
               />

@@ -131,13 +131,21 @@ vi.mock("../src/components/canvas/CanvasTerminalColumn", () => ({
     panelRef,
     onMinimize,
     onClose,
+    onFocus,
   }: {
     node: (typeof nodes)[number];
     panelRef?: ((element: HTMLElement | null) => void) | undefined;
     onMinimize?: () => void;
     onClose?: () => void;
+    onFocus?: () => void;
   }) => (
-    <section ref={panelRef} data-testid={`panel-${node.id}`} tabIndex={-1}>
+    <section
+      ref={panelRef}
+      data-testid={`panel-${node.id}`}
+      tabIndex={-1}
+      onFocusCapture={onFocus}
+      onPointerDown={onFocus}
+    >
       panel {node.id} label {node.label}
       <button type="button" onClick={onMinimize}>
         Minimize terminal panel
@@ -194,6 +202,28 @@ describe("CanvasPrimaryView", () => {
       expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
       expect(HTMLElement.prototype.focus).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("does not focus the terminal panel when an already-open terminal is clicked", async () => {
+    render(<CanvasPrimaryView columns={[]} isUiStateHydrated />);
+
+    const [terminalButton] = screen.getAllByRole("button", { name: "terminal-1" });
+    expect(terminalButton).toBeDefined();
+    if (!terminalButton) throw new Error("Missing terminal button");
+
+    fireEvent.click(terminalButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("panel-a:terminal-1")).toBeInTheDocument();
+      expect(HTMLElement.prototype.focus).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.keyDown(screen.getByLabelText("Canvas graph"), { key: "Escape" });
+    vi.mocked(HTMLElement.prototype.focus).mockClear();
+
+    fireEvent.pointerDown(screen.getByTestId("panel-a:terminal-1"));
+
+    expect(HTMLElement.prototype.focus).not.toHaveBeenCalled();
   });
 
   it("minimizes a terminal panel separately from closing the terminal session", async () => {
