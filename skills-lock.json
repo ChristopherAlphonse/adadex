@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "database-layer": {
+      "source": "mgd34msu/goodvibes-plugin",
+      "sourceType": "github",
+      "skillPath": "plugins/goodvibes/skills/outcome/database-layer/SKILL.md",
+      "computedHash": "c263e0d2c4257546fb4baeeca7288b36349bc2a0c76ef3087e8cdd2e28449fef"
+    }
+  }
+}
