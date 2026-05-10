@@ -1,16 +1,24 @@
 import { useState } from "react";
 
-// ─── Bottom actions (compact cards + clear all for populated state) ──────────
-
 export type DeckBottomActionsProps = {
   onClearAll: () => void;
+  onAddNew?: () => void;
 };
 
-export const DeckBottomActions = ({ onClearAll }: DeckBottomActionsProps) => {
+export const DeckBottomActions = ({ onClearAll, onAddNew }: DeckBottomActionsProps) => {
   const [confirmingClear, setConfirmingClear] = useState(false);
 
   return (
     <div className="deck-sidebar-clear">
+      {onAddNew && (
+        <button
+          type="button"
+          className="deck-bottom-clear-btn"
+          onClick={onAddNew}
+        >
+          + Add New
+        </button>
+      )}
       {confirmingClear ? (
         <div className="deck-bottom-clear-confirm">
           <span className="deck-bottom-clear-label">Clear all orchestrations?</span>

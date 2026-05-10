@@ -124,7 +124,7 @@
 }
 
 .deck-empty-card-icon canvas {
-  image-rendering: pixelated;
+  pointer-events: none;
 }
 
 .deck-empty-card-icon--terminal {
@@ -134,6 +134,26 @@
 
 .deck-empty-actions--compact .deck-empty-card-icon--terminal {
   font-size: 1.4rem;
+}
+
+/* ─── Deck sidebar add button ──────────────────────────────────────────── */
+
+.deck-bottom-add-btn {
+  font-family: var(--font-main);
+  font-size: 0.82rem;
+  color: var(--accent-primary);
+  background: none;
+  border: 1px solid var(--accent-primary);
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+  width: 100%;
+  text-align: center;
+}
+
+.deck-bottom-add-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
 }
 
 /* ─── Deck sidebar content (rendered inside shared ActiveAgentsSidebar) ───── */
@@ -313,6 +333,48 @@
   padding: 1.5rem;
   flex: 1;
   overflow-y: auto;
+}
+.deck-add-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.deck-add-form-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.deck-add-form-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.deck-add-form-preview {
+  align-self: center;
+}
+
+@media (max-width: 960px) {
+  .deck-add-form-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .deck-add-form-right {
+    border-top: 1px solid #2b2f36;
+    padding-top: 1.25rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .deck-add-form-grid {
+    gap: 1.25rem;
+  }
 }
 
 .deck-add-form-back {
@@ -1562,5 +1624,35 @@
   .workspace-setup-card-actions-row {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+
+@media (max-width: 960px) {
+  .deck-empty-state {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  [data-empty-mode="adding"] .deck-empty-state {
+    justify-content: flex-start;
+  }
+
+  .deck-empty-left {
+    gap: 2rem;
+    padding: 1.5rem;
+  }
+
+  [data-empty-mode="adding"] .deck-empty-left {
+    transform: none;
+    gap: 2rem;
+    padding: 1.5rem;
+  }
+
+  .deck-empty-right {
+    border-left: none;
+    border-top: 1px solid #2b2f36;
+    height: auto;
+    flex: none;
   }
 }
