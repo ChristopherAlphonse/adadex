@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@adadex/core";
 import {
-  Check as CheckIcon,
-  ChevronDown,
   ChevronUp,
   GitBranch,
   Hexagon,
@@ -16,13 +14,12 @@ import {
   Sparkles,
   Terminal as TerminalIcon,
   Trash2,
-  X,
 } from "lucide-react";
 import type { GraphNode } from "../app/canvas/types";
 import { useAgentRuntimeStates } from "../app/hooks/useAgentRuntimeStates";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
-import { DEFAULT_FORCE_PARAMS, useForceSimulation } from "../app/hooks/useForceSimulation";
+import { useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import {
   type TerminalRuntimeStateStore,

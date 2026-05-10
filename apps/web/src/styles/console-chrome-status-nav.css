@@ -92,8 +92,16 @@
 }
 
 .console-shell .action-button--primary {
-  --action-button-border: color-mix(in srgb, var(--accent-primary) 60%, #6a5210);
-  --action-button-bg: color-mix(in srgb, var(--accent-primary) 84%, #f3cd74 16%);
+  --action-button-border: color-mix(
+    in srgb,
+    var(--accent-primary) 60%,
+    #6a5210
+  );
+  --action-button-bg: color-mix(
+    in srgb,
+    var(--accent-primary) 84%,
+    #f3cd74 16%
+  );
   --action-button-color: #111216;
 }
 
@@ -127,6 +135,8 @@
   gap: 0.44rem;
   padding: 0.18rem 0.44rem;
   min-width: 0;
+  padding-top: 0.8em;
+  padding-bottom: 0.8em;
 }
 
 .console-status-main {
@@ -249,7 +259,9 @@
   border-radius: 3px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .console-status-codex-usage-refresh:hover {
@@ -310,7 +322,8 @@
 .console-status-usage-rail-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: repeating-linear-gradient(
+  background:
+    repeating-linear-gradient(
       90deg,
       color-mix(in srgb, var(--accent-primary) 52%, #e1b56a) 0 13px,
       color-mix(in srgb, var(--accent-primary) 18%, #191919) 13px 15px
@@ -381,8 +394,10 @@
   transition: opacity 0.12s ease;
 }
 
-.console-status-usage-row[data-has-tooltip="true"]:hover .console-status-usage-tooltip,
-.console-status-usage-row[data-has-tooltip="true"]:focus-visible .console-status-usage-tooltip {
+.console-status-usage-row[data-has-tooltip="true"]:hover
+  .console-status-usage-tooltip,
+.console-status-usage-row[data-has-tooltip="true"]:focus-visible
+  .console-status-usage-tooltip {
   opacity: 1;
 }
 
@@ -433,7 +448,9 @@
 .console-primary-nav-tab[data-active="true"] {
   background: #a3e635;
   color: #000000;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.32), inset 0 -1px 1px rgba(0, 0, 0, 0.12);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.32),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.12);
 }
 
 .console-primary-nav-tab:focus-visible {

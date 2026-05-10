@@ -1,4 +1,4 @@
-import { type AgentRuntimeState, isAgentRuntimeState } from "@adadex/core";
+import type { AgentRuntimeState } from "@adadex/core";
 import { StatusBadge, type StatusBadgeTone } from "./ui/StatusBadge";
 
 export type { AgentRuntimeState } from "@adadex/core";

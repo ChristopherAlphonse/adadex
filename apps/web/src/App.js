@@ -1,0 +1,389 @@
+import { Fragment as _Fragment, jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { buildTerminalList, isAgentRuntimeState } from "@adadex/core";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
+import { DECK_LEAD_ID } from "./app/hooks/useCanvasGraphData";
+import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
+import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShortcuts";
+import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
+import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
+import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
+import { useOrchestrationGitLifecycle } from "./app/hooks/useOrchestrationGitLifecycle";
+import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
+import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
+import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
+import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
+import { useUsageHeatmapPolling } from "./app/hooks/useUsageHeatmapPolling";
+import { useWorkspaceSetup } from "./app/hooks/useWorkspaceSetup";
+import { createTerminalRuntimeStateStore, getTerminalRuntimeStateInfo, stripTerminalRuntimeState, stripTerminalRuntimeStates, } from "./app/terminalRuntimeStateStore";
+import { clampSidebarWidth } from "./app/uiStateNormalizers";
+import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
+import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
+import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
+import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
+import { SidebarActionPanel } from "./components/SidebarActionPanel";
+import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
+import { buildTerminalEventsSocketUrl, buildTerminalSnapshotsUrl, } from "./runtime/runtimeEndpoints";
+export const App = () => {
+    const [terminals, setTerminals] = useState([]);
+    const [recentlyCreatedTerminal, setRecentlyCreatedTerminal] = useState(null);
+    const [, setIsLoading] = useState(true);
+    const [, setLoadError] = useState(null);
+    const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState(null);
+    const [deckSidebarContent, setDeckSidebarContent] = useState(null);
+    const [conversationsSidebarContent, setConversationsSidebarContent] = useState(null);
+    const [conversationsActionPanel, setConversationsActionPanel] = useState(null);
+    const [promptsSidebarContent, setPromptsSidebarContent] = useState(null);
+    const terminalEventsRefreshTimerRef = useRef(null);
+    const runtimeStateStoreRef = useRef(createTerminalRuntimeStateStore());
+    const runtimeStateStore = runtimeStateStoreRef.current;
+    const sortTerminalSnapshots = useCallback((snapshots) => [...snapshots].sort((left, right) => {
+        return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+    }), []);
+    const { activePrimaryNav, setActivePrimaryNav, applyHydratedUiState, isAgentsSidebarVisible, isRuntimeStatusStripVisible, isUiStateHydrated, readUiState, setIsAgentsSidebarVisible, setIsRuntimeStatusStripVisible, setIsUiStateHydrated, setMinimizedTerminalIds, setSidebarWidth, setTerminalCompletionSound, sidebarWidth, terminalCompletionSound, canvasOpenTerminalIds, setCanvasOpenTerminalIds, canvasOpenCoordinationIds, setCanvasOpenCoordinationIds, canvasTerminalsPanelWidth, setCanvasTerminalsPanelWidth, } = usePersistedUiState({ columns: terminals });
+    const { workspaceSetup, isWorkspaceSetupLoading, workspaceSetupError, refreshWorkspaceSetup, runWorkspaceSetupStep, } = useWorkspaceSetup();
+    const [runningWorkspaceSetupStepId, setRunningWorkspaceSetupStepId] = useState(null);
+    const readColumns = useCallback(async (signal) => {
+        const readerOptions = {
+            endpoint: buildTerminalSnapshotsUrl(),
+        };
+        if (signal) {
+            readerOptions.signal = signal;
+        }
+        const reader = new HttpTerminalSnapshotReader(readerOptions);
+        const nextColumns = await buildTerminalList(reader);
+        runtimeStateStore.syncFromTerminals(nextColumns);
+        return stripTerminalRuntimeStates(nextColumns);
+    }, [runtimeStateStore]);
+    const refreshColumns = useCallback(async () => {
+        const nextColumns = await readColumns();
+        setTerminals(nextColumns);
+        return nextColumns;
+    }, [readColumns]);
+    const { clearPendingDeleteTerminal, closeTerminal, confirmDeleteTerminal, createTerminal, isDeletingTerminalId, pendingDeleteTerminal, requestDeleteTerminal, } = useTerminalMutations({
+        readColumns: async () => readColumns(),
+        setColumns: setTerminals,
+        setLoadError,
+        setMinimizedTerminalIds,
+    });
+    const { openGitOrchestrationId, openGitOrchestrationStatus, openGitOrchestrationPullRequest, gitCommitMessageDraft, gitDialogError, isGitDialogLoading, isGitDialogMutating, setGitCommitMessageDraft, closeOrchestrationGitActions, commitOrchestrationChanges, commitAndPushOrchestrationBranch, pushOrchestrationBranch, syncOrchestrationBranch, mergeOrchestrationPullRequest, } = useOrchestrationGitLifecycle({
+        columns: terminals,
+    });
+    useInitialColumnsHydration({
+        readColumns,
+        readUiState,
+        applyHydratedUiState,
+        setColumns: setTerminals,
+        setLoadError,
+        setIsLoading,
+        setIsUiStateHydrated,
+    });
+    useEffect(() => {
+        return () => {
+            if (terminalEventsRefreshTimerRef.current !== null) {
+                window.clearTimeout(terminalEventsRefreshTimerRef.current);
+                terminalEventsRefreshTimerRef.current = null;
+            }
+        };
+    }, []);
+    useEffect(() => {
+        const socket = new WebSocket(buildTerminalEventsSocketUrl());
+        socket.addEventListener("message", (event) => {
+            if (typeof event.data !== "string") {
+                return;
+            }
+            try {
+                const payload = JSON.parse(event.data);
+                if (!payload || typeof payload.type !== "string") {
+                    return;
+                }
+                if (payload.type === "terminal-created" || payload.type === "terminal-updated") {
+                    if (!payload.snapshot) {
+                        return;
+                    }
+                    const runtimeState = getTerminalRuntimeStateInfo(payload.snapshot);
+                    runtimeStateStore.setRuntimeState(payload.snapshot.terminalId, runtimeState);
+                    const structuralSnapshot = stripTerminalRuntimeState(payload.snapshot);
+                    if (payload.type === "terminal-created") {
+                        setRecentlyCreatedTerminal(structuralSnapshot);
+                    }
+                    setTerminals((current) => sortTerminalSnapshots([
+                        ...current.filter((terminal) => terminal.terminalId !== structuralSnapshot.terminalId),
+                        structuralSnapshot,
+                    ]));
+                    return;
+                }
+                if (payload.type === "terminal-state-changed") {
+                    if (!payload.terminalId || !isAgentRuntimeState(payload.agentRuntimeState)) {
+                        return;
+                    }
+                    runtimeStateStore.setRuntimeState(payload.terminalId, {
+                        state: payload.agentRuntimeState,
+                        ...(payload.toolName ? { toolName: payload.toolName } : {}),
+                    });
+                    return;
+                }
+                if (payload.type === "terminal-deleted") {
+                    if (!payload.terminalId) {
+                        return;
+                    }
+                    runtimeStateStore.removeTerminal(payload.terminalId);
+                    setTerminals((current) => current.filter((terminal) => terminal.terminalId !== payload.terminalId));
+                    return;
+                }
+                if (payload.type !== "terminal-list-changed") {
+                    return;
+                }
+            }
+            catch {
+                return;
+            }
+            if (terminalEventsRefreshTimerRef.current !== null) {
+                window.clearTimeout(terminalEventsRefreshTimerRef.current);
+            }
+            terminalEventsRefreshTimerRef.current = window.setTimeout(() => {
+                terminalEventsRefreshTimerRef.current = null;
+                void refreshColumns();
+            }, 100);
+        });
+        return () => {
+            if (terminalEventsRefreshTimerRef.current !== null) {
+                window.clearTimeout(terminalEventsRefreshTimerRef.current);
+                terminalEventsRefreshTimerRef.current = null;
+            }
+            socket.close();
+        };
+    }, [refreshColumns, runtimeStateStore, sortTerminalSnapshots]);
+    const { codexUsageSnapshot, isRefreshingCodexUsage, refreshCodexUsage } = useCodexUsagePolling();
+    useBackendLivenessPolling();
+    const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } = useGithubSummaryPolling();
+    const handleActiveTerminalIdsChange = useCallback((activeTerminalIds) => {
+        runtimeStateStore.retainTerminalIds(activeTerminalIds);
+    }, [runtimeStateStore]);
+    useTerminalStateReconciliation({
+        columns: terminals,
+        setMinimizedTerminalIds,
+        onActiveTerminalIdsChange: handleActiveTerminalIdsChange,
+    });
+    const { playCompletionSoundPreview } = useTerminalCompletionNotification(runtimeStateStore, terminalCompletionSound);
+    const { heatmapData, isLoadingHeatmap, refreshHeatmap } = useUsageHeatmapPolling({
+        enabled: isUiStateHydrated && (activePrimaryNav === 3 || isRuntimeStatusStripVisible),
+    });
+    useConsoleKeyboardShortcuts({ setActivePrimaryNav });
+    const { githubCommitCount30d, sparklinePoints, githubOverviewGraphSeries, githubOverviewGraphPolylinePoints, githubOverviewHoverLabel, githubStatusPill, githubRepoLabel, githubStarCountLabel, githubOpenIssuesLabel, githubOpenPrsLabel, githubRecentCommits, } = useGitHubPrimaryViewModel({
+        githubRepoSummary,
+        hoveredGitHubOverviewPointIndex,
+        setHoveredGitHubOverviewPointIndex,
+    });
+    const hasSidebarActionPanel = conversationsActionPanel !== null ||
+        pendingDeleteTerminal !== null ||
+        (openGitOrchestrationId !== null &&
+            terminals.find((terminal) => terminal.coordinationId === openGitOrchestrationId)
+                ?.workspaceMode === "worktree");
+    const sidebarActionPanel = hasSidebarActionPanel ? (conversationsActionPanel ? (_jsx(_Fragment, { children: conversationsActionPanel })) : (_jsx(SidebarActionPanel, { pendingDeleteTerminal: pendingDeleteTerminal, isDeletingTerminalId: isDeletingTerminalId, clearPendingDeleteTerminal: clearPendingDeleteTerminal, confirmDeleteTerminal: confirmDeleteTerminal, openGitOrchestrationId: openGitOrchestrationId, columns: terminals, openGitOrchestrationStatus: openGitOrchestrationStatus, openGitOrchestrationPullRequest: openGitOrchestrationPullRequest, gitCommitMessageDraft: gitCommitMessageDraft, gitDialogError: gitDialogError, isGitDialogLoading: isGitDialogLoading, isGitDialogMutating: isGitDialogMutating, setGitCommitMessageDraft: setGitCommitMessageDraft, closeOrchestrationGitActions: closeOrchestrationGitActions, commitOrchestrationChanges: commitOrchestrationChanges, commitAndPushOrchestrationBranch: commitAndPushOrchestrationBranch, pushOrchestrationBranch: pushOrchestrationBranch, syncOrchestrationBranch: syncOrchestrationBranch, mergeOrchestrationPullRequest: mergeOrchestrationPullRequest, requestDeleteTerminal: requestDeleteTerminal }))) : null;
+    useEffect(() => {
+        if (!hasSidebarActionPanel || isAgentsSidebarVisible) {
+            return;
+        }
+        setIsAgentsSidebarVisible(true);
+    }, [isAgentsSidebarVisible, setIsAgentsSidebarVisible, hasSidebarActionPanel]);
+    const handleTerminalRenamed = useCallback((terminalId, coordinationName) => {
+        setTerminals((current) => current.map((t) => t.terminalId === terminalId ? { ...t, coordinationName, label: coordinationName } : t));
+    }, []);
+    const handleTerminalActivity = useCallback((terminalId) => {
+        setTerminals((current) => current.map((t) => (t.terminalId === terminalId ? { ...t, hasUserPrompt: true } : t)));
+    }, []);
+    const handleRunWorkspaceSetupStep = useCallback(async (stepId) => {
+        setRunningWorkspaceSetupStepId(stepId);
+        try {
+            await runWorkspaceSetupStep(stepId);
+        }
+        finally {
+            setRunningWorkspaceSetupStepId(null);
+        }
+    }, [runWorkspaceSetupStep]);
+    return (_jsxs("div", { className: "page console-shell", children: [isRuntimeStatusStripVisible && (_jsx(RuntimeStatusStrip, { sparklinePoints: sparklinePoints, usageData: heatmapData, codexUsage: codexUsageSnapshot, isRefreshingCodexUsage: isRefreshingCodexUsage, onRefreshCodexUsage: refreshCodexUsage })), _jsx(ConsolePrimaryNav, { activePrimaryNav: activePrimaryNav, onPrimaryNavChange: setActivePrimaryNav }), _jsx("section", { className: "console-main-canvas", "aria-label": "Main content canvas", children: _jsxs("div", { className: `workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 8 ? "" : " workspace-shell--full"}`, children: [isAgentsSidebarVisible &&
+                            activePrimaryNav !== 1 &&
+                            activePrimaryNav !== 3 &&
+                            activePrimaryNav !== 4 &&
+                            activePrimaryNav !== 8 && (_jsx(ActiveAgentsSidebar, { sidebarWidth: sidebarWidth, onSidebarWidthChange: (width) => {
+                                setSidebarWidth(clampSidebarWidth(width));
+                            }, actionPanel: sidebarActionPanel, bodyContent: activePrimaryNav === 2
+                                ? (deckSidebarContent ?? undefined)
+                                : activePrimaryNav === 6
+                                    ? (conversationsSidebarContent ?? undefined)
+                                    : activePrimaryNav === 7
+                                        ? (promptsSidebarContent ?? undefined)
+                                        : undefined })), _jsx(PrimaryViewRouter, { activePrimaryNav: activePrimaryNav, deckPrimaryViewProps: {
+                                onSidebarContent: setDeckSidebarContent,
+                                workspaceSetup,
+                                isWorkspaceSetupLoading,
+                                workspaceSetupError,
+                                onRefreshWorkspaceSetup: refreshWorkspaceSetup,
+                                onRunWorkspaceSetupStep: runWorkspaceSetupStep,
+                                suppressWorkspaceSetupCard: true,
+                            }, activityPrimaryViewProps: {
+                                usageChartProps: {
+                                    data: heatmapData,
+                                    isLoading: isLoadingHeatmap,
+                                    onRefresh: refreshHeatmap,
+                                },
+                                githubPrimaryViewProps: {
+                                    githubCommitCount30d,
+                                    githubOpenIssuesLabel,
+                                    githubOpenPrsLabel,
+                                    githubRecentCommits,
+                                    githubOverviewGraphPolylinePoints,
+                                    githubOverviewGraphSeries,
+                                    githubOverviewHoverLabel,
+                                    githubRepoLabel,
+                                    githubStarCountLabel,
+                                    githubStatusPill,
+                                    hoveredGitHubOverviewPointIndex,
+                                    isRefreshingGitHubSummary,
+                                    onHoveredGitHubOverviewPointIndexChange: setHoveredGitHubOverviewPointIndex,
+                                    onRefresh: () => {
+                                        void refreshGitHubRepoSummary();
+                                    },
+                                },
+                            }, settingsPrimaryViewProps: {
+                                isRuntimeStatusStripVisible,
+                                onRuntimeStatusStripVisibilityChange: setIsRuntimeStatusStripVisible,
+                                onPreviewTerminalCompletionSound: playCompletionSoundPreview,
+                                onTerminalCompletionSoundChange: setTerminalCompletionSound,
+                                terminalCompletionSound,
+                            }, canvasPrimaryViewProps: {
+                                columns: terminals,
+                                runtimeStateStore,
+                                isUiStateHydrated,
+                                recentlyCreatedTerminal,
+                                canvasOpenTerminalIds,
+                                canvasOpenCoordinationIds,
+                                canvasTerminalsPanelWidth,
+                                workspaceSetup,
+                                isWorkspaceSetupLoading,
+                                workspaceSetupError,
+                                runningWorkspaceSetupStepId,
+                                onRunWorkspaceSetupStep: handleRunWorkspaceSetupStep,
+                                onLaunchWorkspaceSetupPlanner: async () => {
+                                    const response = await fetch("/api/terminals", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                            name: "coordination-planner",
+                                            workspaceMode: "shared",
+                                            agentProvider: "codex",
+                                            promptTemplate: "coordination-planner",
+                                        }),
+                                    });
+                                    if (!response.ok) {
+                                        return undefined;
+                                    }
+                                    const snapshot = (await response.json());
+                                    await refreshColumns();
+                                    if (typeof snapshot.terminalId !== "string") {
+                                        return undefined;
+                                    }
+                                    return snapshot.terminalId;
+                                },
+                                onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
+                                onCanvasOpenOrchestrationIdsChange: setCanvasOpenCoordinationIds,
+                                onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
+                                onCreateAgent: async (coordinationId) => {
+                                    return await createTerminal("shared", undefined, coordinationId);
+                                },
+                                onCreateTerminal: async () => {
+                                    return await createTerminal("shared", undefined, DECK_LEAD_ID);
+                                },
+                                onCreateWorktreeTerminal: async () => {
+                                    return await createTerminal("worktree", undefined, DECK_LEAD_ID);
+                                },
+                                onCreateOrchestration: async () => {
+                                    const response = await fetch("/api/deck/coordinations", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ name: "", description: "" }),
+                                    });
+                                    if (!response.ok)
+                                        return;
+                                    await refreshColumns();
+                                },
+                                onSpawnSwarm: async (coordinationId, workspaceMode) => {
+                                    const response = await fetch(`/api/deck/coordinations/${encodeURIComponent(coordinationId)}/swarm`, {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ workspaceMode }),
+                                    });
+                                    if (!response.ok) {
+                                        let message = "Failed to spawn swarm.";
+                                        try {
+                                            const body = (await response.json());
+                                            if (typeof body.error === "string" && body.error.trim().length > 0) {
+                                                message = body.error;
+                                            }
+                                        }
+                                        catch {
+                                            // Fall back to the generic message when the server returns a non-JSON error.
+                                        }
+                                        throw new Error(message);
+                                    }
+                                    await refreshColumns();
+                                },
+                                onDeckLeadAction: async (action) => {
+                                    const response = await fetch("/api/terminals", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                            workspaceMode: "shared",
+                                            coordinationId: DECK_LEAD_ID,
+                                            promptTemplate: action,
+                                        }),
+                                    });
+                                    if (!response.ok)
+                                        return undefined;
+                                    const snapshot = (await response.json());
+                                    await refreshColumns();
+                                    return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
+                                },
+                                onOrchestrationAction: async (coordinationId, action) => {
+                                    const response = await fetch("/api/terminals", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                            workspaceMode: "shared",
+                                            coordinationId,
+                                            promptTemplate: action,
+                                            promptVariables: {
+                                                coordinationId,
+                                            },
+                                        }),
+                                    });
+                                    if (!response.ok)
+                                        return undefined;
+                                    const snapshot = (await response.json());
+                                    await refreshColumns();
+                                    return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
+                                },
+                                onNavigateToConversation: (_sessionId) => {
+                                    setActivePrimaryNav(6);
+                                },
+                                onCloseActiveSession: (terminalId) => closeTerminal(terminalId),
+                                onDeleteActiveSession: (terminalId, terminalName, workspaceMode) => {
+                                    requestDeleteTerminal(terminalId, terminalName, {
+                                        workspaceMode: workspaceMode === "worktree" ? "worktree" : "shared",
+                                        intent: "delete-terminal",
+                                    });
+                                },
+                                pendingDeleteTerminal,
+                                isDeletingTerminalId,
+                                onCancelDelete: clearPendingDeleteTerminal,
+                                onConfirmDelete: () => {
+                                    void confirmDeleteTerminal();
+                                },
+                                onTerminalRenamed: handleTerminalRenamed,
+                                onTerminalActivity: handleTerminalActivity,
+                                onRefreshColumns: async () => {
+                                    await refreshColumns();
+                                },
+                            }, conversationsEnabled: isUiStateHydrated && activePrimaryNav === 6, onConversationsSidebarContent: setConversationsSidebarContent, onConversationsActionPanel: setConversationsActionPanel, promptsEnabled: isUiStateHydrated && activePrimaryNav === 7, onPromptsSidebarContent: setPromptsSidebarContent })] }) })] }));
+};
