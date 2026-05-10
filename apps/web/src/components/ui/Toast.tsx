@@ -62,7 +62,7 @@ export const toast = {
 
 export const ToastContainer = () => {
   const [currentToasts, setCurrentToasts] = useState<Toast[]>([]);
-  const listenerRef = useRef<(toasts: Toast[]) => void>();
+  const listenerRef = useRef<(toasts: Toast[]) => void>(undefined);
 
   listenerRef.current = (newToasts: Toast[]) => {
     setCurrentToasts(newToasts);
@@ -104,7 +104,7 @@ const ToastItem = ({ toast }: { toast: Toast }) => {
 
   return (
     <div
-      className={	oast toast--}
+      className={`toast toast--${toast.type}${exiting ? " toast--exiting" : ""}`}
       role="alert"
     >
       <span className="toast-icon">

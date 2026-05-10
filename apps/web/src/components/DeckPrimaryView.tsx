@@ -1,11 +1,4 @@
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   DeckAvailableSkill,
@@ -36,17 +29,14 @@ import { MarkdownContent } from "./ui/MarkdownContent";
 
 export type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
 
-const normalizeDeckAvailableSkill = (
-  value: unknown,
-): DeckAvailableSkill | null => {
+const normalizeDeckAvailableSkill = (value: unknown): DeckAvailableSkill | null => {
   if (value === null || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   if (typeof record.name !== "string") return null;
 
   return {
     name: record.name,
-    description:
-      typeof record.description === "string" ? record.description : "",
+    description: typeof record.description === "string" ? record.description : "",
     source: record.source === "project" ? "project" : "user",
   };
 };
@@ -66,9 +56,7 @@ type DeckPrimaryViewProps = {
   isWorkspaceSetupLoading: boolean;
   workspaceSetupError: string | null;
   onRefreshWorkspaceSetup: () => Promise<WorkspaceSetupSnapshot | null>;
-  onRunWorkspaceSetupStep: (
-    stepId: WorkspaceSetupStepId,
-  ) => Promise<WorkspaceSetupSnapshot | null>;
+  onRunWorkspaceSetupStep: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
   suppressWorkspaceSetupCard?: boolean;
 };
 
@@ -81,23 +69,19 @@ export const DeckPrimaryView = ({
   onRunWorkspaceSetupStep,
   suppressWorkspaceSetupCard = false,
 }: DeckPrimaryViewProps) => {
-  const [orchestrations, setOrchestrations] = useState<
-    DeckCoordinationSummary[]
-  >([]);
+  const [orchestrations, setOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [focus, setFocus] = useState<FocusState | null>(null);
   const [vaultContent, setVaultContent] = useState<string | null>(null);
   const [loadingVault, setLoadingVault] = useState(false);
   const [emptyViewMode, setEmptyViewMode] = useState<EmptyViewMode>("idle");
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [availableSkills, setAvailableSkills] = useState<DeckAvailableSkill[]>(
-    [],
+  const [availableSkills, setAvailableSkills] = useState<DeckAvailableSkill[]>([]);
+  const [savingOrchestrationSkillsId, setSavingOrchestrationSkillsId] = useState<string | null>(
+    null,
   );
-  const [savingOrchestrationSkillsId, setSavingOrchestrationSkillsId] =
-    useState<string | null>(null);
 
-  const [selectedAgent, setSelectedAgent] =
-    useState<TerminalAgentProvider>("codex");
+  const [selectedAgent, setSelectedAgent] = useState<TerminalAgentProvider>("codex");
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
   const agentMenuRef = useRef<HTMLDivElement>(null);
   const [isLaunchingAgent, setIsLaunchingAgent] = useState(false);
@@ -178,12 +162,9 @@ export const DeckPrimaryView = ({
     setLoadingVault(true);
     const fetchVault = async () => {
       try {
-        const response = await fetch(
-          buildDeckVaultFileUrl(focus.coordinationId, focus.fileName),
-          {
-            headers: { Accept: "text/markdown" },
-          },
-        );
+        const response = await fetch(buildDeckVaultFileUrl(focus.coordinationId, focus.fileName), {
+          headers: { Accept: "text/markdown" },
+        });
         if (cancelled) return;
         if (!response.ok) {
           setVaultContent(null);
@@ -212,12 +193,9 @@ export const DeckPrimaryView = ({
   const handleDismissAgentMenu = useCallback(() => setAgentMenuOpen(false), []);
   useClickOutside(agentMenuRef, agentMenuOpen, handleDismissAgentMenu);
 
-  const handleVaultFileClick = useCallback(
-    (coordinationId: string, fileName: string) => {
-      setFocus({ type: "vault", coordinationId, fileName });
-    },
-    [],
-  );
+  const handleVaultFileClick = useCallback((coordinationId: string, fileName: string) => {
+    setFocus({ type: "vault", coordinationId, fileName });
+  }, []);
 
   const handleClose = useCallback(() => {
     setFocus(null);
@@ -268,10 +246,7 @@ export const DeckPrimaryView = ({
       setRunningSetupStepId(stepId);
       try {
         await onRunWorkspaceSetupStep(stepId);
-        if (
-          stepId === "initialize-workspace" ||
-          stepId === "ensure-gitignore"
-        ) {
+        if (stepId === "initialize-workspace" || stepId === "ensure-gitignore") {
           await fetchOrchestrations();
         }
       } finally {
@@ -309,10 +284,7 @@ export const DeckPrimaryView = ({
         if (!response.ok) {
           const body = await response.json().catch(() => null);
           const msg =
-            body &&
-            typeof body === "object" &&
-            "error" in body &&
-            typeof body.error === "string"
+            body && typeof body === "object" && "error" in body && typeof body.error === "string"
               ? body.error
               : "Failed to create orchestration";
           setCreateError(msg);
@@ -334,45 +306,35 @@ export const DeckPrimaryView = ({
     async (coordinationId: string, suggestedSkills: string[]) => {
       setSavingOrchestrationSkillsId(coordinationId);
       try {
-        const response = await fetch(
-          buildDeckOrchestrationSkillsUrl(coordinationId),
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({ suggestedSkills }),
+        const response = await fetch(buildDeckOrchestrationSkillsUrl(coordinationId), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
           },
-        );
+          body: JSON.stringify({ suggestedSkills }),
+        });
         if (!response.ok) return false;
         await fetchOrchestrations();
         return true;
       } catch {
         return false;
       } finally {
-        setSavingOrchestrationSkillsId((current) =>
-          current === coordinationId ? null : current,
-        );
+        setSavingOrchestrationSkillsId((current) => (current === coordinationId ? null : current));
       }
     },
     [fetchOrchestrations],
   );
 
-  const [deletingOrchestrationId, setDeletingOrchestrationId] = useState<
-    string | null
-  >(null);
+  const [deletingOrchestrationId, setDeletingOrchestrationId] = useState<string | null>(null);
 
   const handleDeleteOrchestration = useCallback(
     async (coordinationId: string) => {
       setDeletingOrchestrationId(coordinationId);
       try {
-        const response = await fetch(
-          buildDeckOrchestrationUrl(coordinationId),
-          {
-            method: "DELETE",
-          },
-        );
+        const response = await fetch(buildDeckOrchestrationUrl(coordinationId), {
+          method: "DELETE",
+        });
         if (!response.ok) return;
         await fetchOrchestrations();
       } catch {
@@ -414,9 +376,7 @@ export const DeckPrimaryView = ({
   // Push sidebar content to the shared sidebar
   const sidebarContent = useMemo(
     () =>
-      orchestrations.length > 0 ||
-      focus?.type === "terminal" ||
-      shouldShowWorkspaceSetup ? (
+      orchestrations.length > 0 || focus?.type === "terminal" || shouldShowWorkspaceSetup ? (
         <div className="deck-sidebar-content">
           <div className="deck-sidebar-content-top">
             {shouldShowWorkspaceSetup ? (
@@ -563,9 +523,7 @@ export const DeckPrimaryView = ({
                 orchestration={t}
                 visuals={visualsMap.get(t.coordinationId) as MascotVisuals}
                 isFocused={isThis}
-                activeFileName={
-                  focus?.type === "vault" && isThis ? focus.fileName : undefined
-                }
+                activeFileName={focus?.type === "vault" && isThis ? focus.fileName : undefined}
                 onVaultFileClick={(fileName) =>
                   setFocus({
                     type: "vault",
@@ -584,9 +542,7 @@ export const DeckPrimaryView = ({
                 isDeleting={deletingOrchestrationId === t.coordinationId}
                 onTodoToggle={handleTodoToggle}
                 availableSkills={availableSkills}
-                isSavingSkills={
-                  savingOrchestrationSkillsId === t.coordinationId
-                }
+                isSavingSkills={savingOrchestrationSkillsId === t.coordinationId}
                 onSaveSuggestedSkills={handleOrchestrationSkillsSave}
               />
             </div>
@@ -609,11 +565,7 @@ export const DeckPrimaryView = ({
         {focus?.type === "vault-browser" && focusedOrchestration && (
           <>
             <header className="deck-detail-main-header">
-              <button
-                type="button"
-                className="deck-add-form-back"
-                onClick={handleClose}
-              >
+              <button type="button" className="deck-add-form-back" onClick={handleClose}>
                 ← Back
               </button>
               <span className="deck-detail-main-path">
@@ -626,10 +578,7 @@ export const DeckPrimaryView = ({
                   .adadex/coordinations/{focusedOrchestration.coordinationId}/
                 </span>
                 {(() => {
-                  const files = [
-                    ...focusedOrchestration.vaultFiles,
-                    "CONTEXT.md",
-                  ];
+                  const files = [...focusedOrchestration.vaultFiles, "CONTEXT.md"];
                   return files.map((file, i) => {
                     const isLast = i === files.length - 1;
                     const prefix = isLast ? "└── " : "├── ";
@@ -673,8 +622,7 @@ export const DeckPrimaryView = ({
                 ← Back
               </button>
               <span className="deck-detail-main-path">
-                {focusedOrchestration.displayName} /{" "}
-                <strong>{focus.fileName}</strong>
+                {focusedOrchestration.displayName} / <strong>{focus.fileName}</strong>
               </span>
             </header>
             <div
@@ -684,10 +632,7 @@ export const DeckPrimaryView = ({
               {loadingVault ? (
                 <span className="deck-detail-loading">Loading…</span>
               ) : vaultContent !== null ? (
-                <MarkdownContent
-                  content={vaultContent}
-                  className="deck-detail-markdown"
-                />
+                <MarkdownContent content={vaultContent} className="deck-detail-markdown" />
               ) : (
                 <span className="deck-detail-loading">File not found.</span>
               )}
@@ -697,21 +642,14 @@ export const DeckPrimaryView = ({
         {focus?.type === "terminal" && (
           <div className="deck-detail-terminal" key={focus.agentId}>
             <header className="deck-detail-main-header">
-              <button
-                type="button"
-                className="deck-add-form-back"
-                onClick={handleClose}
-              >
+              <button type="button" className="deck-add-form-back" onClick={handleClose}>
                 ← Back
               </button>
               <span className="deck-detail-main-path">
                 <strong>{focus.terminalLabel}</strong>
               </span>
             </header>
-            <Terminal
-              terminalId={focus.agentId}
-              terminalLabel={focus.terminalLabel}
-            />
+            <Terminal terminalId={focus.agentId} terminalLabel={focus.terminalLabel} />
           </div>
         )}
       </div>

@@ -39,8 +39,8 @@ export const App = () => {
   const [recentlyCreatedTerminal, setRecentlyCreatedTerminal] = useState<
     TerminalView[number] | null
   >(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [, setIsLoading] = useState(true);
+  const [, setLoadError] = useState<string | null>(null);
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
@@ -64,13 +64,10 @@ export const App = () => {
     activePrimaryNav,
     setActivePrimaryNav,
     applyHydratedUiState,
-    isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
     isRuntimeStatusStripVisible,
     isUiStateHydrated,
-    minimizedTerminalIds,
     readUiState,
-    setIsActiveAgentsSectionExpanded,
     setIsAgentsSidebarVisible,
     setIsRuntimeStatusStripVisible,
     setIsUiStateHydrated,
@@ -130,7 +127,6 @@ export const App = () => {
     closeTerminal,
     confirmDeleteTerminal,
     createTerminal,
-    isCreatingTerminal,
     isDeletingTerminalId,
     pendingDeleteTerminal,
     requestDeleteTerminal,
@@ -142,10 +138,6 @@ export const App = () => {
   });
 
   const {
-    gitStatusByOrchestrationId,
-    gitStatusLoadingByOrchestrationId,
-    pullRequestByOrchestrationId,
-    pullRequestLoadingByOrchestrationId,
     openGitOrchestrationId,
     openGitOrchestrationStatus,
     openGitOrchestrationPullRequest,
@@ -154,7 +146,6 @@ export const App = () => {
     isGitDialogLoading,
     isGitDialogMutating,
     setGitCommitMessageDraft,
-    openOrchestrationGitActions,
     closeOrchestrationGitActions,
     commitOrchestrationChanges,
     commitAndPushOrchestrationBranch,
@@ -270,22 +261,18 @@ export const App = () => {
         window.clearTimeout(terminalEventsRefreshTimerRef.current);
         terminalEventsRefreshTimerRef.current = null;
       }
-      socket.close();
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      } else if (socket.readyState === WebSocket.CONNECTING) {
+        socket.addEventListener("open", () => socket.close(), { once: true });
+      }
     };
   }, [refreshColumns, runtimeStateStore, sortTerminalSnapshots]);
 
   const { codexUsageSnapshot, isRefreshingCodexUsage, refreshCodexUsage } = useCodexUsagePolling();
-  const backendLivenessStatus = useBackendLivenessPolling();
+  useBackendLivenessPolling();
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
     useGithubSummaryPolling();
-  const handleMaximizeTerminal = useCallback(
-    (terminalId: string) => {
-      setMinimizedTerminalIds((current) =>
-        current.filter((currentTerminalId) => currentTerminalId !== terminalId),
-      );
-    },
-    [setMinimizedTerminalIds],
-  );
   const handleActiveTerminalIdsChange = useCallback(
     (activeTerminalIds: ReadonlySet<string>) => {
       runtimeStateStore.retainTerminalIds(activeTerminalIds);
