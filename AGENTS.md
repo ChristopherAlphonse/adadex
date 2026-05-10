@@ -69,3 +69,9 @@
 - `apps/api/AGENTS.md` expands server/runtime/worktree rules.
 - `apps/web/AGENTS.md` expands UI/component/style rules.
 - `packages/core/AGENTS.md` expands domain and ports-and-adapters rules.
+
+## Learned User Preferences
+- Prefer the product term "orchestration" over "tentacles" in user-facing copy and new identifiers.
+
+## Learned Workspace Facts
+- On Windows, `scripts/dev.mjs` spawns `pnpm` with `shell: true` and resolves the monorepo root with `fileURLToPath(import.meta.url)` so `ADADEX_WORKSPACE_CWD` is a valid drive path (avoids `/D:/...` from `URL.pathname` and `spawn EINVAL` when Node resolves the pnpm shim).

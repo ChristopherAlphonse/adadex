@@ -126,142 +126,148 @@ export const AddOrchestrationForm = ({
       </div>
 
       <div className="deck-add-form-body">
-        <div className="deck-add-form-preview">
-          <MascotSprite
-            color={selectedColor}
-            animation="idle"
-            expression={selectedExpression}
-            accessory={selectedAccessory}
-            hairColor={selectedHairColor}
-            size={160}
-          />
-        </div>
-
-        <label className="deck-add-form-label">
-          Name
-          <input
-            ref={nameRef}
-            type="text"
-            className="deck-add-form-input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Database Layer"
-          />
-        </label>
-
-        <label className="deck-add-form-label">
-          Description
-          <textarea
-            className="deck-add-form-textarea"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What this coordination is responsible for..."
-            rows={3}
-          />
-        </label>
-
-        {availableSkills.length > 0 && (
-          <div className="deck-add-form-label">
-            Suggested Skills
-            <div className="deck-add-form-skills">
-              {availableSkills.map((skill) => {
-                const checked = selectedSkills.includes(skill.name);
-                return (
-                  <label
-                    key={`${skill.source}:${skill.name}`}
-                    className="deck-add-form-skill-option"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleSkill(skill.name)}
-                    />
-                    <span className="deck-add-form-skill-copy">
-                      <span className="deck-add-form-skill-name">{skill.name}</span>
-                      {skill.description && (
-                        <span className="deck-add-form-skill-desc">{skill.description}</span>
-                      )}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="deck-add-form-label">
-          Color
-          <div className="deck-add-form-colors">
-            {MASCOT_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className="deck-add-form-color-swatch"
-                data-selected={c === selectedColor ? "true" : "false"}
-                style={{ backgroundColor: c }}
-                onClick={() => setSelectedColor(c)}
-                title={formatColorForDisplay(c)}
-                aria-label={`Select color ${formatColorForDisplay(c)}`}
+        <div className="deck-add-form-grid">
+          <div className="deck-add-form-left">
+            <label className="deck-add-form-label">
+              Name
+              <input
+                ref={nameRef}
+                type="text"
+                className="deck-add-form-input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Database Layer"
               />
-            ))}
-          </div>
-          <p className="deck-add-form-color-meta" aria-live="polite">
-            {formatColorForDisplay(selectedColor)}
-          </p>
-        </div>
+            </label>
 
-        <div className="deck-add-form-row">
-          <div className="deck-add-form-label">
-            Expression
-            <div className="deck-add-form-chips">
-              {EXPRESSION_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className="deck-add-form-chip"
-                  data-selected={opt.value === selectedExpression ? "true" : "false"}
-                  onClick={() => setSelectedExpression(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <label className="deck-add-form-label">
+              Description
+              <textarea
+                className="deck-add-form-textarea"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What this coordination is responsible for..."
+                rows={3}
+              />
+            </label>
+
+            {availableSkills.length > 0 && (
+              <div className="deck-add-form-label">
+                Suggested Skills
+                <div className="deck-add-form-skills">
+                  {availableSkills.map((skill) => {
+                    const checked = selectedSkills.includes(skill.name);
+                    return (
+                      <label
+                        key={`${skill.source}:${skill.name}`}
+                        className="deck-add-form-skill-option"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSkill(skill.name)}
+                        />
+                        <span className="deck-add-form-skill-copy">
+                          <span className="deck-add-form-skill-name">{skill.name}</span>
+                          {skill.description && (
+                            <span className="deck-add-form-skill-desc">{skill.description}</span>
+                          )}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="deck-add-form-label">
-            Hair Style
-            <div className="deck-add-form-chips">
-              {ACCESSORY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className="deck-add-form-chip"
-                  data-selected={opt.value === selectedAccessory ? "true" : "false"}
-                  onClick={() => setSelectedAccessory(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
+
+          <div className="deck-add-form-right">
+            <div className="deck-add-form-preview">
+              <MascotSprite
+                color={selectedColor}
+                animation="idle"
+                expression={selectedExpression}
+                accessory={selectedAccessory}
+                hairColor={selectedHairColor}
+                size={160}
+              />
             </div>
-          </div>
-          <div className="deck-add-form-label">
-            Hair Color
-            <div className="deck-add-form-colors">
-              {HAIR_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className="deck-add-form-color-swatch deck-add-form-color-swatch--small"
-                  data-selected={c === selectedHairColor ? "true" : "false"}
-                  style={{ backgroundColor: c }}
-                  onClick={() => setSelectedHairColor(c)}
-                  title={formatColorForDisplay(c)}
-                  aria-label={`Select hair color ${formatColorForDisplay(c)}`}
-                />
-              ))}
+
+            <div className="deck-add-form-label">
+              Color
+              <div className="deck-add-form-colors">
+                {MASCOT_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className="deck-add-form-color-swatch"
+                    data-selected={c === selectedColor ? "true" : "false"}
+                    style={{ backgroundColor: c }}
+                    onClick={() => setSelectedColor(c)}
+                    title={formatColorForDisplay(c)}
+                    aria-label={`Select color ${formatColorForDisplay(c)}`}
+                  />
+                ))}
+              </div>
+              <p className="deck-add-form-color-meta" aria-live="polite">
+                {formatColorForDisplay(selectedColor)}
+              </p>
             </div>
-            <p className="deck-add-form-color-meta" aria-live="polite">
-              {formatColorForDisplay(selectedHairColor)}
-            </p>
+
+            <div className="deck-add-form-row">
+              <div className="deck-add-form-label">
+                Expression
+                <div className="deck-add-form-chips">
+                  {EXPRESSION_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className="deck-add-form-chip"
+                      data-selected={opt.value === selectedExpression ? "true" : "false"}
+                      onClick={() => setSelectedExpression(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="deck-add-form-label">
+                Hair Style
+                <div className="deck-add-form-chips">
+                  {ACCESSORY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className="deck-add-form-chip"
+                      data-selected={opt.value === selectedAccessory ? "true" : "false"}
+                      onClick={() => setSelectedAccessory(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="deck-add-form-label">
+              Hair Color
+              <div className="deck-add-form-colors">
+                {HAIR_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className="deck-add-form-color-swatch deck-add-form-color-swatch--small"
+                    data-selected={c === selectedHairColor ? "true" : "false"}
+                    style={{ backgroundColor: c }}
+                    onClick={() => setSelectedHairColor(c)}
+                    title={formatColorForDisplay(c)}
+                    aria-label={`Select hair color ${formatColorForDisplay(c)}`}
+                  />
+                ))}
+              </div>
+              <p className="deck-add-form-color-meta" aria-live="polite">
+                {formatColorForDisplay(selectedHairColor)}
+              </p>
+            </div>
           </div>
         </div>
 

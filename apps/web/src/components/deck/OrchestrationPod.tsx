@@ -69,7 +69,7 @@ export type OrchestrationPodProps = {
   isFocused: boolean;
   activeFileName?: string | undefined;
   onVaultFileClick?: (fileName: string) => void;
-  onVaultBrowse?: () => void;
+  onVaultBrowse?: () => void;`n  onClick?: () => void;
   onClose?: () => void;
   onDelete?: () => void;
   isDeleting?: boolean | undefined;
