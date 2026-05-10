@@ -467,7 +467,9 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
   }
 
   const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
-  const deckEntry = deckOrchestrations.find((orchestration) => orchestration.coordinationId === coordinationId);
+  const deckEntry = deckOrchestrations.find(
+    (orchestration) => orchestration.coordinationId === coordinationId,
+  );
   const coordinationName = deckEntry?.displayName ?? coordinationId;
 
   try {

@@ -69,7 +69,10 @@ describe("resolvePrompt", () => {
   });
 
   it("reads and interpolates a template", async () => {
-    await writeFile(join(promptsDir, "orchestration-init.md"), "You are the {{coordinationId}} agent.");
+    await writeFile(
+      join(promptsDir, "orchestration-init.md"),
+      "You are the {{coordinationId}} agent.",
+    );
     const result = await resolvePrompt(promptsDir, "orchestration-init", {
       coordinationId: "sandbox",
     });

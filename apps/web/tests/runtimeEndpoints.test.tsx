@@ -115,7 +115,9 @@ describe("runtimeEndpoints", () => {
   });
 
   it("builds orchestration rename URL on same origin by default", () => {
-    expect(buildOrchestrationRenameUrl("orchestration-main")).toBe("/api/coordinations/orchestration-main");
+    expect(buildOrchestrationRenameUrl("orchestration-main")).toBe(
+      "/api/coordinations/orchestration-main",
+    );
   });
 
   it("builds absolute orchestration rename URL when runtime base URL is configured", () => {
@@ -146,21 +148,21 @@ describe("runtimeEndpoints", () => {
   });
 
   it("builds absolute orchestration git lifecycle URLs when runtime base URL is configured", () => {
-    expect(buildOrchestrationGitStatusUrl("orchestration-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/coordinations/orchestration-main/git/status",
-    );
-    expect(buildOrchestrationGitCommitUrl("orchestration-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/coordinations/orchestration-main/git/commit",
-    );
+    expect(
+      buildOrchestrationGitStatusUrl("orchestration-main", "https://runtime.example.com"),
+    ).toBe("https://runtime.example.com/api/coordinations/orchestration-main/git/status");
+    expect(
+      buildOrchestrationGitCommitUrl("orchestration-main", "https://runtime.example.com"),
+    ).toBe("https://runtime.example.com/api/coordinations/orchestration-main/git/commit");
     expect(buildOrchestrationGitPushUrl("orchestration-main", "https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/coordinations/orchestration-main/git/push",
     );
     expect(buildOrchestrationGitSyncUrl("orchestration-main", "https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/coordinations/orchestration-main/git/sync",
     );
-    expect(buildOrchestrationGitPullRequestUrl("orchestration-main", "https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/coordinations/orchestration-main/git/pr",
-    );
+    expect(
+      buildOrchestrationGitPullRequestUrl("orchestration-main", "https://runtime.example.com"),
+    ).toBe("https://runtime.example.com/api/coordinations/orchestration-main/git/pr");
     expect(
       buildOrchestrationGitPullRequestMergeUrl("orchestration-main", "https://runtime.example.com"),
     ).toBe("https://runtime.example.com/api/coordinations/orchestration-main/git/pr/merge");

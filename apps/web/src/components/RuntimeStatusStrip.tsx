@@ -189,11 +189,7 @@ export const RuntimeStatusStrip = ({
   return (
     <section className="console-status-strip" aria-label="Runtime status strip">
       <div className="console-status-main">
-        <MascotSprite
-          className="console-status-mascot-icon"
-          speedMs={16}
-          size={24}
-        />
+        <MascotSprite className="console-status-mascot-icon" speedMs={16} size={24} />
         <span className="console-status-brand">ADADEX</span>
       </div>
       <div className="console-status-charts">

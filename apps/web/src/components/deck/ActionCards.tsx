@@ -15,7 +15,7 @@ export type ActionCardsProps = {
   agentMenuOpen: boolean;
   setAgentMenuOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
   agentMenuRef: React.RefObject<HTMLDivElement | null>;
-  onAddManually: () => void;
+  onAdd: () => void;
   onLaunchAgent: () => void;
   isLaunchingAgent?: boolean;
 };
@@ -27,28 +27,24 @@ export const ActionCards = ({
   agentMenuOpen,
   setAgentMenuOpen,
   agentMenuRef,
-  onAddManually,
+  onAdd,
   onLaunchAgent,
   isLaunchingAgent,
 }: ActionCardsProps) => (
-  <div
-    className={`deck-empty-actions${compact ? " deck-empty-actions--compact" : ""}`}
-  >
-    <button type="button" className="deck-empty-card" onClick={onAddManually}>
+  <div className={`deck-empty-actions${compact ? " deck-empty-actions--compact" : ""}`}>
+    <button type="button" className="deck-empty-card" onClick={onAdd}>
       <div className="deck-empty-card-icon">
         <MascotSprite color="#a3e635" speedMs={16} size={compact ? 120 : 160} />
       </div>
       <div className="deck-empty-card-text">
-        <span className="deck-empty-card-title">Create First Orchestration</span>
+        <span className="deck-empty-card-title">Add Orchestration</span>
         <span className="deck-empty-card-desc">
           Start the deck by creating a orchestration for your codebase
         </span>
       </div>
     </button>
     <div className="deck-empty-card">
-      <span className="deck-empty-card-icon deck-empty-card-icon--terminal">
-        &gt;_
-      </span>
+      <span className="deck-empty-card-icon deck-empty-card-icon--terminal">&gt;_</span>
       <div className="deck-empty-card-text">
         <span className="deck-empty-card-title">Open Agent</span>
         <span className="deck-empty-card-desc">
@@ -63,21 +59,9 @@ export const ActionCards = ({
               aria-haspopup="menu"
               onClick={() => setAgentMenuOpen((p: boolean) => !p)}
             >
-              {
-                AGENT_PROVIDER_OPTIONS.find((o) => o.value === selectedAgent)
-                  ?.label
-              }
-              <svg
-                className="deck-empty-agent-chevron"
-                viewBox="0 0 10 6"
-                aria-hidden="true"
-              >
-                <path
-                  d="M1 1l4 4 4-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
+              {AGENT_PROVIDER_OPTIONS.find((o) => o.value === selectedAgent)?.label}
+              <svg className="deck-empty-agent-chevron" viewBox="0 0 10 6" aria-hidden="true">
+                <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
               </svg>
             </button>
             {agentMenuOpen && (
@@ -116,12 +100,10 @@ export const ActionCards = ({
         </div>
       </div>
     </div>
-    <button type="button" className="deck-empty-card" onClick={onAddManually}>
-      <span className="deck-empty-card-icon deck-empty-card-icon--terminal">
-        +
-      </span>
+    <button type="button" className="deck-empty-card" onClick={onAdd}>
+      <span className="deck-empty-card-icon deck-empty-card-icon--terminal">+</span>
       <div className="deck-empty-card-text">
-        <span className="deck-empty-card-title">Add Orchestration Manually</span>
+        <span className="deck-empty-card-title">Add Another</span>
         <span className="deck-empty-card-desc">
           Create a custom orchestration with your own configuration
         </span>

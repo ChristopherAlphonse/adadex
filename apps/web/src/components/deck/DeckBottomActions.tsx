@@ -1,24 +1,15 @@
 import { useState } from "react";
 
 export type DeckBottomActionsProps = {
-  onClearAll: () => void;
   onAddNew?: () => void;
+  onClearAll: () => void;
 };
 
-export const DeckBottomActions = ({ onClearAll, onAddNew }: DeckBottomActionsProps) => {
+export const DeckBottomActions = ({ onClearAll }: DeckBottomActionsProps) => {
   const [confirmingClear, setConfirmingClear] = useState(false);
 
   return (
     <div className="deck-sidebar-clear">
-      {onAddNew && (
-        <button
-          type="button"
-          className="deck-bottom-clear-btn"
-          onClick={onAddNew}
-        >
-          + Add New
-        </button>
-      )}
       {confirmingClear ? (
         <div className="deck-bottom-clear-confirm">
           <span className="deck-bottom-clear-label">Clear all orchestrations?</span>

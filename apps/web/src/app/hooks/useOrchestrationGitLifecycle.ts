@@ -92,7 +92,9 @@ const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSna
   };
 };
 
-const parseOrchestrationPullRequest = (payload: unknown): CoordinationPullRequestSnapshot | null => {
+const parseOrchestrationPullRequest = (
+  payload: unknown,
+): CoordinationPullRequestSnapshot | null => {
   if (payload === null || payload === undefined || typeof payload !== "object") {
     return null;
   }
@@ -251,32 +253,44 @@ export const useOrchestrationGitLifecycle = ({
     const activeOrchestrationIds = new Set(columns.map((column) => column.coordinationId));
     setGitStatusByOrchestrationId((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) =>
+          activeOrchestrationIds.has(coordinationId),
+        ),
       ),
     );
     setGitStatusLoadingByOrchestrationId((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) =>
+          activeOrchestrationIds.has(coordinationId),
+        ),
       ),
     );
     setGitStatusAttemptedOrchestrationIds((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) =>
+          activeOrchestrationIds.has(coordinationId),
+        ),
       ),
     );
     setPullRequestByOrchestrationId((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) =>
+          activeOrchestrationIds.has(coordinationId),
+        ),
       ),
     );
     setPullRequestLoadingByOrchestrationId((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) =>
+          activeOrchestrationIds.has(coordinationId),
+        ),
       ),
     );
     setPullRequestAttemptedOrchestrationIds((current) =>
       Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) => activeOrchestrationIds.has(coordinationId)),
+        Object.entries(current).filter(([coordinationId]) =>
+          activeOrchestrationIds.has(coordinationId),
+        ),
       ),
     );
     if (openGitOrchestrationId && !activeOrchestrationIds.has(openGitOrchestrationId)) {
@@ -313,10 +327,17 @@ export const useOrchestrationGitLifecycle = ({
         [coordinationId]: true,
       }));
       void fetchOrchestrationPullRequest(coordinationId).catch((error: unknown) => {
-        console.warn(`[git] Failed to fetch pull request for orchestration ${coordinationId}:`, error);
+        console.warn(
+          `[git] Failed to fetch pull request for orchestration ${coordinationId}:`,
+          error,
+        );
       });
     }
-  }, [fetchOrchestrationPullRequest, pullRequestAttemptedOrchestrationIds, worktreeOrchestrationIds]);
+  }, [
+    fetchOrchestrationPullRequest,
+    pullRequestAttemptedOrchestrationIds,
+    worktreeOrchestrationIds,
+  ]);
 
   const openOrchestrationGitActions = useCallback(
     (coordinationId: string) => {
@@ -497,9 +518,13 @@ export const useOrchestrationGitLifecycle = ({
   }, [runPullRequestMutation]);
 
   const openGitOrchestrationStatus =
-    openGitOrchestrationId !== null ? (gitStatusByOrchestrationId[openGitOrchestrationId] ?? null) : null;
+    openGitOrchestrationId !== null
+      ? (gitStatusByOrchestrationId[openGitOrchestrationId] ?? null)
+      : null;
   const openGitOrchestrationPullRequest =
-    openGitOrchestrationId !== null ? (pullRequestByOrchestrationId[openGitOrchestrationId] ?? null) : null;
+    openGitOrchestrationId !== null
+      ? (pullRequestByOrchestrationId[openGitOrchestrationId] ?? null)
+      : null;
   const isGitDialogLoading =
     openGitOrchestrationId !== null
       ? (gitStatusLoadingByOrchestrationId[openGitOrchestrationId] ?? false) ||

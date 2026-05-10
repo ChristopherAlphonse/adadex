@@ -1,7 +1,4 @@
-import type {
-  WorkspaceSetupSnapshot,
-  WorkspaceSetupStepId,
-} from "@adadex/core";
+import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@adadex/core";
 import { Minimize2, X } from "lucide-react";
 
 import { MascotSprite } from "../MascotSprite";
@@ -21,10 +18,7 @@ type WorkspaceSetupCardProps = {
   onDismiss?: () => void;
 };
 
-const buildStepSummary = (
-  stepId: WorkspaceSetupStepId,
-  description: string,
-) => {
+const buildStepSummary = (stepId: WorkspaceSetupStepId, description: string) => {
   if (stepId === "create-coordinations") {
     return "Launch Codex so it can plan and create your first coordinations.";
   }
@@ -83,8 +77,7 @@ export const WorkspaceSetupCard = ({
       <div className="workspace-setup-card-copy">
         <h2 className="workspace-setup-card-title">Workspace Setup</h2>
         <p className="workspace-setup-card-desc">
-          Run each step explicitly. Adadex only marks it done after the
-          workspace is checked again.
+          Run each step explicitly. Adadex only marks it done after the workspace is checked again.
         </p>
       </div>
     </header>
@@ -94,31 +87,19 @@ export const WorkspaceSetupCard = ({
     <div className="workspace-setup-step-list">
       {(workspaceSetup?.steps ?? []).map((step) => {
         const isCreateCoordinationsStep = step.id === "create-coordinations";
-        const buttonLabel = isCreateCoordinationsStep
-          ? "Launch Codex"
-          : step.actionLabel;
-        const isButtonDisabled = isCreateCoordinationsStep
-          ? isLaunchingAgent
-          : isLoading;
+        const buttonLabel = isCreateCoordinationsStep ? "Launch Codex" : step.actionLabel;
+        const isButtonDisabled = isCreateCoordinationsStep ? isLaunchingAgent : isLoading;
         const isButtonRunning = isCreateCoordinationsStep
           ? isLaunchingAgent
           : isRunningStepId === step.id;
 
         return (
-          <article
-            key={step.id}
-            className="workspace-setup-step"
-            data-complete={step.complete}
-          >
+          <article key={step.id} className="workspace-setup-step" data-complete={step.complete}>
             <div className="workspace-setup-step-main">
               <div className="workspace-setup-step-title-row">
                 <span className="workspace-setup-step-title">{step.title}</span>
                 <span className="workspace-setup-step-state">
-                  {step.complete
-                    ? "Done"
-                    : step.required
-                      ? "Required"
-                      : "Optional"}
+                  {step.complete ? "Done" : step.required ? "Required" : "Optional"}
                 </span>
               </div>
               <p className="workspace-setup-step-desc">

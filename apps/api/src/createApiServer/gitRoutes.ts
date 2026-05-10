@@ -64,7 +64,10 @@ export const handleOrchestrationGitRoute: ApiRouteHandler = async (
         return true;
       }
 
-      const payload = runtime.commitOrchestrationWorktree(coordinationId, commitMessageResult.message);
+      const payload = runtime.commitOrchestrationWorktree(
+        coordinationId,
+        commitMessageResult.message,
+      );
       if (!payload) {
         writeJson(response, 404, { error: "Orchestration not found." }, corsOrigin);
         return true;
