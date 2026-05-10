@@ -10,12 +10,6 @@
     "enabled": true,
     "rules": {
       "recommended": true,
-      "complexity": {
-        "noUnusedFunctionParameters": "error"
-      },
-      "correctness": {
-        "noUnusedVariables": "error"
-      },
       "style": {
         "noNonNullAssertion": "error"
       },
