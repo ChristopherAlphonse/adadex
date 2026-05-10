@@ -5,9 +5,7 @@
 const s = (codes: readonly number[]) => String.fromCharCode(...codes);
 
 /** Former deck.json nested map key (read-only migration). */
-export const LEGACY_DECK_STATE_MAP_KEY = s([
-  116, 101, 110, 116, 97, 99, 108, 101, 115,
-]);
+export const LEGACY_DECK_STATE_MAP_KEY = s([116, 101, 110, 116, 97, 99, 108, 101, 115]);
 
 /** Former deck registry list field (read-only migration). */
 export const LEGACY_DECK_REGISTRY_LIST_KEY = LEGACY_DECK_STATE_MAP_KEY;

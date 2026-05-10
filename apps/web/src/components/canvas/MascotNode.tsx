@@ -31,7 +31,7 @@ const splitLabel = (label: string): [string] | [string, string] => {
   ];
 };
 
-const ANIMATIONS: MascotAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
+const ANIMATIONS: MascotAnimation[] = ["sway", "walk", "jog", "float", "swim-up"];
 const EXPRESSIONS: MascotExpression[] = ["normal", "happy", "angry", "surprised"];
 const ACCESSORIES: MascotAccessory[] = [
   "none",

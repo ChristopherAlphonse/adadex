@@ -297,7 +297,7 @@ const COLORS = [
   "#00fff7",
   "#ff9500",
 ];
-const ANIMATIONS = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
+const ANIMATIONS = ["sway", "walk", "jog", "float", "swim-up"];
 const EXPRESSIONS = ["normal", "happy", "angry", "surprised"];
 const ACCESSORIES = ["none", "none", "long", "mohawk", "side-sweep", "curly"];
 const HAIR_COLORS = [
@@ -519,7 +519,10 @@ const terminalPrune = async () => {
       method: "POST",
       headers: { Accept: "application/json" },
     });
-    const data = (await response.json()) as { prunedTerminalIds?: string[]; error?: unknown };
+    const data = (await response.json()) as {
+      prunedTerminalIds?: string[];
+      error?: unknown;
+    };
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
       process.exit(1);

@@ -83,7 +83,8 @@ export const readWorkspaceSetupSnapshot = (
     {
       id: "ensure-gitignore",
       title: "Ignore local planning files",
-      description: "Add .adadex/ and .planning/ to .gitignore, or create .gitignore when it is missing.",
+      description:
+        "Add .adadex/ and .planning/ to .gitignore, or create .gitignore when it is missing.",
       complete: hasGitignore,
       required: true,
       actionLabel: "Update .gitignore",

@@ -6,8 +6,8 @@ import type { PrimaryNavIndex } from "../constants";
 import { MIN_SIDEBAR_WIDTH, UI_STATE_SAVE_DEBOUNCE_MS, isPrimaryNavIndex } from "../constants";
 import {
   DEFAULT_TERMINAL_COMPLETION_SOUND,
-  isTerminalCompletionSoundId,
   type TerminalCompletionSoundId,
+  isTerminalCompletionSoundId,
 } from "../notificationSounds";
 import { retainActiveTerminalEntries, retainActiveTerminalIds } from "../terminalState";
 import type { FrontendUiStateSnapshot, TerminalView } from "../types";
@@ -317,10 +317,7 @@ export const usePersistedUiState = ({
         canvasTerminalsPanelWidth: snapshot.canvasTerminalsPanelWidth ?? null,
       });
 
-      if (
-        snapshot.activePrimaryNav !== undefined &&
-        isPrimaryNavIndex(snapshot.activePrimaryNav)
-      ) {
+      if (snapshot.activePrimaryNav !== undefined && isPrimaryNavIndex(snapshot.activePrimaryNav)) {
         setActivePrimaryNav(snapshot.activePrimaryNav);
       }
 
@@ -381,7 +378,9 @@ export const usePersistedUiState = ({
     setMinimizedTerminalIds((current) => retainActiveTerminalIds(current, activeTerminalIds));
     setTerminalWidths((current) => retainActiveTerminalEntries(current, activeTerminalIds));
     setCanvasOpenTerminalIds((current) => retainActiveTerminalIds(current, activeTerminalIds));
-    setCanvasOpenCoordinationIds((current) => retainActiveTerminalIds(current, activeOrchestrationIds));
+    setCanvasOpenCoordinationIds((current) =>
+      retainActiveTerminalIds(current, activeOrchestrationIds),
+    );
   }, [columns]);
 
   useEffect(() => {

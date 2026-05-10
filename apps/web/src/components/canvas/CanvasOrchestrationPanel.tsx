@@ -66,7 +66,10 @@ export const CanvasOrchestrationPanel = ({
   onNavigateToConversation,
   onRefreshOrchestrationData,
 }: CanvasOrchestrationPanelProps) => {
-  const visuals = useMemo(() => (orchestration ? deriveMascotVisuals(orchestration) : null), [orchestration]);
+  const visuals = useMemo(
+    () => (orchestration ? deriveMascotVisuals(orchestration) : null),
+    [orchestration],
+  );
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [addingTodo, setAddingTodo] = useState(false);

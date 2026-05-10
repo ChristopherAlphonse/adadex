@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatColorForDisplay, MASCOT_COLORS } from "../src/app/mascotPalette";
+import { MASCOT_COLORS, formatColorForDisplay } from "../src/app/mascotPalette";
 
 describe("mascotPalette", () => {
   it("lists saturated coordination colors (no pale mint)", () => {

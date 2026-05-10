@@ -406,7 +406,10 @@ export const useCanvasGraphData = ({
     const parentNode = nodes.find((n) => n.id === orchestrationNodeId);
     const parentX = parentNode?.x ?? 0;
     const parentY = parentNode?.y ?? 0;
-    const color = orchestrationColor(session.coordinationId, deckMap.get(session.coordinationId)?.color);
+    const color = orchestrationColor(
+      session.coordinationId,
+      deckMap.get(session.coordinationId)?.color,
+    );
     const jitter = () => (Math.random() - 0.5) * 60;
 
     const sessionNode: GraphNode = {

@@ -6,13 +6,12 @@ import type { MascotVisuals } from "./mascotVisuals";
 
 // ─── Status styling ──────────────────────────────────────────────────────────
 
-export const STATUS_LABELS: Record<DeckCoordinationSummary["status"], string> =
-  {
-    idle: "idle",
-    active: "active",
-    blocked: "blocked",
-    "needs-review": "review",
-  };
+export const STATUS_LABELS: Record<DeckCoordinationSummary["status"], string> = {
+  idle: "idle",
+  active: "active",
+  blocked: "blocked",
+  "needs-review": "review",
+};
 
 // ─── TodoList ────────────────────────────────────────────────────────────────
 
@@ -23,9 +22,7 @@ export const TodoList = ({
 }: {
   items: { text: string; done: boolean }[];
   coordinationId: string;
-  onToggle?:
-    | ((coordinationId: string, itemIndex: number, done: boolean) => void)
-    | undefined;
+  onToggle?: ((coordinationId: string, itemIndex: number, done: boolean) => void) | undefined;
 }) => {
   let lastDoneIndex = -1;
   for (let idx = items.length - 1; idx >= 0; idx--) {
@@ -69,15 +66,11 @@ export type OrchestrationPodProps = {
   isFocused: boolean;
   activeFileName?: string | undefined;
   onVaultFileClick?: (fileName: string) => void;
-  onVaultBrowse?: () => void;`n  onClick?: () => void;
+  onVaultBrowse?: () => void;
   onClose?: () => void;
   onDelete?: () => void;
   isDeleting?: boolean | undefined;
-  onTodoToggle?: (
-    coordinationId: string,
-    itemIndex: number,
-    done: boolean,
-  ) => void;
+  onTodoToggle?: (coordinationId: string, itemIndex: number, done: boolean) => void;
   availableSkills: DeckAvailableSkill[];
   isSavingSkills?: boolean | undefined;
   onSaveSuggestedSkills?:
@@ -106,18 +99,16 @@ export const OrchestrationPod = ({
       : 0;
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
-  const [draftSkills, setDraftSkills] = useState<string[]>(
-    orchestration.suggestedSkills,
-  );
+  const [draftSkills, setDraftSkills] = useState<string[]>(orchestration.suggestedSkills);
 
   useEffect(() => {
     setDraftSkills(orchestration.suggestedSkills);
   }, [orchestration.suggestedSkills]);
 
   const availableSkillNames = availableSkills.map((skill) => skill.name);
-  const skillNames = [
-    ...new Set([...availableSkillNames, ...draftSkills]),
-  ].sort((a, b) => a.localeCompare(b));
+  const skillNames = [...new Set([...availableSkillNames, ...draftSkills])].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   const toggleSkill = (skillName: string) => {
     setDraftSkills((current) =>
@@ -128,10 +119,7 @@ export const OrchestrationPod = ({
   };
 
   const handleSaveSkills = async () => {
-    const saved = await onSaveSuggestedSkills?.(
-      orchestration.coordinationId,
-      draftSkills,
-    );
+    const saved = await onSaveSuggestedSkills?.(orchestration.coordinationId, draftSkills);
     if (saved) {
       setIsEditingSkills(false);
     }
@@ -145,11 +133,7 @@ export const OrchestrationPod = ({
     >
       <header className="deck-pod-header">
         {isFocused && (
-          <button
-            type="button"
-            className="deck-pod-btn deck-pod-btn--secondary"
-            onClick={onClose}
-          >
+          <button type="button" className="deck-pod-btn deck-pod-btn--secondary" onClick={onClose}>
             ← Back
           </button>
         )}
@@ -166,11 +150,7 @@ export const OrchestrationPod = ({
         >
           Skills
         </button>
-        <button
-          type="button"
-          className="deck-pod-btn"
-          onClick={() => onVaultBrowse?.()}
-        >
+        <button type="button" className="deck-pod-btn" onClick={() => onVaultBrowse?.()}>
           Vault
         </button>
         {confirmingDelete ? (
@@ -198,11 +178,7 @@ export const OrchestrationPod = ({
             onClick={() => setConfirmingDelete(true)}
             aria-label="Delete orchestration"
           >
-            <svg
-              className="deck-pod-btn-icon"
-              viewBox="0 0 16 16"
-              aria-hidden="true"
-            >
+            <svg className="deck-pod-btn-icon" viewBox="0 0 16 16" aria-hidden="true">
               <path
                 d="M5.5 1.5h5M2 4h12M6 7v5M10 7v5M3.5 4l.75 9.5a1 1 0 001 .9h5.5a1 1 0 001-.9L12.5 4"
                 fill="none"
@@ -224,8 +200,8 @@ export const OrchestrationPod = ({
           <div className="deck-pod-mascot-col">
             <div className="deck-pod-mascot">
               <MascotSprite
-                speedMs={16}
-                size={160}
+                speedMs={100}
+                size={100}
                 color={visuals.color}
                 animation={visuals.animation}
                 expression={visuals.expression}
@@ -250,9 +226,7 @@ export const OrchestrationPod = ({
               ) : (
                 <div className="deck-pod-skills-options">
                   {skillNames.map((skillName) => {
-                    const skill = availableSkills.find(
-                      (entry) => entry.name === skillName,
-                    );
+                    const skill = availableSkills.find((entry) => entry.name === skillName);
                     return (
                       <label key={skillName} className="deck-pod-skill-option">
                         <input
@@ -261,18 +235,13 @@ export const OrchestrationPod = ({
                           onChange={() => toggleSkill(skillName)}
                         />
                         <span className="deck-pod-skill-copy">
-                          <span className="deck-pod-skill-name">
-                            {skillName}
-                          </span>
+                          <span className="deck-pod-skill-name">{skillName}</span>
                           {skill?.description && (
-                            <span className="deck-pod-skill-desc">
-                              {skill.description}
-                            </span>
+                            <span className="deck-pod-skill-desc">{skill.description}</span>
                           )}
                           {!skill && (
                             <span className="deck-pod-skill-desc">
-                              Stored on this orchestration, but not available right
-                              now.
+                              Stored on this orchestration, but not available right now.
                             </span>
                           )}
                         </span>

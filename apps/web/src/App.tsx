@@ -8,8 +8,8 @@ import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShort
 import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
 import { useInitialColumnsHydration } from "./app/hooks/useInitialColumnsHydration";
-import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useOrchestrationGitLifecycle } from "./app/hooks/useOrchestrationGitLifecycle";
+import { usePersistedUiState } from "./app/hooks/usePersistedUiState";
 import { useTerminalCompletionNotification } from "./app/hooks/useTerminalCompletionNotification";
 import { useTerminalMutations } from "./app/hooks/useTerminalMutations";
 import { useTerminalStateReconciliation } from "./app/hooks/useTerminalStateReconciliation";
@@ -329,8 +329,8 @@ export const App = () => {
     conversationsActionPanel !== null ||
     pendingDeleteTerminal !== null ||
     (openGitOrchestrationId !== null &&
-      terminals.find((terminal) => terminal.coordinationId === openGitOrchestrationId)?.workspaceMode ===
-        "worktree");
+      terminals.find((terminal) => terminal.coordinationId === openGitOrchestrationId)
+        ?.workspaceMode === "worktree");
 
   const sidebarActionPanel = hasSidebarActionPanel ? (
     conversationsActionPanel ? (
@@ -630,7 +630,6 @@ export const App = () => {
           />
         </div>
       </section>
-
     </div>
   );
 };

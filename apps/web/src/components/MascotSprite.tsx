@@ -4,7 +4,7 @@ const DEFAULT_SIZE = 224;
 const MARK_UNITS = 16;
 const OUTLINE_COLOR = "#050505";
 
-export type MascotAnimation = "idle" | "sway" | "walk" | "jog" | "swim-up" | "bounce" | "float";
+export type MascotAnimation = "idle" | "sway" | "walk" | "jog" | "swim-up" | "float";
 export type MascotExpression = "normal" | "happy" | "sleepy" | "angry" | "surprised";
 export type MascotAccessory = "none" | "long" | "mohawk" | "side-sweep" | "curly" | "afro";
 
@@ -54,8 +54,7 @@ const getMotionOffset = (animation: MascotAnimation, frame: number, unit: number
         rotation: sway * 0.1,
         pulse: 0,
       };
-    case "bounce":
-      return { x: 0, y: Math.abs(Math.sin(t * 1.8)) * unit * 0.45, rotation: 0, pulse: 0.06 };
+
     case "float":
       return { x: sway * 0.55, y: bob, rotation: sway * 0.06, pulse: 0.035 };
     case "swim-up":
@@ -66,7 +65,12 @@ const getMotionOffset = (animation: MascotAnimation, frame: number, unit: number
         pulse: 0.04,
       };
     default:
-      return { x: sway * 0.7, y: bob * 0.45, rotation: sway * 0.06, pulse: 0.025 };
+      return {
+        x: sway * 0.7,
+        y: bob * 0.45,
+        rotation: sway * 0.06,
+        pulse: 0.025,
+      };
   }
 };
 
@@ -302,7 +306,11 @@ const drawMark = (
   const lineWidth = Math.max(2, unit * 0.95);
   const outlineWidth = lineWidth + Math.max(2, unit * 0.38);
   /** Seven arms, uneven lengths — breaks symmetry that read like a hexagram + halo. */
-  const armSpecs: ReadonlyArray<{ angle: number; reach: number; curl: number }> = [
+  const armSpecs: ReadonlyArray<{
+    angle: number;
+    reach: number;
+    curl: number;
+  }> = [
     { angle: 2.15, reach: 1.05, curl: 0.42 },
     { angle: 2.38, reach: 1.22, curl: 0.38 },
     { angle: 2.58, reach: 0.98, curl: 0.5 },
@@ -418,7 +426,7 @@ export const MascotSprite = ({
   hairColor,
   scale,
   size = DEFAULT_SIZE,
-  speedMs = 90,
+  speedMs = 300,
   className,
   color,
   testId,

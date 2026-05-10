@@ -85,7 +85,7 @@ type CanvasPrimaryViewProps = {
     terminalId: string,
     terminalName: string,
     workspaceMode?: string,
-  ) => boolean | Promise<boolean> | void;
+  ) => boolean | Promise<boolean> | undefined;
   onDeleteActiveSession?: (
     terminalId: string,
     terminalName: string,

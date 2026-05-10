@@ -80,7 +80,9 @@ describe("Terminal", () => {
   it("renders terminal with the provided terminal label", async () => {
     vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
 
-    render(<Terminal terminalId="orchestration-a-agent-1" terminalLabel="orchestration-a-agent-1" />);
+    render(
+      <Terminal terminalId="orchestration-a-agent-1" terminalLabel="orchestration-a-agent-1" />,
+    );
 
     expect(screen.getByText("orchestration-a-agent-1")).toBeInTheDocument();
   });

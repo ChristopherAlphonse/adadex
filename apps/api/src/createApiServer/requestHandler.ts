@@ -17,11 +17,11 @@ import {
   handleConversationsCollectionRoute,
 } from "./conversationRoutes";
 import {
-  handleDeckSkillsRoute,
   handleDeckOrchestrationItemRoute,
   handleDeckOrchestrationSkillsRoute,
   handleDeckOrchestrationSwarmRoute,
   handleDeckOrchestrationsRoute,
+  handleDeckSkillsRoute,
   handleDeckTodoAddRoute,
   handleDeckTodoDeleteRoute,
   handleDeckTodoEditRoute,

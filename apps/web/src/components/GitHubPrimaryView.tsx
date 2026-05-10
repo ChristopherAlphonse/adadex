@@ -27,10 +27,7 @@ const GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET = 18;
 const GITHUB_RECENT_COMMITS_LIMIT = 50;
 
 /** Plain-text export for download (UTF-8 `.txt`). */
-export const buildGitHistoryText = (
-  commits: GitHubRecentCommit[],
-  repoLabel: string,
-): string => {
+export const buildGitHistoryText = (commits: GitHubRecentCommit[], repoLabel: string): string => {
   const title = repoLabel.trim() || "repository";
   const lines: string[] = [`Git history — ${title}`, `Commits: ${commits.length}`, ""];
   for (let i = 0; i < commits.length; i++) {

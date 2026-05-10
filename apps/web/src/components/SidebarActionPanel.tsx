@@ -106,7 +106,8 @@ export const SidebarActionPanel = ({
         onCleanupWorktree={() => {
           requestDeleteTerminal(
             openGitOrchestrationTerminal.terminalId,
-            openGitOrchestrationTerminal.coordinationName ?? openGitOrchestrationTerminal.coordinationId,
+            openGitOrchestrationTerminal.coordinationName ??
+              openGitOrchestrationTerminal.coordinationId,
             {
               workspaceMode: openGitOrchestrationTerminal.workspaceMode ?? "shared",
               intent: "cleanup-worktree",
@@ -116,7 +117,8 @@ export const SidebarActionPanel = ({
         }}
         coordinationId={openGitOrchestrationTerminal.coordinationId}
         coordinationName={
-          openGitOrchestrationTerminal.coordinationName ?? openGitOrchestrationTerminal.coordinationId
+          openGitOrchestrationTerminal.coordinationName ??
+          openGitOrchestrationTerminal.coordinationId
         }
       />
     );

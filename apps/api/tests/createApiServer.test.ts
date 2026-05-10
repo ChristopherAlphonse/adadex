@@ -29,7 +29,10 @@ vi.mock("node-pty", () => ({
   spawn: spawnMock,
 }));
 
-import { LEGACY_DECK_NEXT_NUMBER_KEY, LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY } from "@adadex/core";
+import {
+  LEGACY_DECK_NEXT_NUMBER_KEY,
+  LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY,
+} from "@adadex/core";
 
 import { createApiServer } from "../src/createApiServer";
 import type { GitHubRepoSummarySnapshot } from "../src/githubRepoSummary";

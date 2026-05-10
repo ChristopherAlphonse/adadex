@@ -167,12 +167,7 @@ export const AddOrchestrationForm = ({
                           checked={checked}
                           onChange={() => toggleSkill(skill.name)}
                         />
-                        <span className="deck-add-form-skill-copy">
-                          <span className="deck-add-form-skill-name">{skill.name}</span>
-                          {skill.description && (
-                            <span className="deck-add-form-skill-desc">{skill.description}</span>
-                          )}
-                        </span>
+                        <span className="deck-add-form-skill-name">{skill.name}</span>
                       </label>
                     );
                   })}

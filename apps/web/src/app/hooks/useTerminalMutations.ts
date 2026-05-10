@@ -192,40 +192,43 @@ export const useTerminalMutations = ({
     [setLoadError],
   );
 
-  const closeTerminal = useCallback(async (terminalId: string) => {
-    try {
-      setLoadError(null);
-      setIsDeletingTerminalId(terminalId);
-      const encodedTerminalId = encodeURIComponent(terminalId);
-      const response = await fetch(`/api/terminals/${encodedTerminalId}`, {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-        },
-      });
+  const closeTerminal = useCallback(
+    async (terminalId: string) => {
+      try {
+        setLoadError(null);
+        setIsDeletingTerminalId(terminalId);
+        const encodedTerminalId = encodeURIComponent(terminalId);
+        const response = await fetch(`/api/terminals/${encodedTerminalId}`, {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error(`Unable to delete terminal (${response.status})`);
+        if (!response.ok) {
+          throw new Error(`Unable to delete terminal (${response.status})`);
+        }
+
+        if (editingTerminalId === terminalId) {
+          setEditingTerminalId(null);
+          setTerminalNameDraft("");
+        }
+        setMinimizedTerminalIds((current) =>
+          current.filter((currentTerminalId) => currentTerminalId !== terminalId),
+        );
+
+        const nextColumns = await readColumns();
+        setColumns(nextColumns);
+        return true;
+      } catch {
+        setLoadError("Unable to delete terminal.");
+        return false;
+      } finally {
+        setIsDeletingTerminalId(null);
       }
-
-      if (editingTerminalId === terminalId) {
-        setEditingTerminalId(null);
-        setTerminalNameDraft("");
-      }
-      setMinimizedTerminalIds((current) =>
-        current.filter((currentTerminalId) => currentTerminalId !== terminalId),
-      );
-
-      const nextColumns = await readColumns();
-      setColumns(nextColumns);
-      return true;
-    } catch {
-      setLoadError("Unable to delete terminal.");
-      return false;
-    } finally {
-      setIsDeletingTerminalId(null);
-    }
-  }, [editingTerminalId, readColumns, setColumns, setLoadError, setMinimizedTerminalIds]);
+    },
+    [editingTerminalId, readColumns, setColumns, setLoadError, setMinimizedTerminalIds],
+  );
 
   const confirmDeleteTerminal = useCallback(async () => {
     if (!pendingDeleteTerminal) {

@@ -7,7 +7,7 @@ import type { MascotAccessory, MascotAnimation, MascotExpression } from "../Masc
 
 export { MASCOT_COLORS };
 
-export const ANIMATIONS: MascotAnimation[] = ["sway", "walk", "jog", "bounce", "float", "swim-up"];
+export const ANIMATIONS: MascotAnimation[] = ["sway", "walk", "jog", "float", "swim-up"];
 export const EXPRESSIONS: MascotExpression[] = ["normal", "happy", "angry", "surprised"];
 export const ACCESSORIES: MascotAccessory[] = [
   "none",

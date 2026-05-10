@@ -410,7 +410,11 @@ describe("CanvasPrimaryView", () => {
     const onOrchestrationAction = vi.fn().mockResolvedValue(undefined);
 
     const { container } = render(
-      <CanvasPrimaryView columns={[]} isUiStateHydrated onOrchestrationAction={onOrchestrationAction} />,
+      <CanvasPrimaryView
+        columns={[]}
+        isUiStateHydrated
+        onOrchestrationAction={onOrchestrationAction}
+      />,
     );
 
     const orchestrationNode = container.querySelector('[data-node-id="t:orchestration-a"]');
@@ -424,7 +428,10 @@ describe("CanvasPrimaryView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Update To-Do List" }));
 
     await waitFor(() => {
-      expect(onOrchestrationAction).toHaveBeenCalledWith("orchestration-a", "coordination-reorganize-todos");
+      expect(onOrchestrationAction).toHaveBeenCalledWith(
+        "orchestration-a",
+        "coordination-reorganize-todos",
+      );
     });
   });
 });
