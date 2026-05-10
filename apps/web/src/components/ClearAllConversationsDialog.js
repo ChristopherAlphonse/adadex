@@ -1,0 +1,3 @@
+import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
+import { ConfirmationDialog } from "./ui/ConfirmationDialog";
+export const ClearAllConversationsDialog = ({ sessionCount, isClearing, onCancel, onConfirm, }) => (_jsx(ConfirmationDialog, { title: "Clear All Conversations", ariaLabel: "Clear all conversations confirmation", message: _jsxs(_Fragment, { children: ["Delete all ", _jsx("strong", { children: sessionCount }), " conversation", sessionCount === 1 ? "" : "s", " and their transcript data."] }), warning: "This action cannot be undone.", confirmLabel: isClearing ? "Clearing..." : "Clear All", isConfirmDisabled: isClearing, isBusy: isClearing, cancelAriaLabel: "Cancel clear all", onCancel: onCancel, onConfirm: onConfirm }));

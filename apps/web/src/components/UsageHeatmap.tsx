@@ -185,7 +185,6 @@ const BarChartView = ({
   maxTokens,
   containerWidth,
   containerHeight,
-  hoveredBar,
   setHoveredBar,
 }: {
   bars: BarData[];
@@ -405,7 +404,6 @@ const HeatmapView = ({
   bars,
   containerWidth,
   containerHeight,
-  hoveredBar,
   setHoveredBar,
 }: {
   bars: BarData[];

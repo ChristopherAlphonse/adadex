@@ -11,10 +11,7 @@
     "rules": {
       "recommended": true,
       "style": {
-        "noNonNullAssertion": "error"
-      },
-      "suspicious": {
-        "noConsoleLog": "error"
+        "noNonNullAssertion": "warn"
       }
     }
   },

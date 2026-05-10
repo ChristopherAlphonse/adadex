@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { GITHUB_SPARKLINE_HEIGHT, GITHUB_SPARKLINE_WIDTH } from "../app/constants";
+import {
+  GITHUB_SPARKLINE_HEIGHT,
+  GITHUB_SPARKLINE_WIDTH,
+} from "../app/constants";
 import type { UsageChartData } from "../app/hooks/useUsageHeatmapPolling";
 import type { CodexUsageSnapshot } from "../app/types";
 import { MascotSprite } from "./MascotSprite";
@@ -23,13 +26,16 @@ const buildUsageBars = (data: UsageChartData): MiniBar[] => {
   const days = Array.isArray(data.days) ? data.days.slice(-30) : [];
   if (days.length === 0) return [];
 
-  const totals = days.map((day) => (typeof day.totalTokens === "number" ? day.totalTokens : 0));
+  const totals = days.map((day) =>
+    typeof day.totalTokens === "number" ? day.totalTokens : 0,
+  );
   const max = Math.max(...totals, 1);
   const barSlot = MINI_USAGE_WIDTH / days.length;
   const barWidth = Math.max(1, barSlot - MINI_BAR_GAP);
 
   return days.map((day, index) => {
-    const totalTokens = typeof day.totalTokens === "number" ? day.totalTokens : 0;
+    const totalTokens =
+      typeof day.totalTokens === "number" ? day.totalTokens : 0;
     const h = Math.max(0.5, (totalTokens / max) * (MINI_USAGE_HEIGHT - 2));
     return {
       x: index * barSlot,
@@ -117,7 +123,9 @@ const UsageRail = ({
     >
       <span className="console-status-usage-row-meta">
         <span className="console-status-usage-row-label">{label}</span>
-        <span className="console-status-usage-row-value">{pct(percent, loading)}</span>
+        <span className="console-status-usage-row-value">
+          {pct(percent, loading)}
+        </span>
       </span>
       <span className="console-status-usage-rail">
         <span
@@ -147,7 +155,10 @@ export const RuntimeStatusStrip = ({
   isRefreshingCodexUsage = false,
   onRefreshCodexUsage,
 }: RuntimeStatusStripProps) => {
-  const usageBars = useMemo(() => (usageData ? buildUsageBars(usageData) : []), [usageData]);
+  const usageBars = useMemo(
+    () => (usageData ? buildUsageBars(usageData) : []),
+    [usageData],
+  );
   const codexUsageState = usageState(codexUsage);
   const [showRefreshSpin, setShowRefreshSpin] = useState(false);
   const refreshStartedAtRef = useRef<number | null>(null);
@@ -189,11 +200,13 @@ export const RuntimeStatusStrip = ({
   return (
     <section className="console-status-strip" aria-label="Runtime status strip">
       <div className="console-status-main">
-        <MascotSprite className="console-status-mascot-icon" speedMs={16} size={24} />
         <span className="console-status-brand">ADADEX</span>
       </div>
-      <div className="console-status-charts">
-        <div className="console-status-sparkline" aria-label="Commits per day over last 30 days">
+      {/* <div className="console-status-charts">
+        <div
+          className="console-status-sparkline"
+          aria-label="Commits per day over last 30 days"
+        >
           <div className="console-status-sparkline-chart">
             <svg
               viewBox={`0 0 ${GITHUB_SPARKLINE_WIDTH} ${GITHUB_SPARKLINE_HEIGHT}`}
@@ -202,13 +215,21 @@ export const RuntimeStatusStrip = ({
               <polyline points={sparklinePoints} />
             </svg>
           </div>
-          <span className="console-status-sparkline-label">COMMITS/DAY · LAST 30 DAYS</span>
+          <span className="console-status-sparkline-label">
+            COMMITS/DAY · LAST 30 DAYS
+          </span>
         </div>
-        <div className="console-status-usage-mini" aria-label="Agent token usage last 30 days">
+        <div
+          className="console-status-usage-mini"
+          aria-label="Agent token usage last 30 days"
+        >
           {usageBars.length > 0 ? (
             <>
               <div className="console-status-usage-mini-chart">
-                <svg viewBox={`0 0 ${MINI_USAGE_WIDTH} ${MINI_USAGE_HEIGHT}`} role="presentation">
+                <svg
+                  viewBox={`0 0 ${MINI_USAGE_WIDTH} ${MINI_USAGE_HEIGHT}`}
+                  role="presentation"
+                >
                   {usageBars.map((bar, index) => (
                     <rect
                       key={`${index}-${bar.x}-${bar.height}`}
@@ -229,8 +250,11 @@ export const RuntimeStatusStrip = ({
             <span className="console-status-sparkline-label">USAGE —</span>
           )}
         </div>
-      </div>
-      <div className="console-status-codex-usage" aria-label="Codex usage limits">
+      </div> */}
+      <div
+        className="console-status-codex-usage"
+        aria-label="Codex usage limits"
+      >
         {onRefreshCodexUsage && (
           <button
             type="button"
@@ -253,13 +277,17 @@ export const RuntimeStatusStrip = ({
             label={codexUsageState.label}
             percent={codexUsageState.sessionPercent}
             loading={codexUsageState.loading}
-            {...(codexUsageState.message ? { title: codexUsageState.message } : {})}
+            {...(codexUsageState.message
+              ? { title: codexUsageState.message }
+              : {})}
           />
           <UsageRail
             label="Week (all)"
             percent={codexUsageState.weekPercent}
             loading={codexUsageState.loading}
-            {...(codexUsageState.message ? { title: codexUsageState.message } : {})}
+            {...(codexUsageState.message
+              ? { title: codexUsageState.message }
+              : {})}
           />
         </div>
       </div>

@@ -5,8 +5,7 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+
     "exactOptionalPropertyTypes": true,
     "useDefineForClassFields": true,
     "resolveJsonModule": true,

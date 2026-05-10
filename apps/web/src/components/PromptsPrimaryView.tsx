@@ -77,7 +77,7 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
     return () => onSidebarContent?.(null);
   });
   const [newPromptMode, setNewPromptMode] = useState<NewPromptMode>(null);
-  const [isCreatingTerminal, setIsCreatingTerminal] = useState(false);
+  const [, setIsCreatingTerminal] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
 
   const handleNewPrompt = useCallback(async () => {
