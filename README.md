@@ -11,6 +11,23 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-5FA04E?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 
+## Docs
+
+- [Docs Home](docs/index.md)
+- [Installation](docs/getting-started/installation.md)
+- [Quickstart](docs/getting-started/quickstart.md)
+- [Mental Model](docs/concepts/mental-model.md)
+- [Coordination](docs/concepts/coordination.md)
+- [Runtime and API](docs/concepts/runtime-and-api.md)
+- [Working With Todos](docs/guides/working-with-todos.md)
+- [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md)
+- [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md)
+- [CLI Reference](docs/reference/cli.md)
+- [Filesystem Layout](docs/reference/filesystem-layout.md)
+- [API Reference](docs/reference/api.md)
+- [Experimental Features](docs/reference/experimental-features.md)
+- [Troubleshooting](docs/reference/troubleshooting.md)
+- [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -172,24 +189,6 @@ This rename is a **breaking change** for scripts and clients that assumed Octoge
 - **On disk:** Starting the API migrates a legacy workspace when `.octogent/` exists and `.adadex/` does not: project dir `.octogent` → `.adadex`, legacy filenames under `state/` are renamed to `coordinations.json`, agent-facing directories are consolidated under `coordinations/`, and global `~/.octogent` → `~/.adadex` with the same inner renames. Prefer a backup before upgrading production checkouts.
 - **HTTP API:** Deck resources are served under `/api/deck/coordinations/...`. Git helpers use `/api/coordinations/:coordinationId/git/...`.
 - **CLI and env:** Prefer the `adadex` command and `ADADEX_*` variables; many code paths still accept the former `octogent` / `OCTOGENT_*` names for compatibility.
-
-## Docs
-
-- [Docs Home](docs/index.md)
-- [Installation](docs/getting-started/installation.md)
-- [Quickstart](docs/getting-started/quickstart.md)
-- [Mental Model](docs/concepts/mental-model.md)
-- [Coordination](docs/concepts/coordination.md)
-- [Runtime and API](docs/concepts/runtime-and-api.md)
-- [Working With Todos](docs/guides/working-with-todos.md)
-- [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md)
-- [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md)
-- [CLI Reference](docs/reference/cli.md)
-- [Filesystem Layout](docs/reference/filesystem-layout.md)
-- [API Reference](docs/reference/api.md)
-- [Experimental Features](docs/reference/experimental-features.md)
-- [Troubleshooting](docs/reference/troubleshooting.md)
-- [Contributing](CONTRIBUTING.md)
 
 ## Contributor setup
 
