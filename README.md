@@ -31,6 +31,8 @@
 
 </div>
 
+This is my own spin on [OCTOGENT](https://github.com/hesamsheikh/octogent) credits to **Hesam Sheikh**
+
 # Adadex
 
 It's really not fun to have **ten Codex CLI sessions open at once**, constantly switching between them and trying to remember what each one was supposed to do. *Things get blurry fast* when one agent is doing documentation, another is touching the database, another is changing the API, and another is somewhere in the frontend. **Adadex** tries to fix that by giving each job its own <u>scoped context, notes, and task list</u>, while also making it possible for one agent session to **spawn other agent sessions**, assign them work, and communicate with them.
