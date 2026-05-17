@@ -8,6 +8,7 @@ export const AGENT_PROVIDER_OPTIONS: ReadonlyArray<{
 }> = [
   { value: "codex", label: "codex" },
   { value: "opencode", label: "opencode" },
+  { value: "claude", label: "claude" },
 ];
 
 export const readAgentProviderPreference = (): TerminalAgentProvider => {

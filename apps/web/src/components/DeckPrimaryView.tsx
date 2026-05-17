@@ -10,6 +10,7 @@ import { useClickOutside } from "../app/hooks/useClickOutside";
 import { useAgentProviderPreference } from "../app/hooks/useAgentProviderPreference";
 import type { TerminalAgentProvider } from "../app/types";
 import {
+  buildDeckCoordinationAgentUrl,
   buildDeckOrchestrationSkillsUrl,
   buildDeckOrchestrationUrl,
   buildDeckOrchestrationsUrl,
@@ -87,15 +88,7 @@ export const DeckPrimaryView = ({
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
   const agentMenuRef = useRef<HTMLDivElement>(null);
   const [isLaunchingAgent, setIsLaunchingAgent] = useState(false);
-  const [runningSetupStepId, setRunningSetupStepId] = useState<
-    | "initialize-workspace"
-    | "ensure-gitignore"
-    | "check-codex"
-    | "check-git"
-    | "check-curl"
-    | "create-coordinations"
-    | null
-  >(null);
+  const [runningSetupStepId, setRunningSetupStepId] = useState<WorkspaceSetupStepId | null>(null);
 
   // Fetch orchestration list
   const fetchOrchestrations = useCallback(async () => {
@@ -236,15 +229,7 @@ export const DeckPrimaryView = ({
   }, [selectedAgent, fetchOrchestrations]);
 
   const handleRunSetupStep = useCallback(
-    async (
-      stepId:
-        | "initialize-workspace"
-        | "ensure-gitignore"
-        | "check-codex"
-        | "check-git"
-        | "check-curl"
-        | "create-coordinations",
-    ) => {
+    async (stepId: WorkspaceSetupStepId) => {
       setRunningSetupStepId(stepId);
       try {
         await onRunWorkspaceSetupStep(stepId);
@@ -322,6 +307,28 @@ export const DeckPrimaryView = ({
               hairColor: mascot.color,
             },
           }),
+        });
+        if (!response.ok) return false;
+        await fetchOrchestrations();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [fetchOrchestrations],
+  );
+
+  const handleSaveCoordinationAgent = useCallback(
+    async (
+      coordinationId: string,
+      agentProvider: TerminalAgentProvider | null,
+      agentModel: string | null,
+    ) => {
+      try {
+        const response = await fetch(buildDeckCoordinationAgentUrl(coordinationId), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentProvider, agentModel }),
         });
         if (!response.ok) return false;
         await fetchOrchestrations();
@@ -576,6 +583,7 @@ export const DeckPrimaryView = ({
                 isSavingSkills={savingOrchestrationSkillsId === t.coordinationId}
                 onSaveSuggestedSkills={handleOrchestrationSkillsSave}
                 onSaveMascot={handleMascotSave}
+                onSaveAgent={handleSaveCoordinationAgent}
               />
             </div>
           );

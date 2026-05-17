@@ -86,8 +86,15 @@ export const createHookProcessor = (deps: {
     return nextHooks;
   };
 
-  const installHooksInDirectory = (targetCwd: string) => {
-    const targetCodexDir = join(targetCwd, ".codex");
+  const PROVIDER_CONFIG_DIRS: Record<string, string> = {
+    codex: ".codex",
+    claude: ".claude",
+    opencode: ".opencode",
+  };
+
+  const installHooksInDirectory = (targetCwd: string, agentProvider = "codex") => {
+    const configDir = PROVIDER_CONFIG_DIRS[agentProvider] ?? ".codex";
+    const targetCodexDir = join(targetCwd, configDir);
     const targetSettingsPath = join(targetCodexDir, "settings.json");
     const apiBaseUrl = getApiBaseUrl();
 

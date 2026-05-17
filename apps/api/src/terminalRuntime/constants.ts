@@ -11,6 +11,13 @@ export const DEFAULT_AGENT_PROVIDER = "codex" as const;
 export const TERMINAL_BOOTSTRAP_COMMANDS: Record<string, string> = {
   codex: "codex",
   opencode: "opencode",
+  claude: "claude",
+};
+
+export const TERMINAL_MODEL_FLAG: Record<string, string> = {
+  codex: "--model",
+  claude: "--model",
+  opencode: "--model",
 };
 export const TERMINAL_SESSION_IDLE_GRACE_MS = 5 * 60 * 1000;
 export const TERMINAL_SCROLLBACK_MAX_BYTES = 512 * 1024;

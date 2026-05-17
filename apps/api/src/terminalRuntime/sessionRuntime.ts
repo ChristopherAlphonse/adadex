@@ -11,6 +11,7 @@ import {
   DEFAULT_AGENT_PROVIDER,
   TERMINAL_BOOTSTRAP_COMMANDS,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
+  TERMINAL_MODEL_FLAG,
   TERMINAL_SCROLLBACK_MAX_BYTES,
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
@@ -476,8 +477,10 @@ export const createSessionRuntime = ({
 
     const bootstrapCommand =
       TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
-    appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
-    session.pty.write(`${bootstrapCommand}\r`);
+    const agentModel = terminal?.agentModel;
+    const modelFlag = agentModel ? ` ${TERMINAL_MODEL_FLAG[provider] ?? "--model"} ${agentModel}` : "";
+    appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}${modelFlag}`);
+    session.pty.write(`${bootstrapCommand}${modelFlag}\r`);
 
     // Schedule initial prompt injection after the Codex CLI has had time to boot.
     if (session.initialPrompt && !session.isInitialPromptSent) {

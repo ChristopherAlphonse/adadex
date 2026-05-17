@@ -1,4 +1,9 @@
-import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@adadex/core";
+import {
+  type TerminalSnapshot,
+  type WorkspaceSetupStepId,
+  buildTerminalList,
+  isAgentRuntimeState,
+} from "@adadex/core";
 import { type ReactElement, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -94,13 +99,7 @@ const AppShell = () => {
     runWorkspaceSetupStep,
   } = useWorkspaceSetup();
   const [runningWorkspaceSetupStepId, setRunningWorkspaceSetupStepId] = useState<
-    | "initialize-workspace"
-    | "ensure-gitignore"
-    | "check-codex"
-    | "check-git"
-    | "check-curl"
-    | "create-coordinations"
-    | null
+    WorkspaceSetupStepId | null
   >(null);
 
   const readColumns = useCallback(
@@ -376,15 +375,7 @@ const AppShell = () => {
   }, []);
 
   const handleRunWorkspaceSetupStep = useCallback(
-    async (
-      stepId:
-        | "initialize-workspace"
-        | "ensure-gitignore"
-        | "check-codex"
-        | "check-git"
-        | "check-curl"
-        | "create-coordinations",
-    ) => {
+    async (stepId: WorkspaceSetupStepId) => {
       setRunningWorkspaceSetupStepId(stepId);
       try {
         await runWorkspaceSetupStep(stepId);

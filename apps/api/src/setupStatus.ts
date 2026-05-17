@@ -58,9 +58,11 @@ export const readWorkspaceSetupSnapshot = (
   const isFirstRun = !hasAnyCoordinations && !setupState.coordinationsInitializedAt;
   const verifiedSteps = setupState.verifiedSteps ?? {};
   const isCodexVerified = Boolean(verifiedSteps["check-codex"]);
+  const isClaudeVerified = Boolean(verifiedSteps["check-claude"]);
   const isGitVerified = Boolean(verifiedSteps["check-git"]);
   const isCurlVerified = Boolean(verifiedSteps["check-curl"]);
   const hasCodex = prerequisites.availability.codex;
+  const hasClaude = prerequisites.availability.claude;
   const hasGit = prerequisites.availability.git;
   const hasCurl = prerequisites.availability.curl;
 
@@ -99,21 +101,40 @@ export const readWorkspaceSetupSnapshot = (
     {
       id: "check-codex",
       title: "Check Codex",
-      description: "Verify the Codex CLI workflow is available on this machine.",
+      description: "Verify the Codex CLI is available on this machine.",
       complete: hasCodex && isCodexVerified,
       required: false,
       actionLabel: "Check Codex",
       statusText: hasCodex
         ? isCodexVerified
           ? "Codex is available."
-          : "Confirm Codex before using the planner."
-        : "Codex is unavailable.",
+          : "Confirm Codex before using it as your agent provider."
+        : "Codex is not installed.",
       guidance: hasCodex
         ? isCodexVerified
           ? null
           : "Click to verify the Codex workflow on this machine."
-        : "Install Codex CLI and log in before launching agent terminals.",
-      command: hasCodex ? null : "codex login",
+        : "Run `npm install -g @openai/codex` to install Codex.",
+      command: hasCodex ? null : "npm install -g @openai/codex",
+    },
+    {
+      id: "check-claude",
+      title: "Check Claude Code",
+      description: "Verify the Claude Code CLI is available on this machine.",
+      complete: hasClaude && isClaudeVerified,
+      required: false,
+      actionLabel: "Check Claude",
+      statusText: hasClaude
+        ? isClaudeVerified
+          ? "Claude Code is available."
+          : "Confirm Claude Code before using it as your agent provider."
+        : "Claude Code is not installed.",
+      guidance: hasClaude
+        ? isClaudeVerified
+          ? null
+          : "Click to verify the Claude Code workflow on this machine."
+        : "Run `npm install -g @anthropic-ai/claude-code` to install Claude Code.",
+      command: hasClaude ? null : "npm install -g @anthropic-ai/claude-code",
     },
     {
       id: "check-git",
@@ -156,7 +177,7 @@ export const readWorkspaceSetupSnapshot = (
     {
       id: "create-coordinations",
       title: "Create coordinations",
-      description: "Create at least one coordination before launching a coding agent.",
+      description: "Launch your coding agent so it can plan and create your first coordinations.",
       complete: hasAnyCoordinations,
       required: true,
       actionLabel: null,

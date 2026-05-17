@@ -1083,6 +1083,32 @@
   line-height: 1.35;
 }
 
+.deck-pod-skills-new {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.35rem 0;
+  border-top: 1px solid #1a1d24;
+}
+
+.deck-pod-skills-new-input {
+  flex: 1;
+  background: #0d0f14;
+  border: 1px solid #2a2d36;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.5rem;
+  outline: none;
+}
+
+.deck-pod-skills-new-input:focus {
+  border-color: var(--accent-primary);
+}
+
+.deck-pod-skills-new-input::placeholder {
+  color: #4a5065;
+}
+
 .deck-pod-skills-actions {
   display: flex;
   gap: 0;

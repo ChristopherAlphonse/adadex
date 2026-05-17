@@ -9,7 +9,10 @@ export type StartupPrerequisiteIssue = {
   guidance: string;
 };
 
-export type StartupPrerequisiteAvailability = Record<"codex" | "git" | "gh" | "curl", boolean>;
+export type StartupPrerequisiteAvailability = Record<
+  "codex" | "claude" | "git" | "gh" | "curl",
+  boolean
+>;
 
 export type StartupPrerequisiteReport = {
   availability: StartupPrerequisiteAvailability;
@@ -50,6 +53,7 @@ export const collectStartupPrerequisiteReport = (
 ): StartupPrerequisiteReport => {
   const availability: StartupPrerequisiteAvailability = {
     codex: isAvailable("codex"),
+    claude: isAvailable("claude"),
     git: isAvailable("git"),
     gh: isAvailable("gh"),
     curl: isAvailable("curl"),
@@ -58,13 +62,28 @@ export const collectStartupPrerequisiteReport = (
   const errors: StartupPrerequisiteIssue[] = [];
   const warnings: StartupPrerequisiteIssue[] = [];
 
-  if (!availability.codex) {
-    errors.push({
+  if (!availability.codex && !availability.claude) {
+    warnings.push({
       command: "codex",
-      severity: "error",
-      summary: "`codex` is not installed.",
+      severity: "warning",
+      summary: "No coding agent CLI found.",
       guidance:
-        "Install the Codex CLI before starting Adadex. Agent terminals use the `codex` command.",
+        "Install Codex (`npm install -g @openai/codex`) or Claude Code (`npm install -g @anthropic-ai/claude-code`) before launching agent terminals.",
+    });
+  } else if (!availability.codex) {
+    warnings.push({
+      command: "codex",
+      severity: "warning",
+      summary: "`codex` is not installed.",
+      guidance: "Install the Codex CLI to use it as an agent provider.",
+    });
+  } else if (!availability.claude) {
+    warnings.push({
+      command: "claude",
+      severity: "warning",
+      summary: "`claude` is not installed.",
+      guidance:
+        "Install Claude Code (`npm install -g @anthropic-ai/claude-code`) to use it as an agent provider.",
     });
   }
 

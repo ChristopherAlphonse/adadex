@@ -14,11 +14,13 @@ import type {
   DeckCoordinationStatus,
   DeckCoordinationSummary,
   DeckMascotAppearance,
+  TerminalAgentProvider,
 } from "@adadex/core";
 import {
   COORDINATIONS_DIR_SEGMENT,
   LEGACY_DECK_STATE_MAP_KEY,
   WORKSPACE_RUNTIME_DIR,
+  isTerminalAgentProvider,
 } from "@adadex/core";
 
 import {
@@ -39,6 +41,8 @@ type DeckCoordinationState = {
   status: DeckCoordinationStatus;
   mascot: DeckMascotAppearance;
   scope: { paths: string[]; tags: string[] };
+  agentProvider?: TerminalAgentProvider;
+  agentModel?: string;
 };
 
 type DeckStateDocument = {
@@ -128,7 +132,16 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
     }
   }
 
-  return { color, status, mascot, scope };
+  const result: DeckCoordinationState = { color, status, mascot, scope };
+
+  if (typeof rec.agentProvider === "string" && isTerminalAgentProvider(rec.agentProvider)) {
+    result.agentProvider = rec.agentProvider;
+  }
+  if (typeof rec.agentModel === "string" && rec.agentModel.trim().length > 0) {
+    result.agentModel = rec.agentModel.trim();
+  }
+
+  return result;
 };
 
 // ─── Parse CONTEXT.md for title and description ───────────────────────────────
@@ -272,6 +285,8 @@ export const readDeckCoordinations = (
       todoDone,
       todoItems,
       suggestedSkills: agentInfo.suggestedSkills,
+      ...(state.agentProvider ? { agentProvider: state.agentProvider } : {}),
+      ...(state.agentModel ? { agentModel: state.agentModel } : {}),
     });
   }
 
@@ -559,6 +574,41 @@ export const createDeckCoordination = (
 
 export const listDeckAvailableSkills = (workspaceCwd: string): DeckAvailableSkill[] =>
   readAvailableAgentSkills(workspaceCwd);
+
+export const updateDeckCoordinationAgent = (
+  workspaceCwd: string,
+  coordinationId: string,
+  agent: { agentProvider?: TerminalAgentProvider | null; agentModel?: string | null },
+  projectStateDir?: string,
+): DeckCoordinationSummary | null => {
+  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
+  const stateDir = projectStateDir ?? join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
+  const deckState = readDeckState(stateDir);
+  const entry = deckState.coordinations[coordinationId];
+  if (!entry) return null;
+
+  if (agent.agentProvider !== undefined) {
+    if (agent.agentProvider === null) {
+      delete entry.agentProvider;
+    } else {
+      entry.agentProvider = agent.agentProvider;
+    }
+  }
+  if (agent.agentModel !== undefined) {
+    if (agent.agentModel === null || agent.agentModel.trim() === "") {
+      delete entry.agentModel;
+    } else {
+      entry.agentModel = agent.agentModel.trim();
+    }
+  }
+
+  writeDeckState(stateDir, deckState);
+  return (
+    readDeckCoordinations(workspaceCwd, projectStateDir).find(
+      (c) => c.coordinationId === coordinationId,
+    ) ?? null
+  );
+};
 
 export const updateDeckCoordinationSuggestedSkills = (
   workspaceCwd: string,

@@ -17,6 +17,7 @@ import {
   handleConversationsCollectionRoute,
 } from "./conversationRoutes";
 import {
+  handleDeckOrchestrationAgentRoute,
   handleDeckOrchestrationItemRoute,
   handleDeckOrchestrationSkillsRoute,
   handleDeckOrchestrationSwarmRoute,
@@ -109,6 +110,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     [
       handleDeckSkillsRoute,
       handleDeckOrchestrationsRoute,
+      handleDeckOrchestrationAgentRoute,
       handleDeckOrchestrationItemRoute,
       handleDeckOrchestrationSkillsRoute,
       handleDeckTodoSolveRoute,

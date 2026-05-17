@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-import { COORDINATIONS_DIR_SEGMENT, WORKSPACE_RUNTIME_DIR } from "@adadex/core";
+import { COORDINATIONS_DIR_SEGMENT, WORKSPACE_RUNTIME_DIR, isTerminalAgentProvider, type TerminalAgentProvider } from "@adadex/core";
 
 import {
   addTodoItem,
@@ -13,6 +13,7 @@ import {
   readDeckCoordinations,
   readDeckVaultFile,
   toggleTodoItem,
+  updateDeckCoordinationAgent,
   updateDeckCoordinationMascot,
   updateDeckCoordinationSuggestedSkills,
 } from "../deck/readDeckCoordinations";
@@ -271,6 +272,73 @@ export const handleDeckOrchestrationSkillsRoute: ApiRouteHandler = async (
     suggestedSkills,
     projectStateDir,
   );
+  if (!updated) {
+    writeJson(response, 404, { error: "Coordination not found" }, corsOrigin);
+    return true;
+  }
+
+  writeJson(response, 200, updated, corsOrigin);
+  return true;
+};
+
+// ---------------------------------------------------------------------------
+// Deck — Agent provider + model override
+// ---------------------------------------------------------------------------
+
+const DECK_COORDINATION_AGENT_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/agent$/;
+
+export const handleDeckOrchestrationAgentRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { workspaceCwd, projectStateDir },
+) => {
+  const match = requestUrl.pathname.match(DECK_COORDINATION_AGENT_PATTERN);
+  if (!match) return false;
+  if (request.method !== "PATCH") {
+    writeMethodNotAllowed(response, corsOrigin);
+    return true;
+  }
+
+  const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+  if (!body.ok) return true;
+
+  const payload = body.payload as Record<string, unknown> | null;
+  if (!payload) {
+    writeJson(response, 400, { error: "Request body is required" }, corsOrigin);
+    return true;
+  }
+
+  const coordinationId = decodeURIComponent(match[1] as string);
+
+  const rawAgentProvider = payload.agentProvider;
+  if (rawAgentProvider !== undefined && rawAgentProvider !== null) {
+    if (typeof rawAgentProvider !== "string" || !isTerminalAgentProvider(rawAgentProvider)) {
+      writeJson(response, 400, { error: "agentProvider must be a valid agent provider" }, corsOrigin);
+      return true;
+    }
+  }
+
+  const agentUpdate: { agentProvider?: TerminalAgentProvider | null; agentModel?: string | null } =
+    {};
+
+  if (rawAgentProvider === null) {
+    agentUpdate.agentProvider = null;
+  } else if (typeof rawAgentProvider === "string" && isTerminalAgentProvider(rawAgentProvider)) {
+    agentUpdate.agentProvider = rawAgentProvider;
+  }
+
+  if (payload.agentModel === null) {
+    agentUpdate.agentModel = null;
+  } else if (typeof payload.agentModel === "string") {
+    agentUpdate.agentModel = payload.agentModel;
+  }
+
+  const updated = updateDeckCoordinationAgent(
+    workspaceCwd,
+    coordinationId,
+    agentUpdate,
+    projectStateDir,
+  );
+
   if (!updated) {
     writeJson(response, 404, { error: "Coordination not found" }, corsOrigin);
     return true;

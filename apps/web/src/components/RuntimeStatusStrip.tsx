@@ -84,7 +84,7 @@ const usageState = (
     loading: false,
     sessionPercent: null,
     weekPercent: null,
-    message: codexUsage.message ?? "Codex usage unavailable",
+    message: codexUsage.message ?? "Usage unavailable",
   };
 };
 

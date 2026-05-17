@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { DeckAvailableSkill, DeckCoordinationSummary } from "@adadex/core";
+import type { DeckAvailableSkill, DeckCoordinationSummary, TerminalAgentProvider } from "@adadex/core";
+import { AGENT_PROVIDER_MODELS, TERMINAL_AGENT_PROVIDERS } from "@adadex/core";
 import { MascotSprite, type AgentGlyphAccessory, type AgentGlyphMood } from "../MascotSprite";
 import type { MascotVisuals } from "./mascotVisuals";
 import { MASCOT_COLORS } from "./mascotVisuals";
@@ -81,6 +82,9 @@ export type OrchestrationPodProps = {
   onSaveMascot?:
     | ((coordinationId: string, mascot: { color: string; expression: string; accessory: string }) => Promise<boolean>)
     | undefined;
+  onSaveAgent?:
+    | ((coordinationId: string, agentProvider: TerminalAgentProvider | null, agentModel: string | null) => Promise<boolean>)
+    | undefined;
 };
 
 export const OrchestrationPod = ({
@@ -98,6 +102,7 @@ export const OrchestrationPod = ({
   isSavingSkills,
   onSaveSuggestedSkills,
   onSaveMascot,
+  onSaveAgent,
 }: OrchestrationPodProps) => {
   const progressPct =
     orchestration.todoTotal > 0
@@ -107,14 +112,24 @@ export const OrchestrationPod = ({
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [draftSkills, setDraftSkills] = useState<string[]>(orchestration.suggestedSkills);
   const [isEditingMascot, setIsEditingMascot] = useState(false);
+  const [newSkillInput, setNewSkillInput] = useState("");
   const [editColor, setEditColor] = useState(visuals.color);
   const [editExpression, setEditExpression] = useState<AgentGlyphMood>(visuals.expression);
   const [editAccessory, setEditAccessory] = useState<AgentGlyphAccessory>(visuals.accessory);
   const [isSavingMascot, setIsSavingMascot] = useState(false);
+  const [editAgentProvider, setEditAgentProvider] = useState<TerminalAgentProvider | "">(
+    orchestration.agentProvider ?? "",
+  );
+  const [editAgentModel, setEditAgentModel] = useState<string>(orchestration.agentModel ?? "");
 
   useEffect(() => {
     setDraftSkills(orchestration.suggestedSkills);
   }, [orchestration.suggestedSkills]);
+
+  useEffect(() => {
+    setEditAgentProvider(orchestration.agentProvider ?? "");
+    setEditAgentModel(orchestration.agentModel ?? "");
+  }, [orchestration.agentProvider, orchestration.agentModel]);
 
   const availableSkillNames = availableSkills.map((skill) => skill.name);
   const skillNames = [...new Set([...availableSkillNames, ...draftSkills])].sort((a, b) =>
@@ -138,12 +153,19 @@ export const OrchestrationPod = ({
 
   const handleSaveMascot = async () => {
     setIsSavingMascot(true);
-    const saved = await onSaveMascot?.(orchestration.coordinationId, {
-      color: editColor,
-      expression: editExpression,
-      accessory: editAccessory,
-    });
-    if (saved) {
+    const [savedMascot, savedAgent] = await Promise.all([
+      onSaveMascot?.(orchestration.coordinationId, {
+        color: editColor,
+        expression: editExpression,
+        accessory: editAccessory,
+      }),
+      onSaveAgent?.(
+        orchestration.coordinationId,
+        editAgentProvider || null,
+        editAgentModel.trim() || null,
+      ),
+    ]);
+    if (savedMascot || savedAgent) {
       setIsEditingMascot(false);
     }
     setIsSavingMascot(false);
@@ -161,7 +183,7 @@ export const OrchestrationPod = ({
             ← Back
           </button>
         )}
-        <button type="button" className="deck-pod-btn">
+        <button type="button" className="deck-pod-btn" onClick={() => setIsEditingSkills((v) => !v)}>
           Skills
         </button>
         <button type="button" className="deck-pod-btn" onClick={() => {
@@ -240,6 +262,16 @@ export const OrchestrationPod = ({
           </div>
         </div>
 
+        {(orchestration.agentProvider || orchestration.agentModel) && (
+          <div className="deck-pod-agent-badge">
+            <span className="deck-pod-vault-label">agent</span>
+            <span className="deck-pod-vault-file">{orchestration.agentProvider ?? "global"}</span>
+            {orchestration.agentModel && (
+              <span className="deck-pod-vault-file">{orchestration.agentModel}</span>
+            )}
+          </div>
+        )}
+
         {isEditingMascot && (
           <div className="deck-pod-mascot-editor">
             <div className="deck-pod-mascot-editor-colors">
@@ -299,6 +331,57 @@ export const OrchestrationPod = ({
                 </div>
               </div>
             </div>
+              <div className="deck-pod-mascot-editor-group">
+                <span className="deck-pod-mascot-editor-label">Agent CLI</span>
+                <div className="deck-pod-mascot-editor-chips">
+                  <button
+                    type="button"
+                    className="deck-add-form-chip"
+                    data-selected={editAgentProvider === "" ? "true" : "false"}
+                    onClick={() => { setEditAgentProvider(""); setEditAgentModel(""); }}
+                  >
+                    Global default
+                  </button>
+                  {TERMINAL_AGENT_PROVIDERS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className="deck-add-form-chip"
+                      data-selected={editAgentProvider === p ? "true" : "false"}
+                      onClick={() => { setEditAgentProvider(p); setEditAgentModel(""); }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {editAgentProvider !== "" && (
+                <div className="deck-pod-mascot-editor-group">
+                  <span className="deck-pod-mascot-editor-label">Model</span>
+                  <div className="deck-pod-mascot-editor-chips">
+                    <button
+                      type="button"
+                      className="deck-add-form-chip"
+                      data-selected={editAgentModel === "" ? "true" : "false"}
+                      onClick={() => setEditAgentModel("")}
+                    >
+                      Provider default
+                    </button>
+                    {(AGENT_PROVIDER_MODELS[editAgentProvider] ?? []).map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        className="deck-add-form-chip"
+                        data-selected={editAgentModel === m.id ? "true" : "false"}
+                        onClick={() => setEditAgentModel(m.id)}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             <div className="deck-pod-mascot-editor-actions">
               <button
                 type="button"
@@ -353,13 +436,49 @@ export const OrchestrationPod = ({
                   })}
                 </div>
               )}
-              <div className="deck-pod-skills-actions">
+                <div className="deck-pod-skills-new">
+                <input
+                  type="text"
+                  className="deck-pod-skills-new-input"
+                  placeholder="New skill name…"
+                  value={newSkillInput}
+                  onChange={(e) => setNewSkillInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const trimmed = newSkillInput.trim();
+                      if (trimmed && !draftSkills.includes(trimmed)) {
+                        setDraftSkills((current) =>
+                          [...current, trimmed].sort((a, b) => a.localeCompare(b)),
+                        );
+                      }
+                      setNewSkillInput("");
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="deck-pod-btn"
+                  onClick={() => {
+                    const trimmed = newSkillInput.trim();
+                    if (trimmed && !draftSkills.includes(trimmed)) {
+                      setDraftSkills((current) =>
+                        [...current, trimmed].sort((a, b) => a.localeCompare(b)),
+                      );
+                    }
+                    setNewSkillInput("");
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+            <div className="deck-pod-skills-actions">
                 <button
                   type="button"
                   className="deck-pod-btn deck-pod-btn--secondary"
                   onClick={() => {
                     setDraftSkills(orchestration.suggestedSkills);
                     setIsEditingSkills(false);
+                    setNewSkillInput("");
                   }}
                 >
                   Cancel

@@ -23,19 +23,26 @@ type ConsoleChromeHeaderProps = {
 const codexMeterValues = (
   codexUsage: CodexUsageSnapshot | null,
   isRefreshing: boolean,
-): { primary: number; secondary: number; primaryLabel: string } => {
+  agentProvider: TerminalAgentProvider,
+): { primary: number; secondary: number; primaryLabel: string; weekLabel: string; available: boolean } => {
+  const providerLabel = agentProvider === "codex" ? "Codex" : agentProvider;
+  if (agentProvider !== "codex") {
+    return { primary: 0, secondary: 0, primaryLabel: providerLabel, weekLabel: "Weekly", available: false };
+  }
   if (isRefreshing || codexUsage === null) {
-    return { primary: 0, secondary: 0, primaryLabel: "Codex" };
+    return { primary: 0, secondary: 0, primaryLabel: providerLabel, weekLabel: "Weekly", available: false };
   }
   if (codexUsage.status !== "ok") {
-    return { primary: 0, secondary: 0, primaryLabel: "Codex" };
+    return { primary: 0, secondary: 0, primaryLabel: providerLabel, weekLabel: "Weekly", available: false };
   }
   const primary = Number(codexUsage.primaryUsedPercent ?? 0);
   const secondary = Number(codexUsage.secondaryUsedPercent ?? 0);
   return {
     primary: Number.isFinite(primary) ? Math.round(primary) : 0,
     secondary: Number.isFinite(secondary) ? Math.round(secondary) : 0,
-    primaryLabel: codexUsage.source === "oauth-api" ? "5h" : "Codex",
+    primaryLabel: codexUsage.source === "oauth-api" ? "5h" : providerLabel,
+    weekLabel: "Weekly",
+    available: true,
   };
 };
 
@@ -49,7 +56,7 @@ export const ConsoleChromeHeader = ({
   isLight = false,
   onToggleColorTheme,
 }: ConsoleChromeHeaderProps): React.ReactElement => {
-  const meters = codexMeterValues(codexUsage, isRefreshingCodexUsage);
+  const meters = codexMeterValues(codexUsage, isRefreshingCodexUsage, agentProvider);
   const [providerMenuOpen, setProviderMenuOpen] = useState(false);
   const providerMenuRef = useRef<HTMLDivElement | null>(null);
   const dismissProviderMenu = useCallback(() => setProviderMenuOpen(false), []);
@@ -153,14 +160,13 @@ export const ConsoleChromeHeader = ({
         >
           {isLight ? <Moon className="size-4" strokeWidth={2} /> : <Sun className="size-4" strokeWidth={2} />}
         </button>
-        {agentProvider === "codex" ? (
-          <>
-            <div className="hidden items-center gap-3 pr-1 xl:flex">
-              <Meter label={meters.primaryLabel} value={meters.primary} />
-              <Meter label="Weekly" value={meters.secondary} muted />
-            </div>
-          </>
-        ) : null}
+        <div
+          className="hidden items-center gap-3 pr-1 xl:flex"
+          title={meters.available ? undefined : `Usage stats not available for ${agentProvider}`}
+        >
+          <Meter label={meters.primaryLabel} value={meters.primary} muted={!meters.available} />
+          <Meter label={meters.weekLabel} value={meters.secondary} muted />
+        </div>
       </div>
     </header>
   );

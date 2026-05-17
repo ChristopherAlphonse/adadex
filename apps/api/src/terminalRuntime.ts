@@ -3,6 +3,8 @@ import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
+import { readDeckCoordinations } from "./deck/readDeckCoordinations";
+
 import type { TerminalSnapshot } from "@adadex/core";
 import {
   LEGACY_TERMINAL_REGISTRY_FILENAME,
@@ -415,6 +417,7 @@ export const createTerminalRuntime = ({
     coordinationName,
     workspaceMode = "shared",
     agentProvider,
+    agentModel,
     initialPrompt,
     initialInputDraft,
     baseRef,
@@ -428,6 +431,7 @@ export const createTerminalRuntime = ({
     coordinationName?: string;
     workspaceMode?: CoordinationWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
+    agentModel?: string;
     initialPrompt?: string;
     initialInputDraft?: string;
     baseRef?: string;
@@ -470,6 +474,24 @@ export const createTerminalRuntime = ({
     const worktreeId =
       requestedWorktreeId ?? (workspaceMode === "worktree" ? terminalId : undefined);
 
+    // Apply per-coordination agent defaults if not already specified
+    let effectiveAgentProvider = agentProvider;
+    let effectiveAgentModel = agentModel;
+    if (requestedCoordinationId) {
+      const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
+      const coordination = deckOrchestrations.find(
+        (c) => c.coordinationId === requestedCoordinationId,
+      );
+      if (coordination) {
+        if (!effectiveAgentProvider && coordination.agentProvider) {
+          effectiveAgentProvider = coordination.agentProvider;
+        }
+        if (!effectiveAgentModel && coordination.agentModel) {
+          effectiveAgentModel = coordination.agentModel;
+        }
+      }
+    }
+
     const terminal: PersistedTerminal = {
       terminalId,
       coordinationId,
@@ -479,7 +501,8 @@ export const createTerminalRuntime = ({
       ...(autoRenamePromptContext ? { autoRenamePromptContext } : {}),
       createdAt: new Date().toISOString(),
       workspaceMode,
-      agentProvider: agentProvider ?? DEFAULT_AGENT_PROVIDER,
+      agentProvider: effectiveAgentProvider ?? DEFAULT_AGENT_PROVIDER,
+      ...(effectiveAgentModel ? { agentModel: effectiveAgentModel } : {}),
       lifecycleState: "registered",
       lifecycleUpdatedAt: new Date().toISOString(),
       ...(initialPrompt ? { initialPrompt } : {}),
@@ -494,15 +517,13 @@ export const createTerminalRuntime = ({
       worktreeManager.createOrchestrationWorktree(effectiveWorktreeId, baseRef);
     }
 
-    if (terminal.agentProvider === "codex") {
-      try {
-        const hookTargetCwd = shouldCreateWorktree
-          ? worktreeManager.getOrchestrationWorkspaceCwd(effectiveWorktreeId)
-          : workspaceCwd;
-        hookProcessor.installHooksInDirectory(hookTargetCwd);
-      } catch {
-        // Best-effort: hook installation should not block terminal creation.
-      }
+    try {
+      const hookTargetCwd = shouldCreateWorktree
+        ? worktreeManager.getOrchestrationWorkspaceCwd(effectiveWorktreeId)
+        : workspaceCwd;
+      hookProcessor.installHooksInDirectory(hookTargetCwd, terminal.agentProvider ?? "codex");
+    } catch {
+      // Best-effort: hook installation should not block terminal creation.
     }
 
     terminals.set(terminalId, terminal);
