@@ -1,0 +1,50 @@
+version: 2
+
+updates:
+  # npm/pnpm ecosystem — monorepo root
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    # CICD-SEC-03: Group by semver tier — majors isolated for deliberate review
+    groups:
+      patch-updates:
+        patterns:
+          - "*"
+        update-types:
+          - patch
+      minor-updates:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+      major-updates:
+        patterns:
+          - "*"
+        update-types:
+          - major
+    open-pull-requests-limit: 15
+    labels:
+      - dependencies
+      - security
+    reviewers:
+      - christopheralphonse
+    ignore:
+      # Pin node-pty — patched locally, don't auto-bump
+      - dependency-name: node-pty
+
+  # GitHub Actions — pin to SHA, dependabot keeps SHAs current
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - github-actions
+    open-pull-requests-limit: 5

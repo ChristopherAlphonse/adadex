@@ -70,6 +70,15 @@
 - `apps/web/AGENTS.md` expands UI/component/style rules.
 - `packages/core/AGENTS.md` expands domain and ports-and-adapters rules.
 
+## Continual learning
+- **Promote sparingly.** After repeated or high-cost feedback that will apply to future sessions, fold the lesson into tracked guidelines instead of relying on conversation memory alone.
+- **Where it goes:**
+  - Habit-level choices (tone, wording, workflow expectations) belong under **Learned User Preferences** below.
+  - Environment and repo quirks (tooling, ports, filesystem, CI) belong under **Learned Workspace Facts** below, or in the closest **Scoped Guides** (`apps/api/AGENTS.md`, `apps/web/AGENTS.md`, `packages/core/AGENTS.md`) when the nuance only applies there.
+  - Operational product state stays in **`~/.adadex/`** and coordination files under **`.adadex/`**, not mixed into evergreen repo rules unless the documentation itself must cite that layout (`docs/reference/filesystem-layout.md`).
+- **How to phrase it.** One actionable bullet each, concrete enough that a newcomer could obey it without the original transcript; omit one-off anecdotes and guesses.
+- **How to prune it.** Replace or drop bullets when the stack, product vocabulary, or agreed workflow changed so the guides stay truthful.
+
 ## Learned User Preferences
 - Prefer the product term "orchestration" over "tentacles" in user-facing copy and new identifiers.
 
