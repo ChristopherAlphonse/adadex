@@ -150,6 +150,7 @@ export const ConsoleChromeHeader = ({
             <button
               key={item.index}
               type="button"
+              aria-current={active ? "page" : undefined}
               onClick={() => onPrimaryNavChange(item.index)}
               className={`relative flex h-full items-center gap-2 whitespace-nowrap px-3 text-[15px] font-medium transition-colors ${
                 active ? "text-foreground" : "text-muted-foreground hover:text-foreground"

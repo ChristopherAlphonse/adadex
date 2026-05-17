@@ -166,7 +166,9 @@ describe("App workspace setup", () => {
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
     expect(screen.getByLabelText("Canvas graph view")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Agents/i })).toHaveAttribute("aria-current", "page");
+    const nav = screen.getByRole("navigation", { name: "Primary navigation" });
+    const agentsBtn = nav.querySelector("button");
+    expect(agentsBtn).toHaveAttribute("aria-current", "page");
   });
 
   it("only marks a setup step complete after the refreshed server snapshot says it is done", async () => {

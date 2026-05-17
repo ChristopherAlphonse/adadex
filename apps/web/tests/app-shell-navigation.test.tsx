@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
@@ -73,10 +73,12 @@ describe("App shell and navigation", () => {
 
     fireEvent.keyDown(window, { key: "4" });
 
-    expect(screen.getByRole("button", { name: /Code Intel/i })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Code Intel/i })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+    });
   });
 
   it("renders settings panel when navigating to settings tab", async () => {

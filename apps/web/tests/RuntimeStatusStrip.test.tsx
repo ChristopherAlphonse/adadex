@@ -5,7 +5,7 @@ import { RuntimeStatusStrip } from "../src/components/RuntimeStatusStrip";
 
 describe("RuntimeStatusStrip", () => {
   it("shows loading placeholders before Codex usage loads", () => {
-    render(<RuntimeStatusStrip sparklinePoints="" usageData={null} codexUsage={null} />);
+    render(<RuntimeStatusStrip usageData={null} codexUsage={null} />);
 
     const usage = screen.getByLabelText("Codex usage limits");
     expect(within(usage).getAllByText("···")).toHaveLength(2);
@@ -14,7 +14,6 @@ describe("RuntimeStatusStrip", () => {
   it("uses a 5h label for oauth-backed usage", () => {
     render(
       <RuntimeStatusStrip
-        sparklinePoints=""
         usageData={null}
         codexUsage={{
           status: "ok",
@@ -35,7 +34,6 @@ describe("RuntimeStatusStrip", () => {
   it("shows unavailable values instead of a permanent loading state", () => {
     render(
       <RuntimeStatusStrip
-        sparklinePoints=""
         usageData={null}
         codexUsage={{
           status: "unavailable",
@@ -54,7 +52,6 @@ describe("RuntimeStatusStrip", () => {
   it("marks the refresh button as rotating while Codex usage is refreshing", () => {
     render(
       <RuntimeStatusStrip
-        sparklinePoints=""
         usageData={null}
         codexUsage={null}
         isRefreshingCodexUsage
