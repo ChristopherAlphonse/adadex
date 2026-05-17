@@ -215,3 +215,187 @@ html.adadex-theme-light body {
   background: color-mix(in oklch, var(--bg-canvas) 94%, var(--bg-surface-2));
   box-shadow: 0 4px 24px oklch(0 0 0 / 0.08);
 }
+
+/* ─── Light theme: primary tabs and legacy tab surfaces ───────────────────── */
+
+.design-console.light.console-shell .console-primary-nav {
+  border-bottom-color: var(--border-subtle);
+  background: var(--bg-surface-2);
+}
+
+.design-console.light.console-shell .console-primary-nav-tab {
+  background: color-mix(in oklch, var(--accent-primary) 8%, var(--bg-surface-1));
+  color: var(--text-secondary);
+}
+
+.design-console.light.console-shell .console-primary-nav-tab:not([data-active="true"]):hover {
+  background: color-mix(in oklch, var(--accent-primary) 14%, var(--bg-surface-2));
+  color: var(--text-primary);
+}
+
+.design-console.light.console-shell .console-primary-nav-tab[data-active="true"] {
+  background: var(--accent-primary);
+  color: oklch(0.98 0.004 140);
+  box-shadow:
+    inset 0 1px 2px oklch(1 0 0 / 0.28),
+    inset 0 -1px 1px oklch(0 0 0 / 0.1);
+}
+
+.design-console.light.console-shell .console-primary-nav-hint {
+  color: var(--text-muted);
+}
+
+.design-console.light.console-shell .workspace-shell,
+.design-console.light.console-shell .activity-view,
+.design-console.light.console-shell .github-view,
+.design-console.light.console-shell .code-intel-view,
+.design-console.light.console-shell .conversations-view,
+.design-console.light.console-shell .prompts-view,
+.design-console.light.console-shell .settings-view {
+  border-color: var(--border-subtle);
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+}
+
+.design-console.light.console-shell .usage-heatmap,
+.design-console.light.console-shell .github-overview,
+.design-console.light.console-shell .code-intel-view-header,
+.design-console.light.console-shell .code-intel-panel,
+.design-console.light.console-shell .conversations-sessions,
+.design-console.light.console-shell .conversations-transcript,
+.design-console.light.console-shell .settings-panel,
+.design-console.light.console-shell .deck-empty-right,
+.design-console.light.console-shell .deck-detail-main,
+.design-console.light.console-shell .deck-detail-terminal,
+.design-console.light.console-shell .deck-detail-main-header,
+.design-console.light.console-shell .prompts-terminal-header {
+  border-color: var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
+}
+
+.design-console.light.console-shell .usage-heatmap-header,
+.design-console.light.console-shell .github-overview-header,
+.design-console.light.console-shell .conversations-transcript-header,
+.design-console.light.console-shell .prompts-detail-header,
+.design-console.light.console-shell .deck-detail-main-header,
+.design-console.light.console-shell .prompts-terminal-header {
+  border-bottom-color: var(--border-subtle);
+}
+
+.design-console.light.console-shell .code-intel-stat,
+.design-console.light.console-shell .code-intel-panel {
+  border-right-color: var(--border-subtle);
+}
+
+.design-console.light.console-shell .usage-heatmap-header h3,
+.design-console.light.console-shell .github-overview-header h2,
+.design-console.light.console-shell .code-intel-panel-header h2,
+.design-console.light.console-shell .conversations-header-copy h2,
+.design-console.light.console-shell .conversations-transcript-header h3,
+.design-console.light.console-shell .settings-panel-header h2,
+.design-console.light.console-shell .prompts-detail-name,
+.design-console.light.console-shell .prompts-content h1,
+.design-console.light.console-shell .prompts-content h2,
+.design-console.light.console-shell .prompts-content h3,
+.design-console.light.console-shell .deck-empty-card-title,
+.design-console.light.console-shell .deck-detail-main-path {
+  color: var(--text-primary);
+}
+
+.design-console.light.console-shell .usage-heatmap-summary,
+.design-console.light.console-shell .code-intel-stat,
+.design-console.light.console-shell .code-intel-stat-label,
+.design-console.light.console-shell .code-intel-panel-header p,
+.design-console.light.console-shell .code-intel-empty,
+.design-console.light.console-shell .conversations-header-copy p,
+.design-console.light.console-shell .conversations-transcript-header dt,
+.design-console.light.console-shell .settings-panel-header p,
+.design-console.light.console-shell .settings-sound-option-description,
+.design-console.light.console-shell .prompts-empty,
+.design-console.light.console-shell .deck-empty-card-desc,
+.design-console.light.console-shell .deck-detail-loading {
+  color: var(--text-muted);
+}
+
+.design-console.light.console-shell .usage-heatmap-scope-toggle,
+.design-console.light.console-shell .usage-chart-stats,
+.design-console.light.console-shell .usage-chart-bar-segment-toggle,
+.design-console.light.console-shell .usage-chart-bar-segment-btn,
+.design-console.light.console-shell .github-overview-commits,
+.design-console.light.console-shell .github-overview-commit,
+.design-console.light.console-shell .code-intel-tooltip,
+.design-console.light.console-shell .conversations-session-item,
+.design-console.light.console-shell .settings-sound-option,
+.design-console.light.console-shell .settings-saved-pill,
+.design-console.light.console-shell .prompts-edit-area,
+.design-console.light.console-shell .prompts-content pre,
+.design-console.light.console-shell .deck-empty-card,
+.design-console.light.console-shell .deck-add-form-input,
+.design-console.light.console-shell .deck-add-form-textarea,
+.design-console.light.console-shell .deck-add-form-chip,
+.design-console.light.console-shell .deck-add-form-skill-option {
+  border-color: var(--border-subtle);
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+}
+
+.design-console.light.console-shell .usage-heatmap-scope-btn,
+.design-console.light.console-shell .usage-chart-stat,
+.design-console.light.console-shell .usage-chart-bar-segment-btn {
+  background: var(--bg-surface-1);
+  color: var(--text-muted);
+}
+
+.design-console.light.console-shell .usage-heatmap-scope-btn:hover,
+.design-console.light.console-shell .usage-chart-bar-segment-btn:hover,
+.design-console.light.console-shell .deck-empty-card:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.design-console.light.console-shell .usage-heatmap-scope-btn.is-active,
+.design-console.light.console-shell .usage-chart-bar-segment-btn.is-active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: oklch(0.98 0.004 140);
+}
+
+.design-console.light.console-shell .usage-chart-stat dt,
+.design-console.light.console-shell .github-overview-y-label,
+.design-console.light.console-shell .github-overview-x-label,
+.design-console.light.console-shell .code-intel-arc-label,
+.design-console.light.console-shell .settings-sound-option,
+.design-console.light.console-shell .prompts-content,
+.design-console.light.console-shell .deck-add-form-color-meta {
+  color: var(--text-muted);
+  fill: var(--text-muted);
+}
+
+.design-console.light.console-shell .usage-chart-stat dd,
+.design-console.light.console-shell .conversations-session-item strong,
+.design-console.light.console-shell .conversations-transcript-header dd,
+.design-console.light.console-shell .prompts-content,
+.design-console.light.console-shell .prompts-edit-area,
+.design-console.light.console-shell .code-intel-tooltip-path,
+.design-console.light.console-shell .code-intel-arc-label--active {
+  color: var(--text-primary);
+  fill: var(--text-primary);
+}
+
+.design-console.light.console-shell .conversations-session-item[data-active="true"],
+.design-console.light.console-shell .settings-sound-option[data-active="true"],
+.design-console.light.console-shell .deck-add-form-chip[data-selected="true"] {
+  border-color: color-mix(in oklch, var(--accent-primary) 58%, var(--border-subtle));
+  background: color-mix(in oklch, var(--accent-primary) 12%, var(--bg-surface-1));
+  color: var(--text-primary);
+}
+
+.design-console.light.console-shell .prompts-content code {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.design-console.light.console-shell .code-intel-tooltip {
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.12);
+}
