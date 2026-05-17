@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "node-pty": "^1.1.0",
-    "ws": "^8.19.0"
+    "ws": "^8.20.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
