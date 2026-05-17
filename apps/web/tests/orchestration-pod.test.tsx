@@ -30,7 +30,7 @@ describe("OrchestrationPod skill editor", () => {
         }}
         visuals={{
           color: "#ff6b2b",
-          animation: "sway",
+          animation: "breathe",
           expression: "happy",
           accessory: "none",
         }}

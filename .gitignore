@@ -16,3 +16,5 @@
 
 # Stale emit under src/ — Vite resolves .js before .tsx and serves outdated UI
 apps/web/src/**/*.js
+.playwright-cli/
+.pnpm-store/

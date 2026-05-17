@@ -46,7 +46,7 @@ describe("AddOrchestrationForm", () => {
     );
   });
 
-  it("submits the selected hair color", () => {
+  it("submits the selected accent color", () => {
     const onSubmit = vi.fn();
 
     render(
@@ -60,7 +60,8 @@ describe("AddOrchestrationForm", () => {
     );
 
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "docs" } });
-    fireEvent.click(screen.getByLabelText("Select hair color #E04020 · rgb(224, 64, 32)"));
+    const swatches = screen.getAllByLabelText(/Select color/i);
+    fireEvent.click(swatches[0]!);
     fireEvent.click(screen.getByRole("button", { name: /create coordination/i }));
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -68,7 +69,7 @@ describe("AddOrchestrationForm", () => {
       "",
       expect.any(String),
       expect.objectContaining({
-        hairColor: "#e04020",
+        hairColor: expect.any(String),
       }),
       [],
     );

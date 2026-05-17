@@ -232,6 +232,8 @@ export const CanvasOrchestrationPanel = ({
                 animation={visuals.animation}
                 expression={visuals.expression}
                 accessory={visuals.accessory}
+                variant={visuals.variant}
+                identitySeed={visuals.identitySeed}
                 {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
                 scale={6}
               />

@@ -1,14 +1,29 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+last_updated: "2026-05-17T13:29:33.059Z"
+progress:
+  total_phases: 6
+  completed_phases: 0
+  total_plans: 10
+  completed_plans: 0
+  percent: 0
+---
+
 # Project State
 
 ## Current Phase
 
-**Active:** Phase 5 — API-Backed Agent Console
-**Status:** Planned (4 plans ready for execution)
+**Active:** Phase 0 — Enterprise Agent Mascot Glyph System
+**Status:** Executing Phase 00
 
 ## Phases
 
 | Phase | Status | Plans | Last Activity |
 |-------|--------|-------|--------------|
+| 0. Enterprise Agent Mascot Glyph System | Not started | 2 planned in roadmap | 2026-05-17 |
 | 1. Design System Foundation | Planned | 2 | 2026-05-16 |
 | 2. Core UI Components | Not started | 2 | - |
 | 3. Agent Graph & Canvas | Not started | 2 | - |
@@ -18,15 +33,19 @@
 ## Decisions
 
 ### D-01: oklch Color Migration
+
 All color values in `tailwind.css` (`@theme inline {}`) will use `oklch()` functional notation. Existing foundation.css variables will be aliased behind the new oklch tokens where they are consumed by legacy CSS, then incrementally replaced when legacy sheets are migrated.
 
 ### D-02: Font Loading
+
 Inter and JetBrains Mono will be loaded via Google Fonts `@import` in `src/styles.css`, replacing the current "PP Neue Machina Plain" primary font. The `--font-sans` and `--font-mono` Tailwind theme values will point to the new font stacks.
 
 ### D-03: Incremental Migration
+
 Legacy CSS files under `src/styles/*.css` (except `tailwind.css` and `tailwind-components.css`) will not be rewritten in a single pass. Changes to each will happen when the corresponding view is touched in later phases. Phase 1 focuses on the token/theme layer only.
 
 ### D-04: Tailwind-first Approach
+
 New component styles should use Tailwind utility classes in TSX via `cn()` from `@/lib/utils` and `cva()` variants. Phase 1 establishes the token system that makes this possible.
 
 ## Backlog
@@ -35,7 +54,16 @@ New component styles should use Tailwind utility classes in TSX via `cn()` from 
 - Add E2E tests (Playwright) for visual regression after design system is stable
 - Add component-level tests for new UI primitives in Phase 2
 
+### Phase 0 Decisions (from roadmap priority update)
+
+- D-01: Customization remains in scope, but it is framed as agent identity rather than dress-up.
+- D-02: The new primary component is `AgentGlyph`; compatibility aliases route old names to the new implementation.
+- D-03: Professional identity concepts are variant, mood, accessory, density, accent color, and stable identity seed.
+- D-04: Legacy hair and cartoon expression concepts are deprecated and only supported through a temporary compatibility adapter.
+- D-05: The glyph remains canvas-rendered, high-DPI sharp, animation-capable, and compatible with graph-scale rendering.
+
 ### Phase 5 Decisions (from CONTEXT.md)
+
 - D-01 through D-04: Provider selector — dropdown replaces "production" label, persists via POST /api/preferences/provider, triggers refetch, keyboard-accessible
 - D-05 through D-09: API routes — 5 endpoints: providers list, console state, agent detail, preferences, refresh
 - D-10 through D-13: Agent graph — nodes from API, edges from API, click selects, lead/stale visual behavior preserved

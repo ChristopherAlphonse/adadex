@@ -47,3 +47,12 @@ Files under `src/styles/*.css` (except `tailwind.css` / `tailwind-components.css
 
 ### REQ-14: Glow Effects
 Glows restricted to live nodes and focused elements. Glow specification: `box-shadow: 0 0 30px oklch(from var(--running) l c h / 0.35)`.
+
+### REQ-15: Enterprise Agent Glyph Identity System
+Replace the cartoon-style octopus mascot with a premium canvas-rendered `AgentGlyph` system that frames customization as agent identity. The glyph must keep high-DPI canvas rendering, graph-scale support, subtle animation, color customization, and reusable React exports while using enterprise-grade concepts: variant, mood, accessory, density, accent color, and stable identity seed.
+
+### REQ-16: Professional Mascot Visual Language
+The glyph must remain characterful without feeling goofy. It should render as an abstract cephalopod/orchestrator mark with a central mantle, restrained sensor eyes, six to eight connector arms, endpoint nodes, optional orbit/node-ring details, subtle diagnostics, and matte product colors that work on light and dark surfaces.
+
+### REQ-17: Mascot Compatibility Adapter
+Existing `MascotSprite`, `MascotGlyph`, `OctopusGlyph`, and related imports must continue to work temporarily. Legacy animation, expression, and accessory values must map to the new professional identity API, and deprecated cartoon concepts such as hair styles and expressive faces must not appear in the new primary implementation.

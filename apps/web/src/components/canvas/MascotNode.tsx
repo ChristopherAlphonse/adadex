@@ -6,6 +6,7 @@ import {
   type MascotAnimation,
   type MascotExpression,
   MascotGlyph,
+  type AgentGlyphVariant,
 } from "../MascotSprite";
 
 const LINE_MAX = 22;
@@ -31,8 +32,14 @@ const splitLabel = (label: string): [string] | [string, string] => {
   ];
 };
 
-const ANIMATIONS: MascotAnimation[] = ["sway", "walk", "jog", "float", "swim-up"];
-const EXPRESSIONS: MascotExpression[] = ["normal", "happy", "angry", "surprised"];
+const ANIMATIONS: MascotAnimation[] = [
+  "sway", "walk", "jog", "float", "swim-up",
+  "breathe", "pulse", "orbit", "typing", "thinking", "deploying",
+];
+const EXPRESSIONS: MascotExpression[] = [
+  "normal", "happy", "angry", "surprised",
+  "neutral", "focused", "happy", "curious", "busy", "offline",
+];
 const ACCESSORIES: MascotAccessory[] = [
   "none",
   "none",
@@ -41,6 +48,12 @@ const ACCESSORIES: MascotAccessory[] = [
   "side-sweep",
   "curly",
   "afro",
+  "glasses",
+  "badge",
+  "visor",
+  "terminal",
+  "node-ring",
+  "shield",
 ];
 
 function hashString(str: string): number {
@@ -63,6 +76,8 @@ type LocalMascotVisuals = {
   animation: MascotAnimation;
   expression: MascotExpression;
   accessory: MascotAccessory;
+  variant?: AgentGlyphVariant | undefined;
+  identitySeed?: string | undefined;
   hairColor?: string | undefined;
 };
 
@@ -79,6 +94,8 @@ function deriveNodeMascotVisuals(node: GraphNode): LocalMascotVisuals {
     accessory:
       (stored?.accessory as MascotAccessory | null) ??
       (ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as MascotAccessory),
+    variant: (stored?.variant as AgentGlyphVariant | null) ?? undefined,
+    identitySeed: stored?.identitySeed ?? node.coordinationId,
     hairColor: stored?.hairColor ?? undefined,
   };
 }
@@ -303,6 +320,8 @@ export const MascotNode = ({
             animation={visuals.animation}
             expression={visuals.expression}
             accessory={visuals.accessory}
+            variant={visuals.variant}
+            identitySeed={visuals.identitySeed}
             {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
             scale={glyphScale}
             graphScale={graphScale}

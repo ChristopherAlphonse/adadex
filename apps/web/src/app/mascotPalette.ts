@@ -1,14 +1,10 @@
-/**
- * Coordination / mascot body colors. Mid-chroma accents that read clearly on dark UI
- * (avoids pale mints like #d9f99d for labels and graph chips).
- */
 export const MASCOT_COLORS = [
-  "#a3e635",
-  "#eab308",
-  "#22c55e",
-  "#ef4444",
-  "#f97316",
-  "#38bdf8",
+  "#7c3aed",
+  "#60a5fa",
+  "#34d399",
+  "#f472b6",
+  "#fb923c",
+  "#818cf8",
 ] as const;
 
 export type MascotPaletteColor = (typeof MASCOT_COLORS)[number];
