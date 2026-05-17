@@ -56,6 +56,8 @@ export const createGitOperations = (deps: {
         coordinationId,
         workspaceMode: terminal.workspaceMode,
         branchName: status.branchName,
+        headCommit: status.headCommit,
+        worktreePath: status.worktreePath,
         upstreamBranchName: status.upstreamBranchName,
         isDirty: status.isDirty,
         aheadCount: status.aheadCount,

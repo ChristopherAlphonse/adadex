@@ -154,6 +154,7 @@ export const App = () => {
     pushOrchestrationBranch,
     syncOrchestrationBranch,
     mergeOrchestrationPullRequest,
+    gitStatusByOrchestrationId,
   } = useOrchestrationGitLifecycle({
     columns: terminals,
   });
@@ -606,6 +607,8 @@ export const App = () => {
               onRefreshColumns: async () => {
                 await refreshColumns();
               },
+              gitStatusByOrchestrationId,
+              codexUsage: codexUsageSnapshot,
             }}
             conversationsEnabled={isUiStateHydrated && activePrimaryNav === 6}
             onConversationsSidebarContent={setConversationsSidebarContent}
