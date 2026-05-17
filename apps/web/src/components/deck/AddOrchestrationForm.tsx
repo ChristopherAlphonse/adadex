@@ -5,9 +5,7 @@ import type { DeckAvailableSkill } from "@adadex/core";
 import { formatColorForDisplay } from "../../app/mascotPalette";
 import type { MascotAccessory, MascotAnimation, MascotExpression } from "../MascotSprite";
 import { MascotSprite } from "../MascotSprite";
-import { ACCESSORIES, ANIMATIONS, EXPRESSIONS, MASCOT_COLORS } from "./mascotVisuals";
-
-// ─── Add coordination form ─────────────────────────────────────────────────
+import { MASCOT_COLORS } from "./mascotVisuals";
 
 export type MascotAppearancePayload = {
   animation: string;
@@ -31,30 +29,20 @@ export type AddOrchestrationFormProps = {
 };
 
 export const EXPRESSION_OPTIONS: { value: MascotExpression; label: string }[] = [
-  { value: "normal", label: "Normal" },
+  { value: "neutral", label: "Neutral" },
   { value: "happy", label: "Happy" },
-  { value: "angry", label: "Angry" },
-  { value: "surprised", label: "Surprised" },
+  { value: "focused", label: "Focused" },
+  { value: "curious", label: "Curious" },
 ];
 
 export const ACCESSORY_OPTIONS: { value: MascotAccessory; label: string }[] = [
   { value: "none", label: "None" },
-  { value: "long", label: "Long" },
-  { value: "mohawk", label: "Mohawk" },
-  { value: "side-sweep", label: "Side Sweep" },
-  { value: "curly", label: "Curly" },
-  { value: "afro", label: "Afro" },
-];
-
-export const HAIR_COLORS = [
-  "#4a2c0a",
-  "#1a1a1a",
-  "#c8a04a",
-  "#e04020",
-  "#f5f5f5",
-  "#6b3fa0",
-  "#2a6e3f",
-  "#1e90ff",
+  { value: "glasses", label: "Glasses" },
+  { value: "badge", label: "Badge" },
+  { value: "visor", label: "Visor" },
+  { value: "terminal", label: "Terminal" },
+  { value: "node-ring", label: "Node Ring" },
+  { value: "shield", label: "Shield" },
 ];
 
 export const AddOrchestrationForm = ({
@@ -69,21 +57,9 @@ export const AddOrchestrationForm = ({
   const [selectedColor, setSelectedColor] = useState(
     () => MASCOT_COLORS[Math.floor(Math.random() * MASCOT_COLORS.length)] as string,
   );
-  const [selectedExpression, setSelectedExpression] = useState<MascotExpression>(() => {
-    const pick = EXPRESSIONS[Math.floor(Math.random() * EXPRESSIONS.length)] as MascotExpression;
-    return pick;
-  });
-  const [selectedAccessory, setSelectedAccessory] = useState<MascotAccessory>(() => {
-    const pick = ACCESSORIES[Math.floor(Math.random() * ACCESSORIES.length)] as MascotAccessory;
-    return pick;
-  });
-  const [selectedAnimation] = useState<MascotAnimation>(() => {
-    const pick = ANIMATIONS[Math.floor(Math.random() * ANIMATIONS.length)] as MascotAnimation;
-    return pick;
-  });
-  const [selectedHairColor, setSelectedHairColor] = useState(
-    () => HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)] as string,
-  );
+  const [selectedExpression, setSelectedExpression] = useState<MascotExpression>("neutral");
+  const [selectedAccessory, setSelectedAccessory] = useState<MascotAccessory>("none");
+  const [selectedAnimation] = useState<MascotAnimation>("idle");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -102,7 +78,7 @@ export const AddOrchestrationForm = ({
         animation: selectedAnimation,
         expression: selectedExpression,
         accessory: selectedAccessory,
-        hairColor: selectedHairColor,
+        hairColor: selectedColor,
       },
       selectedSkills,
     );
@@ -183,13 +159,12 @@ export const AddOrchestrationForm = ({
                 animation="idle"
                 expression={selectedExpression}
                 accessory={selectedAccessory}
-                hairColor={selectedHairColor}
-                size={160}
+                size={192}
               />
             </div>
 
             <div className="deck-add-form-label">
-              Color
+              Accent Color
               <div className="deck-add-form-colors">
                 {MASCOT_COLORS.map((c) => (
                   <button
@@ -227,7 +202,7 @@ export const AddOrchestrationForm = ({
                 </div>
               </div>
               <div className="deck-add-form-label">
-                Hair Style
+                Accessory
                 <div className="deck-add-form-chips">
                   {ACCESSORY_OPTIONS.map((opt) => (
                     <button
@@ -242,26 +217,6 @@ export const AddOrchestrationForm = ({
                   ))}
                 </div>
               </div>
-            </div>
-            <div className="deck-add-form-label">
-              Hair Color
-              <div className="deck-add-form-colors">
-                {HAIR_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className="deck-add-form-color-swatch deck-add-form-color-swatch--small"
-                    data-selected={c === selectedHairColor ? "true" : "false"}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setSelectedHairColor(c)}
-                    title={formatColorForDisplay(c)}
-                    aria-label={`Select hair color ${formatColorForDisplay(c)}`}
-                  />
-                ))}
-              </div>
-              <p className="deck-add-form-color-meta" aria-live="polite">
-                {formatColorForDisplay(selectedHairColor)}
-              </p>
             </div>
           </div>
         </div>

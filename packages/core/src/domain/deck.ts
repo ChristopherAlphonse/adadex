@@ -6,6 +6,17 @@ export type DeckMascotAppearance = {
   expression: string | null;
   accessory: string | null;
   hairColor: string | null;
+  /** @deprecated Use `variant` in the new identity model. */
+  /** AgentGlyph variant (role). Maps: codex, opencode, reviewer, planner, builder, debugger, security, custom */
+  variant?: string | null;
+  /** AgentGlyph mood (state). Maps: neutral, focused, confident, curious, alert, offline */
+  mood?: string | null;
+  /** @deprecated Use identitySeed for stable visual identity. */
+  identitySeed?: string | null;
+  /** AgentGlyph density. Maps: minimal, standard, detailed */
+  density?: string | null;
+  /** AgentGlyph secondary/body color override */
+  bodyColor?: string | null;
 };
 
 export type DeckAvailableSkill = {
