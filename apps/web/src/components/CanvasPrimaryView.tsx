@@ -1192,7 +1192,7 @@ export const CanvasPrimaryView = ({
           </g>
         </svg>
 
-        <div className="pointer-events-none absolute right-4 top-4 rounded-lg border border-border bg-surface/80 p-3 backdrop-blur">
+        <div className="pointer-events-none absolute right-4 top-4 rounded-lg border border-border bg-surface p-3 shadow-sm">
           <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
             Legend
           </p>

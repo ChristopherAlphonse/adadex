@@ -6,9 +6,8 @@
   display: flex;
   flex: 1;
   overflow: hidden;
-  background-color: #0a0e14;
-  background-image: radial-gradient(#1a2030 1.5px, transparent 1.5px);
-  background-size: 24px 24px;
+  background-color: var(--bg-canvas);
+  background-image: none;
 }
 
 .canvas-svg {
@@ -167,7 +166,7 @@
   font-family: "PP Neue Machina Plain", sans-serif;
   font-size: 9px;
   font-weight: 700;
-  fill: #0a0e14;
+  fill: var(--bg-canvas);
   pointer-events: none;
   user-select: none;
 }
@@ -509,9 +508,9 @@
 .canvas-panel-divider {
   flex: 0 0 6px;
   cursor: col-resize;
-  border-left: 1px solid #2b2f36;
-  border-right: 1px solid #11151b;
-  background: linear-gradient(180deg, #141920, #0b0f15);
+  border-left: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, var(--bg-surface-2), var(--bg-canvas));
 }
 
 .canvas-panel-divider:focus-visible {
@@ -526,7 +525,7 @@
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  background: #0a0e14;
+  background: var(--bg-canvas);
 }
 
 /* ─── Terminal skeleton loading ───────────────────────────────────────────── */
@@ -535,13 +534,13 @@
   flex: 1 0 370px;
   display: flex;
   flex-direction: column;
-  background: #0a0e14;
+  background: var(--bg-canvas);
   border-left: 1px solid var(--border-subtle);
 }
 
 .canvas-terminal-skeleton__header {
   height: 32px;
-  background: #151b24;
+  background: var(--bg-surface-2);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -555,7 +554,7 @@
 
 .canvas-terminal-skeleton__line {
   height: 12px;
-  background: #151b24;
+  background: var(--bg-surface-2);
   border-radius: 3px;
   animation: skeleton-pulse 1.2s ease-in-out infinite;
 }

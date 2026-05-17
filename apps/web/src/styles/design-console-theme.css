@@ -111,8 +111,8 @@
 }
 
 html.adadex-theme-light body {
-  background: oklch(0.98 0.004 264);
-  color: oklch(0.2 0.012 264);
+  background: var(--bg-canvas, oklch(0.98 0.004 264));
+  color: var(--text-primary, oklch(0.2 0.012 264));
 }
 
 .design-console.console-shell {
