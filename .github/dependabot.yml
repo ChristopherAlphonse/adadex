@@ -26,7 +26,10 @@ updates:
           - "*"
         update-types:
           - major
-    open-pull-requests-limit: 15
+    # Caps simultaneously open Dependabot PRs for this ecosystem (npm), not merges/day.
+    # Weekly schedule bounds how often Dependabot checks; limit bounds backlog size.
+    # See https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/optimizing-pr-creation-version-updates
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - security
