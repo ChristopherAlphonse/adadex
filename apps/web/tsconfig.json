@@ -5,6 +5,7 @@
     "noUnusedParameters": false,
     "jsx": "react-jsx",
     "types": ["vite/client", "vitest/globals"],
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

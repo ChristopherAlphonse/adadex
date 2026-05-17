@@ -15,21 +15,22 @@ describe("startup prerequisites", () => {
     expect(formatStartupPrerequisiteReport(report)).toEqual([]);
   });
 
-  it("fails startup when codex is not installed", () => {
+  it("warns when no coding agent CLI is installed", () => {
     const report = collectStartupPrerequisiteReport((command) => command === "git");
 
-    expect(report.errors).toHaveLength(1);
-    expect(report.errors[0]?.summary).toContain("`codex` is not installed");
-    expect(report.warnings.map((issue) => issue.command)).toEqual(["gh", "curl"]);
+    expect(report.errors).toEqual([]);
+    expect(report.warnings.map((issue) => issue.command)).toEqual(["codex", "gh", "curl"]);
   });
 
   it("warns for degraded optional integrations when codex is available", () => {
     const report = collectStartupPrerequisiteReport((command) => command === "codex");
 
     expect(report.errors).toEqual([]);
-    expect(report.warnings.map((issue) => issue.command)).toEqual(["git", "gh", "curl"]);
+    expect(report.warnings.map((issue) => issue.command)).toEqual(["claude", "git", "gh", "curl"]);
     expect(formatStartupPrerequisiteReport(report)).toEqual([
       "Adadex startup preflight:",
+      "  Warning: `claude` is not installed.",
+      "    Install Claude Code (`npm install -g @anthropic-ai/claude-code`) to use it as an agent provider.",
       "  Warning: `git` is not installed.",
       "    Worktree terminals and git lifecycle actions are unavailable. Install Git to enable branch/worktree flows.",
       "  Warning: `gh` is not installed.",

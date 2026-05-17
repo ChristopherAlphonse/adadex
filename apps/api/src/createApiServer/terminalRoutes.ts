@@ -44,6 +44,7 @@ const buildCoordinationInitialPrompt = (
     coordinationName: coordination.displayName,
     coordinationId,
     coordinationContextPath: coordinationFolderRelative.replace(/\\/g, "/"),
+    coordinationDescription: coordination.description,
   });
 };
 

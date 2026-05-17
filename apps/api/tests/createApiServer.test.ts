@@ -1826,7 +1826,7 @@ describe("createApiServer", () => {
     const relativeOrchestrationDir = ".adadex/coordinations/docs";
     const promptsDir = resolveRepoPromptsDir();
     mkdirSync(orchestrationDir, { recursive: true });
-    writeFileSync(join(orchestrationDir, "CONTEXT.md"), "# Docs\n\nDocumentation team.\n", "utf8");
+    writeFileSync(join(orchestrationDir, "CONTEXT.md"), "# Docs\n\nDocumentation team\n", "utf8");
     writeFileSync(join(orchestrationDir, "todo.md"), "# Todo\n", "utf8");
     const baseUrl = await startServer({
       workspaceCwd,
@@ -1846,7 +1846,7 @@ describe("createApiServer", () => {
       expect.objectContaining({
         terminalId: "terminal-1",
         coordinationId: "docs",
-        initialInputDraft: `You are working on the Docs section. For tool-list items, context, and docs, check ${relativeOrchestrationDir}.`,
+        initialInputDraft: `You are Docs your speciality is Documentation team. For tool-list items, context, and docs, check ${relativeOrchestrationDir}. Invoke Interrogator skill if you need to.`,
       }),
     );
 

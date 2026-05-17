@@ -12,6 +12,8 @@ Desktop.ini
 **/coverage/
 
 .adadex/
+
+# Internal roadmap & phase plans (private to maintainers — not published)
 .planning/
 
 # Cursor — hooks/state (continual-learning.json etc.), plans; machine-local only
