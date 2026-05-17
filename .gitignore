@@ -25,4 +25,7 @@ apps/web/src/**/*.js
 /.opencode/
 
 # Scratch/verification screenshots
-static/
+static/images/claude-usage-verify.png
+static/images/customize-agent-models.png
+static/images/customize-agent-verify.png
+static/images/deck-claude-verify.png
