@@ -74,7 +74,7 @@ export const ConsoleChromeToolbar = ({
   };
 
   return (
-    <div className="flex h-11 shrink-0 items-center gap-1 border-b border-border bg-surface/30 px-4">
+    <div className="flex h-11 shrink-0 items-center gap-1 border-b border-border bg-surface px-4">
       <div className="flex items-center gap-0.5">
         {TOOLBAR_ACTIONS.map((action) => {
           if (action.id === "setup" && !showSetup) return null;

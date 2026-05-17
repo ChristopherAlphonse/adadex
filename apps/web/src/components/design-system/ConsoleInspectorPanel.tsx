@@ -53,7 +53,7 @@ export const ConsoleInspectorPanel = ({
   const changedFiles = gitStatus?.changedFiles ?? [];
 
   return (
-    <aside className="flex w-[360px] shrink-0 flex-col border-l border-border bg-surface/40">
+    <aside className="flex w-[360px] shrink-0 flex-col border-l border-border bg-surface">
       <div className="border-b border-border p-5">
         <div className="flex items-center justify-between">
           <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">

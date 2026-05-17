@@ -1,0 +1,217 @@
+/*
+ * Token-based overrides for the design console shell.
+ * Loaded last so legacy .console-shell rules (hardcoded dark hex) do not win.
+ */
+
+/* ─── Canvas workspace ─────────────────────────────────────────────────────── */
+
+.design-console.console-shell .canvas-view,
+.design-console.console-shell .canvas-graph-panel,
+.design-console.console-shell .design-canvas-panel,
+.design-console.console-shell .canvas-workspace-row,
+.design-console.console-shell .console-main-canvas {
+  background-color: var(--bg-canvas);
+}
+
+.design-console.console-shell .canvas-view {
+  background-image: none;
+}
+
+.design-console.console-shell .canvas-terminals-panel,
+.design-console.console-shell .canvas-terminal-skeleton,
+.design-console.console-shell .canvas-terminal-column {
+  background: var(--bg-canvas);
+}
+
+.design-console.console-shell .canvas-terminal-skeleton__header,
+.design-console.console-shell .canvas-terminal-skeleton__line {
+  background: var(--bg-surface-2);
+}
+
+.design-console.console-shell .canvas-panel-divider {
+  border-left-color: var(--border-subtle);
+  border-right-color: var(--border-subtle);
+  background: linear-gradient(180deg, var(--bg-surface-2), var(--bg-canvas));
+}
+
+.design-console.console-shell .canvas-toolbar,
+.design-console.console-shell .canvas-tuner,
+.design-console.console-shell .workspace-setup-minimized-bar {
+  border-color: var(--border-subtle);
+  background: color-mix(in oklch, var(--bg-surface-2) 92%, transparent);
+  color: var(--text-primary);
+}
+
+.design-console.console-shell .workspace-setup-minimized-bar:hover {
+  background: var(--bg-surface-2);
+}
+
+.design-console.console-shell .canvas-toolbar-btn {
+  color: var(--text-muted);
+}
+
+.design-console.console-shell .canvas-toolbar-btn:hover,
+.design-console.console-shell .canvas-toolbar-btn:active,
+.design-console.console-shell .canvas-toolbar-btn--active {
+  background: var(--bg-surface-2);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.design-console.console-shell .canvas-tuner-title,
+.design-console.console-shell .canvas-tuner-label {
+  color: var(--text-muted);
+}
+
+.design-console.console-shell .detail-panel {
+  background: var(--bg-surface-2);
+  border-left-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.design-console.console-shell .canvas-node-waiting-label {
+  fill: var(--bg-canvas);
+}
+
+/* ─── Agents sidebar (beats console-overrides-telemetry.css) ───────────────── */
+
+.design-console.console-shell .dashboard-deck-shell {
+  border-right-color: var(--sidebar-border);
+}
+
+.design-console.console-shell .active-agents-sidebar {
+  background: var(--sidebar-canvas);
+  border-right-color: var(--sidebar-border);
+}
+
+.design-console.console-shell .active-agents-footer {
+  background: var(--sidebar-panel);
+}
+
+.design-console.console-shell .active-agents-section,
+.design-console.console-shell .active-agents-group {
+  border-color: var(--sidebar-border);
+  background: var(--sidebar-card);
+}
+
+.design-console.console-shell .active-agents-section-toggle,
+.design-console.console-shell .active-agents-group-header {
+  background: var(--sidebar-header);
+}
+
+.design-console.console-shell .active-agents-section-toggle:hover {
+  background: var(--sidebar-row-hover);
+}
+
+.design-console.console-shell .active-agents-section-title,
+.design-console.console-shell .active-agents-group h3 {
+  color: var(--text-primary);
+}
+
+.design-console.console-shell .active-agents-section-meta,
+.design-console.console-shell .active-agents-group-count,
+.design-console.console-shell .active-agents-agent-row--child,
+.design-console.console-shell .active-agents-codex-usage-label {
+  color: var(--sidebar-text-muted);
+}
+
+.design-console.console-shell .active-agents-agent-row {
+  background: var(--sidebar-row);
+  border-bottom-color: var(--sidebar-border);
+  color: var(--text-primary);
+}
+
+.design-console.console-shell .active-agents-agent-row:hover {
+  background: var(--sidebar-row-hover);
+}
+
+.design-console.console-shell .active-agents-agent-row--root {
+  background: var(--sidebar-row-active);
+  border-left-color: var(--accent-primary);
+}
+
+.design-console.console-shell .active-agents-codex-usage {
+  border-color: var(--sidebar-border);
+  background: var(--sidebar-panel);
+}
+
+.design-console.console-shell .active-agents-codex-usage-meta {
+  color: var(--accent-secondary);
+}
+
+/* ─── Terminals column (legacy shell) ─────────────────────────────────────── */
+
+.design-console.console-shell .terminals {
+  background: var(--bg-canvas);
+}
+
+.design-console.console-shell .empty-state {
+  background: var(--bg-canvas);
+  color: var(--text-muted);
+}
+
+.design-console.console-shell .empty-state h2 {
+  color: var(--text-primary);
+}
+
+.design-console.console-shell .empty-state p {
+  color: var(--text-muted);
+}
+
+.design-console.console-shell .terminal-column,
+.design-console.console-shell .terminal-pane,
+.design-console.console-shell .terminal-mount {
+  background: var(--bg-canvas);
+}
+
+.design-console.console-shell .terminal-header,
+.design-console.console-shell .terminal-pane--selected .terminal-header {
+  background: var(--bg-surface-2);
+  border-bottom-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.design-console.console-shell .terminal-title,
+.design-console.console-shell .terminal-pane--selected .terminal-title {
+  color: var(--text-primary);
+}
+
+/* ─── Light theme: floating panels on canvas ─────────────────────────────────── */
+
+html.adadex-theme-light {
+  --bg-canvas: oklch(0.98 0.004 264);
+  --bg-surface-1: oklch(0.96 0.005 264);
+  --bg-surface-2: oklch(0.93 0.006 264);
+  --border-subtle: oklch(0.88 0.008 264);
+  --text-primary: oklch(0.2 0.012 264);
+  --text-secondary: oklch(0.35 0.014 264);
+  --text-muted: oklch(0.48 0.014 264);
+  --accent-primary: oklch(0.52 0.16 140);
+  --accent-secondary: oklch(0.58 0.17 50);
+  --sidebar-canvas: oklch(0.96 0.005 264);
+  --sidebar-panel: oklch(0.96 0.005 264);
+  --sidebar-card: oklch(0.93 0.006 264);
+  --sidebar-header: oklch(0.93 0.006 264);
+  --sidebar-row: oklch(0.96 0.005 264);
+  --sidebar-row-hover: oklch(0.93 0.006 264);
+  --sidebar-row-active: oklch(0.9 0.008 264);
+  --sidebar-border: oklch(0.88 0.008 264);
+  --sidebar-border-strong: oklch(0.85 0.01 264);
+  --sidebar-text-muted: oklch(0.48 0.014 264);
+  --terminal-bg: oklch(0.99 0.002 264);
+  --running: oklch(0.52 0.16 140);
+  --stopped: oklch(0.58 0.17 50);
+  --stale: oklch(0.62 0.14 70);
+  --idle: oklch(0.58 0.01 264);
+}
+
+html.adadex-theme-light body {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+}
+
+.design-console.light.console-shell .canvas-toolbar,
+.design-console.light.console-shell .canvas-tuner {
+  background: color-mix(in oklch, var(--bg-canvas) 94%, var(--bg-surface-2));
+  box-shadow: 0 4px 24px oklch(0 0 0 / 0.08);
+}
