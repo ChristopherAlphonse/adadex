@@ -13,3 +13,6 @@
 .planning/
 .cursor/*
 .cursor/hooks/state/
+
+# Stale emit under src/ — Vite resolves .js before .tsx and serves outdated UI
+apps/web/src/**/*.js

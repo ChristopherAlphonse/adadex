@@ -3,6 +3,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils";
 
+import { useAgentProviderPreference } from "./app/hooks/useAgentProviderPreference";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { DECK_LEAD_ID } from "./app/hooks/useCanvasGraphData";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
@@ -270,6 +271,7 @@ export const App = () => {
     };
   }, [refreshColumns, runtimeStateStore, sortTerminalSnapshots]);
 
+  const { agentProvider, setAgentProvider } = useAgentProviderPreference();
   const { codexUsageSnapshot, isRefreshingCodexUsage, refreshCodexUsage } = useCodexUsagePolling();
   useBackendLivenessPolling();
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
@@ -402,6 +404,8 @@ export const App = () => {
       <ConsoleChromeHeader
         activePrimaryNav={activePrimaryNav}
         onPrimaryNavChange={setActivePrimaryNav}
+        agentProvider={agentProvider}
+        onAgentProviderChange={setAgentProvider}
         codexUsage={codexUsageSnapshot}
         isRefreshingCodexUsage={isRefreshingCodexUsage}
       />
@@ -490,7 +494,7 @@ export const App = () => {
                   body: JSON.stringify({
                     name: "coordination-planner",
                     workspaceMode: "shared",
-                    agentProvider: "codex",
+                    agentProvider,
                     promptTemplate: "coordination-planner",
                   }),
                 });
@@ -508,13 +512,13 @@ export const App = () => {
               onCanvasOpenOrchestrationIdsChange: setCanvasOpenCoordinationIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
               onCreateAgent: async (coordinationId) => {
-                return await createTerminal("shared", undefined, coordinationId);
+                return await createTerminal("shared", agentProvider, coordinationId);
               },
               onCreateTerminal: async () => {
-                return await createTerminal("shared", undefined, DECK_LEAD_ID);
+                return await createTerminal("shared", agentProvider, DECK_LEAD_ID);
               },
               onCreateWorktreeTerminal: async () => {
-                return await createTerminal("worktree", undefined, DECK_LEAD_ID);
+                return await createTerminal("worktree", agentProvider, DECK_LEAD_ID);
               },
               onCreateOrchestration: async () => {
                 const response = await fetch("/api/deck/coordinations", {
@@ -611,6 +615,7 @@ export const App = () => {
           />
         </div>
       </section>
+
     </div>
   );
 };

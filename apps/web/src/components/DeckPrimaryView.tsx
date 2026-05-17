@@ -7,6 +7,7 @@ import type {
   WorkspaceSetupStepId,
 } from "@adadex/core";
 import { useClickOutside } from "../app/hooks/useClickOutside";
+import { useAgentProviderPreference } from "../app/hooks/useAgentProviderPreference";
 import type { TerminalAgentProvider } from "../app/types";
 import {
   buildDeckOrchestrationSkillsUrl,
@@ -81,7 +82,8 @@ export const DeckPrimaryView = ({
     null,
   );
 
-  const [selectedAgent, setSelectedAgent] = useState<TerminalAgentProvider>("codex");
+  const { agentProvider: selectedAgent, setAgentProvider: setSelectedAgent } =
+    useAgentProviderPreference();
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
   const agentMenuRef = useRef<HTMLDivElement>(null);
   const [isLaunchingAgent, setIsLaunchingAgent] = useState(false);

@@ -1,0 +1,34 @@
+diff --git a/lib/conpty_console_list_agent.js b/lib/conpty_console_list_agent.js
+index 8c4fca9022a6d6f015bca87f61625cde2278f428..397e646b413724d826f9bdd0a574ca6f3dbe5a9c 100644
+--- a/lib/conpty_console_list_agent.js
++++ b/lib/conpty_console_list_agent.js
+@@ -10,7 +10,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
+ var utils_1 = require("./utils");
+ var getConsoleProcessList = utils_1.loadNativeModule('conpty_console_list').module.getConsoleProcessList;
+ var shellPid = parseInt(process.argv[2], 10);
+-var consoleProcessList = getConsoleProcessList(shellPid);
++var consoleProcessList = [shellPid];
++try {
++    consoleProcessList = getConsoleProcessList(shellPid);
++}
++catch (_a) {
++    // AttachConsole can fail when the shell PID is gone or has no console.
++}
+ process.send({ consoleProcessList: consoleProcessList });
+ process.exit(0);
+ //# sourceMappingURL=conpty_console_list_agent.js.map
+\ No newline at end of file
+diff --git a/lib/windowsPtyAgent.js b/lib/windowsPtyAgent.js
+index a358ffb177357e177661033c1b092f9c9d0e5f5a..f0249e2cf72da35b07b35b1e9909c06662eb9a61 100644
+--- a/lib/windowsPtyAgent.js
++++ b/lib/windowsPtyAgent.js
+@@ -181,7 +181,8 @@ var WindowsPtyAgent = /** @class */ (function () {
+     WindowsPtyAgent.prototype._getConsoleProcessList = function () {
+         var _this = this;
+         return new Promise(function (resolve) {
+-            var agent = child_process_1.fork(path.join(__dirname, 'conpty_console_list_agent'), [_this._innerPid.toString()]);
++            // Clear inherited execArgv (e.g. tsx watch loaders) so the helper runs as plain Node.
++            var agent = child_process_1.fork(path.join(__dirname, 'conpty_console_list_agent'), [_this._innerPid.toString()], { execArgv: [] });
+             agent.on('message', function (message) {
+                 clearTimeout(timeout);
+                 resolve(message.consoleProcessList);

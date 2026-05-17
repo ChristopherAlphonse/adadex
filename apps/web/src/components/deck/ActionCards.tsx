@@ -1,12 +1,8 @@
 import { Check } from "lucide-react";
 
+import { AGENT_PROVIDER_OPTIONS } from "../../app/agentProviders";
 import type { TerminalAgentProvider } from "../../app/types";
 import { MascotSprite } from "../MascotSprite";
-
-export const AGENT_PROVIDER_OPTIONS: {
-  value: TerminalAgentProvider;
-  label: string;
-}[] = [{ value: "codex", label: "Codex" }];
 
 export type ActionCardsProps = {
   compact?: boolean;

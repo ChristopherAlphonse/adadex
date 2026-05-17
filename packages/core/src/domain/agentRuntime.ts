@@ -10,9 +10,9 @@ export const isAgentRuntimeState = (value: unknown): value is AgentRuntimeState 
   value === "waiting_for_permission" ||
   value === "waiting_for_user";
 
-export type TerminalAgentProvider = "codex";
+export type TerminalAgentProvider = "codex" | "opencode";
 
-export const TERMINAL_AGENT_PROVIDERS: TerminalAgentProvider[] = ["codex"];
+export const TERMINAL_AGENT_PROVIDERS: TerminalAgentProvider[] = ["codex", "opencode"];
 
 export const isTerminalAgentProvider = (value: unknown): value is TerminalAgentProvider =>
   typeof value === "string" && TERMINAL_AGENT_PROVIDERS.includes(value as TerminalAgentProvider);

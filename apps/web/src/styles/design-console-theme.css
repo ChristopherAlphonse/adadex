@@ -1,4 +1,4 @@
-/* Scoped theme for the design-system console preview (apps/design.md tokens). */
+/* Scoped theme for the design-system console (apps/design.md tokens). */
 .design-console {
   --background: oklch(0.16 0.005 264);
   --foreground: oklch(0.96 0.003 247);
@@ -28,7 +28,29 @@
   --color-idle: var(--idle);
   --color-destructive: var(--destructive);
 
+  /* Neutralize legacy foundation.css green palette inside the console shell. */
+  --bg-canvas: var(--background);
+  --bg-surface-1: var(--surface);
+  --bg-surface-2: var(--surface-2);
+  --border-subtle: var(--border);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-muted: var(--muted-foreground);
+  --accent-primary: var(--brand);
+  --sidebar-canvas: var(--surface);
+  --sidebar-panel: var(--surface);
+  --sidebar-card: var(--surface-2);
+  --sidebar-header: var(--surface-2);
+  --sidebar-row: var(--surface);
+  --sidebar-row-hover: var(--surface-2);
+  --sidebar-row-active: var(--surface-2);
+  --sidebar-border: var(--border);
+  --sidebar-border-strong: var(--border);
+  --sidebar-text-muted: var(--muted-foreground);
+
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .design-console.console-shell {
@@ -37,6 +59,7 @@
   height: 100vh;
   min-height: 100vh;
   overflow: hidden;
+  grid-template-rows: unset;
 }
 
 .design-console .console-main-canvas {
@@ -65,6 +88,109 @@
 }
 
 .design-console .canvas-view--chrome .canvas-graph-panel {
+  position: relative;
   min-width: 0;
   flex: 1;
+}
+
+.design-console .canvas-view {
+  background-color: var(--background);
+  background-image: none;
+}
+
+.design-console .design-canvas-panel--grid {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    oklch(1 0 0 / 0.05) 1px,
+    transparent 0
+  );
+  background-size: 24px 24px;
+}
+
+.design-console .active-agents-sidebar {
+  background: var(--surface);
+  border-right-color: var(--border);
+}
+
+.design-console .active-agents-section,
+.design-console .active-agents-group {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.design-console .active-agents-section-toggle,
+.design-console .active-agents-group-header {
+  background: var(--surface-2);
+}
+
+.design-console .active-agents-section-title,
+.design-console .active-agents-group h3,
+.design-console .active-agents-agent-row {
+  color: var(--foreground);
+}
+
+.design-console .active-agents-section-meta,
+.design-console .active-agents-group-count,
+.design-console .active-agents-codex-usage-label,
+.design-console .active-agents-codex-usage-meta {
+  color: var(--muted-foreground);
+}
+
+.design-console .active-agents-agent-row {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+}
+
+.design-console .active-agents-agent-row:hover {
+  background: var(--surface-2);
+}
+
+.design-console .active-agents-agent-row--root {
+  background: var(--surface-2);
+  border-left-color: var(--foreground);
+}
+
+.design-console .active-agents-codex-usage {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.design-console .terminal-column-header h2,
+.design-console .empty-state h2 {
+  color: var(--foreground);
+}
+
+.design-console .terminal-header,
+.design-console .terminal-pane--selected .terminal-header {
+  background: var(--surface-2);
+  border-bottom-color: var(--border);
+  color: var(--foreground);
+}
+
+.design-console .terminal-title,
+.design-console .terminal-pane--selected .terminal-title {
+  color: var(--foreground);
+}
+
+.design-console .canvas-waiting-bar {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.design-console .canvas-waiting-bar-prefix {
+  color: var(--muted-foreground);
+}
+
+.design-console .workspace-setup-minimized-bar {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.design-console .pill.processing,
+.design-console .status-badge.processing {
+  background: oklch(from var(--running) l c h / 0.15);
+  color: var(--running);
+  border-color: oklch(from var(--running) l c h / 0.35);
 }
