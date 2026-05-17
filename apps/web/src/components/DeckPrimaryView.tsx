@@ -304,6 +304,35 @@ export const DeckPrimaryView = ({
     [fetchOrchestrations, onRefreshWorkspaceSetup],
   );
 
+  const handleMascotSave = useCallback(
+    async (coordinationId: string, mascot: { color: string; expression: string; accessory: string }) => {
+      try {
+        const response = await fetch(buildDeckOrchestrationUrl(coordinationId), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            color: mascot.color,
+            mascot: {
+              animation: null,
+              expression: mascot.expression,
+              accessory: mascot.accessory,
+              hairColor: mascot.color,
+            },
+          }),
+        });
+        if (!response.ok) return false;
+        await fetchOrchestrations();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [fetchOrchestrations],
+  );
+
   const handleOrchestrationSkillsSave = useCallback(
     async (coordinationId: string, suggestedSkills: string[]) => {
       setSavingOrchestrationSkillsId(coordinationId);
@@ -378,7 +407,7 @@ export const DeckPrimaryView = ({
   // Push sidebar content to the shared sidebar
   const sidebarContent = useMemo(
     () =>
-      orchestrations.length > 0 || emptyViewMode === "adding" || focus?.type === "terminal" || shouldShowWorkspaceSetup ? (
+      orchestrations.length > 0 || focus?.type === "terminal" ? (
         <div className="deck-sidebar-content">
           <div className="deck-sidebar-content-top">
             {shouldShowWorkspaceSetup ? (
@@ -546,6 +575,7 @@ export const DeckPrimaryView = ({
                 availableSkills={availableSkills}
                 isSavingSkills={savingOrchestrationSkillsId === t.coordinationId}
                 onSaveSuggestedSkills={handleOrchestrationSkillsSave}
+                onSaveMascot={handleMascotSave}
               />
             </div>
           );

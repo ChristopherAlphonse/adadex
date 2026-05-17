@@ -910,6 +910,56 @@
   image-rendering: pixelated;
 }
 
+.deck-pod-mascot-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  margin-top: 0.3rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: calc(var(--radius, 0.5rem) - 2px);
+  background: var(--bg-surface-1);
+}
+
+.deck-pod-mascot-editor-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.deck-pod-mascot-editor-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.deck-pod-mascot-editor-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.deck-pod-mascot-editor-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.deck-pod-mascot-editor-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.deck-pod-mascot-editor-actions {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: flex-end;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
 .deck-pod-status {
   position: absolute;
   top: 0.4rem;

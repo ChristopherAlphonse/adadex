@@ -1,38 +1,39 @@
 .console-shell .settings-view {
   min-height: 0;
   background: var(--bg-canvas);
-  padding: 0.56rem;
+  padding: 0.7rem;
   display: grid;
   align-content: start;
-  gap: 0.56rem;
+  gap: 0.6rem;
 }
 
 .settings-panel {
   min-height: 0;
-  border: 1px solid #2b2f36;
-  background: #090d12;
-  padding: 0.68rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  border-radius: calc(var(--radius, 0.5rem) - 2px);
+  padding: 0.7rem;
   display: grid;
   align-content: start;
-  gap: 0.58rem;
+  gap: 0.52rem;
 }
 
 .settings-panel-header {
   display: grid;
-  gap: 0.22rem;
+  gap: 0.18rem;
 }
 
 .settings-panel-header h2 {
   margin: 0;
-  color: #dce6f7;
-  font-size: 0.96rem;
-  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .settings-panel-header p {
   margin: 0;
-  color: #9eb0c8;
-  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 .settings-sound-picker {
@@ -42,39 +43,46 @@
 }
 
 .settings-sound-option {
-  border: 1px solid #2b2f36;
-  background: #11161d;
-  color: #b8c2d1;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
   font-family: var(--font-main);
   cursor: pointer;
   text-align: left;
+  border-radius: calc(var(--radius, 0.5rem) - 4px);
   padding: 0.42rem 0.46rem;
   display: grid;
   gap: 0.18rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.settings-sound-option:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-subtle));
 }
 
 .settings-sound-option[data-active="true"] {
-  border-color: color-mix(in srgb, var(--term-green) 58%, #244a34);
-  background: color-mix(in srgb, var(--term-green) 22%, #11161d 78%);
-  color: #d6ffe4;
+  border-color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-surface-2));
+  color: var(--text-primary);
 }
 
 .settings-sound-option:focus-visible {
-  outline: 1px solid color-mix(in srgb, var(--term-green) 64%, #6fb78a);
+  outline: 1px solid var(--accent-primary);
   outline-offset: 1px;
 }
 
 .settings-sound-option-label {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  font-weight: 500;
 }
 
 .settings-sound-option-description {
-  color: #93a4bb;
+  color: var(--text-muted);
   font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
-  font-size: 0.76rem;
-  line-height: 1.34;
+  font-size: 0.74rem;
+  line-height: 1.35;
 }
 
 .settings-panel-actions {
@@ -85,21 +93,22 @@
 }
 
 .settings-sound-preview {
-  --action-button-border: color-mix(in srgb, #38b86c 68%, #1a5235);
-  --action-button-bg: color-mix(in srgb, #2fb763 76%, #194e34 24%);
-  --action-button-color: #f4fff8;
+  --action-button-border: color-mix(in srgb, var(--accent-primary) 60%, transparent);
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 18%, var(--bg-surface-2));
+  --action-button-color: var(--accent-primary);
   --action-button-font-size: 0.76rem;
   --action-button-padding-y: 0.2rem;
   --action-button-padding-x: 0.4rem;
 }
 
 .settings-saved-pill {
-  border: 1px solid #2f3946;
-  background: #111822;
-  color: #d9e4f6;
-  font-size: 0.72rem;
-  letter-spacing: 0.05em;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 0.14rem 0.36rem;
+  border-radius: 999px;
 }
 
