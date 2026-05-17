@@ -48,7 +48,7 @@
   },
   "overrides": [
     {
-      "includes": ["**/tailwind.css", "**/tailwind-components.css"],
+      "includes": ["apps/web/src/styles/**"],
       "linter": { "enabled": false },
       "formatter": { "enabled": false }
     }

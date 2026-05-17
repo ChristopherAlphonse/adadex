@@ -82,5 +82,8 @@
 ## Learned User Preferences
 - Prefer the product term "orchestration" over "tentacles" in user-facing copy and new identifiers.
 
+## Maintenance Skill
+Before upgrading packages, changing CI workflows, or touching the prompt template system, read `.agents/skills/adadex-maintenance/SKILL.md`. It documents every known breaking point in this repo: Biome major upgrades, TypeScript deprecations, stale test patterns, prompt variable completeness, GitHub Actions SHA pinning, and the release workflow.
+
 ## Learned Workspace Facts
 - On Windows, `scripts/dev.mjs` spawns `pnpm` with `shell: true` and resolves the monorepo root with `fileURLToPath(import.meta.url)` so `ADADEX_WORKSPACE_CWD` is a valid drive path (avoids `/D:/...` from `URL.pathname` and `spawn EINVAL` when Node resolves the pnpm shim).
