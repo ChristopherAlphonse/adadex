@@ -50,10 +50,12 @@ static/images/customize-agent-verify.png
 static/images/deck-claude-verify.png
 
 # Local agent directories (skills, IDE/runtime writes — not shipped with the repo)
-/.agents/
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/adadex-maintenance/
 /.claude/
 /.opencode/
 
 # Installed agent skills manifest (local / per-machine hashes)
 /skills-lock.json
-!/.claude/CLAUDE.md
