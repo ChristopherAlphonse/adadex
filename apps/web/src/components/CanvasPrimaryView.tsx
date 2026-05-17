@@ -21,7 +21,12 @@ import {
   type TerminalRuntimeStateStore,
   createTerminalRuntimeStateStore,
 } from "../app/terminalRuntimeStateStore";
-import type { TerminalView, TerminalWorkspaceMode } from "../app/types";
+import type {
+  CodexUsageSnapshot,
+  CoordinationGitStatusSnapshot,
+  TerminalView,
+  TerminalWorkspaceMode,
+} from "../app/types";
 import { DeleteOrchestrationDialog } from "./DeleteOrchestrationDialog";
 import { CanvasOrchestrationPanel } from "./canvas/CanvasOrchestrationPanel";
 import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
@@ -94,6 +99,8 @@ type CanvasPrimaryViewProps = {
   onTerminalRenamed?: ((terminalId: string, coordinationName: string) => void) | undefined;
   onTerminalActivity?: ((terminalId: string) => void) | undefined;
   onRefreshColumns?: () => Promise<void> | void;
+  gitStatusByOrchestrationId?: Record<string, CoordinationGitStatusSnapshot>;
+  codexUsage?: CodexUsageSnapshot | null;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -226,6 +233,8 @@ export const CanvasPrimaryView = ({
   onTerminalRenamed,
   onTerminalActivity,
   onRefreshColumns,
+  gitStatusByOrchestrationId = {},
+  codexUsage = null,
 }: CanvasPrimaryViewProps) => {
   const runtimeStateStoreRef = useRef<TerminalRuntimeStateStore | null>(null);
   if (runtimeStateStoreRef.current === null) {
@@ -1183,6 +1192,28 @@ export const CanvasPrimaryView = ({
           </g>
         </svg>
 
+        <div className="pointer-events-none absolute right-4 top-4 rounded-lg border border-border bg-surface/80 p-3 backdrop-blur">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Legend
+          </p>
+          <div className="space-y-1.5">
+            {[
+              ["running", "Running"],
+              ["stopped", "Stopped"],
+              ["stale", "Stale"],
+              ["idle", "Idle"],
+            ].map(([status, label]) => (
+              <div key={status} className="flex items-center gap-2">
+                <span
+                  className="size-2 rounded-full"
+                  style={{ backgroundColor: `var(--${status})` }}
+                />
+                <span className="text-[12px] text-muted-foreground">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Waiting notifications — compact bars below the toolbar */}
         {waitingNodes.length > 0 && (
           <div className="canvas-waiting-list">
@@ -1333,7 +1364,14 @@ export const CanvasPrimaryView = ({
         </>
       )}
 
-        <ConsoleInspectorPanel selectedNode={selectedNode} terminal={selectedTerminal} />
+        <ConsoleInspectorPanel
+          selectedNode={selectedNode}
+          terminal={selectedTerminal}
+          gitStatus={
+            selectedNode ? (gitStatusByOrchestrationId[selectedNode.coordinationId] ?? null) : null
+          }
+          codexUsage={codexUsage}
+        />
       </div>
 
       {/* Context menu */}

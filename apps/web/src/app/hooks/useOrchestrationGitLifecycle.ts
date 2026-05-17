@@ -64,6 +64,12 @@ const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSna
     typeof record.coordinationId !== "string" ||
     (record.workspaceMode !== "shared" && record.workspaceMode !== "worktree") ||
     typeof record.branchName !== "string" ||
+    (record.headCommit !== null &&
+      record.headCommit !== undefined &&
+      typeof record.headCommit !== "string") ||
+    (record.worktreePath !== null &&
+      record.worktreePath !== undefined &&
+      typeof record.worktreePath !== "string") ||
     (record.upstreamBranchName !== null && typeof record.upstreamBranchName !== "string") ||
     typeof record.isDirty !== "boolean" ||
     typeof record.aheadCount !== "number" ||
@@ -80,6 +86,8 @@ const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSna
     coordinationId: record.coordinationId,
     workspaceMode: record.workspaceMode,
     branchName: record.branchName,
+    headCommit: typeof record.headCommit === "string" ? record.headCommit : null,
+    worktreePath: typeof record.worktreePath === "string" ? record.worktreePath : null,
     upstreamBranchName: record.upstreamBranchName,
     isDirty: record.isDirty,
     aheadCount: record.aheadCount,

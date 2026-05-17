@@ -29,9 +29,6 @@ export const AdadexConsoleHeader = (): React.ReactElement => (
           <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
-      <span className="rounded-full border border-brand/30 bg-brand/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
-        Live
-      </span>
     </div>
 
     <nav className="mx-6 hidden h-full flex-1 items-center justify-center gap-1 lg:flex">
@@ -64,29 +61,6 @@ export const AdadexConsoleHeader = (): React.ReactElement => (
     </nav>
 
     <div className="ml-auto flex shrink-0 items-center gap-2">
-      <button
-        type="button"
-        className="hidden items-center gap-2 rounded-md border border-border bg-white/[0.02] px-3 py-1.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground md:flex"
-      >
-        <svg
-          className="size-3.5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          aria-hidden
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <span>Search…</span>
-        <kbd className="ml-4 flex h-5 items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] text-muted-foreground">
-          <span>⌘</span>K
-        </kbd>
-      </button>
-
-      <div className="mx-1 hidden h-6 w-px bg-border md:block" />
-
       <div className="hidden items-center gap-3 pr-1 xl:flex">
         <Meter label="Codex" value={30} />
         <Meter label="Weekly" value={7} muted />

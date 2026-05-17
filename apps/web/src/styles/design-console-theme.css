@@ -13,6 +13,10 @@
   --stale: oklch(0.78 0.15 70);
   --idle: oklch(0.55 0.01 264);
   --destructive: oklch(0.65 0.22 25);
+  --terminal-bg: oklch(0.14 0.008 264);
+  --terminal-fg: oklch(0.94 0.003 247);
+  --terminal-cursor: var(--brand);
+  --grid-dot: oklch(1 0 0 / 0.05);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -53,6 +57,64 @@
   color: var(--foreground);
 }
 
+.design-console.light {
+  --background: oklch(0.98 0.004 264);
+  --foreground: oklch(0.2 0.012 264);
+  --surface: oklch(0.96 0.005 264);
+  --surface-2: oklch(0.93 0.006 264);
+  --muted-foreground: oklch(0.48 0.014 264);
+  --border: oklch(0.88 0.008 264);
+  --brand: oklch(0.52 0.16 140);
+  --primary: oklch(0.52 0.16 140);
+  --running: oklch(0.52 0.16 140);
+  --stopped: oklch(0.58 0.17 50);
+  --stale: oklch(0.62 0.14 70);
+  --idle: oklch(0.58 0.01 264);
+  --destructive: oklch(0.55 0.22 25);
+  --terminal-bg: oklch(0.99 0.002 264);
+  --terminal-fg: oklch(0.22 0.012 264);
+  --terminal-cursor: var(--brand);
+  --grid-dot: oklch(0 0 0 / 0.08);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-primary: var(--primary);
+  --color-running: var(--running);
+  --color-stopped: var(--stopped);
+  --color-stale: var(--stale);
+  --color-idle: var(--idle);
+  --color-destructive: var(--destructive);
+
+  --bg-canvas: var(--background);
+  --bg-surface-1: var(--surface);
+  --bg-surface-2: var(--surface-2);
+  --border-subtle: var(--border);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-muted: var(--muted-foreground);
+  --accent-primary: var(--brand);
+  --sidebar-canvas: var(--surface);
+  --sidebar-panel: var(--surface);
+  --sidebar-card: var(--surface-2);
+  --sidebar-header: var(--surface-2);
+  --sidebar-row: var(--surface);
+  --sidebar-row-hover: var(--surface-2);
+  --sidebar-row-active: var(--surface-2);
+  --sidebar-border: var(--border);
+  --sidebar-border-strong: var(--border);
+  --sidebar-text-muted: var(--muted-foreground);
+}
+
+html.adadex-theme-light body {
+  background: oklch(0.98 0.004 264);
+  color: oklch(0.2 0.012 264);
+}
+
 .design-console.console-shell {
   display: flex;
   flex-direction: column;
@@ -62,7 +124,14 @@
   grid-template-rows: unset;
 }
 
+.design-console > header {
+  position: relative;
+  z-index: 100;
+}
+
 .design-console .console-main-canvas {
+  position: relative;
+  z-index: 0;
   display: flex;
   min-height: 0;
   flex: 1;
@@ -101,7 +170,7 @@
 .design-console .design-canvas-panel--grid {
   background-image: radial-gradient(
     circle at 1px 1px,
-    oklch(1 0 0 / 0.05) 1px,
+    var(--grid-dot) 1px,
     transparent 0
   );
   background-size: 24px 24px;
@@ -193,4 +262,43 @@
   background: oklch(from var(--running) l c h / 0.15);
   color: var(--running);
   border-color: oklch(from var(--running) l c h / 0.35);
+}
+
+/* Settings and other legacy panels inside the design shell */
+.design-console .settings-view {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.design-console .settings-panel {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+
+.design-console .settings-panel-header h2 {
+  color: var(--foreground);
+}
+
+.design-console .settings-panel-header p {
+  color: var(--muted-foreground);
+}
+
+.design-console .settings-sound-option {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.design-console .settings-sound-option[data-active="true"] {
+  border-color: oklch(from var(--running) l c h / 0.45);
+  background: oklch(from var(--running) l c h / 0.12);
+  color: var(--foreground);
+}
+
+.design-console .settings-sound-option-description {
+  color: var(--muted-foreground);
+}
+
+.design-console .settings-saved-pill {
+  color: var(--muted-foreground);
 }

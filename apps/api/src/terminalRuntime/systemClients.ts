@@ -247,6 +247,9 @@ export const createDefaultGitClient = (): GitClient => ({
   readWorktreeStatus({ cwd }) {
     const branchName = runGitCommand(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]);
     const hasHeadCommit = readOptionalGitCommand(cwd, ["rev-parse", "--verify", "HEAD"]) !== null;
+    const headCommit = hasHeadCommit
+      ? readOptionalGitCommand(cwd, ["rev-parse", "--short", "HEAD"])
+      : null;
     const upstreamBranchName = readOptionalGitCommand(cwd, [
       "rev-parse",
       "--abbrev-ref",
@@ -300,6 +303,8 @@ export const createDefaultGitClient = (): GitClient => ({
 
     return {
       branchName,
+      headCommit,
+      worktreePath: cwd,
       upstreamBranchName,
       isDirty: statusLines.length > 0,
       aheadCount,
