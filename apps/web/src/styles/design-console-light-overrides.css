@@ -1,0 +1,239 @@
+/* Final light-theme pass for legacy console modules loaded after design-console-theme.css. */
+html.adadex-theme-light {
+  --background: oklch(0.98 0.004 264);
+  --foreground: oklch(0.2 0.012 264);
+  --surface: oklch(0.96 0.005 264);
+  --surface-2: oklch(0.93 0.006 264);
+  --muted-foreground: oklch(0.48 0.014 264);
+  --border: oklch(0.88 0.008 264);
+  --brand: oklch(0.52 0.16 140);
+  --primary: var(--brand);
+  --running: var(--brand);
+  --stopped: oklch(0.58 0.17 50);
+  --stale: oklch(0.62 0.14 70);
+  --idle: oklch(0.58 0.01 264);
+  --destructive: oklch(0.55 0.22 25);
+  --terminal-bg: oklch(0.99 0.002 264);
+  --terminal-fg: oklch(0.22 0.012 264);
+  --terminal-cursor: var(--brand);
+  --bg-canvas: var(--background);
+  --bg-surface-1: var(--surface);
+  --bg-surface-2: var(--surface-2);
+  --border-subtle: var(--border);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-muted: var(--muted-foreground);
+  --accent-primary: var(--brand);
+  --sidebar-canvas: var(--surface);
+  --sidebar-panel: var(--surface);
+  --sidebar-card: var(--surface-2);
+  --sidebar-header: var(--surface-2);
+  --sidebar-row: var(--surface);
+  --sidebar-row-hover: var(--surface-2);
+  --sidebar-row-active: var(--surface-2);
+  --sidebar-border: var(--border);
+  --sidebar-border-strong: var(--border);
+  --sidebar-text-muted: var(--muted-foreground);
+  --terminal-scrollbar-track: color-mix(in srgb, var(--terminal-bg) 92%, var(--border));
+  --terminal-scrollbar-thumb: color-mix(in srgb, var(--brand) 35%, var(--border) 65%);
+  --terminal-scrollbar-thumb-hover: color-mix(in srgb, var(--brand) 48%, var(--border) 52%);
+  --terminal-scrollbar-thumb-active: color-mix(in srgb, var(--brand) 62%, var(--border) 38%);
+  --scrollbar-track: color-mix(in srgb, var(--surface) 92%, var(--border));
+  --scrollbar-thumb: color-mix(in srgb, var(--brand) 35%, var(--border) 65%);
+  --grid-dot: oklch(0 0 0 / 0.08);
+}
+
+.design-console.light {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.design-console.light .console-main-canvas,
+.design-console.light .workspace-shell,
+.design-console.light .canvas-view {
+  background: var(--background);
+  border-color: var(--border);
+}
+
+.design-console.light .canvas-view {
+  background-image: radial-gradient(var(--grid-dot) 1.5px, transparent 1.5px);
+}
+
+.design-console.light :is(
+  .activity-view,
+  .github-view,
+  .code-intel-view,
+  .settings-view,
+  .conversations-view,
+  .prompts-view,
+  .deck-empty-right,
+  .deck-empty-card,
+  .canvas-toolbar,
+  .canvas-terminals-panel,
+  .canvas-terminal-skeleton
+) {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.design-console.light :is(
+  .usage-heatmap,
+  .github-overview,
+  .github-overview-graph,
+  .github-overview-graph-surface,
+  .code-intel-view-header,
+  .code-intel-panel,
+  .code-intel-tooltip,
+  .settings-panel,
+  .settings-sound-option,
+  .settings-saved-pill,
+  .conversations-sessions,
+  .conversations-transcript,
+  .conversations-session-item,
+  .prompts-content pre,
+  .prompts-edit-area,
+  .prompts-terminal-header,
+  .deck-add-form-chip,
+  .deck-add-form-input,
+  .deck-add-form-textarea,
+  .canvas-terminal-skeleton__header,
+  .canvas-terminal-skeleton__line
+) {
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+
+.design-console.light :is(
+  .usage-heatmap-header,
+  .github-overview-header,
+  .conversations-transcript-header,
+  .prompts-detail-header,
+  .prompts-terminal-header,
+  .deck-add-form-header,
+  .deck-add-form-right,
+  .sidebar-prompts-toolbar
+) {
+  border-color: var(--border);
+}
+
+.design-console.light :is(
+  .usage-heatmap-header h3,
+  .github-overview-header h2,
+  .github-overview-stat dd,
+  .github-overview-commit-subject,
+  .code-intel-panel-header h2,
+  .code-intel-treemap-label,
+  .code-intel-tooltip-path,
+  .code-intel-arc-label--active,
+  .settings-panel-header h2,
+  .conversations-header-copy h2,
+  .conversations-transcript-header h3,
+  .conversations-session-item strong,
+  .prompts-detail-name,
+  .prompts-content h1,
+  .prompts-content h2,
+  .prompts-content h3
+) {
+  color: var(--foreground);
+  fill: var(--foreground);
+}
+
+.design-console.light :is(
+  .usage-heatmap-summary,
+  .usage-chart-stat dt,
+  .usage-chart-y-label,
+  .usage-chart-x-label,
+  .usage-heatmap-month-label,
+  .usage-heatmap-day-label,
+  .github-overview-graph-meta span,
+  .github-overview-graph-y-label,
+  .github-overview-graph-x-label,
+  .github-overview-commit-meta,
+  .github-overview-commit-sha,
+  .code-intel-stat,
+  .code-intel-stat-label,
+  .code-intel-panel-header p,
+  .code-intel-empty,
+  .code-intel-arc-label,
+  .code-intel-tooltip-coupling-partner,
+  .settings-panel-header p,
+  .settings-sound-option-description,
+  .settings-saved-pill,
+  .conversations-header-copy p,
+  .conversations-session-item span,
+  .conversations-transcript-header dt,
+  .conversations-turn-time,
+  .prompts-empty,
+  .prompts-content,
+  .sidebar-prompts-empty,
+  .deck-add-form-label,
+  .deck-add-form-color-meta
+) {
+  color: var(--muted-foreground);
+  fill: var(--muted-foreground);
+}
+
+.design-console.light :is(
+  .usage-chart-stats,
+  .usage-chart-stat,
+  .usage-heatmap-scope-btn,
+  .usage-chart-bar-segment-btn,
+  .github-overview-commits,
+  .github-overview-commit,
+  .prompts-content code
+) {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--surface-2) 72%, var(--background) 28%);
+  color: var(--foreground);
+}
+
+.design-console.light :is(
+  .usage-heatmap-scope-btn.is-active,
+  .usage-chart-bar-segment-btn.is-active,
+  .settings-sound-option[data-active="true"],
+  .deck-add-form-chip[data-selected="true"],
+  .conversations-session-item[data-active="true"],
+  .prompts-detail-source-badge[data-source]
+) {
+  border-color: color-mix(in srgb, var(--brand) 46%, var(--border));
+  background: color-mix(in srgb, var(--brand) 13%, var(--surface));
+  color: var(--foreground);
+}
+
+.design-console.light :is(
+  .usage-chart-grid-line,
+  .usage-heatmap-cell,
+  .github-overview-graph-grid
+) {
+  stroke: var(--border);
+}
+
+.design-console.light :is(.terminal-mount, .terminal-mount .xterm-viewport) {
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
+}
+
+.design-console.light .canvas-panel-divider {
+  border-color: var(--border);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+}
+
+.design-console.light :is(.canvas-waiting-bar, .workspace-setup-minimized-bar) {
+  border-color: color-mix(in srgb, var(--stale) 50%, var(--border));
+  background: color-mix(in srgb, var(--stale) 18%, var(--surface));
+  color: var(--foreground);
+}
+
+.design-console.light .deck-empty-card:hover,
+.design-console.light .conversations-session-item:hover,
+.design-console.light .usage-heatmap-scope-btn:hover,
+.design-console.light .usage-chart-bar-segment-btn:hover,
+.design-console.light .sidebar-prompts-refresh-btn:hover {
+  background: color-mix(in srgb, var(--brand) 10%, var(--surface-2));
+}
+
+.design-console.light .deck-add-form-color-swatch[data-selected="true"] {
+  border-color: var(--foreground);
+}
