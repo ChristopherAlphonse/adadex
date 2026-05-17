@@ -27,7 +27,7 @@ export const ConsoleCanvasViewportControls = ({
       <button
         type="button"
         onClick={onZoomOut}
-        className="flex items-center gap-1 rounded px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+        className="flex items-center gap-1 rounded px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
       >
         <Minus className="size-3" strokeWidth={2} aria-hidden />
         Zoom
@@ -36,7 +36,7 @@ export const ConsoleCanvasViewportControls = ({
       <button
         type="button"
         onClick={onZoomIn}
-        className="flex items-center gap-1 rounded px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+        className="flex items-center gap-1 rounded px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
       >
         <Plus className="size-3" strokeWidth={2} aria-hidden />
         Zoom
@@ -45,7 +45,7 @@ export const ConsoleCanvasViewportControls = ({
       <button
         type="button"
         onClick={onFitView}
-        className="flex items-center gap-1 rounded px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+        className="flex items-center gap-1 rounded px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
       >
         <Scan className="size-3" strokeWidth={2} aria-hidden />
         Fit
@@ -56,8 +56,8 @@ export const ConsoleCanvasViewportControls = ({
         aria-pressed={showGrid}
         className={`flex items-center gap-1 rounded px-2.5 py-1 text-[11px] transition-colors ${
           showGrid
-            ? "bg-white/10 text-foreground"
-            : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            ? "bg-foreground/10 text-foreground"
+            : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
         }`}
       >
         <Grid3x3 className="size-3" strokeWidth={2} aria-hidden />

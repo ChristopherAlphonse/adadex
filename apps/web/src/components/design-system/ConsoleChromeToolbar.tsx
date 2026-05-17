@@ -89,7 +89,7 @@ export const ConsoleChromeToolbar = ({
               className={`flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[14.5px] font-medium transition-colors ${
                 active
                   ? "bg-brand/10 text-brand"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
               }`}
             >
               <Icon className="size-3.5" strokeWidth={2} />
