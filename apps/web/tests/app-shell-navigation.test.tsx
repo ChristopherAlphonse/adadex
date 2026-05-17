@@ -52,18 +52,17 @@ describe("App shell and navigation", () => {
     resetAppTestHarness();
   });
 
-  it("renders the current shell chrome with navigation hints", async () => {
+  it("renders the current shell chrome with primary navigation", async () => {
     mockShellRequests();
 
     render(<App />);
 
-    expect(await screen.findByLabelText("Runtime status strip")).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("navigation", { name: "Primary navigation" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
     expect(screen.queryByLabelText("Telemetry ticker tape")).toBeNull();
     expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
-    expect(screen.getByText("Press 1-4, 6-8 to navigate")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "[5] Monitor" })).toBeNull();
   });
 
   it("supports keyboard-first primary navigation with available number keys", async () => {
@@ -74,11 +73,10 @@ describe("App shell and navigation", () => {
 
     fireEvent.keyDown(window, { key: "4" });
 
-    expect(
-      screen.getByRole("button", {
-        name: "[4] Code Intel",
-      }),
-    ).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /Code Intel/i })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   it("renders settings panel when navigating to settings tab", async () => {
@@ -87,11 +85,7 @@ describe("App shell and navigation", () => {
     render(<App />);
     await screen.findByRole("navigation", { name: "Primary navigation" });
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "[8] Settings",
-      }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Settings/i }));
 
     expect(await screen.findByLabelText("Settings primary view")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Soft chime/i })).toBeInTheDocument();

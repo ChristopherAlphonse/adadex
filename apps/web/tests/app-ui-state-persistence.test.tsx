@@ -7,11 +7,7 @@ import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-util
 describe("App UI state persistence", () => {
   afterEach(() => {
     cleanup();
-    try {
-      window.localStorage.clear();
-    } catch {
-      /* localStorage may be unavailable after unstubAllGlobals */
-    }
+    window.localStorage.clear();
     resetAppTestHarness();
   });
 
@@ -53,7 +49,7 @@ describe("App UI state persistence", () => {
 
       if (url.endsWith("/api/ui-state") && method === "GET") {
         return jsonResponse({
-          activePrimaryNav: 8,
+          activePrimaryNav: 7,
           isRuntimeStatusStripVisible: false,
           terminalCompletionSound: "retro-beep",
         });
@@ -143,7 +139,7 @@ describe("App UI state persistence", () => {
 
       if (url.endsWith("/api/ui-state") && method === "GET") {
         return jsonResponse({
-          activePrimaryNav: 8,
+          activePrimaryNav: 7,
           terminalCompletionSound: "retro-beep",
         });
       }

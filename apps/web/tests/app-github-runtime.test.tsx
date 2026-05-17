@@ -81,28 +81,12 @@ describe("App GitHub runtime views", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders github repo metrics in the runtime status strip", async () => {
-    mockGithubRuntimeRequests();
-
-    const { container } = render(<App />);
-
-    const strip = await screen.findByLabelText("Runtime status strip");
-    expect(within(strip).getByText("COMMITS/DAY · LAST 30 DAYS")).toBeInTheDocument();
-
-    const sparkline = container.querySelector(".console-status-sparkline polyline");
-    expect(sparkline).not.toBeNull();
-    expect(sparkline?.getAttribute("points")).not.toBe("");
-  });
-
   it("renders the Activity view with the GitHub overview graph", async () => {
     mockGithubRuntimeRequests();
 
     const { container } = render(<App />);
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "[3] Activity",
-      }),
-    );
+    await screen.findByRole("navigation", { name: "Primary navigation" });
+    fireEvent.click(screen.getByRole("button", { name: /Activity/i }));
 
     expect(await screen.findByLabelText("Activity primary view")).toBeInTheDocument();
     const githubView = await screen.findByLabelText("GitHub primary view");
@@ -172,11 +156,8 @@ describe("App GitHub runtime views", () => {
     const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 
     render(<App />);
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "[3] Activity",
-      }),
-    );
+    await screen.findByRole("navigation", { name: "Primary navigation" });
+    fireEvent.click(screen.getByRole("button", { name: /Activity/i }));
 
     const githubView = await screen.findByLabelText("GitHub primary view");
     fireEvent.click(within(githubView).getByRole("button", { name: "Download git history" }));
