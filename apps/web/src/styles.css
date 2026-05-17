@@ -2,6 +2,7 @@
 
 /* Tailwind utilities + shadcn component layer (does not own app chrome tokens) */
 @import "./styles/tailwind.css";
+@import "./styles/design-console-theme.css";
 
 /* App design tokens and layout — must load after tailwind to win cascade */
 @import "./styles/foundation.css";
