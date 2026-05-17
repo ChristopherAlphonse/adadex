@@ -11,4 +11,5 @@
 
 .adadex/
 .planning/
-.cursor/
+.cursor/*
+.cursor/hooks/state/

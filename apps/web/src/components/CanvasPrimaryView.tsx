@@ -7,10 +7,6 @@ import {
   Hexagon,
   Layers,
   ListTodo,
-  Maximize,
-  Pause,
-  Play,
-  RefreshCw,
   Sparkles,
   Terminal as TerminalIcon,
   Trash2,
@@ -33,6 +29,8 @@ import { DeleteAllTerminalsDialog } from "./canvas/DeleteAllTerminalsDialog";
 import { MascotNode } from "./canvas/MascotNode";
 import { SessionNode } from "./canvas/SessionNode";
 import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
+import { ConsoleChromeToolbar } from "./design-system/ConsoleChromeToolbar";
+import { ConsoleInspectorPanel } from "./design-system/ConsoleInspectorPanel";
 
 type ContextMenuState =
   | { kind: "canvas"; x: number; y: number }
@@ -1019,9 +1017,60 @@ export const CanvasPrimaryView = ({
     }
   }, [onLaunchWorkspaceSetupPlanner]);
 
+  const selectedNode = selectedNodeId ? (nodesById.get(selectedNodeId) ?? null) : null;
+  const selectedTerminalId = selectedNode
+    ? selectedNode.id.startsWith("t:")
+      ? selectedNode.id.slice(2)
+      : selectedNode.id
+    : null;
+  const selectedTerminal =
+    selectedTerminalId != null
+      ? (columns.find((column) => column.terminalId === selectedTerminalId) ?? null)
+      : null;
+
   return (
-    <section ref={containerRef} className="canvas-view" aria-label="Canvas graph view">
-      <div className={`canvas-graph-panel${hasPanels ? " canvas-graph-panel--split" : ""}`}>
+    <section
+      ref={containerRef}
+      className="canvas-view canvas-view--chrome"
+      aria-label="Canvas graph view"
+    >
+      <ConsoleChromeToolbar
+        hideIdle={hideIdleTerminals}
+        onToggleHideIdle={() => setHideIdleTerminals((prev) => !prev)}
+        onCreateTerminal={() => {
+          const result = onCreateTerminal?.();
+          if (result && typeof result.then === "function") {
+            void result.then((agentId) => {
+              if (agentId) setPendingOpenAgentId(agentId);
+            });
+          }
+        }}
+        onCreateWorktreeTerminal={() => {
+          const result = onCreateWorktreeTerminal?.();
+          if (result && typeof result.then === "function") {
+            void result.then((agentId) => {
+              if (agentId) setPendingOpenAgentId(agentId);
+            });
+          }
+        }}
+        {...(onCreateOrchestration ? { onCreateOrchestration } : {})}
+        onFitView={handleFitView}
+        onRefresh={handleRefresh}
+        onDeleteAll={() => setIsDeleteAllDialogOpen(true)}
+        onNewAgent={() => {
+          const result = onCreateTerminal?.();
+          if (result && typeof result.then === "function") {
+            void result.then((agentId) => {
+              if (agentId) setPendingOpenAgentId(agentId);
+            });
+          }
+        }}
+        showSetup={shouldShowWorkspaceSetupCard && workspaceSetupOverlay === "hidden"}
+        onShowSetup={() => setWorkspaceSetupOverlay("expanded")}
+      />
+
+      <div className="canvas-workspace-row">
+        <div className={`canvas-graph-panel${hasPanels ? " canvas-graph-panel--split" : ""}`}>
         <svg
           aria-label="Canvas graph"
           ref={svgRef}
@@ -1126,102 +1175,6 @@ export const CanvasPrimaryView = ({
             ))}
           </g>
         </svg>
-
-        {/* Canvas toolbar — top-left action buttons */}
-        <div className="canvas-toolbar" role="toolbar" aria-label="Canvas actions">
-          <button
-            type="button"
-            className="canvas-toolbar-btn"
-            onClick={() => {
-              const result = onCreateTerminal?.();
-              if (result && typeof result.then === "function") {
-                void result.then((agentId) => {
-                  if (agentId) setPendingOpenAgentId(agentId);
-                });
-              }
-            }}
-          >
-            <span className="canvas-toolbar-icon">
-              <TerminalIcon size={14} />
-            </span>
-            <span className="canvas-toolbar-label">Terminal</span>
-          </button>
-          <button
-            type="button"
-            className="canvas-toolbar-btn"
-            onClick={() => {
-              const result = onCreateWorktreeTerminal?.();
-              if (result && typeof result.then === "function") {
-                void result.then((agentId) => {
-                  if (agentId) setPendingOpenAgentId(agentId);
-                });
-              }
-            }}
-          >
-            <span className="canvas-toolbar-icon">
-              <GitBranch size={14} />
-            </span>
-            <span className="canvas-toolbar-label">Worktree</span>
-          </button>
-          <button type="button" className="canvas-toolbar-btn" onClick={onCreateOrchestration}>
-            <span className="canvas-toolbar-icon">
-              <Hexagon size={14} />
-            </span>
-            <span className="canvas-toolbar-label">Orchestration</span>
-          </button>
-          <div className="canvas-toolbar-separator" />
-          <button type="button" className="canvas-toolbar-btn" onClick={handleFitView}>
-            <span className="canvas-toolbar-icon">
-              <Maximize size={14} />
-            </span>
-            <span className="canvas-toolbar-label">Fit</span>
-          </button>
-          <button type="button" className="canvas-toolbar-btn" onClick={handleRefresh}>
-            <span className="canvas-toolbar-icon">
-              <RefreshCw size={14} />
-            </span>
-            <span className="canvas-toolbar-label">Refresh</span>
-          </button>
-          <div className="canvas-toolbar-separator" />
-          <button
-            type="button"
-            className={`canvas-toolbar-btn${hideIdleTerminals ? " canvas-toolbar-btn--active" : ""}`}
-            onClick={() => setHideIdleTerminals((prev) => !prev)}
-          >
-            <span className="canvas-toolbar-icon">
-              {hideIdleTerminals ? <Play size={14} /> : <Pause size={14} />}
-            </span>
-            <span className="canvas-toolbar-label">
-              {hideIdleTerminals ? "Show Idle" : "Hide Idle"}
-            </span>
-          </button>
-          {shouldShowWorkspaceSetupCard && workspaceSetupOverlay === "hidden" ? (
-            <>
-              <div className="canvas-toolbar-separator" />
-              <button
-                type="button"
-                className="canvas-toolbar-btn"
-                onClick={() => setWorkspaceSetupOverlay("expanded")}
-              >
-                <span className="canvas-toolbar-icon">
-                  <ListTodo size={14} />
-                </span>
-                <span className="canvas-toolbar-label">Setup</span>
-              </button>
-            </>
-          ) : null}
-          <div className="canvas-toolbar-separator" />
-          <button
-            type="button"
-            className="canvas-toolbar-btn canvas-toolbar-btn--danger"
-            onClick={() => setIsDeleteAllDialogOpen(true)}
-          >
-            <span className="canvas-toolbar-icon">
-              <Trash2 size={14} />
-            </span>
-            <span className="canvas-toolbar-label">Delete All</span>
-          </button>
-        </div>
 
         {/* Waiting notifications — compact bars below the toolbar */}
         {waitingNodes.length > 0 && (
@@ -1363,6 +1316,9 @@ export const CanvasPrimaryView = ({
           </div>
         </>
       )}
+
+        <ConsoleInspectorPanel selectedNode={selectedNode} terminal={selectedTerminal} />
+      </div>
 
       {/* Context menu */}
       {contextMenu && (

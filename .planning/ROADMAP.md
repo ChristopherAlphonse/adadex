@@ -10,6 +10,7 @@ Adadex is a terminal-inspired orchestration cockpit for managing multiple AI cod
 - [ ] **Phase 2: Core UI Components** — Navigation header, toolbar, status pills, inspector panel, primary CTA
 - [ ] **Phase 3: Agent Graph & Canvas** — Agent node graph with d3-force, edge connections, lead node glow, selection behavior
 - [ ] **Phase 4: Terminal Columns & Interaction** — Terminal component styling, multi-column layout, scroll management, replay
+- [ ] **Phase 5: API-Backed Agent Console** — API-backed agent orchestration console with provider switching, agent graph, inspector, usage meters, mesh footer, and removal of static mock data
 
 ## Phase Details
 
@@ -85,9 +86,33 @@ Plans:
 - [ ] 04-01: Terminal Column Styling — Design system integration, multi-column layout
 - [ ] 04-02: Scroll Management & Log Display — Replay, scrollback, timestamp format, log levels
 
+### Phase 5: API-Backed Agent Console
+**Goal**: An API-backed agent orchestration console UI that replaces mock data with live data from 5 new API routes. Console includes: provider selector (Codex/OpenCode), agent graph canvas with nodes and edges from API, inspector panel with metadata/resources/diff summary from API, usage meters, toolbar actions (refresh, hide idle, new agent), and simplified mesh-status footer. Stream Logs section and static mock data arrays are removed.
+**Depends on**: None (infrastructure phase — routing patterns from existing codebase)
+**Requirements**: []
+**Success Criteria** (what must be TRUE):
+  1. `GET /api/providers`, `GET /api/console/state`, `GET /api/agents/:id`, `POST /api/preferences/provider`, `POST /api/console/refresh` all registered in `API_ROUTE_MAP` with URL builders
+  2. AgentConsole appears as a selectable view at nav index 5 alongside existing views
+  3. Agent graph renders nodes and edges from `GET /api/console/state` response
+  4. Inspector shows metadata (7 fields), resources (CPU/memory/tokens), and diff summary (files, additions, deletions, staged) from `GET /api/agents/:id`
+  5. Footer shows mesh status, latency, region, and agent count from API data
+  6. Provider dropdown switches between Codex and OpenCode, triggers refetch of all data
+  7. "Hide Idle" toggle filters idle agents from graph display
+  8. Loading states, error states, empty states each display the correct message (D-33, D-34, D-35, D-36)
+  9. Error boundary catches render crashes without breaking the rest of the app
+ 10. No static AGENTS/LOGS arrays used in production console code
+ 11. Tests exist for all console states (loading, error, empty, data, provider switch, hide idle)
+**Plans**: 4 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Console API Routes: 5 endpoint handlers in consoleRoutes.ts, URL builders, route registration (Wave 1)
+- [ ] 05-02-PLAN.md — AgentConsole UI Shell: component, CSS, nav slot at index 5, provider dropdown, static cleanup (Wave 2)
+- [ ] 05-03-PLAN.md — Wire AgentConsole to API Data: graph nodes/edges, inspector sections, usage meters, mesh footer (Wave 2)
+- [ ] 05-04-PLAN.md — Loading States, Error Handling, Empty States, Tests (Wave 3)
+
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 1 → 2 → 3 → 4
+**Execution Order:** Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -95,3 +120,4 @@ Plans:
 | 2. Core UI Components | 0/2 | Not started | - |
 | 3. Agent Graph & Canvas | 0/2 | Not started | - |
 | 4. Terminal Columns & Interaction | 0/2 | Not started | - |
+| 5. API-Backed Agent Console | 4/4 | Planned | - |

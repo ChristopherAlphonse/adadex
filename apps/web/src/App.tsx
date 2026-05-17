@@ -26,9 +26,8 @@ import {
 import type { TerminalView } from "./app/types";
 import { clampSidebarWidth } from "./app/uiStateNormalizers";
 import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
-import { ConsolePrimaryNav } from "./components/ConsolePrimaryNav";
+import { ConsoleChromeHeader } from "./components/design-system/ConsoleChromeHeader";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
-import { RuntimeStatusStrip } from "./components/RuntimeStatusStrip";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import {
@@ -399,20 +398,12 @@ export const App = () => {
     activePrimaryNav !== 8;
 
   return (
-    <div className="page console-shell">
-      {isRuntimeStatusStripVisible && (
-        <RuntimeStatusStrip
-          sparklinePoints={sparklinePoints}
-          usageData={heatmapData}
-          codexUsage={codexUsageSnapshot}
-          isRefreshingCodexUsage={isRefreshingCodexUsage}
-          onRefreshCodexUsage={refreshCodexUsage}
-        />
-      )}
-
-      <ConsolePrimaryNav
+    <div className="page console-shell design-console">
+      <ConsoleChromeHeader
         activePrimaryNav={activePrimaryNav}
         onPrimaryNavChange={setActivePrimaryNav}
+        codexUsage={codexUsageSnapshot}
+        isRefreshingCodexUsage={isRefreshingCodexUsage}
       />
 
       <section className="console-main-canvas" aria-label="Main content canvas">

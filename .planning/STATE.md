@@ -2,8 +2,8 @@
 
 ## Current Phase
 
-**Active:** None — initial project setup
-**Status:** Ready for Phase 1 planning
+**Active:** Phase 5 — API-Backed Agent Console
+**Status:** Planned (4 plans ready for execution)
 
 ## Phases
 
@@ -13,6 +13,7 @@
 | 2. Core UI Components | Not started | 2 | - |
 | 3. Agent Graph & Canvas | Not started | 2 | - |
 | 4. Terminal Columns & Interaction | Not started | 2 | - |
+| 5. API-Backed Agent Console | Planned | 4 | 2026-05-16 |
 
 ## Decisions
 
@@ -33,6 +34,20 @@ New component styles should use Tailwind utility classes in TSX via `cn()` from 
 - Migrate legacy CSS files incrementally as each view is touched during Phases 2-4
 - Add E2E tests (Playwright) for visual regression after design system is stable
 - Add component-level tests for new UI primitives in Phase 2
+
+### Phase 5 Decisions (from CONTEXT.md)
+- D-01 through D-04: Provider selector — dropdown replaces "production" label, persists via POST /api/preferences/provider, triggers refetch, keyboard-accessible
+- D-05 through D-09: API routes — 5 endpoints: providers list, console state, agent detail, preferences, refresh
+- D-10 through D-13: Agent graph — nodes from API, edges from API, click selects, lead/stale visual behavior preserved
+- D-14 through D-15: Inspector — sections (metadata, resources, diff summary) all API-backed
+- D-16 through D-19: Static data removal — no AGENTS/LOGS arrays, no Stream Logs, dynamic provider label
+- D-20 through D-21: Footer — mesh status only, no UTF-8/Ln/Col/version
+- D-22 through D-24: Resource meters — API-backed, unavailable → display "Unavailable" or "—"
+- D-25 through D-27: Diff Summary — API-backed with per-file additions/deletions/staged
+- D-28 through D-31: Toolbar — hide idle, refresh, new agent placeholder, no delete all
+- D-32 through D-38: Error handling — non-blocking fetch, empty/error/unavailable states, error boundary, mock data only in tests
+- D-39: Console is nav index 5, coexisting with existing views
+- D-40: Console state shape: { provider, selectedAgentId, hideIdle, isLoading, error }
 
 ## Notes
 
