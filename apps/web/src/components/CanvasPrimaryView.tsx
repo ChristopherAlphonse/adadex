@@ -252,6 +252,7 @@ export const CanvasPrimaryView = ({
   const [hideIdleTerminals, setHideIdleTerminals] = useState(false);
   const [isLaunchingWorkspaceSetupPlanner, setIsLaunchingWorkspaceSetupPlanner] = useState(false);
   const hasHydratedTerminals = useRef(false);
+  const hasRestoredFromPersistedIds = useRef(false);
   const hasHydratedOrchestrations = useRef(false);
   const lastHandledCreatedTerminalIdRef = useRef<string | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -398,8 +399,14 @@ export const CanvasPrimaryView = ({
   useEffect(() => {
     if (isHydratingTerminals) return;
     if (!hasHydratedTerminals.current) return;
+    if (hasRestoredFromPersistedIds.current) return;
     if (openTerminalCount > 0) return;
-    if (!canvasOpenTerminalIds || canvasOpenTerminalIds.length === 0) return;
+    if (!canvasOpenTerminalIds || canvasOpenTerminalIds.length === 0) {
+      hasRestoredFromPersistedIds.current = true;
+      return;
+    }
+
+    hasRestoredFromPersistedIds.current = true;
 
     const restoredMap = new Map<string, GraphNode>();
     for (const nodeId of canvasOpenTerminalIds) {

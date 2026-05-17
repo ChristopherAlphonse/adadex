@@ -103,6 +103,8 @@ const listSkillDefinitionFiles = (skillsRoot: string): string[] => {
 export const readAvailableAgentSkills = (workspaceCwd: string): DeckAvailableSkill[] => {
   const roots: Array<{ path: string; source: DeckAvailableSkill["source"] }> = [
     { path: join(workspaceCwd, ".codex", "skills"), source: "project" },
+    { path: join(workspaceCwd, ".claude", "skills"), source: "project" },
+    { path: join(workspaceCwd, ".opencode", "skills"), source: "project" },
   ];
 
   const seen = new Map<string, DeckAvailableSkill>();

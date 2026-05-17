@@ -18,13 +18,7 @@ type WorkspaceSetupCardProps = {
   onDismiss?: () => void;
 };
 
-const buildStepSummary = (stepId: WorkspaceSetupStepId, description: string) => {
-  if (stepId === "create-coordinations") {
-    return "Launch Codex so it can plan and create your first coordinations.";
-  }
-
-  return description;
-};
+const buildStepSummary = (_stepId: WorkspaceSetupStepId, description: string) => description;
 
 export const WorkspaceSetupCard = ({
   compact,
@@ -87,7 +81,7 @@ export const WorkspaceSetupCard = ({
     <div className="workspace-setup-step-list">
       {(workspaceSetup?.steps ?? []).map((step) => {
         const isCreateCoordinationsStep = step.id === "create-coordinations";
-        const buttonLabel = isCreateCoordinationsStep ? "Launch Codex" : step.actionLabel;
+        const buttonLabel = isCreateCoordinationsStep ? "Launch agent" : step.actionLabel;
         const isButtonDisabled = isCreateCoordinationsStep ? isLaunchingAgent : isLoading;
         const isButtonRunning = isCreateCoordinationsStep
           ? isLaunchingAgent

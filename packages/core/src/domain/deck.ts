@@ -1,3 +1,5 @@
+import type { TerminalAgentProvider } from "./agentRuntime";
+
 export type DeckCoordinationStatus = "idle" | "active" | "blocked" | "needs-review";
 
 export type DeckMascotAppearance = {
@@ -41,4 +43,6 @@ export type DeckCoordinationSummary = {
   todoDone: number;
   todoItems: { text: string; done: boolean }[];
   suggestedSkills: string[];
+  agentProvider?: TerminalAgentProvider;
+  agentModel?: string;
 };

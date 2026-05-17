@@ -17,4 +17,15 @@
 # Stale emit under src/ — Vite resolves .js before .tsx and serves outdated UI
 apps/web/src/**/*.js
 .playwright-cli/
+.playwright-mcp/
 .pnpm-store/
+
+# Agent CLI hook configs (written by Adadex at runtime)
+/.claude/
+/.opencode/
+
+# Scratch/verification screenshots
+static/images/claude-usage-verify.png
+static/images/customize-agent-models.png
+static/images/customize-agent-verify.png
+static/images/deck-claude-verify.png

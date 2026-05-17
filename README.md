@@ -32,10 +32,15 @@
 
 Adadex is a web-first orchestration layer for running multiple coding agents in parallel. Instead of juggling many terminal sessions and losing track of what each one is doing, Adadex gives each job its own scoped context, task list, and notes. One agent session can spawn others, assign them work, and exchange messages with them while you stay at the orchestration layer.
 
+> **Multi-provider support.** Adadex is no longer tied to a single coding agent CLI. You can set a global default from the header, then override it per coordination in the Customize tab. Each coordination stores its own provider and model, so when a terminal is deployed for it, it launches with exactly the right CLI and `--model` flag — no manual configuration required.
+
 ## What Adadex Does
 
 - Creates **coordinations** as scoped job containers: each one gets its own `CONTEXT.md`, `todo.md`, and notes
-- Runs multiple Codex CLI terminals side by side so one developer can manage several sessions at once
+- Runs multiple coding agent terminals side by side so one developer can manage several sessions at once
+- Runs against **Codex**, **Claude Code**, or **opencode** — switch the global provider from the header at any time
+- Lets each coordination run its own **agent CLI and model** — one coordination can use Codex with o4-mini, another Claude Code with Opus 4.7, another opencode with a different model entirely
+
 - Spawns child agents from todo items so parallel work has a concrete source of truth
 - Supports inter-agent messaging so workers and coordinators can report completion, blockers, and handoffs
 - Keeps agent-facing context in files so state survives beyond a single prompt thread
@@ -46,16 +51,16 @@ Adadex is a web-first orchestration layer for running multiple coding agents in 
 <div align="center">
 <table>
 <tr>
-<td><img src="./static/images/preview_1.jpg" alt="Adadex app screenshot 1" width="100%"/></td>
-<td><img src="./static/images/preview_2.jpg" alt="Adadex app screenshot 2" width="100%"/></td>
+<td><img src="./static/images/preview_1.png" alt="Agent canvas with live terminal and inspector" width="100%"/></td>
+<td><img src="./static/images/preview_2.png" alt="Two agents running side by side" width="100%"/></td>
 </tr>
 <tr>
-<td><img src="./static/images/preview_3.jpg" alt="Adadex app screenshot 3" width="100%"/></td>
-<td><img src="./static/images/preview_4.jpg" alt="Adadex app screenshot 4" width="100%"/></td>
+<td><img src="./static/images/preview_3.png" alt="Deck view with coordinations" width="100%"/></td>
+<td><img src="./static/images/preview_4.png" alt="Per-agent CLI and model selection in Customize" width="100%"/></td>
 </tr>
 <tr>
-<td><img src="./static/images/preview_5.jpg" alt="Adadex app screenshot 5" width="100%"/></td>
-<td><img src="./static/images/preview_6.jpg" alt="Adadex app screenshot 6" width="100%"/></td>
+<td><img src="./static/images/preview_5.png" alt="Activity view with token usage and GitHub commits" width="100%"/></td>
+<td><img src="./static/images/preview_6.png" alt="Settings — appearance, sounds, workspace visibility" width="100%"/></td>
 </tr>
 </table>
 </div>
@@ -63,7 +68,7 @@ Adadex is a web-first orchestration layer for running multiple coding agents in 
 ## Requirements
 
 - Node.js `22+`
-- `codex` CLI installed (Adadex will not start without it)
+- At least one coding agent CLI: `codex`, `claude` (Claude Code), or `opencode`
 - `git` for worktree terminals
 - `gh` for GitHub pull request features
 - `curl` for agent hook callbacks
