@@ -1,3 +1,4 @@
+import type { ColorTheme } from "../app/colorTheme";
 import {
   TERMINAL_COMPLETION_SOUND_OPTIONS,
   type TerminalCompletionSoundId,
@@ -6,6 +7,8 @@ import { ActionButton } from "./ui/ActionButton";
 import { SettingsToggle } from "./ui/SettingsToggle";
 
 type SettingsPrimaryViewProps = {
+  colorTheme: ColorTheme;
+  onColorThemeChange: (theme: ColorTheme) => void;
   terminalCompletionSound: TerminalCompletionSoundId;
   isRuntimeStatusStripVisible: boolean;
   onTerminalCompletionSoundChange: (soundId: TerminalCompletionSoundId) => void;
@@ -13,7 +16,14 @@ type SettingsPrimaryViewProps = {
   onRuntimeStatusStripVisibilityChange: (visible: boolean) => void;
 };
 
+const COLOR_THEME_OPTIONS: { id: ColorTheme; label: string; description: string }[] = [
+  { id: "dark", label: "Dark", description: "Low-glare console tuned for long sessions." },
+  { id: "light", label: "Light", description: "Bright workspace for well-lit environments." },
+];
+
 export const SettingsPrimaryView = ({
+  colorTheme,
+  onColorThemeChange,
   terminalCompletionSound,
   isRuntimeStatusStripVisible,
   onTerminalCompletionSoundChange,
@@ -21,6 +31,30 @@ export const SettingsPrimaryView = ({
   onRuntimeStatusStripVisibilityChange,
 }: SettingsPrimaryViewProps) => (
   <section className="settings-view" aria-label="Settings primary view">
+    <section className="settings-panel" aria-label="Appearance settings">
+      <header className="settings-panel-header">
+        <h2>Appearance</h2>
+        <p>Choose the console color theme. Saved locally on this device.</p>
+      </header>
+
+      <div className="settings-sound-picker">
+        {COLOR_THEME_OPTIONS.map((option) => (
+          <button
+            aria-pressed={colorTheme === option.id}
+            className="settings-sound-option"
+            data-active={colorTheme === option.id ? "true" : "false"}
+            key={option.id}
+            onClick={() => {
+              onColorThemeChange(option.id);
+            }}
+            type="button"
+          >
+            <span className="settings-sound-option-label">{option.label}</span>
+            <span className="settings-sound-option-description">{option.description}</span>
+          </button>
+        ))}
+      </motion>
+    </section>
     <section className="settings-panel" aria-label="Completion notification settings">
       <header className="settings-panel-header">
         <h2>Orchestration completion sound</h2>

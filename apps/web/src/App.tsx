@@ -3,6 +3,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils";
 
+import { ColorThemeProvider, useColorThemeContext } from "./app/ColorThemeContext";
 import { useAgentProviderPreference } from "./app/hooks/useAgentProviderPreference";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { DECK_LEAD_ID } from "./app/hooks/useCanvasGraphData";
@@ -36,7 +37,7 @@ import {
   buildTerminalSnapshotsUrl,
 } from "./runtime/runtimeEndpoints";
 
-export const App = () => {
+const AppShell = () => {
   const [terminals, setTerminals] = useState<TerminalView>([]);
   const [recentlyCreatedTerminal, setRecentlyCreatedTerminal] = useState<
     TerminalView[number] | null
@@ -273,6 +274,7 @@ export const App = () => {
   }, [refreshColumns, runtimeStateStore, sortTerminalSnapshots]);
 
   const { agentProvider, setAgentProvider } = useAgentProviderPreference();
+  const { colorTheme, isLight, setColorTheme, toggleColorTheme } = useColorThemeContext();
   const { codexUsageSnapshot, isRefreshingCodexUsage, refreshCodexUsage } = useCodexUsagePolling();
   useBackendLivenessPolling();
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
@@ -401,7 +403,7 @@ export const App = () => {
     activePrimaryNav !== 8;
 
   return (
-    <div className="page console-shell design-console">
+    <div className={cn("page console-shell design-console", isLight && "light")}>
       <ConsoleChromeHeader
         activePrimaryNav={activePrimaryNav}
         onPrimaryNavChange={setActivePrimaryNav}
@@ -409,6 +411,8 @@ export const App = () => {
         onAgentProviderChange={setAgentProvider}
         codexUsage={codexUsageSnapshot}
         isRefreshingCodexUsage={isRefreshingCodexUsage}
+        isLight={isLight}
+        onToggleColorTheme={toggleColorTheme}
       />
 
       <section className="console-main-canvas" aria-label="Main content canvas">
@@ -469,6 +473,8 @@ export const App = () => {
               },
             }}
             settingsPrimaryViewProps={{
+              colorTheme,
+              onColorThemeChange: setColorTheme,
               isRuntimeStatusStripVisible,
               onRuntimeStatusStripVisibilityChange: setIsRuntimeStatusStripVisible,
               onPreviewTerminalCompletionSound: playCompletionSoundPreview,
@@ -622,3 +628,9 @@ export const App = () => {
     </div>
   );
 };
+
+export const App = (): React.ReactElement => (
+  <ColorThemeProvider>
+    <AppShell />
+  </ColorThemeProvider>
+);
