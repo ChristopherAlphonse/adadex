@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FileText, X } from "lucide-react";
+
+import { useColorThemeContext } from "../app/ColorThemeContext";
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
 import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
 import { TerminalPromptPicker } from "./TerminalPromptPicker";
@@ -53,6 +55,18 @@ type TerminalServerMessage =
   | TerminalRenameMessage
   | TerminalActivityMessage;
 
+const readTerminalThemeColors = (): { background: string; foreground: string; cursor: string } => {
+  const shell = document.querySelector(".design-console");
+  const source = shell ?? document.documentElement;
+  const computed = window.getComputedStyle(source);
+
+  return {
+    background: computed.getPropertyValue("--terminal-bg").trim() || "#101722",
+    foreground: computed.getPropertyValue("--terminal-fg").trim() || "#f0f0f0",
+    cursor: computed.getPropertyValue("--terminal-cursor").trim() || "#a3e635",
+  };
+};
+
 const PromptInjectIcon = () => (
   <svg
     aria-hidden="true"
@@ -77,6 +91,7 @@ export const Terminal = ({
   onTerminalRenamed,
   onTerminalActivity,
 }: TerminalProps) => {
+  const { colorTheme } = useColorThemeContext();
   const socketRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
@@ -258,11 +273,7 @@ export const Terminal = ({
         const terminalFontSize = Number.isFinite(rootFontSize)
           ? Math.max(13, Math.round(rootFontSize * 0.82))
           : 13;
-        const terminalBackground =
-          window
-            .getComputedStyle(document.documentElement)
-            .getPropertyValue("--terminal-bg")
-            .trim() || "#101722";
+        const terminalColors = readTerminalThemeColors();
 
         const terminal = new Terminal({
           cursorBlink: true,
@@ -272,10 +283,10 @@ export const Terminal = ({
           fontFamily: '"JetBrains Mono", "IBM Plex Mono", monospace',
           fontSize: terminalFontSize,
           theme: {
-            background: terminalBackground,
-            foreground: "#f0f0f0",
-            cursor: "#a3e635",
-            cursorAccent: terminalBackground,
+            background: terminalColors.background,
+            foreground: terminalColors.foreground,
+            cursor: terminalColors.cursor,
+            cursorAccent: terminalColors.background,
           },
         });
         const fitAddon = new FitAddon();
@@ -417,7 +428,7 @@ export const Terminal = ({
       cleanupTerminal();
       socket?.close();
     };
-  }, [terminalId]);
+  }, [colorTheme, terminalId]);
 
   useEffect(() => {
     if (layoutVersion === undefined) {

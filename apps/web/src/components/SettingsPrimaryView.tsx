@@ -53,7 +53,7 @@ export const SettingsPrimaryView = ({
             <span className="settings-sound-option-description">{option.description}</span>
           </button>
         ))}
-      </motion>
+      </div>
     </section>
     <section className="settings-panel" aria-label="Completion notification settings">
       <header className="settings-panel-header">

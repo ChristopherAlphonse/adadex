@@ -1,5 +1,5 @@
 import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@adadex/core";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactElement, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -629,7 +629,7 @@ const AppShell = () => {
   );
 };
 
-export const App = (): React.ReactElement => (
+export const App = (): ReactElement => (
   <ColorThemeProvider>
     <AppShell />
   </ColorThemeProvider>

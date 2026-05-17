@@ -149,7 +149,7 @@ export const ConsoleInspectorPanel = ({
           <button
             type="button"
             disabled={!selectedNode}
-            className="flex h-9 items-center justify-center rounded-md border border-border bg-white/5 text-[15px] font-medium text-foreground transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-9 items-center justify-center rounded-md border border-border bg-foreground/5 text-[15px] font-medium text-foreground transition-colors hover:bg-foreground/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Attach
           </button>
