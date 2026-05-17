@@ -395,12 +395,21 @@ const AppShell = () => {
     [runWorkspaceSetupStep],
   );
 
+  const hasPrimarySidebarContent =
+    activePrimaryNav === 2
+      ? deckSidebarContent !== null
+      : activePrimaryNav === 5
+        ? conversationsSidebarContent !== null
+        : activePrimaryNav === 6
+          ? promptsSidebarContent !== null
+          : true;
   const showAgentsSidebar =
     isAgentsSidebarVisible &&
     activePrimaryNav !== 1 &&
     activePrimaryNav !== 3 &&
     activePrimaryNav !== 4 &&
-    activePrimaryNav !== 7;
+    activePrimaryNav !== 7 &&
+    (hasPrimarySidebarContent || hasSidebarActionPanel);
 
   return (
     <div className={cn("page console-shell design-console", isLight && "light")}>

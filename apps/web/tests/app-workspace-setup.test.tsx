@@ -209,4 +209,21 @@ describe("App workspace setup", () => {
       expect(within(gitignoreStep as HTMLElement).getByText("Done")).toBeInTheDocument();
     });
   });
+
+  it("does not duplicate empty Deck actions in the shared sidebar", async () => {
+    const currentSetup = buildSetupSnapshot({
+      shouldShowSetupCard: false,
+      steps: buildSetupSnapshot().steps.map((step) => ({ ...step, complete: true })),
+    });
+    mockAppRequests(() => currentSetup);
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Deck/ }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Add Orchestration")).toHaveLength(1);
+    });
+    expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
+  });
 });

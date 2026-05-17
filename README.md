@@ -62,7 +62,7 @@ This repo is a personal exploration of what an AI coding environment might look 
 
 ## Mascot and copy
 
-The UI includes a small **deck mascot** (rounded head and curved arms) drawn on canvas in [`apps/web/src/components/MascotSprite.tsx`](./apps/web/src/components/MascotSprite.tsx). The favicon is the pixel variant at [`apps/web/public/adadex-favicon.svg`](./apps/web/public/adadex-favicon.svg). Product language emphasizes **orchestration** and **coordinations** rather than cephalopod metaphors.
+The UI includes a small **deck mascot** (rounded head and curved arms) drawn on canvas in [`apps/web/src/components/MascotSprite.tsx`](./apps/web/src/components/MascotSprite.tsx). The favicon is a [Favicon.io](https://favicon.io) variant at [`apps/web/public/favicon/`](./apps/web/public/favicon/). Product language emphasizes **orchestration** and **coordinations** rather than cephalopod metaphors.
 
 ## What Adadex Does for You
 

@@ -586,6 +586,34 @@ export const updateDeckCoordinationSuggestedSkills = (
   );
 };
 
+export const updateDeckCoordinationMascot = (
+  workspaceCwd: string,
+  coordinationId: string,
+  mascot: { color?: string; animation?: string; expression?: string; accessory?: string; hairColor?: string },
+  projectStateDir?: string,
+): DeckCoordinationSummary | null => {
+  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
+
+  const stateDir = projectStateDir ?? join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
+  const deckState = readDeckState(stateDir);
+  const entry = deckState.coordinations[coordinationId];
+  if (!entry) return null;
+
+  if (mascot.color !== undefined) entry.color = mascot.color || null;
+  if (mascot.animation !== undefined) entry.mascot.animation = mascot.animation || null;
+  if (mascot.expression !== undefined) entry.mascot.expression = mascot.expression || null;
+  if (mascot.accessory !== undefined) entry.mascot.accessory = mascot.accessory || null;
+  if (mascot.hairColor !== undefined) entry.mascot.hairColor = mascot.hairColor || null;
+
+  writeDeckState(stateDir, deckState);
+
+  return (
+    readDeckCoordinations(workspaceCwd, projectStateDir).find(
+      (c) => c.coordinationId === coordinationId,
+    ) ?? null
+  );
+};
+
 // ─── Delete a coordination ─────────────────────────────────────────────────
 
 export const deleteDeckCoordination = (

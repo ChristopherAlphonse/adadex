@@ -13,6 +13,7 @@ import {
   readDeckCoordinations,
   readDeckVaultFile,
   toggleTodoItem,
+  updateDeckCoordinationMascot,
   updateDeckCoordinationSuggestedSkills,
 } from "../deck/readDeckCoordinations";
 import { resolvePrompt } from "../prompts";
@@ -159,19 +160,55 @@ export const handleDeckOrchestrationItemRoute: ApiRouteHandler = async (
   const match = requestUrl.pathname.match(DECK_COORDINATION_ITEM_PATTERN);
   if (!match) return false;
 
-  if (request.method !== "DELETE") {
-    writeMethodNotAllowed(response, corsOrigin);
-    return true;
-  }
-
   const coordinationId = decodeURIComponent(match[1] as string);
-  const result = deleteDeckCoordination(workspaceCwd, coordinationId, projectStateDir);
-  if (!result.ok) {
-    writeJson(response, 404, { error: result.error }, corsOrigin);
+
+  if (request.method === "DELETE") {
+    const result = deleteDeckCoordination(workspaceCwd, coordinationId, projectStateDir);
+    if (!result.ok) {
+      writeJson(response, 404, { error: result.error }, corsOrigin);
+      return true;
+    }
+    writeNoContent(response, 204, corsOrigin);
     return true;
   }
 
-  writeNoContent(response, 204, corsOrigin);
+  if (request.method === "PATCH") {
+    const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+    if (!body.ok) return true;
+
+    const payload = body.payload as Record<string, unknown> | null;
+    if (!payload) {
+      writeJson(response, 400, { error: "Request body is required" }, corsOrigin);
+      return true;
+    }
+
+    const mascot: Record<string, string | undefined> = {};
+    if (typeof payload.color === "string") mascot.color = payload.color;
+    const rawMascot = payload.mascot;
+    if (rawMascot && typeof rawMascot === "object") {
+      const m = rawMascot as Record<string, unknown>;
+      if (typeof m.animation === "string") mascot.animation = m.animation;
+      if (typeof m.expression === "string") mascot.expression = m.expression;
+      if (typeof m.accessory === "string") mascot.accessory = m.accessory;
+      if (typeof m.hairColor === "string") mascot.hairColor = m.hairColor;
+    }
+
+    const updated = updateDeckCoordinationMascot(
+      workspaceCwd,
+      coordinationId,
+      mascot,
+      projectStateDir,
+    );
+    if (!updated) {
+      writeJson(response, 404, { error: "Coordination not found" }, corsOrigin);
+      return true;
+    }
+
+    writeJson(response, 200, updated, corsOrigin);
+    return true;
+  }
+
+  writeMethodNotAllowed(response, corsOrigin);
   return true;
 };
 
