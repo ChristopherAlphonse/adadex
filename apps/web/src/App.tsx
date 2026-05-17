@@ -400,7 +400,7 @@ const AppShell = () => {
     activePrimaryNav !== 1 &&
     activePrimaryNav !== 3 &&
     activePrimaryNav !== 4 &&
-    activePrimaryNav !== 8;
+    activePrimaryNav !== 7;
 
   return (
     <div className={cn("page console-shell design-console", isLight && "light")}>
@@ -427,9 +427,9 @@ const AppShell = () => {
                 bodyContent={
                   activePrimaryNav === 2
                     ? (deckSidebarContent ?? undefined)
-                    : activePrimaryNav === 6
+                    : activePrimaryNav === 5
                       ? (conversationsSidebarContent ?? undefined)
-                      : activePrimaryNav === 7
+                      : activePrimaryNav === 6
                         ? (promptsSidebarContent ?? undefined)
                         : undefined
                 }
@@ -616,10 +616,10 @@ const AppShell = () => {
               gitStatusByOrchestrationId,
               codexUsage: codexUsageSnapshot,
             }}
-            conversationsEnabled={isUiStateHydrated && activePrimaryNav === 6}
+            conversationsEnabled={isUiStateHydrated && activePrimaryNav === 5}
             onConversationsSidebarContent={setConversationsSidebarContent}
             onConversationsActionPanel={setConversationsActionPanel}
-            promptsEnabled={isUiStateHydrated && activePrimaryNav === 7}
+            promptsEnabled={isUiStateHydrated && activePrimaryNav === 6}
             onPromptsSidebarContent={setPromptsSidebarContent}
           />
         </div>

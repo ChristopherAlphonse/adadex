@@ -378,7 +378,7 @@ export const DeckPrimaryView = ({
   // Push sidebar content to the shared sidebar
   const sidebarContent = useMemo(
     () =>
-      orchestrations.length > 0 || focus?.type === "terminal" || shouldShowWorkspaceSetup ? (
+      orchestrations.length > 0 || emptyViewMode === "adding" || focus?.type === "terminal" || shouldShowWorkspaceSetup ? (
         <div className="deck-sidebar-content">
           <div className="deck-sidebar-content-top">
             {shouldShowWorkspaceSetup ? (

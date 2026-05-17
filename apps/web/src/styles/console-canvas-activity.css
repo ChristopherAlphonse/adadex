@@ -1,7 +1,6 @@
 .console-shell .activity-view {
   min-height: 0;
-  background: #0b0d10;
-  border: 1px solid #2b2f36;
+  background: var(--bg-canvas);
   padding: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
