@@ -18,7 +18,7 @@ jobs:
       - name: Lint workflow definitions
         run: docker run --rm -v "${{ github.workspace }}:/repo" -w /repo rhysd/actionlint:1.7.12 -color
 
-      - uses: pnpm/action-setup@a3252b7d70a4de0de33082b0c5f3b2ae94bdc975 # v4.1.0
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
         with:
           version: 10.4.1
 
