@@ -7,7 +7,11 @@ import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-util
 describe("App UI state persistence", () => {
   afterEach(() => {
     cleanup();
-    window.localStorage.clear();
+    try {
+      window.localStorage.clear();
+    } catch {
+      /* localStorage may be unavailable after unstubAllGlobals */
+    }
     resetAppTestHarness();
   });
 

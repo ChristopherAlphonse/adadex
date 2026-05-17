@@ -163,10 +163,12 @@ vi.mock("../src/components/canvas/CanvasOrchestrationPanel", () => ({
 
 describe("CanvasPrimaryView", () => {
   beforeEach(() => {
+    let rafId = 0;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(
       (callback: FrameRequestCallback) => {
-        callback(0);
-        return 1;
+        const id = ++rafId;
+        setTimeout(() => callback(0), 0);
+        return id;
       },
     );
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
