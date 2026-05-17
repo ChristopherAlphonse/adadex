@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "clean:stale-js": "node scripts/clean-stale-src-js.mjs",
+    "predev": "pnpm run clean:stale-js",
+    "prebuild": "pnpm run clean:stale-js",
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
     "test": "vitest run"

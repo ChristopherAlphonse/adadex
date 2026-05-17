@@ -1,8 +1,0 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { ActionButton } from "./ActionButton";
-export const ConfirmationDialog = ({ title, ariaLabel, message, warning, confirmLabel, isConfirmDisabled, isBusy, cancelAriaLabel, onCancel, onConfirm, children, }) => (_jsxs("section", { "aria-label": ariaLabel, className: "delete-confirm-dialog", onKeyDown: (event) => {
-        if (event.key !== "Escape" || isBusy)
-            return;
-        event.preventDefault();
-        onCancel();
-    }, tabIndex: -1, children: [_jsxs("header", { className: "delete-confirm-header", children: [_jsx("h2", { children: title }), _jsxs("div", { className: "delete-confirm-header-actions", children: [_jsx("span", { className: "pill blocked", children: "DESTRUCTIVE" }), _jsx(ActionButton, { "aria-label": "Close confirmation", className: "delete-confirm-close", disabled: isBusy, onClick: onCancel, size: "dense", variant: "accent", children: "Close" })] })] }), _jsxs("div", { className: "delete-confirm-body", children: [_jsx("p", { className: "delete-confirm-message", children: message }), _jsx("p", { className: "delete-confirm-warning", children: warning }), children] }), _jsxs("div", { className: "delete-confirm-actions", children: [_jsx(ActionButton, { "aria-label": cancelAriaLabel ?? "Cancel", className: "delete-confirm-cancel", disabled: isBusy, onClick: onCancel, size: "dense", variant: "accent", children: "Cancel" }), _jsx(ActionButton, { "aria-label": `Confirm ${title.toLowerCase()}`, className: "delete-confirm-submit", disabled: isConfirmDisabled, onClick: onConfirm, size: "dense", variant: "danger", children: confirmLabel })] })] }));

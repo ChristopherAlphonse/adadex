@@ -13,6 +13,8 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
+    // Prefer TypeScript sources over stale emitted .js siblings in src/.
+    extensions: [".tsx", ".ts", ".jsx", ".js", ".mjs", ".mts", ".json"],
     alias: {
       "@": path.resolve(projectRoot, "src"),
     },

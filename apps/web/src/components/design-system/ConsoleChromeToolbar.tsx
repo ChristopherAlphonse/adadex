@@ -120,6 +120,11 @@ export const ConsoleChromeToolbar = ({
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <span className="size-1.5 animate-pulse rounded-full bg-running" />
+          <span>Auto-refresh in 12s</span>
+        </div>
+        <div className="mx-1 h-4 w-px bg-border" />
         <button
           type="button"
           onClick={onNewAgent ?? onCreateTerminal}

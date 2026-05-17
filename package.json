@@ -6,7 +6,14 @@
   "type": "module",
   "packageManager": "pnpm@10.4.1",
   "pnpm": {
-    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild", "node-pty"]
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "esbuild",
+      "node-pty"
+    ],
+    "patchedDependencies": {
+      "node-pty@1.1.0": "patches/node-pty@1.1.0.patch"
+    }
   },
   "engines": {
     "node": ">=22.0.0"
@@ -14,7 +21,11 @@
   "bin": {
     "adadex": "./bin/adadex"
   },
-  "files": ["bin", "dist", "README.md"],
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "start": "pnpm dev",
     "dev": "node scripts/dev.mjs",

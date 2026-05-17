@@ -29,6 +29,7 @@ import { DeleteAllTerminalsDialog } from "./canvas/DeleteAllTerminalsDialog";
 import { MascotNode } from "./canvas/MascotNode";
 import { SessionNode } from "./canvas/SessionNode";
 import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
+import { ConsoleCanvasViewportControls } from "./design-system/ConsoleCanvasViewportControls";
 import { ConsoleChromeToolbar } from "./design-system/ConsoleChromeToolbar";
 import { ConsoleInspectorPanel } from "./design-system/ConsoleInspectorPanel";
 
@@ -300,7 +301,11 @@ export const CanvasPrimaryView = ({
     handlePointerUp: handleCanvasPointerUp,
     screenToGraph,
     fitAll,
+    zoomIn,
+    zoomOut,
   } = useCanvasTransform();
+
+  const [showCanvasGrid, setShowCanvasGrid] = useState(true);
 
   const { simulatedNodes, pinNode, unpinNode, moveNode, reheat } = useForceSimulation({
     nodes,
@@ -1070,7 +1075,9 @@ export const CanvasPrimaryView = ({
       />
 
       <div className="canvas-workspace-row">
-        <div className={`canvas-graph-panel${hasPanels ? " canvas-graph-panel--split" : ""}`}>
+        <div
+          className={`canvas-graph-panel design-canvas-panel${hasPanels ? " canvas-graph-panel--split" : ""}${showCanvasGrid ? " design-canvas-panel--grid" : ""}`}
+        >
         <svg
           aria-label="Canvas graph"
           ref={svgRef}
@@ -1245,6 +1252,15 @@ export const CanvasPrimaryView = ({
             </button>
           </div>
         ) : null}
+
+        <ConsoleCanvasViewportControls
+          scale={transform.scale}
+          showGrid={showCanvasGrid}
+          onZoomIn={zoomIn}
+          onZoomOut={zoomOut}
+          onFitView={handleFitView}
+          onToggleGrid={() => setShowCanvasGrid((prev) => !prev)}
+        />
       </div>
 
       {hasPanels && (
