@@ -1,45 +1,45 @@
 <div align="center">
 
-<img width="1500" height="500" alt="Adadex header" src="./static/images/adadex-header.png" />
-<br/>
-<br/>
+<img width="150" height='100' alt="Adadex header" src="./static/images/adadex-header.png" />
 
-<strong>Turn chaos into execution.</strong>
-<br />
-<br />
+**Turn chaos into execution.**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-5FA04E?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 
-## Docs
+<details>
+<summary><strong>Docs</strong></summary>
+<br>
 
-- [Docs Home](docs/index.md)
-- [Installation](docs/getting-started/installation.md)
-- [Quickstart](docs/getting-started/quickstart.md)
-- [Mental Model](docs/concepts/mental-model.md)
-- [Coordination](docs/concepts/coordination.md)
-- [Runtime and API](docs/concepts/runtime-and-api.md)
-- [Working With Todos](docs/guides/working-with-todos.md)
-- [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md)
-- [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md)
-- [CLI Reference](docs/reference/cli.md)
-- [Filesystem Layout](docs/reference/filesystem-layout.md)
-- [API Reference](docs/reference/api.md)
-- [Experimental Features](docs/reference/experimental-features.md)
-- [Troubleshooting](docs/reference/troubleshooting.md)
-- [Contributing](CONTRIBUTING.md)
+[Docs Home](docs/index.md) &nbsp;|&nbsp;
+[Installation](docs/getting-started/installation.md) &nbsp;|&nbsp;
+[Quickstart](docs/getting-started/quickstart.md) &nbsp;|&nbsp;
+[Mental Model](docs/concepts/mental-model.md) &nbsp;|&nbsp;
+[Coordination](docs/concepts/coordination.md) &nbsp;|&nbsp;
+[Runtime and API](docs/concepts/runtime-and-api.md) &nbsp;|&nbsp;
+[Working With Todos](docs/guides/working-with-todos.md) &nbsp;|&nbsp;
+[Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md) &nbsp;|&nbsp;
+[Inter-Agent Messaging](docs/guides/inter-agent-messaging.md) &nbsp;|&nbsp;
+[CLI Reference](docs/reference/cli.md) &nbsp;|&nbsp;
+[Filesystem Layout](docs/reference/filesystem-layout.md) &nbsp;|&nbsp;
+[API Reference](docs/reference/api.md) &nbsp;|&nbsp;
+[Experimental Features](docs/reference/experimental-features.md) &nbsp;|&nbsp;
+[Troubleshooting](docs/reference/troubleshooting.md)
+
+</details>
 
 </div>
 
-This is my own spin on [OCTOGENT](https://github.com/hesamsheikh/octogent) credits to **Hesam Sheikh**
+Adadex is a web-first orchestration layer for running multiple coding agents in parallel. Instead of juggling many terminal sessions and losing track of what each one is doing, Adadex gives each job its own scoped context, task list, and notes. One agent session can spawn others, assign them work, and exchange messages with them while you stay at the orchestration layer.
 
-# Adadex
+## What Adadex Does
 
-It's really not fun to have **ten Codex CLI sessions open at once**, constantly switching between them and trying to remember what each one was supposed to do. *Things get blurry fast* when one agent is doing documentation, another is touching the database, another is changing the API, and another is somewhere in the frontend. **Adadex** tries to fix that by giving each job its own <u>scoped context, notes, and task list</u>, while also making it possible for one agent session to **spawn other agent sessions**, assign them work, and communicate with them.
-
-## The Vision
-
-This repo is a personal exploration of what an AI coding environment might look like when terminal coding agents are treated as parts of a bigger orchestration layer, not the final interface by themselves. The point is not to hide **the Codex CLI** behind abstractions. The point is to make *multi-agent work less chaotic for the developer* on a real codebase.
+- Creates **coordinations** as scoped job containers: each one gets its own `CONTEXT.md`, `todo.md`, and notes
+- Runs multiple Codex CLI terminals side by side so one developer can manage several sessions at once
+- Spawns child agents from todo items so parallel work has a concrete source of truth
+- Supports inter-agent messaging so workers and coordinators can report completion, blockers, and handoffs
+- Keeps agent-facing context in files so state survives beyond a single prompt thread
+- Provides a local API and UI for terminal lifecycle, persistence, WebSocket transport, and orchestration
 
 ## Screenshots
 
@@ -60,98 +60,26 @@ This repo is a personal exploration of what an AI coding environment might look 
 </table>
 </div>
 
-## Mascot and copy
+## Requirements
 
-The UI includes a small **deck mascot** (rounded head and curved arms) drawn on canvas in [`apps/web/src/components/MascotSprite.tsx`](./apps/web/src/components/MascotSprite.tsx). The favicon is a [Favicon.io](https://favicon.io) variant at [`apps/web/public/favicon/`](./apps/web/public/favicon/). Product language emphasizes **orchestration** and **coordinations** rather than cephalopod metaphors.
+- Node.js `22+`
+- `codex` CLI installed (Adadex will not start without it)
+- `git` for worktree terminals
+- `gh` for GitHub pull request features
+- `curl` for agent hook callbacks
 
-## What Adadex Does for You
+## Install
 
-- **Creates coordinations as context layers** so agents can work with scoped markdown files instead of broad, messy chat context
-- **Uses `todo.md` as an execution surface** so tasks stay visible, trackable, and ready for delegation
-- **Runs multiple Codex CLI terminals** so one developer can coordinate several coding sessions at once
-- **Spawns child agents from todo items** so parallel work has a concrete source of truth
-- **Supports inter-agent messaging** so workers and coordinators can report completion, blockers, and handoff notes
-- **Keeps agent-facing context in files** so the system is more durable than a single prompt thread
-- **Provides a local API and UI** for terminal lifecycle, persistence, websocket transport, and orchestration
+Adadex is not yet published to the npm registry. Use one of the options below.
 
-A **coordination** is a folder under `.adadex/coordinations/<coordination-id>/` that holds agent-readable markdown such as `CONTEXT.md`, `todo.md`, and any extra notes needed for that slice of the codebase.
-
-## Coordinations
-
-A **coordination** is a scoped job container. It gives one slice of work its own files, notes, and `todo.md` so the agent is not forced to reconstruct the entire codebase context from chat history.
-
-What it does:
-
-- keeps context local to one area such as documentation, database work, API changes, or frontend work
-- gives agents durable files they can read and update
-- provides a natural source for delegation through todo items
-
-For the full model, see [Coordination](docs/concepts/coordination.md) and [Working With Todos](docs/guides/working-with-todos.md).
-
-## Context, Notes, and Task Lists
-
-In Adadex, a coordination is not only a task bucket. It is also where the job keeps its local context. That can include notes about one part of the codebase, implementation details, handoff files, and a `todo.md` that tracks what still needs to happen. A coding agent can read and update those files as the work moves forward.
-
-That means you can:
-
-- keep documentation, database, API, or frontend work separated into different job contexts
-- store the notes that help an agent understand that part of the codebase
-- spawn one agent for one specific item
-- break a larger job into multiple items
-- launch a swarm so several agents work through the list in parallel
-- use the files inside the coordination as the shared source of truth for what is done and what is left
-
-For the full model, see [Coordination](docs/concepts/coordination.md) and [Working With Todos](docs/guides/working-with-todos.md).
-
-## Coordinating multiple agents
-
-One of the main ideas here is that **a terminal agent** should not only be treated as a single session waiting for a human prompt. In Adadex, one agent can coordinate other agents, assign them specific jobs, and exchange short messages with them while the human stays at the orchestration layer.
-
-This differs from a single vendor's built-in subagent spawning, since it allows you to directly see and control what each worker agent is doing.
-
-That means Adadex is not just a dashboard for multiple terminals. It is also a way to structure parent-worker behavior around scoped tasks and shared context files.
-
-For the current model, see [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md) and [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md).
-
-## How It Works
-
-Adadex separates three concerns that usually get mixed together in a pile of terminals:
-
-1. **Context** lives in `.adadex/coordinations/<coordination-id>/`. `CONTEXT.md` explains the area, `todo.md` supplies executable work items, and extra markdown files hold notes or handoffs.
-2. **Execution** lives in terminal records and PTY sessions managed by the local API. A terminal can attach to an existing coordination, and several terminals can share one coordination during swarm work.
-3. **Isolation** is optional. Shared terminals run in the main workspace; worktree terminals run under `.adadex/worktrees/<worktree-id>/` on `adadex/<worktree-id>` branches.
-
-Deck reads the coordination files directly, parses checkbox items from `todo.md`, and uses incomplete items to generate worker prompts. Agent hooks feed the API with agent state, transcript, and idle events so the UI can show more than raw terminal output.
-
-## Quick start
-
-<details>
-<summary><strong>Local development</strong></summary>
+**Local development:**
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-This starts the API and web app for local development.
-
-</details>
-
-<details open>
-<summary><strong>Current install status</strong></summary>
-
-```bash
-Adadex is not published to the npm registry yet.
-```
-
-For local development:
-
-```bash
-pnpm install
-pnpm dev
-```
-
-For a local global CLI install from a clone:
+**Global CLI from a local clone:**
 
 ```bash
 pnpm install
@@ -160,38 +88,77 @@ npm install -g .
 adadex
 ```
 
-The registry install flow `npm install -g adadex` will only work after the package is published.
+The `npm install -g adadex` registry path will work once the package is published.
 
-</details>
+## First Run
 
-On first run, **Adadex** creates the local `.adadex/` scaffold automatically (migrating from `.octogent/` when present), assigns a stable project ID, picks an available local API port starting at `8787`, and opens the UI unless `ADADEX_NO_OPEN=1` is set. Legacy `OCTOGENT_NO_OPEN` is still honored.
+On first run, Adadex:
 
-## Requirements
+- creates a `.adadex/` scaffold in the project directory (migrating from `.octogent/` when present)
+- assigns a stable project ID
+- picks an available local API port starting at `8787`
+- opens the UI in your browser
 
-- Node.js `22+`
-- `codex` installed for the supported agent workflow
-- `git` for worktree terminals
-- `gh` for GitHub pull request features
-- `curl` for agent hook callbacks to this API
+Set `ADADEX_NO_OPEN=1` to suppress the browser launch. The legacy `OCTOGENT_NO_OPEN` variable is still honored.
 
-Startup fails if the `codex` CLI is not installed. Docs and UI assume **OpenAI Codex** as the default terminal provider.
+## How It Works
 
-## What persists
+Adadex separates three concerns that usually pile up in a stack of terminals:
 
-- `.adadex/` keeps project-local scaffold and worktrees
-- `~/.adadex/projects/<project-id>/state/` keeps runtime state, transcripts, monitor cache, and metadata
-- `.adadex/coordinations/<coordination-id>/` keeps the context files and todos that agents read
+1. **Context** lives in `.adadex/coordinations/<coordination-id>/`. `CONTEXT.md` explains the area, `todo.md` holds executable work items, and additional markdown files hold notes and handoffs.
+2. **Execution** lives in terminal records and PTY sessions managed by the local API. A terminal attaches to a coordination, and several terminals can share one coordination during swarm work.
+3. **Isolation** is optional. Shared terminals run in the main workspace; worktree terminals run under `.adadex/worktrees/<worktree-id>/` on `adadex/<worktree-id>` branches.
 
-PTY sessions survive browser reloads during the idle grace period, but they do **not** survive an API restart. Adadex marks previously running terminal records as `stale` on startup when it cannot reattach them to a live PTY session; use `adadex terminal list`, `stop`, `kill`, and `prune` to inspect and clean them up. Adadex caps live PTY sessions at 32 by default to protect the host; set `ADADEX_MAX_TERMINAL_SESSIONS` to a positive integer to tune that limit for larger orchestration runs. Legacy `OCTOGENT_MAX_TERMINAL_SESSIONS` is still read when the Adadex-prefixed variable is unset.
+The UI reads coordination files directly, parses checkbox items from `todo.md`, and uses incomplete items to generate worker prompts. Agent hooks feed the API with agent state, transcripts, and idle events so the UI shows more than raw terminal output.
+
+## Coordinations
+
+A coordination is a scoped job container. It gives one slice of work its own files, notes, and `todo.md` so an agent does not need to reconstruct the entire codebase context from chat history.
+
+Each coordination holds:
+
+- `CONTEXT.md`: describes the area (documentation, database, API, frontend, etc.)
+- `todo.md`: checkbox items that track what is done and what remains
+- any additional notes or handoff files the agent needs
+
+One coordination can represent one focused area of the codebase. You can run a single agent against it, delegate individual items to child agents, or launch a swarm to work through the list in parallel.
+
+For the full model, see [Coordination](docs/concepts/coordination.md) and [Working With Todos](docs/guides/working-with-todos.md).
+
+## Coordinating Multiple Agents
+
+In Adadex, a terminal agent is not only a single session waiting for a human prompt. One agent can coordinate others: assign them specific jobs and exchange short messages with them while the human stays at the orchestration layer.
+
+This differs from a vendor's built-in subagent spawning because you can directly see and control what each worker agent is doing.
+
+For the current model, see [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md) and [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md).
+
+## State and Persistence
+
+| Location                                   | What it holds                                       |
+| ------------------------------------------ | --------------------------------------------------- |
+| `.adadex/`                                 | Project-local scaffold and worktrees                |
+| `~/.adadex/projects/<project-id>/state/`   | Runtime state, transcripts, monitor cache, metadata |
+| `.adadex/coordinations/<coordination-id>/` | Context files and todos that agents read            |
+
+PTY sessions survive browser reloads during the idle grace period but do not survive an API restart. Adadex marks previously running terminal records as `stale` on startup when it cannot reattach them to a live PTY session. Use `adadex terminal list`, `stop`, `kill`, and `prune` to inspect and clean them up.
+
+Adadex caps live PTY sessions at 32 by default. Set `ADADEX_MAX_TERMINAL_SESSIONS` to a positive integer to change that limit.
 
 ## Upgrading from Octogent
 
-This rename is a **breaking change** for scripts and clients that assumed Octogent paths or API routes.
+This rename is a breaking change for scripts and clients that used Octogent paths or API routes.
 
-- **On disk:** Starting the API migrates a legacy workspace when `.octogent/` exists and `.adadex/` does not: project dir `.octogent` → `.adadex`, legacy filenames under `state/` are renamed to `coordinations.json`, agent-facing directories are consolidated under `coordinations/`, and global `~/.octogent` → `~/.adadex` with the same inner renames. Prefer a backup before upgrading production checkouts.
-- **HTTP API:** Deck resources are served under `/api/deck/coordinations/...`. Git helpers use `/api/coordinations/:coordinationId/git/...`.
-- **CLI and env:** Prefer the `adadex` command and `ADADEX_*` variables; many code paths still accept the former `octogent` / `OCTOGENT_*` names for compatibility.
+**Disk migration:** Starting the API migrates a legacy workspace when `.octogent/` exists and `.adadex/` does not. Project dir `.octogent` becomes `.adadex`; legacy filenames under `state/` are renamed to `coordinations.json`; agent-facing directories consolidate under `coordinations/`; global `~/.octogent` becomes `~/.adadex` with the same inner renames. Back up production checkouts before upgrading.
 
-## Contributor setup
+**HTTP API:** Deck resources are served under `/api/deck/coordinations/...`. Git helpers use `/api/coordinations/:coordinationId/git/...`.
 
-Adadex is not actively reviewing pull requests right now. If you still open one and any code was written with AI, disclose which coding agent and model were used. For contributor workflow and expectations, see [CONTRIBUTING.md](CONTRIBUTING.md).
+**CLI and env:** Prefer the `adadex` command and `ADADEX_*` variables. Many code paths still accept the former `octogent` and `OCTOGENT_*` names for compatibility.
+
+## Contributing
+
+Adadex is not actively reviewing pull requests right now. If you open one and any code was written with AI, disclose the coding agent and model used. See [CONTRIBUTING.md](CONTRIBUTING.md) for full expectations.
+
+## Credits
+
+Adadex is a personal spin on [OCTOGENT](https://github.com/hesamsheikh/octogent) by **Hesam Sheikh**.
