@@ -56,5 +56,4 @@ static/images/deck-claude-verify.png
 
 # Installed agent skills manifest (local / per-machine hashes)
 /skills-lock.json
-!/.agents/skills/adadex-maintenance/
 !/.claude/CLAUDE.md
