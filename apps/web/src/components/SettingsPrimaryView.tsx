@@ -67,7 +67,7 @@ export const SettingsPrimaryView = ({
         <p>Enable or disable optional surfaces in the main workspace shell.</p>
       </header>
 
-      <div className="settings-toggle-grid">
+      <div className="grid grid-cols-2 gap-2 max-[940px]:grid-cols-1">
         <SettingsToggle
           label="Runtime status strip"
           description="Top console status strip metrics"

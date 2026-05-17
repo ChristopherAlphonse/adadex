@@ -286,66 +286,6 @@
   background: var(--terminal-scrollbar-track);
 }
 
-.pill,
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.1rem 0.35rem;
-  border: 1px solid var(--border-subtle);
-  color: #000000;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.status-badge__compact {
-  display: none;
-}
-
-.pill.live,
-.status-badge.live {
-  background: var(--term-green);
-}
-
-.pill.idle,
-.status-badge.idle {
-  background: var(--term-blue);
-  color: #f5fbff;
-}
-
-.pill.processing,
-.status-badge.processing {
-  background: var(--term-green);
-  color: #031700;
-}
-
-.pill.queued,
-.status-badge.queued {
-  background: var(--term-warning);
-}
-
-.pill.blocked,
-.status-badge.blocked {
-  background: var(--term-red);
-  color: #fff3f3;
-}
-
-.pill.stale,
-.pill.exited,
-.pill.stopped,
-.status-badge.stale,
-.status-badge.exited,
-.status-badge.stopped {
-  background: var(--term-warning);
-  color: #1a1000;
-}
-
-.pill.warning,
-.status-badge.warning {
-  background: var(--term-warning);
-  color: #1a1000;
-}
-
 @media (max-width: 700px) {
   .workspace-shell {
     grid-template-columns: 1fr;

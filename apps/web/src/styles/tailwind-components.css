@@ -1,0 +1,96 @@
+@layer components {
+  .action-button {
+    @apply inline-flex cursor-pointer items-center justify-center border font-bold uppercase transition-colors;
+    @apply focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-1;
+    @apply disabled:cursor-wait disabled:opacity-70;
+    border-color: var(--action-button-border, var(--control-border-strong));
+    background: var(--action-button-bg, var(--control-bg-strong));
+    color: var(--action-button-color, var(--primary));
+    font-family: var(--control-font-family, var(--font-mono));
+    font-size: var(--action-button-font-size, 0.6rem);
+    line-height: var(--action-button-line-height, var(--control-line-height));
+    letter-spacing: var(--action-button-letter-spacing, var(--control-letter-spacing));
+    padding: var(--action-button-padding-y, 0.16rem) var(--action-button-padding-x, 0.25rem);
+  }
+
+  .action-button--dense {
+    --action-button-font-size: 0.72rem;
+    --action-button-padding-y: 0.28rem;
+    --action-button-padding-x: 0.44rem;
+  }
+
+  .action-button--compact {
+    --action-button-font-size: 0.58rem;
+    --action-button-padding-y: 0.14rem;
+    --action-button-padding-x: 0.22rem;
+  }
+
+  .action-button--primary {
+    --action-button-border: var(--border);
+    --action-button-bg: color-mix(in oklch, var(--primary) 88%, oklch(0.85 0.12 85) 12%);
+    --action-button-color: var(--primary-foreground);
+    --action-button-font-size: 0.68rem;
+    --action-button-padding-y: 0.2rem;
+    --action-button-padding-x: 0.42rem;
+    --action-button-letter-spacing: 0.08em;
+  }
+
+  .action-button--accent {
+    --action-button-border: color-mix(in oklch, var(--primary) 50%, var(--control-border-strong));
+    --action-button-bg: color-mix(in oklch, var(--primary) 14%, var(--control-bg-strong));
+    --action-button-color: var(--primary);
+  }
+
+  .action-button--info {
+    --action-button-border: color-mix(in oklch, var(--color-info) 45%, var(--control-border-strong));
+    --action-button-bg: color-mix(in oklch, var(--color-info) 12%, var(--control-bg-strong));
+    --action-button-color: var(--color-info);
+  }
+
+  .action-button--danger {
+    --action-button-border: color-mix(in oklch, var(--destructive) 45%, var(--control-border-strong));
+    --action-button-bg: color-mix(in oklch, var(--destructive) 12%, var(--control-bg-strong));
+    --action-button-color: var(--destructive);
+  }
+
+  .pill,
+  .status-badge {
+    @apply inline-flex items-center whitespace-nowrap border px-1.5 py-0.5 font-mono text-[0.7rem] uppercase;
+    border-color: var(--border);
+  }
+
+  .status-badge__compact {
+    @apply hidden;
+  }
+
+  .pill.live,
+  .status-badge.live,
+  .pill.processing,
+  .status-badge.processing {
+    @apply bg-running text-primary-foreground;
+  }
+
+  .pill.idle,
+  .status-badge.idle {
+    background: var(--color-info);
+    @apply text-foreground;
+  }
+
+  .pill.queued,
+  .status-badge.queued,
+  .pill.warning,
+  .status-badge.warning,
+  .pill.stale,
+  .pill.exited,
+  .pill.stopped,
+  .status-badge.stale,
+  .status-badge.exited,
+  .status-badge.stopped {
+    @apply bg-stale text-foreground;
+  }
+
+  .pill.blocked,
+  .status-badge.blocked {
+    @apply bg-destructive text-destructive-foreground;
+  }
+}

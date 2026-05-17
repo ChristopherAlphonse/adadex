@@ -1,6 +1,8 @@
 import { type TerminalSnapshot, buildTerminalList, isAgentRuntimeState } from "@adadex/core";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
+import { cn } from "@/lib/utils";
+
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { DECK_LEAD_ID } from "./app/hooks/useCanvasGraphData";
 import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
@@ -389,6 +391,13 @@ export const App = () => {
     [runWorkspaceSetupStep],
   );
 
+  const showAgentsSidebar =
+    isAgentsSidebarVisible &&
+    activePrimaryNav !== 1 &&
+    activePrimaryNav !== 3 &&
+    activePrimaryNav !== 4 &&
+    activePrimaryNav !== 8;
+
   return (
     <div className="page console-shell">
       {isRuntimeStatusStripVisible && (
@@ -407,14 +416,8 @@ export const App = () => {
       />
 
       <section className="console-main-canvas" aria-label="Main content canvas">
-        <div
-          className={`workspace-shell${isAgentsSidebarVisible && activePrimaryNav !== 1 && activePrimaryNav !== 3 && activePrimaryNav !== 4 && activePrimaryNav !== 8 ? "" : " workspace-shell--full"}`}
-        >
-          {isAgentsSidebarVisible &&
-            activePrimaryNav !== 1 &&
-            activePrimaryNav !== 3 &&
-            activePrimaryNav !== 4 &&
-            activePrimaryNav !== 8 && (
+        <div className={cn("workspace-shell", !showAgentsSidebar && "workspace-shell--full")}>
+          {showAgentsSidebar && (
               <ActiveAgentsSidebar
                 sidebarWidth={sidebarWidth}
                 onSidebarWidthChange={(width) => {
