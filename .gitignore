@@ -13,8 +13,9 @@ Desktop.ini
 
 .adadex/
 .planning/
-.cursor/*
-.cursor/hooks/state/
+
+# Cursor — hooks/state (continual-learning.json etc.), plans; machine-local only
+.cursor/
 
 # Stale emit under src/ — Vite resolves .js before .tsx and serves outdated UI
 apps/web/src/**/*.js
@@ -53,5 +54,3 @@ static/images/deck-claude-verify.png
 
 # Installed agent skills manifest (local / per-machine hashes)
 /skills-lock.json
-
-.cursor/
