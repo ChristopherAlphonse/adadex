@@ -1,0 +1,81 @@
+@import "tailwindcss" source(none);
+@source "..";
+@import "tw-animate-css";
+@import "./tailwind-components.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Map Tailwind color utilities to the app's existing CSS variables (foundation.css). */
+@theme inline {
+  --radius-sm: calc(var(--radius, 0.5rem) - 4px);
+  --radius-md: calc(var(--radius, 0.5rem) - 2px);
+  --radius-lg: var(--radius, 0.5rem);
+  --radius-xl: calc(var(--radius, 0.5rem) + 4px);
+
+  --color-background: var(--bg-canvas);
+  --color-foreground: var(--text-primary);
+  --color-surface: var(--bg-surface-1);
+  --color-surface-2: var(--bg-surface-2);
+  --color-card: var(--bg-surface-1);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--bg-surface-2);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--accent-primary);
+  --color-primary-foreground: #111216;
+  --color-secondary: var(--bg-surface-2);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--bg-surface-1);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--accent-primary);
+  --color-accent-foreground: #111216;
+  --color-destructive: var(--term-red);
+  --color-destructive-foreground: #fff3f3;
+  --color-border: var(--border-subtle);
+  --color-input: var(--border-subtle);
+  --color-ring: var(--accent-primary);
+  --color-info: var(--term-blue);
+
+  --color-running: var(--term-green);
+  --color-stopped: var(--term-warning);
+  --color-stale: var(--term-warning);
+  --color-idle: var(--term-blue);
+  --color-brand: var(--accent-primary);
+
+  --font-sans: var(--font-main);
+  --font-mono: var(--font-main);
+}
+
+@layer utilities {
+  .bg-grid {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      oklch(1 0 0 / 0.05) 1px,
+      transparent 0
+    );
+    background-size: 24px 24px;
+  }
+
+  .scanline {
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 3px,
+      oklch(1 0 0 / 0.02) 3px,
+      oklch(1 0 0 / 0.02) 4px
+    );
+  }
+}
+
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent-primary) 0%, transparent);
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2.4s ease-out infinite;
+}

@@ -4,7 +4,11 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "jsx": "react-jsx",
-    "types": ["vite/client", "vitest/globals"]
+    "types": ["vite/client", "vitest/globals"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src", "tests", "vite.config.ts"]
 }

@@ -1,7 +1,11 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type ActionButtonVariant = "primary" | "accent" | "info" | "danger";
-type ActionButtonSize = "compact" | "dense";
+import { cn } from "@/lib/utils";
+import {
+  actionButtonVariants,
+  type ActionButtonSize,
+  type ActionButtonVariant,
+} from "@/lib/ui/action-button";
 
 type ActionButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
   children: ReactNode;
@@ -16,19 +20,10 @@ export const ActionButton = ({
   size = "dense",
   type = "button",
   ...buttonProps
-}: ActionButtonProps) => {
-  const classes = [
-    "action-button",
-    `action-button--${variant}`,
-    `action-button--${size}`,
-    className,
-  ]
-    .filter((value) => Boolean(value))
-    .join(" ");
+}: ActionButtonProps) => (
+  <button className={cn(actionButtonVariants({ variant, size }), className)} type={type} {...buttonProps}>
+    {children}
+  </button>
+);
 
-  return (
-    <button className={classes} type={type} {...buttonProps}>
-      {children}
-    </button>
-  );
-};
+export type { ActionButtonVariant, ActionButtonSize } from "@/lib/ui/action-button";

@@ -1,13 +1,15 @@
-/* Foundation */
-@import "./styles/foundation.css";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap");
 
-/* Shared UI primitives and surfaces */
+/* Tailwind utilities + shadcn component layer (does not own app chrome tokens) */
+@import "./styles/tailwind.css";
+
+/* App design tokens and layout — must load after tailwind to win cascade */
+@import "./styles/foundation.css";
+@import "./styles/console-theme-tokens.css";
+
 @import "./styles/chrome-and-buttons.css";
 @import "./styles/sidebar-and-scrollbars.css";
 @import "./styles/terminal-and-status.css";
-
-/* Console theme tokens and console-specific overrides */
-@import "./styles/console-theme-tokens.css";
 @import "./styles/console-chrome-status-nav.css";
 @import "./styles/console-canvas-activity.css";
 @import "./styles/console-canvas-github.css";

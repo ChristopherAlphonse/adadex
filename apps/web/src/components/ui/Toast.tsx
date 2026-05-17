@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-// ─── Toast notifications ───────────────────────────────────────────────────────
+import { cn } from "@/lib/utils";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -8,12 +8,6 @@ export type Toast = {
   id: string;
   message: string;
   type: ToastType;
-};
-
-type ToastContextValue = {
-  toasts: Toast[];
-  addToast: (message: string, type?: ToastType) => void;
-  removeToast: (id: string) => void;
 };
 
 let toastListeners: Array<(toasts: Toast[]) => void> = [];
@@ -58,7 +52,12 @@ export const toast = {
   },
 };
 
-// ─── ToastContainer ──────────────────────────────────────────────────────────
+const toastToneClasses: Record<ToastType, string> = {
+  success: "border-running/40 bg-running/10 text-primary",
+  error: "border-destructive/40 bg-destructive/10 text-destructive",
+  info: "border-info/40 bg-info/10 text-[var(--color-info)]",
+  warning: "border-stale/40 bg-stale/10 text-foreground",
+};
 
 export const ToastContainer = () => {
   const [currentToasts, setCurrentToasts] = useState<Toast[]>([]);
@@ -78,17 +77,15 @@ export const ToastContainer = () => {
   if (currentToasts.length === 0) return null;
 
   return (
-    <div className="toast-container" role="region" aria-label="Notifications">
-      {currentToasts.map((t) => (
-        <ToastItem key={t.id} toast={t} />
+    <div className="fixed right-4 bottom-4 z-[200] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2">
+      {currentToasts.map((item) => (
+        <ToastItem key={item.id} toast={item} />
       ))}
     </div>
   );
 };
 
-// ─── ToastItem ───────────────────────────────────────────────────────────────
-
-const ToastItem = ({ toast }: { toast: Toast }) => {
+const ToastItem = ({ toast: toastItem }: { toast: Toast }) => {
   const [visible, setVisible] = useState(true);
   const [exiting, setExiting] = useState(false);
 
@@ -104,19 +101,23 @@ const ToastItem = ({ toast }: { toast: Toast }) => {
 
   return (
     <div
-      className={`toast toast--${toast.type}${exiting ? " toast--exiting" : ""}`}
+      className={cn(
+        "flex items-start gap-2 border px-3 py-2 shadow-lg transition-all duration-300",
+        toastToneClasses[toastItem.type],
+        exiting && "translate-x-2 opacity-0",
+      )}
       role="alert"
     >
-      <span className="toast-icon">
-        {toast.type === "success" && "✓"}
-        {toast.type === "error" && "✕"}
-        {toast.type === "info" && "ℹ"}
-        {toast.type === "warning" && "⚠"}
+      <span className="font-mono text-sm leading-none">
+        {toastItem.type === "success" && "✓"}
+        {toastItem.type === "error" && "✕"}
+        {toastItem.type === "info" && "ℹ"}
+        {toastItem.type === "warning" && "⚠"}
       </span>
-      <span className="toast-message">{toast.message}</span>
+      <span className="min-w-0 flex-1 text-[0.8rem] leading-snug">{toastItem.message}</span>
       <button
         type="button"
-        className="toast-close"
+        className="cursor-pointer border-0 bg-transparent p-0 font-mono text-base leading-none opacity-70 transition-opacity hover:opacity-100"
         onClick={() => {
           setExiting(true);
           setTimeout(() => setVisible(false), 300);
@@ -128,3 +129,4 @@ const ToastItem = ({ toast }: { toast: Toast }) => {
     </div>
   );
 };
+
