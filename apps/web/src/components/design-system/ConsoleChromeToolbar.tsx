@@ -86,7 +86,7 @@ export const ConsoleChromeToolbar = ({
               key={action.id}
               type="button"
               onClick={() => handleAction(action.id)}
-              className={`flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-medium transition-colors ${
+              className={`flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[14.5px] font-medium transition-colors ${
                 active
                   ? "bg-brand/10 text-brand"
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
@@ -101,7 +101,7 @@ export const ConsoleChromeToolbar = ({
         <button
           type="button"
           onClick={onDeleteAll}
-          className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-medium text-destructive transition-colors hover:bg-destructive/10"
+          className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[14.5px] font-medium text-destructive transition-colors hover:bg-destructive/10"
         >
           <svg
             className="size-3.5"
@@ -120,7 +120,7 @@ export const ConsoleChromeToolbar = ({
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-[14px] text-muted-foreground">
           <span className="size-1.5 animate-pulse rounded-full bg-running" />
           <span>Auto-refresh in 12s</span>
         </div>
@@ -128,7 +128,7 @@ export const ConsoleChromeToolbar = ({
         <button
           type="button"
           onClick={onNewAgent ?? onCreateTerminal}
-          className="flex h-7 items-center gap-1.5 rounded-md bg-foreground px-3 text-[12.5px] font-semibold text-background transition-opacity hover:opacity-90"
+          className="flex h-7 items-center gap-1.5 rounded-md bg-foreground px-3 text-[14.5px] font-semibold text-background transition-opacity hover:opacity-90"
         >
           <svg
             className="size-3.5"

@@ -6,8 +6,8 @@ export type CoordinationGitStatusSnapshot = {
   coordinationId: string;
   workspaceMode: CoordinationWorkspaceMode;
   branchName: string;
-  headCommit: string | null;
-  worktreePath: string | null;
+  headCommit?: string | null;
+  worktreePath?: string | null;
   upstreamBranchName: string | null;
   isDirty: boolean;
   aheadCount: number;

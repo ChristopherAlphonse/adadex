@@ -1193,7 +1193,7 @@ export const CanvasPrimaryView = ({
         </svg>
 
         <div className="pointer-events-none absolute right-4 top-4 rounded-lg border border-border bg-surface/80 p-3 backdrop-blur">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
             Legend
           </p>
           <div className="space-y-1.5">
@@ -1208,7 +1208,7 @@ export const CanvasPrimaryView = ({
                   className="size-2 rounded-full"
                   style={{ backgroundColor: `var(--${status})` }}
                 />
-                <span className="text-[12px] text-muted-foreground">{label}</span>
+                <span className="text-[14px] text-muted-foreground">{label}</span>
               </div>
             ))}
           </div>

@@ -56,13 +56,13 @@ export const ConsoleInspectorPanel = ({
     <aside className="flex w-[360px] shrink-0 flex-col border-l border-border bg-surface/40">
       <div className="border-b border-border p-5">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Inspector
           </p>
-          <span className="font-mono text-[11px] text-muted-foreground">{id}</span>
+          <span className="font-mono text-[13px] text-muted-foreground">{id}</span>
         </div>
         <div className="mt-2.5 flex items-center justify-between gap-3">
-          <h2 className="text-[16px] font-semibold tracking-tight text-foreground">{title}</h2>
+          <h2 className="text-[18px] font-semibold tracking-tight text-foreground">{title}</h2>
           {selectedNode ? <StatusPill status={status} /> : null}
         </div>
       </div>
@@ -81,7 +81,7 @@ export const ConsoleInspectorPanel = ({
 
             <Section title="Resources">
               <div>
-                <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
+                <div className="mb-1.5 flex items-center justify-between text-[14.5px]">
                   <span className="text-muted-foreground">Tokens</span>
                   <span className="font-mono text-foreground">
                     {usagePercent === null ? "Unavailable" : `${usagePercent}% used`}
@@ -98,14 +98,14 @@ export const ConsoleInspectorPanel = ({
 
             {terminal?.lifecycleReason ? (
               <Section title="Runtime">
-                <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+                <p className="text-[14.5px] leading-relaxed text-muted-foreground">
                   {terminal.lifecycleReason}
                 </p>
               </Section>
             ) : null}
 
             <Section title="Diff Summary">
-              <div className="space-y-2 rounded-md border border-border bg-background/60 p-3 font-mono text-[12px] leading-relaxed">
+              <div className="space-y-2 rounded-md border border-border bg-background/60 p-3 font-mono text-[14px] leading-relaxed">
                 {gitStatus ? (
                   changedFiles.length > 0 ? (
                     changedFiles.slice(0, 4).map((file) => (
@@ -120,7 +120,7 @@ export const ConsoleInspectorPanel = ({
                 ) : (
                   <div className="text-muted-foreground">No worktree diff data</div>
                 )}
-                <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+                <div className="border-t border-border pt-2 text-[13px] text-muted-foreground">
                   {gitStatus ? (
                     <>
                       {changedFiles.length} files changed ·{" "}
@@ -138,7 +138,7 @@ export const ConsoleInspectorPanel = ({
             </Section>
           </>
         ) : (
-          <div className="p-5 text-[13px] text-muted-foreground">
+          <div className="p-5 text-[15px] text-muted-foreground">
             Select an agent on the canvas to inspect session metadata.
           </div>
         )}
@@ -149,14 +149,14 @@ export const ConsoleInspectorPanel = ({
           <button
             type="button"
             disabled={!selectedNode}
-            className="flex h-9 items-center justify-center rounded-md border border-border bg-white/5 text-[13px] font-medium text-foreground transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-9 items-center justify-center rounded-md border border-border bg-white/5 text-[15px] font-medium text-foreground transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Attach
           </button>
           <button
             type="button"
             disabled={!selectedNode}
-            className="flex h-9 items-center justify-center rounded-md bg-foreground text-[13px] font-semibold text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-9 items-center justify-center rounded-md bg-foreground text-[15px] font-semibold text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Deploy
           </button>

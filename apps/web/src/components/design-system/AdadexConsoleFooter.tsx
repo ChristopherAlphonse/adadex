@@ -7,7 +7,7 @@ export const AdadexConsoleFooter = ({
   visibleCount,
   totalCount,
 }: AdadexConsoleFooterProps): React.ReactElement => (
-  <footer className="flex h-8 shrink-0 items-center justify-between border-t border-border bg-surface px-4 text-[12px] text-muted-foreground">
+  <footer className="flex h-8 shrink-0 items-center justify-between border-t border-border bg-surface px-4 text-[14px] text-muted-foreground">
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-2">
         <span className="size-1.5 animate-pulse rounded-full bg-running" />

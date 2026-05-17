@@ -62,14 +62,14 @@ export const ConsoleChromeHeader = ({
   return (
     <header className="relative z-[100] flex h-14 shrink-0 items-center border-b border-border bg-background/80 px-5 backdrop-blur-xl">
       <div className="flex items-center gap-3">
-        <span className="text-[15px] font-semibold tracking-[0.12em] text-foreground">ADADEX</span>
+        <span className="text-[17px] font-semibold tracking-[0.12em] text-foreground">ADADEX</span>
         <span className="text-muted-foreground/40">/</span>
         <div className="relative" ref={providerMenuRef}>
           <button
             type="button"
             aria-expanded={providerMenuOpen}
             aria-haspopup="menu"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] font-medium text-foreground hover:bg-foreground/5"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[15px] font-medium text-foreground hover:bg-foreground/5"
             onClick={() => setProviderMenuOpen((open) => !open)}
           >
             {providerLabel}
@@ -94,7 +94,7 @@ export const ConsoleChromeHeader = ({
                   key={option.value}
                   type="button"
                   role="menuitem"
-                  className="flex w-full items-center justify-between gap-3 px-3 py-1.5 text-left text-[13px] text-foreground hover:bg-foreground/5"
+                  className="flex w-full items-center justify-between gap-3 px-3 py-1.5 text-left text-[15px] text-foreground hover:bg-foreground/5"
                   onClick={() => {
                     onAgentProviderChange(option.value);
                     setProviderMenuOpen(false);
@@ -122,13 +122,13 @@ export const ConsoleChromeHeader = ({
               key={item.index}
               type="button"
               onClick={() => onPrimaryNavChange(item.index)}
-              className={`relative flex h-full items-center gap-2 whitespace-nowrap px-3 text-[13px] font-medium transition-colors ${
+              className={`relative flex h-full items-center gap-2 whitespace-nowrap px-3 text-[15px] font-medium transition-colors ${
                 active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <span>{item.label}</span>
               <kbd
-                className={`hidden h-[18px] min-w-[18px] items-center justify-center rounded border px-1 font-mono text-[10px] xl:inline-flex ${
+                className={`hidden h-[20px] min-w-[20px] items-center justify-center rounded border px-1 font-mono text-[12px] xl:inline-flex ${
                   active
                     ? "border-border bg-foreground/10 text-foreground"
                     : "border-border bg-foreground/[0.03] text-muted-foreground/70"
@@ -144,7 +144,7 @@ export const ConsoleChromeHeader = ({
         })}
       </nav>
 
-      <motion className="ml-auto flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <button
           type="button"
           className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
