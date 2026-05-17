@@ -69,7 +69,9 @@
   letter-spacing: 0.05em;
   color: #8494ab;
   background: #0c1118;
-  transition: background 100ms linear, color 100ms linear;
+  transition:
+    background 100ms linear,
+    color 100ms linear;
 }
 
 .usage-heatmap-scope-btn:hover {
@@ -193,7 +195,9 @@
   background: #0c1118;
   border: 1px solid #2b2f36;
   text-align: center;
-  transition: background 100ms linear, color 100ms linear;
+  transition:
+    background 100ms linear,
+    color 100ms linear;
 }
 
 .usage-chart-bar-segment-btn:hover {

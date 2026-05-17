@@ -2,11 +2,11 @@ import { useMemo } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
 import {
+  type AgentGlyphVariant,
   type MascotAccessory,
   type MascotAnimation,
   type MascotExpression,
   MascotGlyph,
-  type AgentGlyphVariant,
 } from "../MascotSprite";
 
 const LINE_MAX = 22;
@@ -33,12 +33,29 @@ const splitLabel = (label: string): [string] | [string, string] => {
 };
 
 const ANIMATIONS: MascotAnimation[] = [
-  "sway", "walk", "jog", "float", "swim-up",
-  "breathe", "pulse", "orbit", "typing", "thinking", "deploying",
+  "sway",
+  "walk",
+  "jog",
+  "float",
+  "swim-up",
+  "breathe",
+  "pulse",
+  "orbit",
+  "typing",
+  "thinking",
+  "deploying",
 ];
 const EXPRESSIONS: MascotExpression[] = [
-  "normal", "happy", "angry", "surprised",
-  "neutral", "focused", "happy", "curious", "busy", "offline",
+  "normal",
+  "happy",
+  "angry",
+  "surprised",
+  "neutral",
+  "focused",
+  "happy",
+  "curious",
+  "busy",
+  "offline",
 ];
 const ACCESSORIES: MascotAccessory[] = [
   "none",

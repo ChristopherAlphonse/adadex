@@ -1,7 +1,6 @@
-import { useCallback, useRef, useState } from "react";
-
 import type { TerminalAgentProvider } from "@adadex/core";
 import { Check, Moon, Sun } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 
 import { AGENT_PROVIDER_OPTIONS } from "../../app/agentProviders";
 import { PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "../../app/constants";
@@ -24,16 +23,40 @@ const codexMeterValues = (
   codexUsage: CodexUsageSnapshot | null,
   isRefreshing: boolean,
   agentProvider: TerminalAgentProvider,
-): { primary: number; secondary: number; primaryLabel: string; weekLabel: string; available: boolean } => {
+): {
+  primary: number;
+  secondary: number;
+  primaryLabel: string;
+  weekLabel: string;
+  available: boolean;
+} => {
   const providerLabel = agentProvider === "codex" ? "Codex" : agentProvider;
   if (agentProvider !== "codex") {
-    return { primary: 0, secondary: 0, primaryLabel: providerLabel, weekLabel: "Weekly", available: false };
+    return {
+      primary: 0,
+      secondary: 0,
+      primaryLabel: providerLabel,
+      weekLabel: "Weekly",
+      available: false,
+    };
   }
   if (isRefreshing || codexUsage === null) {
-    return { primary: 0, secondary: 0, primaryLabel: providerLabel, weekLabel: "Weekly", available: false };
+    return {
+      primary: 0,
+      secondary: 0,
+      primaryLabel: providerLabel,
+      weekLabel: "Weekly",
+      available: false,
+    };
   }
   if (codexUsage.status !== "ok") {
-    return { primary: 0, secondary: 0, primaryLabel: providerLabel, weekLabel: "Weekly", available: false };
+    return {
+      primary: 0,
+      secondary: 0,
+      primaryLabel: providerLabel,
+      weekLabel: "Weekly",
+      available: false,
+    };
   }
   const primary = Number(codexUsage.primaryUsedPercent ?? 0);
   const secondary = Number(codexUsage.secondaryUsedPercent ?? 0);
@@ -63,8 +86,7 @@ export const ConsoleChromeHeader = ({
   useClickOutside(providerMenuRef, providerMenuOpen, dismissProviderMenu);
 
   const providerLabel =
-    AGENT_PROVIDER_OPTIONS.find((option) => option.value === agentProvider)?.label ??
-    agentProvider;
+    AGENT_PROVIDER_OPTIONS.find((option) => option.value === agentProvider)?.label ?? agentProvider;
 
   return (
     <header className="relative z-[100] flex h-14 shrink-0 items-center border-b border-border bg-background/80 px-5 backdrop-blur-xl">
@@ -158,7 +180,11 @@ export const ConsoleChromeHeader = ({
           aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
           onClick={onToggleColorTheme}
         >
-          {isLight ? <Moon className="size-4" strokeWidth={2} /> : <Sun className="size-4" strokeWidth={2} />}
+          {isLight ? (
+            <Moon className="size-4" strokeWidth={2} />
+          ) : (
+            <Sun className="size-4" strokeWidth={2} />
+          )}
         </button>
         <div
           className="hidden items-center gap-3 pr-1 xl:flex"

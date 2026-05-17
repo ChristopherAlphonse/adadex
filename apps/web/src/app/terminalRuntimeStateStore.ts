@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-
 import type { AgentRuntimeState } from "@adadex/core";
+import { useEffect, useState } from "react";
 
 import type { TerminalView } from "./types";
 

@@ -1,8 +1,8 @@
 import {
   type CoordinationWorkspaceMode,
+  isTerminalAgentProvider,
   type TerminalAgentProvider,
   type TerminalNameOrigin,
-  isTerminalAgentProvider,
 } from "../terminalRuntime";
 
 const isTerminalNameOrigin = (value: unknown): value is TerminalNameOrigin =>

@@ -18,7 +18,15 @@ export const drawSensors = (
 
   for (const [index, dx] of [-eyeDx, eyeDx].entries()) {
     ctx.beginPath();
-    ctx.ellipse(dx, eyeY + (index === 0 ? -tilt : tilt) * unit, sensorRx, sensorRy, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+      dx,
+      eyeY + (index === 0 ? -tilt : tilt) * unit,
+      sensorRx,
+      sensorRy,
+      0,
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
   }
 

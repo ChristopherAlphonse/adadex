@@ -1,6 +1,6 @@
 import { cpSync, existsSync as fsExistsSync, mkdirSync, readdirSync } from "node:fs";
 import { createServer } from "node:http";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 
 import { WORKSPACE_RUNTIME_DIR } from "@adadex/core";
 import { createCodeIntelStore } from "./codeIntelStore";

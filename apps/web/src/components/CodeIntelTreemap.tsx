@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  type TreemapNode,
-  type TreemapRect,
   heatColor,
   layoutTreemap,
+  type TreemapNode,
+  type TreemapRect,
 } from "../app/codeIntelAggregation";
 
 type CodeIntelTreemapProps = {

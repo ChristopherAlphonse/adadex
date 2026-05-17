@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-import type { AgentGlyphProps, ResolvedGlyph } from "./agent-types";
-import { DEFAULT_SIZE, MARK_UNITS, resolveCanvasResolutionScale, resolvePalette } from "./agent-palette";
 import { resolveIdentity } from "./agent-identity";
 import { getMotion, prefersReducedMotion } from "./agent-motion";
+import {
+  DEFAULT_SIZE,
+  MARK_UNITS,
+  resolveCanvasResolutionScale,
+  resolvePalette,
+} from "./agent-palette";
+import type { AgentGlyphProps, ResolvedGlyph } from "./agent-types";
 import { drawAgentGlyph } from "./draw-glyph";
 
 export const AgentGlyph = ({
@@ -62,7 +66,14 @@ export const AgentGlyph = ({
     const render = (time: number) => {
       const effectiveAnimation = shouldReduceMotion ? "idle" : animation;
       const motion = getMotion(effectiveAnimation, mood, time, unit, speedMs);
-      drawAgentGlyph(ctx, palette, unit, { ...resolved, animation: effectiveAnimation }, identity, motion);
+      drawAgentGlyph(
+        ctx,
+        palette,
+        unit,
+        { ...resolved, animation: effectiveAnimation },
+        identity,
+        motion,
+      );
     };
 
     render(0);

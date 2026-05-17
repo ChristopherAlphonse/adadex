@@ -1,6 +1,11 @@
 import { join } from "node:path";
 
-import { COORDINATIONS_DIR_SEGMENT, WORKSPACE_RUNTIME_DIR, isTerminalAgentProvider, type TerminalAgentProvider } from "@adadex/core";
+import {
+  COORDINATIONS_DIR_SEGMENT,
+  isTerminalAgentProvider,
+  type TerminalAgentProvider,
+  WORKSPACE_RUNTIME_DIR,
+} from "@adadex/core";
 
 import {
   addTodoItem,
@@ -312,7 +317,12 @@ export const handleDeckOrchestrationAgentRoute: ApiRouteHandler = async (
   const rawAgentProvider = payload.agentProvider;
   if (rawAgentProvider !== undefined && rawAgentProvider !== null) {
     if (typeof rawAgentProvider !== "string" || !isTerminalAgentProvider(rawAgentProvider)) {
-      writeJson(response, 400, { error: "agentProvider must be a valid agent provider" }, corsOrigin);
+      writeJson(
+        response,
+        400,
+        { error: "agentProvider must be a valid agent provider" },
+        corsOrigin,
+      );
       return true;
     }
   }

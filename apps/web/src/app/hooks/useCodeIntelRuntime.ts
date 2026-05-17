@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  buildCouplingData,
+  buildTreemapTree,
   type CodeIntelEvent,
   type CouplingData,
   type TreemapNode,
-  buildCouplingData,
-  buildTreemapTree,
 } from "../codeIntelAggregation";
 
 type CodeIntelRuntimeResult = {

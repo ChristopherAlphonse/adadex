@@ -1,4 +1,3 @@
-import { AgentGlyph } from "./AgentGlyph";
 import type {
   AgentGlyphAccessory,
   AgentGlyphAnimation,
@@ -7,8 +6,8 @@ import type {
   AgentGlyphProps,
   AgentGlyphVariant,
 } from "./AgentGlyph";
+import { AgentGlyph } from "./AgentGlyph";
 
-export { AgentGlyph };
 export type {
   AgentGlyphAccessory,
   AgentGlyphAnimation,
@@ -17,6 +16,7 @@ export type {
   AgentGlyphProps,
   AgentGlyphVariant,
 };
+export { AgentGlyph };
 
 export type LegacyMascotAnimation = "idle" | "sway" | "walk" | "jog" | "swim-up" | "float";
 export type LegacyMascotExpression = "normal" | "happy" | "sleepy" | "angry" | "surprised";
@@ -133,19 +133,17 @@ const resolveLegacyGlyph = ({
     typeof accessory === "string" && accessory in accessoryMap
       ? (accessory as LegacyMascotAccessory)
       : "none";
-  const resolvedAnimation = isAgentAnimation(animation)
-    ? animation
-    : animationMap[legacyAnimation];
-  const resolvedMood = mood ?? (isAgentMood(expression) ? expression : expressionMap[legacyExpression]);
-  const resolvedAccessory = isAgentAccessory(accessory)
-    ? accessory
-    : accessoryMap[legacyAccessory];
+  const resolvedAnimation = isAgentAnimation(animation) ? animation : animationMap[legacyAnimation];
+  const resolvedMood =
+    mood ?? (isAgentMood(expression) ? expression : expressionMap[legacyExpression]);
+  const resolvedAccessory = isAgentAccessory(accessory) ? accessory : accessoryMap[legacyAccessory];
 
   return {
     animation: resolvedAnimation,
     mood: resolvedMood,
     variant,
-    accessory: variant === "security" && resolvedAccessory === "none" ? "shield" : resolvedAccessory,
+    accessory:
+      variant === "security" && resolvedAccessory === "none" ? "shield" : resolvedAccessory,
     density,
     accentColor: accentColor ?? color,
     secondaryColor: secondaryColor ?? hairColor,

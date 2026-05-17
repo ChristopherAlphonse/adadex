@@ -13,43 +13,35 @@ export type Toast = {
 let toastListeners: Array<(toasts: Toast[]) => void> = [];
 let toasts: Toast[] = [];
 
+const TOAST_DURATIONS: Record<ToastType, number> = {
+  success: 4000,
+  error: 5000,
+  info: 4000,
+  warning: 5000,
+};
+
+function notify() {
+  const snapshot = [...toasts];
+  for (const listener of toastListeners) {
+    listener(snapshot);
+  }
+}
+
+function addToast(type: ToastType, message: string) {
+  const id = crypto.randomUUID();
+  toasts = [...toasts, { id, message, type }];
+  notify();
+  setTimeout(() => {
+    toasts = toasts.filter((t) => t.id !== id);
+    notify();
+  }, TOAST_DURATIONS[type]);
+}
+
 export const toast = {
-  success: (message: string) => {
-    const id = crypto.randomUUID();
-    toasts = [...toasts, { id, message, type: "success" }];
-    toastListeners.forEach((listener) => listener([...toasts]));
-    setTimeout(() => {
-      toasts = toasts.filter((t) => t.id !== id);
-      toastListeners.forEach((listener) => listener([...toasts]));
-    }, 4000);
-  },
-  error: (message: string) => {
-    const id = crypto.randomUUID();
-    toasts = [...toasts, { id, message, type: "error" }];
-    toastListeners.forEach((listener) => listener([...toasts]));
-    setTimeout(() => {
-      toasts = toasts.filter((t) => t.id !== id);
-      toastListeners.forEach((listener) => listener([...toasts]));
-    }, 5000);
-  },
-  info: (message: string) => {
-    const id = crypto.randomUUID();
-    toasts = [...toasts, { id, message, type: "info" }];
-    toastListeners.forEach((listener) => listener([...toasts]));
-    setTimeout(() => {
-      toasts = toasts.filter((t) => t.id !== id);
-      toastListeners.forEach((listener) => listener([...toasts]));
-    }, 4000);
-  },
-  warning: (message: string) => {
-    const id = crypto.randomUUID();
-    toasts = [...toasts, { id, message, type: "warning" }];
-    toastListeners.forEach((listener) => listener([...toasts]));
-    setTimeout(() => {
-      toasts = toasts.filter((t) => t.id !== id);
-      toastListeners.forEach((listener) => listener([...toasts]));
-    }, 5000);
-  },
+  success: (message: string) => addToast("success", message),
+  error: (message: string) => addToast("error", message),
+  info: (message: string) => addToast("info", message),
+  warning: (message: string) => addToast("warning", message),
 };
 
 const toastToneClasses: Record<ToastType, string> = {
@@ -61,16 +53,14 @@ const toastToneClasses: Record<ToastType, string> = {
 
 export const ToastContainer = () => {
   const [currentToasts, setCurrentToasts] = useState<Toast[]>([]);
-  const listenerRef = useRef<(toasts: Toast[]) => void>(undefined);
-
-  listenerRef.current = (newToasts: Toast[]) => {
-    setCurrentToasts(newToasts);
-  };
+  const listenerRef = useRef<(toasts: Toast[]) => void>(setCurrentToasts);
+  listenerRef.current = setCurrentToasts;
 
   useEffect(() => {
-    toastListeners.push(listenerRef.current!);
+    const listener: (toasts: Toast[]) => void = (t) => listenerRef.current(t);
+    toastListeners.push(listener);
     return () => {
-      toastListeners = toastListeners.filter((l) => l !== listenerRef.current);
+      toastListeners = toastListeners.filter((l) => l !== listener);
     };
   }, []);
 
@@ -129,4 +119,3 @@ const ToastItem = ({ toast: toastItem }: { toast: Toast }) => {
     </div>
   );
 };
-

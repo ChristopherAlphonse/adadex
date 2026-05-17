@@ -91,7 +91,12 @@ const ChartTooltip = ({
   x,
   y,
   containerWidth,
-}: { bar: BarData; x: number; y: number; containerWidth: number }) => {
+}: {
+  bar: BarData;
+  x: number;
+  y: number;
+  containerWidth: number;
+}) => {
   const isRightHalf = x > containerWidth / 2;
   return (
     <div

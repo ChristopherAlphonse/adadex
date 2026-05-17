@@ -1,8 +1,6 @@
+import { FileText, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { FileText, X } from "lucide-react";
-
-import { useColorThemeContext } from "../app/ColorThemeContext";
 import { buildTerminalSocketUrl } from "../runtime/runtimeEndpoints";
 import { type AgentRuntimeState, AgentStateBadge, isAgentRuntimeState } from "./AgentStateBadge";
 import { TerminalPromptPicker } from "./TerminalPromptPicker";
@@ -91,7 +89,6 @@ export const Terminal = ({
   onTerminalRenamed,
   onTerminalActivity,
 }: TerminalProps) => {
-  const { colorTheme } = useColorThemeContext();
   const socketRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [connectionState, setConnectionState] = useState("connecting");
@@ -428,7 +425,7 @@ export const Terminal = ({
       cleanupTerminal();
       socket?.close();
     };
-  }, [colorTheme, terminalId]);
+  }, [terminalId]);
 
   useEffect(() => {
     if (layoutVersion === undefined) {

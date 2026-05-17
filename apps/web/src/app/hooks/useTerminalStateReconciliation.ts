@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { useEffect } from "react";
 
 import { retainActiveTerminalIds } from "../terminalState";
 import type { TerminalView } from "../types";

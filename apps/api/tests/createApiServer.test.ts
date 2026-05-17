@@ -36,8 +36,8 @@ import {
 
 import { createApiServer } from "../src/createApiServer";
 import type { GitHubRepoSummarySnapshot } from "../src/githubRepoSummary";
-import { MAX_CHILDREN_PER_PARENT } from "../src/terminalRuntime";
 import type { GitClient } from "../src/terminalRuntime";
+import { MAX_CHILDREN_PER_PARENT } from "../src/terminalRuntime";
 
 class FakeGitClient implements GitClient {
   private readonly worktreeStatusByCwd = new Map<
@@ -185,11 +185,7 @@ class FakeGitClient implements GitClient {
     this.worktreeStatusByCwd.set(cwd, status);
   }
 
-  readWorktreeStatus({
-    cwd,
-  }: {
-    cwd: string;
-  }): {
+  readWorktreeStatus({ cwd }: { cwd: string }): {
     branchName: string;
     upstreamBranchName: string | null;
     isDirty: boolean;
@@ -294,11 +290,7 @@ class FakeGitClient implements GitClient {
     this.pullRequestByCwd.set(cwd, pullRequest);
   }
 
-  readCurrentBranchPullRequest({
-    cwd,
-  }: {
-    cwd: string;
-  }): {
+  readCurrentBranchPullRequest({ cwd }: { cwd: string }): {
     number: number;
     url: string;
     title: string;

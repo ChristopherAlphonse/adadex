@@ -1,10 +1,7 @@
-import { type TerminalAgentProvider } from "@adadex/core";
+import type { TerminalAgentProvider } from "@adadex/core";
 import { useCallback, useState } from "react";
 
-import {
-  readAgentProviderPreference,
-  writeAgentProviderPreference,
-} from "../agentProviders";
+import { readAgentProviderPreference, writeAgentProviderPreference } from "../agentProviders";
 
 type UseAgentProviderPreferenceResult = {
   agentProvider: TerminalAgentProvider;

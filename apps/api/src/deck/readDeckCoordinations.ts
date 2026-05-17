@@ -1,8 +1,8 @@
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -18,9 +18,9 @@ import type {
 } from "@adadex/core";
 import {
   COORDINATIONS_DIR_SEGMENT,
+  isTerminalAgentProvider,
   LEGACY_DECK_STATE_MAP_KEY,
   WORKSPACE_RUNTIME_DIR,
-  isTerminalAgentProvider,
 } from "@adadex/core";
 
 import {
@@ -639,7 +639,13 @@ export const updateDeckCoordinationSuggestedSkills = (
 export const updateDeckCoordinationMascot = (
   workspaceCwd: string,
   coordinationId: string,
-  mascot: { color?: string; animation?: string; expression?: string; accessory?: string; hairColor?: string },
+  mascot: {
+    color?: string;
+    animation?: string;
+    expression?: string;
+    accessory?: string;
+    hairColor?: string;
+  },
   projectStateDir?: string,
 ): DeckCoordinationSummary | null => {
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;

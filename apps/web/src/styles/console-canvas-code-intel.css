@@ -198,7 +198,9 @@
 
 .code-intel-arc-path {
   cursor: crosshair;
-  transition: stroke-opacity 0.1s ease, stroke-width 0.1s ease;
+  transition:
+    stroke-opacity 0.1s ease,
+    stroke-width 0.1s ease;
 }
 
 /* ── Coupling tooltip details ───────────────────────── */

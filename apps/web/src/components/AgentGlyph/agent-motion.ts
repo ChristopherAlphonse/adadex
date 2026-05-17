@@ -32,7 +32,13 @@ export const getMotion = (
     case "typing":
       return { y: 0, bodyPulse: 0, orbit: 0, nodePulse: pulse, scan: Math.floor(t * 0.3) };
     case "thinking":
-      return { y: Math.sin(t * 0.35) * unit * 0.04, bodyPulse: 0, orbit: t * 0.012, nodePulse: pulse, scan: 0 };
+      return {
+        y: Math.sin(t * 0.35) * unit * 0.04,
+        bodyPulse: 0,
+        orbit: t * 0.012,
+        nodePulse: pulse,
+        scan: 0,
+      };
     case "deploying":
       return { y: 0, bodyPulse: pulse * 0.01, orbit: 0, nodePulse: pulse, scan: (t * 0.04) % 1 };
     default:

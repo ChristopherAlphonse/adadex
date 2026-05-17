@@ -292,7 +292,9 @@
   font-size: 0.78rem;
   padding: 0.34rem 0.4rem;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .sidebar-prompts-item:hover {
@@ -350,7 +352,9 @@
   color: color-mix(in srgb, #e6ebf3 50%, transparent);
   font-size: 0.68rem;
   cursor: pointer;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
 }
 
 .sidebar-prompts-minimized-terminal-close:hover {
@@ -391,7 +395,10 @@
   font-family: var(--font-main);
   font-size: 0.68rem;
   letter-spacing: 0.03em;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 
 .terminal-prompt-picker-btn:hover {

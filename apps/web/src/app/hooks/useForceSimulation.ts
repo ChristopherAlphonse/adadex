@@ -1,13 +1,13 @@
 import {
-  type Simulation,
-  type SimulationLinkDatum,
-  type SimulationNodeDatum,
   forceCollide,
   forceLink,
   forceManyBody,
   forceSimulation,
   forceX,
   forceY,
+  type Simulation,
+  type SimulationLinkDatum,
+  type SimulationNodeDatum,
 } from "d3-force";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

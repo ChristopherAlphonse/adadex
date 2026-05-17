@@ -1,6 +1,6 @@
-import { type TerminalCompletionSoundId, isTerminalCompletionSoundId } from "@adadex/core";
+import { isTerminalCompletionSoundId, type TerminalCompletionSoundId } from "@adadex/core";
 
-export { type TerminalCompletionSoundId, isTerminalCompletionSoundId };
+export { isTerminalCompletionSoundId, type TerminalCompletionSoundId };
 
 export const DEFAULT_TERMINAL_COMPLETION_SOUND: TerminalCompletionSoundId = "pop";
 

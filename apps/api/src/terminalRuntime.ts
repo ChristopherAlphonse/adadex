@@ -2,9 +2,6 @@ import { existsSync, renameSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
-
-import { readDeckCoordinations } from "./deck/readDeckCoordinations";
-
 import type { TerminalSnapshot } from "@adadex/core";
 import {
   LEGACY_TERMINAL_REGISTRY_FILENAME,
@@ -13,6 +10,7 @@ import {
 } from "@adadex/core";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
+import { readDeckCoordinations } from "./deck/readDeckCoordinations";
 
 import { createChannelMessaging } from "./terminalRuntime/channelMessaging";
 import {
@@ -55,14 +53,17 @@ import {
 import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 
 export type {
+  CoordinationWorkspaceMode,
   GitClient,
   PersistedUiState,
   TerminalAgentProvider,
   TerminalNameOrigin,
-  CoordinationWorkspaceMode,
 } from "./terminalRuntime/types";
-export { isTerminalAgentProvider, isTerminalCompletionSoundId } from "./terminalRuntime/types";
-export { RuntimeInputError } from "./terminalRuntime/types";
+export {
+  isTerminalAgentProvider,
+  isTerminalCompletionSoundId,
+  RuntimeInputError,
+} from "./terminalRuntime/types";
 
 export const MAX_CHILDREN_PER_PARENT = 9;
 
@@ -385,7 +386,7 @@ export const createTerminalRuntime = ({
     }
   };
 
-  const broadcastTerminalListChanged = () => {
+  const _broadcastTerminalListChanged = () => {
     broadcastTerminalEvent({ type: "terminal-list-changed" });
   };
 

@@ -1,8 +1,7 @@
 import { Grid3x3, Minus, Plus, Scan } from "lucide-react";
-
-import type { Agent, AgentStatus } from "./types";
 import { StatusPill } from "./StatusPill";
 import { statusToken } from "./statusColor";
+import type { Agent, AgentStatus } from "./types";
 
 type AdadexConsoleCanvasProps = {
   agents: Agent[];
@@ -60,9 +59,7 @@ export const AdadexConsoleCanvas = ({
                 background: `oklch(from var(--${token}) l c h / 0.15)`,
                 border: `2px ${a.status === "stale" ? "dashed" : "solid"} var(--${token})`,
                 boxShadow:
-                  isLead || isSel
-                    ? `0 0 30px oklch(from var(--${token}) l c h / 0.35)`
-                    : "none",
+                  isLead || isSel ? `0 0 30px oklch(from var(--${token}) l c h / 0.35)` : "none",
               }}
             >
               {isLead ? <div className="absolute inset-0 animate-pulse-ring rounded-full" /> : null}

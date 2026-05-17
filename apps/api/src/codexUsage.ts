@@ -2,7 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { type CodexUsageSnapshot, asNumber, asRecord, asString } from "@adadex/core";
+import { asNumber, asRecord, asString, type CodexUsageSnapshot } from "@adadex/core";
 import { toResetIso } from "./usageUtils";
 
 const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000;

@@ -42,13 +42,21 @@
   }
 
   .action-button--info {
-    --action-button-border: color-mix(in oklch, var(--color-info) 45%, var(--control-border-strong));
+    --action-button-border: color-mix(
+      in oklch,
+      var(--color-info) 45%,
+      var(--control-border-strong)
+    );
     --action-button-bg: color-mix(in oklch, var(--color-info) 12%, var(--control-bg-strong));
     --action-button-color: var(--color-info);
   }
 
   .action-button--danger {
-    --action-button-border: color-mix(in oklch, var(--destructive) 45%, var(--control-border-strong));
+    --action-button-border: color-mix(
+      in oklch,
+      var(--destructive) 45%,
+      var(--control-border-strong)
+    );
     --action-button-bg: color-mix(in oklch, var(--destructive) 12%, var(--control-bg-strong));
     --action-button-color: var(--destructive);
   }

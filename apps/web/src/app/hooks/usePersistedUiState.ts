@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { buildUiStateUrl } from "../../runtime/runtimeEndpoints";
 import type { PrimaryNavIndex } from "../constants";
-import { MIN_SIDEBAR_WIDTH, UI_STATE_SAVE_DEBOUNCE_MS, isPrimaryNavIndex } from "../constants";
+import { isPrimaryNavIndex, MIN_SIDEBAR_WIDTH, UI_STATE_SAVE_DEBOUNCE_MS } from "../constants";
 import {
   DEFAULT_TERMINAL_COMPLETION_SOUND,
-  type TerminalCompletionSoundId,
   isTerminalCompletionSoundId,
+  type TerminalCompletionSoundId,
 } from "../notificationSounds";
 import { retainActiveTerminalEntries, retainActiveTerminalIds } from "../terminalState";
 import type { FrontendUiStateSnapshot, TerminalView } from "../types";

@@ -89,14 +89,14 @@ export type TerminalNameOrigin = "generated" | "user" | "prompt";
 
 export {
   type ChannelMessage,
-  type PersistedUiState,
   type CoordinationGitStatusSnapshot,
   type CoordinationPullRequestSnapshot,
   type CoordinationWorkspaceMode,
-  type TerminalAgentProvider,
-  type TerminalLifecycleState,
   isTerminalAgentProvider,
   isTerminalCompletionSoundId,
+  type PersistedUiState,
+  type TerminalAgentProvider,
+  type TerminalLifecycleState,
 };
 
 export type TerminalSessionStartDetails = {
@@ -167,9 +167,7 @@ export type GitClient = {
   commitAll(options: { cwd: string; message: string }): void;
   pushCurrentBranch(options: { cwd: string }): void;
   syncWithBase(options: { cwd: string; baseRef: string }): void;
-  readCurrentBranchPullRequest(options: {
-    cwd: string;
-  }): GitClientPullRequestSnapshot | null;
+  readCurrentBranchPullRequest(options: { cwd: string }): GitClientPullRequestSnapshot | null;
   createPullRequest(options: {
     cwd: string;
     title: string;

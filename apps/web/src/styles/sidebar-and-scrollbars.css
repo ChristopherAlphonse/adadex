@@ -199,7 +199,8 @@
 .active-agents-codex-usage-rail-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: repeating-linear-gradient(
+  background:
+    repeating-linear-gradient(
       90deg,
       color-mix(in srgb, var(--accent-primary) 52%, #e1b56a) 0 13px,
       color-mix(in srgb, var(--accent-primary) 22%, #1c2632) 13px 15px
@@ -257,7 +258,8 @@
 }
 
 .active-agents-codex-usage--unavailable .active-agents-codex-usage-rail-fill {
-  background: repeating-linear-gradient(
+  background:
+    repeating-linear-gradient(
       90deg,
       #d9952a 0 13px,
       color-mix(in srgb, #d9952a 35%, #191919) 13px 15px
@@ -271,7 +273,8 @@
 }
 
 .active-agents-codex-usage--error .active-agents-codex-usage-rail-fill {
-  background: repeating-linear-gradient(
+  background:
+    repeating-linear-gradient(
       90deg,
       #a83a3a 0 13px,
       color-mix(in srgb, #a83a3a 35%, #191919) 13px 15px
@@ -383,7 +386,9 @@
   border-bottom: 1px solid color-mix(in srgb, var(--sidebar-border) 86%, transparent);
   font-size: 0.82rem;
   background: var(--sidebar-row);
-  transition: background 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
 .active-agents-agent-row:last-child {

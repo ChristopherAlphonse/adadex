@@ -1,41 +1,70 @@
-import { jsx as _jsx } from "react/jsx-runtime";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { jsx as _jsx } from "react/jsx-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { AddOrchestrationForm } from "../src/components/deck/AddOrchestrationForm";
+
 describe("AddOrchestrationForm", () => {
-    it("submits selected suggested skills", () => {
-        const onSubmit = vi.fn();
-        render(_jsx(AddOrchestrationForm, { onSubmit: onSubmit, onCancel: () => { }, isSubmitting: false, error: null, availableSkills: [
-                {
-                    name: "docs-writer",
-                    description: "Keeps docs aligned with the product.",
-                    source: "project",
-                },
-                {
-                    name: "release-helper",
-                    description: "Helps with release coordination.",
-                    source: "user",
-                },
-            ] }));
-        fireEvent.change(screen.getByLabelText("Name"), { target: { value: "docs" } });
-        fireEvent.click(screen.getByLabelText(/docs-writer/i));
-        fireEvent.click(screen.getByRole("button", { name: /create coordination/i }));
-        expect(onSubmit).toHaveBeenCalledWith("docs", "", expect.any(String), expect.objectContaining({
-            animation: expect.any(String),
-            expression: expect.any(String),
-            accessory: expect.any(String),
-            hairColor: expect.any(String),
-        }), ["docs-writer"]);
-    });
-    it("submits the selected accent color", () => {
-        const onSubmit = vi.fn();
-        render(_jsx(AddOrchestrationForm, { onSubmit: onSubmit, onCancel: () => { }, isSubmitting: false, error: null, availableSkills: [] }));
-        fireEvent.change(screen.getByLabelText("Name"), { target: { value: "docs" } });
-        var swatches = screen.getAllByLabelText(/Select color/i);
-fireEvent.click(swatches[0]);
-        fireEvent.click(screen.getByRole("button", { name: /create coordination/i }));
-        expect(onSubmit).toHaveBeenCalledWith("docs", "", expect.any(String), expect.objectContaining({
-            hairColor: expect.any(String),
-        }), []);
-    });
+  it("submits selected suggested skills", () => {
+    const onSubmit = vi.fn();
+    render(
+      _jsx(AddOrchestrationForm, {
+        onSubmit: onSubmit,
+        onCancel: () => {},
+        isSubmitting: false,
+        error: null,
+        availableSkills: [
+          {
+            name: "docs-writer",
+            description: "Keeps docs aligned with the product.",
+            source: "project",
+          },
+          {
+            name: "release-helper",
+            description: "Helps with release coordination.",
+            source: "user",
+          },
+        ],
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "docs" } });
+    fireEvent.click(screen.getByLabelText(/docs-writer/i));
+    fireEvent.click(screen.getByRole("button", { name: /create coordination/i }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      "docs",
+      "",
+      expect.any(String),
+      expect.objectContaining({
+        animation: expect.any(String),
+        expression: expect.any(String),
+        accessory: expect.any(String),
+        hairColor: expect.any(String),
+      }),
+      ["docs-writer"],
+    );
+  });
+  it("submits the selected accent color", () => {
+    const onSubmit = vi.fn();
+    render(
+      _jsx(AddOrchestrationForm, {
+        onSubmit: onSubmit,
+        onCancel: () => {},
+        isSubmitting: false,
+        error: null,
+        availableSkills: [],
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "docs" } });
+    var swatches = screen.getAllByLabelText(/Select color/i);
+    fireEvent.click(swatches[0]);
+    fireEvent.click(screen.getByRole("button", { name: /create coordination/i }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      "docs",
+      "",
+      expect.any(String),
+      expect.objectContaining({
+        hairColor: expect.any(String),
+      }),
+      [],
+    );
+  });
 });

@@ -6,8 +6,14 @@ import { AgentGlyph, MascotSprite } from "../src/components/MascotSprite";
 const originalGetContext = HTMLCanvasElement.prototype.getContext;
 const originalDevicePixelRatio = Object.getOwnPropertyDescriptor(window, "devicePixelRatio");
 const originalMatchMedia = Object.getOwnPropertyDescriptor(window, "matchMedia");
-const originalRequestAnimationFrame = Object.getOwnPropertyDescriptor(window, "requestAnimationFrame");
-const originalCancelAnimationFrame = Object.getOwnPropertyDescriptor(window, "cancelAnimationFrame");
+const originalRequestAnimationFrame = Object.getOwnPropertyDescriptor(
+  window,
+  "requestAnimationFrame",
+);
+const originalCancelAnimationFrame = Object.getOwnPropertyDescriptor(
+  window,
+  "cancelAnimationFrame",
+);
 
 const restoreWindowProperty = (name: keyof Window, descriptor: PropertyDescriptor | undefined) => {
   if (descriptor) {
@@ -96,12 +102,7 @@ describe("AgentGlyph", () => {
     });
 
     const { getByTestId } = render(
-      <AgentGlyph
-        animation="idle"
-        graphScale={2}
-        size={80}
-        testId="agent-glyph"
-      />,
+      <AgentGlyph animation="idle" graphScale={2} size={80} testId="agent-glyph" />,
     );
 
     const canvas = getByTestId("agent-glyph") as HTMLCanvasElement;

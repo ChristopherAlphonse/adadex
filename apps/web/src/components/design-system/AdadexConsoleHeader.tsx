@@ -1,5 +1,5 @@
-import { CONSOLE_NAV } from "./data";
 import { Meter } from "./ConsolePrimitives";
+import { CONSOLE_NAV } from "./data";
 
 export const AdadexConsoleHeader = (): React.ReactElement => (
   <header className="relative flex h-14 shrink-0 items-center border-b border-border bg-background/80 px-5 backdrop-blur-xl">

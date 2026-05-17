@@ -168,11 +168,7 @@ html.adadex-theme-light body {
 }
 
 .design-console .design-canvas-panel--grid {
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    var(--grid-dot) 1px,
-    transparent 0
-  );
+  background-image: radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 0);
   background-size: 24px 24px;
 }
 

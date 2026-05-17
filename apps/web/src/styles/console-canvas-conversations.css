@@ -458,7 +458,9 @@
   display: grid;
   gap: 0.1rem;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .sidebar-conversation-item:hover {
@@ -512,7 +514,10 @@
   border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, #2b2f36);
   border-radius: 0.28rem;
   padding: 0.34rem 0.44rem;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .sidebar-conversations-search-input-wrap:hover {
@@ -586,25 +591,25 @@
 }
 
 .sidebar-search-hit {
-  gap: 0.16rem !important;
+  gap: 0.16rem;
 }
 
 .sidebar-search-hit-session {
-  font-size: 0.66rem !important;
-  color: #8393ab !important;
+  font-size: 0.66rem;
+  color: #8393ab;
 }
 
 .sidebar-search-hit-role {
-  font-size: 0.64rem !important;
-  color: color-mix(in srgb, var(--accent-primary) 50%, #8393ab) !important;
+  font-size: 0.64rem;
+  color: color-mix(in srgb, var(--accent-primary) 50%, #8393ab);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .sidebar-search-hit-snippet {
-  font-size: 0.72rem !important;
-  color: #c0cad8 !important;
-  font-family: var(--font-main) !important;
+  font-size: 0.72rem;
+  color: #c0cad8;
+  font-family: var(--font-main);
   line-height: 1.36;
   display: -webkit-box;
   -webkit-line-clamp: 3;

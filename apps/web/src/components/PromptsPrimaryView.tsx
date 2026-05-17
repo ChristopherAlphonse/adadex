@@ -103,7 +103,7 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
     } finally {
       setIsCreatingTerminal(false);
     }
-  }, [onTerminalIdChange]);
+  }, []);
 
   useEffect(() => {
     if (newPromptRequestCount > 0) {
@@ -133,14 +133,14 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
       onTerminalIdChange(null);
       void onRefresh();
     }
-  }, [closeTerminalCount, onRefresh, onTerminalIdChange]);
+  }, [closeTerminalCount, onRefresh]);
 
   const handleBackToLibrary = useCallback(() => {
     setNewPromptMode(null);
     setShowTerminal(false);
     onTerminalIdChange(null);
     void onRefresh();
-  }, [onRefresh, onTerminalIdChange]);
+  }, [onRefresh]);
 
   const showPromptDetail = !showTerminal || !newPromptMode;
 

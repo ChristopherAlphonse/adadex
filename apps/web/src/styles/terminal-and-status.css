@@ -24,7 +24,10 @@
   );
   color: var(--terminal-header-text);
   text-transform: uppercase;
-  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
 }
 
 .terminal-pane--selected .terminal-header {
@@ -170,7 +173,9 @@
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .terminal-prompt-banner-close:hover {
@@ -254,7 +259,7 @@
 .terminal-mount .xterm-viewport {
   background: var(--terminal-bg);
   overflow-x: hidden;
-  overflow-y: scroll !important;
+  overflow-y: scroll;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--terminal-scrollbar-thumb) var(--terminal-scrollbar-track);
@@ -297,7 +302,7 @@
   }
 
   .active-agents-sidebar {
-    width: 100% !important;
+    width: 100%;
   }
 
   .terminals {

@@ -1,24 +1,23 @@
-import type { GitHubCommitPoint, buildTerminalList } from "@adadex/core";
+import type { buildTerminalList, GitHubCommitPoint } from "@adadex/core";
 
 export type TerminalView = Awaited<ReturnType<typeof buildTerminalList>>;
 
 export type {
   CodexUsageSnapshot,
+  ConversationSearchHit,
+  ConversationSessionDetail,
+  ConversationSessionSummary,
+  ConversationTranscriptEvent,
+  ConversationTurn,
+  CoordinationGitStatusSnapshot,
+  CoordinationPullRequestSnapshot,
+  CoordinationWorkspaceMode as TerminalWorkspaceMode,
   GitHubCommitPoint,
   GitHubRecentCommit,
   GitHubRepoSummarySnapshot,
+  PersistedUiState as FrontendUiStateSnapshot,
   TerminalAgentProvider,
-  CoordinationGitStatusSnapshot,
-  CoordinationPullRequestSnapshot,
-  ConversationTurn,
-  ConversationTranscriptEvent,
-  ConversationSessionSummary,
-  ConversationSessionDetail,
-  ConversationSearchHit,
 } from "@adadex/core";
-
-export type { PersistedUiState as FrontendUiStateSnapshot } from "@adadex/core";
-export type { CoordinationWorkspaceMode as TerminalWorkspaceMode } from "@adadex/core";
 
 export type GitHubCommitSparkPoint = GitHubCommitPoint & {
   x: number;

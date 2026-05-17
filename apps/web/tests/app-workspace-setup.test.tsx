@@ -1,7 +1,6 @@
+import type { WorkspaceSetupSnapshot } from "@adadex/core";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
-import type { WorkspaceSetupSnapshot } from "@adadex/core";
 
 import { App } from "../src/App";
 import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-utils/appTestHarness";

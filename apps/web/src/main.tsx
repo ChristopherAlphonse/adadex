@@ -1,8 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-
-import { applyColorThemeToDocument, readColorThemePreference } from "./app/colorTheme";
 import { App } from "./App";
+import { applyColorThemeToDocument, readColorThemePreference } from "./app/colorTheme";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import "./styles.css";
 

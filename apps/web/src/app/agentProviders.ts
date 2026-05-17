@@ -1,4 +1,4 @@
-import { type TerminalAgentProvider, isTerminalAgentProvider } from "@adadex/core";
+import { isTerminalAgentProvider, type TerminalAgentProvider } from "@adadex/core";
 
 export const AGENT_PROVIDER_STORAGE_KEY = "adadex.agentProvider";
 

@@ -1,7 +1,6 @@
+import type { CoordinationWorkspaceMode, DeckCoordinationSummary } from "@adadex/core";
 import { Terminal, X } from "lucide-react";
 import { type Ref, useCallback, useMemo, useState } from "react";
-
-import type { CoordinationWorkspaceMode, DeckCoordinationSummary } from "@adadex/core";
 import type { GraphNode } from "../../app/canvas/types";
 import type { ConversationSessionSummary } from "../../app/types";
 import {
@@ -11,8 +10,8 @@ import {
   buildDeckTodoSolveUrl,
   buildDeckTodoToggleUrl,
 } from "../../runtime/runtimeEndpoints";
-import { MascotGlyph } from "../MascotSprite";
 import { deriveMascotVisuals } from "../deck/mascotVisuals";
+import { MascotGlyph } from "../MascotSprite";
 
 type CanvasOrchestrationPanelProps = {
   node: GraphNode;

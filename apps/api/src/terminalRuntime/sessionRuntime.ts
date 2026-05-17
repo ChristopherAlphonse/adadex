@@ -1,4 +1,4 @@
-import { type WriteStream, createWriteStream, existsSync, mkdirSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
@@ -18,8 +18,8 @@ import {
 import {
   type ConversationTranscriptEvent,
   type ConversationTranscriptEventPayload,
-  type SessionEndTranscriptEvent,
   ensureTranscriptDirectory,
+  type SessionEndTranscriptEvent,
   transcriptFilenameForSession,
 } from "./conversations";
 import { broadcastMessage, getTerminalId, sendMessage } from "./protocol";
@@ -478,8 +478,13 @@ export const createSessionRuntime = ({
     const bootstrapCommand =
       TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
     const agentModel = terminal?.agentModel;
-    const modelFlag = agentModel ? ` ${TERMINAL_MODEL_FLAG[provider] ?? "--model"} ${agentModel}` : "";
-    appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}${modelFlag}`);
+    const modelFlag = agentModel
+      ? ` ${TERMINAL_MODEL_FLAG[provider] ?? "--model"} ${agentModel}`
+      : "";
+    appendDebugLog(
+      session,
+      `bootstrap session=${sessionId} command=${bootstrapCommand}${modelFlag}`,
+    );
     session.pty.write(`${bootstrapCommand}${modelFlag}\r`);
 
     // Schedule initial prompt injection after the Codex CLI has had time to boot.

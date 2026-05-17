@@ -1,6 +1,6 @@
 import { asRecord } from "@adadex/core";
 
-import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, isPrimaryNavIndex } from "./constants";
+import { isPrimaryNavIndex, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from "./constants";
 import { isTerminalCompletionSoundId } from "./notificationSounds";
 import type { FrontendUiStateSnapshot } from "./types";
 

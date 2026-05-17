@@ -11,16 +11,40 @@ import type {
 export { MASCOT_COLORS };
 
 export const AGENT_ANIMATIONS: AgentGlyphAnimation[] = [
-  "idle", "breathe", "pulse", "orbit", "typing", "thinking", "deploying",
+  "idle",
+  "breathe",
+  "pulse",
+  "orbit",
+  "typing",
+  "thinking",
+  "deploying",
 ];
 export const AGENT_MOODS: AgentGlyphMood[] = [
-  "neutral", "focused", "happy", "curious", "busy", "offline",
+  "neutral",
+  "focused",
+  "happy",
+  "curious",
+  "busy",
+  "offline",
 ];
 export const AGENT_ACCESSORIES: AgentGlyphAccessory[] = [
-  "none", "glasses", "badge", "visor", "terminal", "node-ring", "shield",
+  "none",
+  "glasses",
+  "badge",
+  "visor",
+  "terminal",
+  "node-ring",
+  "shield",
 ];
 export const AGENT_VARIANTS: AgentGlyphVariant[] = [
-  "codex", "opencode", "reviewer", "planner", "builder", "debugger", "security", "custom",
+  "codex",
+  "opencode",
+  "reviewer",
+  "planner",
+  "builder",
+  "debugger",
+  "security",
+  "custom",
 ];
 
 export const ANIMATIONS = AGENT_ANIMATIONS;
@@ -55,10 +79,18 @@ export type MascotVisuals = {
 };
 
 const legacyAnimationMap: Record<string, AgentGlyphAnimation | undefined> = {
-  sway: "breathe", float: "breathe", walk: "pulse", jog: "pulse", "swim-up": "orbit",
+  sway: "breathe",
+  float: "breathe",
+  walk: "pulse",
+  jog: "pulse",
+  "swim-up": "orbit",
 };
 const legacyExpressionMap: Record<string, AgentGlyphMood | undefined> = {
-  normal: "neutral", happy: "happy", sleepy: "offline", angry: "busy", surprised: "curious",
+  normal: "neutral",
+  happy: "happy",
+  sleepy: "offline",
+  angry: "busy",
+  surprised: "curious",
 };
 
 const toAgentAnimation = (val: string | null | undefined): AgentGlyphAnimation => {
@@ -80,22 +112,24 @@ const toAgentAccessory = (val: string | null | undefined): AgentGlyphAccessory =
   const acc = val as AgentGlyphAccessory;
   if (AGENT_ACCESSORIES.includes(acc)) return acc;
   const legacyMap: Record<string, AgentGlyphAccessory | undefined> = {
-    long: "node-ring", mohawk: "visor", "side-sweep": "terminal", curly: "glasses", afro: "badge",
+    long: "node-ring",
+    mohawk: "visor",
+    "side-sweep": "terminal",
+    curly: "glasses",
+    afro: "badge",
   };
   return legacyMap[val] ?? "none";
 };
 
 export function deriveMascotVisuals(coordination: DeckCoordinationSummary): MascotVisuals {
-  const rng = seededRandom(hashString(coordination.coordinationId));
+  const _rng = seededRandom(hashString(coordination.coordinationId));
   const stored = coordination.mascot;
 
   const animation = stored?.variant
     ? toAgentAnimation(stored.variant)
     : toAgentAnimation(stored?.animation);
 
-  const expression = stored?.mood
-    ? toAgentMood(stored.mood)
-    : toAgentMood(stored?.expression);
+  const expression = stored?.mood ? toAgentMood(stored.mood) : toAgentMood(stored?.expression);
 
   const accessory = stored?.density
     ? toAgentAccessory(stored.density)

@@ -1,15 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-
-import {
-  GITHUB_SPARKLINE_HEIGHT,
-  GITHUB_SPARKLINE_WIDTH,
-} from "../app/constants";
 import type { UsageChartData } from "../app/hooks/useUsageHeatmapPolling";
 import type { CodexUsageSnapshot } from "../app/types";
-import { MascotSprite } from "./MascotSprite";
 
 type RuntimeStatusStripProps = {
-  sparklinePoints: string;
   usageData: UsageChartData | null;
   codexUsage: CodexUsageSnapshot | null;
   isRefreshingCodexUsage?: boolean;
@@ -26,16 +19,13 @@ const buildUsageBars = (data: UsageChartData): MiniBar[] => {
   const days = Array.isArray(data.days) ? data.days.slice(-30) : [];
   if (days.length === 0) return [];
 
-  const totals = days.map((day) =>
-    typeof day.totalTokens === "number" ? day.totalTokens : 0,
-  );
+  const totals = days.map((day) => (typeof day.totalTokens === "number" ? day.totalTokens : 0));
   const max = Math.max(...totals, 1);
   const barSlot = MINI_USAGE_WIDTH / days.length;
   const barWidth = Math.max(1, barSlot - MINI_BAR_GAP);
 
   return days.map((day, index) => {
-    const totalTokens =
-      typeof day.totalTokens === "number" ? day.totalTokens : 0;
+    const totalTokens = typeof day.totalTokens === "number" ? day.totalTokens : 0;
     const h = Math.max(0.5, (totalTokens / max) * (MINI_USAGE_HEIGHT - 2));
     return {
       x: index * barSlot,
@@ -123,9 +113,7 @@ const UsageRail = ({
     >
       <span className="console-status-usage-row-meta">
         <span className="console-status-usage-row-label">{label}</span>
-        <span className="console-status-usage-row-value">
-          {pct(percent, loading)}
-        </span>
+        <span className="console-status-usage-row-value">{pct(percent, loading)}</span>
       </span>
       <span className="console-status-usage-rail">
         <span
@@ -149,16 +137,12 @@ const UsageRail = ({
 };
 
 export const RuntimeStatusStrip = ({
-  sparklinePoints,
   usageData,
   codexUsage,
   isRefreshingCodexUsage = false,
   onRefreshCodexUsage,
 }: RuntimeStatusStripProps) => {
-  const usageBars = useMemo(
-    () => (usageData ? buildUsageBars(usageData) : []),
-    [usageData],
-  );
+  const _usageBars = useMemo(() => (usageData ? buildUsageBars(usageData) : []), [usageData]);
   const codexUsageState = usageState(codexUsage);
   const [showRefreshSpin, setShowRefreshSpin] = useState(false);
   const refreshStartedAtRef = useRef<number | null>(null);
@@ -251,10 +235,7 @@ export const RuntimeStatusStrip = ({
           )}
         </div>
       </div> */}
-      <div
-        className="console-status-codex-usage"
-        aria-label="Codex usage limits"
-      >
+      <div className="console-status-codex-usage" aria-label="Codex usage limits">
         {onRefreshCodexUsage && (
           <button
             type="button"
@@ -277,17 +258,13 @@ export const RuntimeStatusStrip = ({
             label={codexUsageState.label}
             percent={codexUsageState.sessionPercent}
             loading={codexUsageState.loading}
-            {...(codexUsageState.message
-              ? { title: codexUsageState.message }
-              : {})}
+            {...(codexUsageState.message ? { title: codexUsageState.message } : {})}
           />
           <UsageRail
             label="Week (all)"
             percent={codexUsageState.weekPercent}
             loading={codexUsageState.loading}
-            {...(codexUsageState.message
-              ? { title: codexUsageState.message }
-              : {})}
+            {...(codexUsageState.message ? { title: codexUsageState.message } : {})}
           />
         </div>
       </div>

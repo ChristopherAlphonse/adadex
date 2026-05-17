@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useMemo } from "react";
 
 import {
   GITHUB_OVERVIEW_GRAPH_HEIGHT,

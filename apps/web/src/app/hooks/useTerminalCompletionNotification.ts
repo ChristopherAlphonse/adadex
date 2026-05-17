@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import {
-  type TerminalCompletionSoundId,
   buildTerminalCompletionSoundDataUrl,
+  type TerminalCompletionSoundId,
 } from "../notificationSounds";
 import type { TerminalRuntimeStateStore } from "../terminalRuntimeStateStore";
 

@@ -1,14 +1,14 @@
 export { AgentGlyph } from "./AgentGlyph";
 
 export type {
-  AgentGlyphProps,
-  AgentGlyphAnimation,
-  AgentGlyphMood,
-  AgentGlyphVariant,
   AgentGlyphAccessory,
+  AgentGlyphAnimation,
   AgentGlyphDensity,
-  Palette,
+  AgentGlyphMood,
+  AgentGlyphProps,
+  AgentGlyphVariant,
   Identity,
   Motion,
+  Palette,
   ResolvedGlyph,
 } from "./agent-types";

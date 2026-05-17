@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-
 import type { DeckAvailableSkill } from "@adadex/core";
+import { useEffect, useRef, useState } from "react";
 
 import { formatColorForDisplay } from "../../app/mascotPalette";
 import type { MascotAccessory, MascotAnimation, MascotExpression } from "../MascotSprite";

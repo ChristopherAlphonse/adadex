@@ -1,5 +1,5 @@
-import { DEMO_LOGS } from "./data";
 import { Bar, KV, Section } from "./ConsolePrimitives";
+import { DEMO_LOGS } from "./data";
 import { StatusPill } from "./StatusPill";
 import type { Agent } from "./types";
 

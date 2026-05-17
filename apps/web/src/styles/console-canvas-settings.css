@@ -53,7 +53,9 @@
   padding: 0.42rem 0.46rem;
   display: grid;
   gap: 0.18rem;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .settings-sound-option:hover {
@@ -111,4 +113,3 @@
   padding: 0.14rem 0.36rem;
   border-radius: 999px;
 }
-

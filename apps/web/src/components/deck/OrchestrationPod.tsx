@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-
-import type { DeckAvailableSkill, DeckCoordinationSummary, TerminalAgentProvider } from "@adadex/core";
+import type {
+  DeckAvailableSkill,
+  DeckCoordinationSummary,
+  TerminalAgentProvider,
+} from "@adadex/core";
 import { AGENT_PROVIDER_MODELS, TERMINAL_AGENT_PROVIDERS } from "@adadex/core";
-import { MascotSprite, type AgentGlyphAccessory, type AgentGlyphMood } from "../MascotSprite";
+import { useEffect, useRef, useState } from "react";
+import { formatColorForDisplay } from "../../app/mascotPalette";
+import { type AgentGlyphAccessory, type AgentGlyphMood, MascotSprite } from "../MascotSprite";
 import type { MascotVisuals } from "./mascotVisuals";
 import { MASCOT_COLORS } from "./mascotVisuals";
-import { formatColorForDisplay } from "../../app/mascotPalette";
 
 // ─── Status styling ──────────────────────────────────────────────────────────
 
@@ -80,10 +83,17 @@ export type OrchestrationPodProps = {
     | ((coordinationId: string, suggestedSkills: string[]) => Promise<boolean>)
     | undefined;
   onSaveMascot?:
-    | ((coordinationId: string, mascot: { color: string; expression: string; accessory: string }) => Promise<boolean>)
+    | ((
+        coordinationId: string,
+        mascot: { color: string; expression: string; accessory: string },
+      ) => Promise<boolean>)
     | undefined;
   onSaveAgent?:
-    | ((coordinationId: string, agentProvider: TerminalAgentProvider | null, agentModel: string | null) => Promise<boolean>)
+    | ((
+        coordinationId: string,
+        agentProvider: TerminalAgentProvider | null,
+        agentModel: string | null,
+      ) => Promise<boolean>)
     | undefined;
 };
 
@@ -183,15 +193,23 @@ export const OrchestrationPod = ({
             ← Back
           </button>
         )}
-        <button type="button" className="deck-pod-btn" onClick={() => setIsEditingSkills((v) => !v)}>
+        <button
+          type="button"
+          className="deck-pod-btn"
+          onClick={() => setIsEditingSkills((v) => !v)}
+        >
           Skills
         </button>
-        <button type="button" className="deck-pod-btn" onClick={() => {
-          setEditColor(visuals.color);
-          setEditExpression(visuals.expression);
-          setEditAccessory(visuals.accessory);
-          setIsEditingMascot(true);
-        }}>
+        <button
+          type="button"
+          className="deck-pod-btn"
+          onClick={() => {
+            setEditColor(visuals.color);
+            setEditExpression(visuals.expression);
+            setEditAccessory(visuals.accessory);
+            setIsEditingMascot(true);
+          }}
+        >
           Customize
         </button>
         <button type="button" className="deck-pod-btn" onClick={() => onVaultBrowse?.()}>
@@ -293,7 +311,7 @@ export const OrchestrationPod = ({
               <div className="deck-pod-mascot-editor-group">
                 <span className="deck-pod-mascot-editor-label">Expression</span>
                 <div className="deck-pod-mascot-editor-chips">
-                  {( ["neutral", "happy", "focused", "curious"] as AgentGlyphMood[] ).map((opt) => (
+                  {(["neutral", "happy", "focused", "curious"] as AgentGlyphMood[]).map((opt) => (
                     <button
                       key={opt}
                       type="button"
@@ -309,15 +327,17 @@ export const OrchestrationPod = ({
               <div className="deck-pod-mascot-editor-group">
                 <span className="deck-pod-mascot-editor-label">Accessory</span>
                 <div className="deck-pod-mascot-editor-chips">
-                  {( [
-                    { value: "none" as const, label: "None" },
-                    { value: "glasses" as const, label: "Glasses" },
-                    { value: "badge" as const, label: "Badge" },
-                    { value: "visor" as const, label: "Visor" },
-                    { value: "terminal" as const, label: "Terminal" },
-                    { value: "node-ring" as const, label: "Node Ring" },
-                    { value: "shield" as const, label: "Shield" },
-                  ] as { value: AgentGlyphAccessory; label: string }[] ).map((opt) => (
+                  {(
+                    [
+                      { value: "none" as const, label: "None" },
+                      { value: "glasses" as const, label: "Glasses" },
+                      { value: "badge" as const, label: "Badge" },
+                      { value: "visor" as const, label: "Visor" },
+                      { value: "terminal" as const, label: "Terminal" },
+                      { value: "node-ring" as const, label: "Node Ring" },
+                      { value: "shield" as const, label: "Shield" },
+                    ] as { value: AgentGlyphAccessory; label: string }[]
+                  ).map((opt) => (
                     <button
                       key={opt.value}
                       type="button"
@@ -331,57 +351,63 @@ export const OrchestrationPod = ({
                 </div>
               </div>
             </div>
+            <div className="deck-pod-mascot-editor-group">
+              <span className="deck-pod-mascot-editor-label">Agent CLI</span>
+              <div className="deck-pod-mascot-editor-chips">
+                <button
+                  type="button"
+                  className="deck-add-form-chip"
+                  data-selected={editAgentProvider === "" ? "true" : "false"}
+                  onClick={() => {
+                    setEditAgentProvider("");
+                    setEditAgentModel("");
+                  }}
+                >
+                  Global default
+                </button>
+                {TERMINAL_AGENT_PROVIDERS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className="deck-add-form-chip"
+                    data-selected={editAgentProvider === p ? "true" : "false"}
+                    onClick={() => {
+                      setEditAgentProvider(p);
+                      setEditAgentModel("");
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {editAgentProvider !== "" && (
               <div className="deck-pod-mascot-editor-group">
-                <span className="deck-pod-mascot-editor-label">Agent CLI</span>
+                <span className="deck-pod-mascot-editor-label">Model</span>
                 <div className="deck-pod-mascot-editor-chips">
                   <button
                     type="button"
                     className="deck-add-form-chip"
-                    data-selected={editAgentProvider === "" ? "true" : "false"}
-                    onClick={() => { setEditAgentProvider(""); setEditAgentModel(""); }}
+                    data-selected={editAgentModel === "" ? "true" : "false"}
+                    onClick={() => setEditAgentModel("")}
                   >
-                    Global default
+                    Provider default
                   </button>
-                  {TERMINAL_AGENT_PROVIDERS.map((p) => (
+                  {(AGENT_PROVIDER_MODELS[editAgentProvider] ?? []).map((m) => (
                     <button
-                      key={p}
+                      key={m.id}
                       type="button"
                       className="deck-add-form-chip"
-                      data-selected={editAgentProvider === p ? "true" : "false"}
-                      onClick={() => { setEditAgentProvider(p); setEditAgentModel(""); }}
+                      data-selected={editAgentModel === m.id ? "true" : "false"}
+                      onClick={() => setEditAgentModel(m.id)}
                     >
-                      {p}
+                      {m.label}
                     </button>
                   ))}
                 </div>
               </div>
-
-              {editAgentProvider !== "" && (
-                <div className="deck-pod-mascot-editor-group">
-                  <span className="deck-pod-mascot-editor-label">Model</span>
-                  <div className="deck-pod-mascot-editor-chips">
-                    <button
-                      type="button"
-                      className="deck-add-form-chip"
-                      data-selected={editAgentModel === "" ? "true" : "false"}
-                      onClick={() => setEditAgentModel("")}
-                    >
-                      Provider default
-                    </button>
-                    {(AGENT_PROVIDER_MODELS[editAgentProvider] ?? []).map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        className="deck-add-form-chip"
-                        data-selected={editAgentModel === m.id ? "true" : "false"}
-                        onClick={() => setEditAgentModel(m.id)}
-                      >
-                        {m.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+            )}
             <div className="deck-pod-mascot-editor-actions">
               <button
                 type="button"
@@ -436,7 +462,7 @@ export const OrchestrationPod = ({
                   })}
                 </div>
               )}
-                <div className="deck-pod-skills-new">
+              <div className="deck-pod-skills-new">
                 <input
                   type="text"
                   className="deck-pod-skills-new-input"
@@ -471,7 +497,7 @@ export const OrchestrationPod = ({
                   Add
                 </button>
               </div>
-            <div className="deck-pod-skills-actions">
+              <div className="deck-pod-skills-actions">
                 <button
                   type="button"
                   className="deck-pod-btn deck-pod-btn--secondary"

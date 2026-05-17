@@ -1,5 +1,5 @@
+import { type StatusBadgeTone, statusBadgeVariants } from "@/lib/ui/status-badge";
 import { cn } from "@/lib/utils";
-import { statusBadgeVariants, type StatusBadgeTone } from "@/lib/ui/status-badge";
 
 export type { StatusBadgeTone } from "@/lib/ui/status-badge";
 

@@ -1,32 +1,31 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import type {
   DeckAvailableSkill,
   DeckCoordinationSummary,
   WorkspaceSetupSnapshot,
   WorkspaceSetupStepId,
 } from "@adadex/core";
-import { useClickOutside } from "../app/hooks/useClickOutside";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAgentProviderPreference } from "../app/hooks/useAgentProviderPreference";
+import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";
 import {
   buildDeckCoordinationAgentUrl,
   buildDeckOrchestrationSkillsUrl,
-  buildDeckOrchestrationUrl,
   buildDeckOrchestrationsUrl,
+  buildDeckOrchestrationUrl,
   buildDeckSkillsUrl,
   buildDeckTodoToggleUrl,
   buildDeckVaultFileUrl,
   buildTerminalsUrl,
 } from "../runtime/runtimeEndpoints";
-import { Terminal } from "./Terminal";
 import { ActionCards } from "./deck/ActionCards";
-import { AddOrchestrationForm } from "./deck/AddOrchestrationForm";
 import type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
+import { AddOrchestrationForm } from "./deck/AddOrchestrationForm";
 import { DeckBottomActions } from "./deck/DeckBottomActions";
+import { deriveMascotVisuals, type MascotVisuals } from "./deck/mascotVisuals";
 import { OrchestrationPod } from "./deck/OrchestrationPod";
 import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
-import { type MascotVisuals, deriveMascotVisuals } from "./deck/mascotVisuals";
+import { Terminal } from "./Terminal";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
 export type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
@@ -188,7 +187,7 @@ export const DeckPrimaryView = ({
   const handleDismissAgentMenu = useCallback(() => setAgentMenuOpen(false), []);
   useClickOutside(agentMenuRef, agentMenuOpen, handleDismissAgentMenu);
 
-  const handleVaultFileClick = useCallback((coordinationId: string, fileName: string) => {
+  const _handleVaultFileClick = useCallback((coordinationId: string, fileName: string) => {
     setFocus({ type: "vault", coordinationId, fileName });
   }, []);
 
@@ -290,7 +289,10 @@ export const DeckPrimaryView = ({
   );
 
   const handleMascotSave = useCallback(
-    async (coordinationId: string, mascot: { color: string; expression: string; accessory: string }) => {
+    async (
+      coordinationId: string,
+      mascot: { color: string; expression: string; accessory: string },
+    ) => {
       try {
         const response = await fetch(buildDeckOrchestrationUrl(coordinationId), {
           method: "PATCH",
@@ -475,6 +477,7 @@ export const DeckPrimaryView = ({
       orchestrations,
       workspaceSetup,
       workspaceSetupError,
+      setSelectedAgent,
     ],
   );
 

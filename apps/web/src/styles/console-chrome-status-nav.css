@@ -92,16 +92,8 @@
 }
 
 .console-shell .action-button--primary {
-  --action-button-border: color-mix(
-    in srgb,
-    var(--accent-primary) 60%,
-    #6a5210
-  );
-  --action-button-bg: color-mix(
-    in srgb,
-    var(--accent-primary) 84%,
-    #f3cd74 16%
-  );
+  --action-button-border: color-mix(in srgb, var(--accent-primary) 60%, #6a5210);
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 84%, #f3cd74 16%);
   --action-button-color: #111216;
 }
 
@@ -394,10 +386,8 @@
   transition: opacity 0.12s ease;
 }
 
-.console-status-usage-row[data-has-tooltip="true"]:hover
-  .console-status-usage-tooltip,
-.console-status-usage-row[data-has-tooltip="true"]:focus-visible
-  .console-status-usage-tooltip {
+.console-status-usage-row[data-has-tooltip="true"]:hover .console-status-usage-tooltip,
+.console-status-usage-row[data-has-tooltip="true"]:focus-visible .console-status-usage-tooltip {
   opacity: 1;
 }
 

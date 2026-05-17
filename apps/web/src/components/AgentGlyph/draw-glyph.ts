@@ -30,7 +30,8 @@ export const drawAgentGlyph = (
 ) => {
   const width = MARK_UNITS * unit;
   const center = width / 2;
-  const hasConnectorAccessory = resolved.accessory === "node-ring" || resolved.animation === "orbit";
+  const hasConnectorAccessory =
+    resolved.accessory === "node-ring" || resolved.animation === "orbit";
   const armCount = hasConnectorAccessory ? getArmCount(resolved.density) : 0;
   const moodLift = resolved.mood === "happy" ? -unit * 0.22 : 0;
 
@@ -58,7 +59,8 @@ export const drawAgentGlyph = (
 
   const angleStart = Math.PI * 0.28;
   const angleEnd = Math.PI * 0.72;
-  const spacing = resolved.variant === "opencode" ? 1.08 : resolved.variant === "security" ? 0.92 : 1;
+  const spacing =
+    resolved.variant === "opencode" ? 1.08 : resolved.variant === "security" ? 0.92 : 1;
 
   for (let i = 0; i < armCount; i++) {
     const ratio = armCount === 1 ? 0.5 : i / (armCount - 1);

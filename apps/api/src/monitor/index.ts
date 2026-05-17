@@ -1,6 +1,6 @@
 export {
-  MonitorInputError,
   createMonitorService,
+  MonitorInputError,
 } from "./service";
 export type {
   MonitorConfigPatchInput,

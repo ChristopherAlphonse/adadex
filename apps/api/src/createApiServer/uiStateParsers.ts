@@ -1,4 +1,4 @@
-import { type PersistedUiState, isTerminalCompletionSoundId } from "../terminalRuntime";
+import { isTerminalCompletionSoundId, type PersistedUiState } from "../terminalRuntime";
 
 export const parseUiStatePatch = (
   payload: unknown,

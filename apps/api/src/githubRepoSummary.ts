@@ -29,8 +29,6 @@ type RunCommand = (
 
 export type { GitHubRepoSummarySnapshot };
 
-type GitHubSummaryStatus = GitHubRepoSummarySnapshot["status"];
-
 type GitHubRepoSummaryDependencies = {
   cwd?: string;
   env?: NodeJS.ProcessEnv;

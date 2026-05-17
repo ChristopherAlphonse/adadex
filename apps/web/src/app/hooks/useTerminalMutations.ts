@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { TerminalAgentProvider, TerminalView, TerminalWorkspaceMode } from "../types";
 

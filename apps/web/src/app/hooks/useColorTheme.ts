@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-  type ColorTheme,
   applyColorThemeToDocument,
+  type ColorTheme,
   readColorThemePreference,
   writeColorThemePreference,
 } from "../colorTheme";

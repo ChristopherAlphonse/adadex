@@ -25,14 +25,20 @@ export const drawBody = (
   ctx.beginPath();
   ctx.moveTo(0, mantleTop);
   ctx.bezierCurveTo(
-    mantleW, mantleTop + unit * 0.58,
-    mantleW * 0.78, mantleBottom - unit * 0.18,
-    0, mantleBottom,
+    mantleW,
+    mantleTop + unit * 0.58,
+    mantleW * 0.78,
+    mantleBottom - unit * 0.18,
+    0,
+    mantleBottom,
   );
   ctx.bezierCurveTo(
-    -mantleW * 0.78, mantleBottom - unit * 0.18,
-    -mantleW, mantleTop + unit * 0.58,
-    0, mantleTop,
+    -mantleW * 0.78,
+    mantleBottom - unit * 0.18,
+    -mantleW,
+    mantleTop + unit * 0.58,
+    0,
+    mantleTop,
   );
   ctx.closePath();
   ctx.fill();
@@ -42,14 +48,20 @@ export const drawBody = (
   ctx.beginPath();
   ctx.moveTo(0, mantleTop + unit * 0.46);
   ctx.bezierCurveTo(
-    mantleW * 0.48, mantleTop + unit * 0.8,
-    mantleW * 0.38, mantleBottom - unit * 0.58,
-    0, mantleBottom - unit * 0.32,
+    mantleW * 0.48,
+    mantleTop + unit * 0.8,
+    mantleW * 0.38,
+    mantleBottom - unit * 0.58,
+    0,
+    mantleBottom - unit * 0.32,
   );
   ctx.bezierCurveTo(
-    -mantleW * 0.38, mantleBottom - unit * 0.58,
-    -mantleW * 0.48, mantleTop + unit * 0.8,
-    0, mantleTop + unit * 0.46,
+    -mantleW * 0.38,
+    mantleBottom - unit * 0.58,
+    -mantleW * 0.48,
+    mantleTop + unit * 0.8,
+    0,
+    mantleTop + unit * 0.46,
   );
   ctx.closePath();
   ctx.fill();

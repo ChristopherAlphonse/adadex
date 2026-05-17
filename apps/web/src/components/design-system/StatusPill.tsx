@@ -1,5 +1,5 @@
-import type { AgentStatus } from "./types";
 import { statusToken } from "./statusColor";
+import type { AgentStatus } from "./types";
 
 type StatusPillProps = {
   status: AgentStatus;
@@ -17,10 +17,7 @@ export const StatusPill = ({ status }: StatusPillProps) => {
         color: `var(--${token})`,
       }}
     >
-      <span
-        className="size-1.5 rounded-full"
-        style={{ backgroundColor: `var(--${token})` }}
-      />
+      <span className="size-1.5 rounded-full" style={{ backgroundColor: `var(--${token})` }} />
       {status}
     </span>
   );

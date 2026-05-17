@@ -7,13 +7,7 @@ export type AgentGlyphAnimation =
   | "thinking"
   | "deploying";
 
-export type AgentGlyphMood =
-  | "neutral"
-  | "focused"
-  | "happy"
-  | "curious"
-  | "busy"
-  | "offline";
+export type AgentGlyphMood = "neutral" | "focused" | "happy" | "curious" | "busy" | "offline";
 
 export type AgentGlyphVariant =
   | "codex"

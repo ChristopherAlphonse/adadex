@@ -35,7 +35,9 @@
   align-items: center;
   gap: 7rem;
   padding: 2rem;
-  transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1), flex 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 400ms cubic-bezier(0.4, 0, 0.2, 1),
+    flex 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-empty-mode="idle"] .deck-empty-left {
@@ -90,7 +92,9 @@
   background: #0b0d10;
   border: 1px solid var(--accent-primary);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   font-family: var(--font-main);
   text-align: left;
 }
@@ -221,8 +225,8 @@
 
 .deck-sidebar-content .deck-empty-card-icon canvas {
   image-rendering: pixelated;
-  width: 20px !important;
-  height: auto !important;
+  width: 20px;
+  height: auto;
 }
 
 .deck-sidebar-content .deck-empty-agent-select-row {
@@ -424,7 +428,9 @@
   border: 1px solid #2b2f36;
   padding: 0.2rem 0.45rem;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .deck-add-form-chip:hover {
@@ -492,7 +498,9 @@
   border: 2px solid transparent;
   border-radius: 3px;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.1s;
+  transition:
+    border-color 0.15s,
+    transform 0.1s;
 }
 
 .deck-add-form-color-swatch--small {
@@ -726,7 +734,9 @@
   min-width: 0;
   overflow-y: auto;
   padding: 0.5rem;
-  transition: flex 400ms cubic-bezier(0.4, 0, 0.2, 1), padding 400ms cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    flex 400ms cubic-bezier(0.4, 0, 0.2, 1),
+    padding 400ms cubic-bezier(0.4, 0, 0.2, 1),
     gap 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1248,8 +1258,10 @@
   overflow: hidden;
   opacity: 0;
   border-left: 1px solid transparent;
-  transition: flex 400ms cubic-bezier(0.4, 0, 0.2, 1), opacity 350ms cubic-bezier(0.4, 0, 0.2, 1)
-    100ms, border-color 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    flex 400ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 350ms cubic-bezier(0.4, 0, 0.2, 1) 100ms,
+    border-color 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-mode="detail"] .deck-detail-main {
@@ -1481,7 +1493,8 @@
   padding: 1rem;
   border: 1px solid rgba(238, 194, 83, 0.28);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(17, 22, 29, 0.98), rgba(11, 14, 19, 0.98)),
+  background:
+    linear-gradient(180deg, rgba(17, 22, 29, 0.98), rgba(11, 14, 19, 0.98)),
     radial-gradient(circle at top left, rgba(212, 160, 23, 0.16), transparent 55%);
   box-shadow: 0 20px 44px rgba(0, 0, 0, 0.28);
 }
@@ -1506,7 +1519,10 @@
   color: #cbd5e1;
   cursor: pointer;
   line-height: 0;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .workspace-setup-card-overlay-btn:hover {

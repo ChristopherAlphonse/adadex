@@ -68,10 +68,7 @@ export const Bar = ({
       <span className="font-mono text-foreground">{suffix}</span>
     </Box>
     <Box className="h-1.5 w-full overflow-hidden rounded-full bg-border">
-      <Box
-        className="h-full bg-brand transition-all"
-        style={{ width: `${Math.max(2, value)}%` }}
-      />
+      <Box className="h-full bg-brand transition-all" style={{ width: `${Math.max(2, value)}%` }} />
     </Box>
   </Box>
 );

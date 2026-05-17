@@ -21,9 +21,7 @@ export const SettingsToggle = ({
     className={cn(
       "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border p-3 text-left transition-colors",
       "focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-ring",
-      checked
-        ? "border-running/60 bg-running/15"
-        : "border-border bg-surface text-foreground",
+      checked ? "border-running/60 bg-running/15" : "border-border bg-surface text-foreground",
     )}
     onClick={() => onChange(!checked)}
     role="switch"

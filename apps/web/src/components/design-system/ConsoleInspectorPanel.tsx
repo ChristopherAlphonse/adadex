@@ -3,8 +3,8 @@ import type { TerminalSnapshot } from "@adadex/core";
 import type { GraphNode } from "../../app/canvas/types";
 import type { CodexUsageSnapshot, CoordinationGitStatusSnapshot } from "../../app/types";
 import { KV, Section } from "./ConsolePrimitives";
-import { StatusPill } from "./StatusPill";
 import { mapAgentStateToStatus } from "./mapAgentStatus";
+import { StatusPill } from "./StatusPill";
 
 type ConsoleInspectorPanelProps = {
   selectedNode: GraphNode | null;
@@ -130,10 +130,8 @@ export const ConsoleInspectorPanel = ({
                   ) : (
                     "Open a worktree agent for git diff details"
                   )}
-                  {changedFiles.length > 4 ? (
-                    <span> · {changedFiles.length - 4} more</span>
-                  ) : null}
-                  </div>
+                  {changedFiles.length > 4 ? <span> · {changedFiles.length - 4} more</span> : null}
+                </div>
               </div>
             </Section>
           </>

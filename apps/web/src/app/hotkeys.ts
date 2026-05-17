@@ -1,4 +1,5 @@
-import { type PrimaryNavIndex, isPrimaryNavIndex } from "./constants";
+import { isPrimaryNavIndex, type PrimaryNavIndex } from "./constants";
+
 const MAX_TICKER_QUERY_LENGTH = 16;
 const TICKER_QUERY_ALLOWED_PATTERN = /[^A-Z0-9._/-]/g;
 

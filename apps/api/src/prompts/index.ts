@@ -1,10 +1,10 @@
 export {
+  deleteUserPrompt,
   interpolatePrompt,
+  listAllPrompts,
+  listPromptTemplates,
+  readPromptFromDirs,
   readPromptTemplate,
   resolvePrompt,
-  listPromptTemplates,
-  listAllPrompts,
-  readPromptFromDirs,
   writeUserPrompt,
-  deleteUserPrompt,
 } from "./promptResolver";

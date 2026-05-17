@@ -1,8 +1,8 @@
 import {
-  type TerminalSnapshot,
-  type WorkspaceSetupStepId,
   buildTerminalList,
   isAgentRuntimeState,
+  type TerminalSnapshot,
+  type WorkspaceSetupStepId,
 } from "@adadex/core";
 import { type ReactElement, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
@@ -98,9 +98,8 @@ const AppShell = () => {
     refreshWorkspaceSetup,
     runWorkspaceSetupStep,
   } = useWorkspaceSetup();
-  const [runningWorkspaceSetupStepId, setRunningWorkspaceSetupStepId] = useState<
-    WorkspaceSetupStepId | null
-  >(null);
+  const [runningWorkspaceSetupStepId, setRunningWorkspaceSetupStepId] =
+    useState<WorkspaceSetupStepId | null>(null);
 
   const readColumns = useCallback(
     async (signal?: AbortSignal) => {
@@ -274,7 +273,7 @@ const AppShell = () => {
 
   const { agentProvider, setAgentProvider } = useAgentProviderPreference();
   const { colorTheme, isLight, setColorTheme, toggleColorTheme } = useColorThemeContext();
-  const { codexUsageSnapshot, isRefreshingCodexUsage, refreshCodexUsage } = useCodexUsagePolling();
+  const { codexUsageSnapshot, isRefreshingCodexUsage } = useCodexUsagePolling();
   useBackendLivenessPolling();
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
     useGithubSummaryPolling();
@@ -302,7 +301,6 @@ const AppShell = () => {
 
   const {
     githubCommitCount30d,
-    sparklinePoints,
     githubOverviewGraphSeries,
     githubOverviewGraphPolylinePoints,
     githubOverviewHoverLabel,
@@ -326,7 +324,7 @@ const AppShell = () => {
 
   const sidebarActionPanel = hasSidebarActionPanel ? (
     conversationsActionPanel ? (
-      <>{conversationsActionPanel}</>
+      conversationsActionPanel
     ) : (
       <SidebarActionPanel
         pendingDeleteTerminal={pendingDeleteTerminal}
@@ -418,23 +416,23 @@ const AppShell = () => {
       <section className="console-main-canvas" aria-label="Main content canvas">
         <div className={cn("workspace-shell", !showAgentsSidebar && "workspace-shell--full")}>
           {showAgentsSidebar && (
-              <ActiveAgentsSidebar
-                sidebarWidth={sidebarWidth}
-                onSidebarWidthChange={(width) => {
-                  setSidebarWidth(clampSidebarWidth(width));
-                }}
-                actionPanel={sidebarActionPanel}
-                bodyContent={
-                  activePrimaryNav === 2
-                    ? (deckSidebarContent ?? undefined)
-                    : activePrimaryNav === 5
-                      ? (conversationsSidebarContent ?? undefined)
-                      : activePrimaryNav === 6
-                        ? (promptsSidebarContent ?? undefined)
-                        : undefined
-                }
-              />
-            )}
+            <ActiveAgentsSidebar
+              sidebarWidth={sidebarWidth}
+              onSidebarWidthChange={(width) => {
+                setSidebarWidth(clampSidebarWidth(width));
+              }}
+              actionPanel={sidebarActionPanel}
+              bodyContent={
+                activePrimaryNav === 2
+                  ? (deckSidebarContent ?? undefined)
+                  : activePrimaryNav === 5
+                    ? (conversationsSidebarContent ?? undefined)
+                    : activePrimaryNav === 6
+                      ? (promptsSidebarContent ?? undefined)
+                      : undefined
+              }
+            />
+          )}
 
           <PrimaryViewRouter
             activePrimaryNav={activePrimaryNav}
@@ -624,7 +622,6 @@ const AppShell = () => {
           />
         </div>
       </section>
-
     </div>
   );
 };

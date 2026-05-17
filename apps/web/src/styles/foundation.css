@@ -40,8 +40,8 @@
     var(--accent-primary) 54%,
     var(--terminal-bg) 46%
   );
-  --font-main: "PP Neue Machina Plain", "PP Neue Machina", "JetBrains Mono", "IBM Plex Mono",
-    monospace;
+  --font-main:
+    "PP Neue Machina Plain", "PP Neue Machina", "JetBrains Mono", "IBM Plex Mono", monospace;
   --control-font-family: var(--font-main);
   --control-letter-spacing: 0.06em;
   --control-line-height: 1.2;
