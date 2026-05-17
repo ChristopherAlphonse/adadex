@@ -1,4 +1,6 @@
 .DS_Store
+Thumbs.db
+Desktop.ini
 /.codex
 /context
 /node_modules
@@ -20,12 +22,36 @@ apps/web/src/**/*.js
 .playwright-mcp/
 .pnpm-store/
 
-# Agent CLI hook configs (written by Adadex at runtime)
-/.claude/
-/.opencode/
+# Local env and secrets (.env.example / *.example stay tracked)
+.env
+.env.*
+
+!.env.example
+
+# actionlint CLI (download script often drops binary at repo root)
+/actionlint
+
+# Package manager logs
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Miscellaneous logs
+*.log
 
 # Scratch/verification screenshots
 static/images/claude-usage-verify.png
 static/images/customize-agent-models.png
 static/images/customize-agent-verify.png
 static/images/deck-claude-verify.png
+
+# Local agent directories (skills, IDE/runtime writes — not shipped with the repo)
+/.agents/
+/.claude/
+/.opencode/
+
+# Installed agent skills manifest (local / per-machine hashes)
+/skills-lock.json
+
+.cursor/
