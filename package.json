@@ -41,10 +41,10 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
+    "@biomejs/biome": "^2.5.0",
     "@types/node": "^25.9.1",
     "husky": "^9.1.7",
-    "knip": "^6.15.0",
+    "knip": "^6.16.1",
     "lint-staged": "^17.0.5",
     "typescript": "^6.0.3",
     "vitest": "^4.1.7"
