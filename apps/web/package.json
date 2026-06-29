@@ -17,7 +17,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3-force": "^3.0.0",
-    "lucide-react": "^1.21.0",
+    "lucide-react": "^1.22.0",
     "marked": "^18.0.5",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -36,6 +36,6 @@
     "@vitejs/plugin-react": "^6.0.2",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4.2.1",
-    "vite": "^8.0.16"
+    "vite": "^8.1.0"
   }
 }
