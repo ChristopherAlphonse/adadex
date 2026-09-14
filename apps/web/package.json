@@ -18,7 +18,7 @@
     "clsx": "^2.1.1",
     "d3-force": "^3.0.0",
     "lucide-react": "^1.21.0",
-    "marked": "^18.0.5",
+    "marked": "^18.0.12",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "tailwind-merge": "^3.5.0",
@@ -27,15 +27,15 @@
     "xterm-addon-unicode11": "^0.6.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.1",
+    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
+    "@testing-library/react": "^16.3.3",
     "@types/d3-force": "^3.0.10",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^6.0.2",
     "jsdom": "^29.1.1",
-    "tailwindcss": "^4.2.1",
+    "tailwindcss": "^4.3.3",
     "vite": "^8.0.16"
   }
 }
