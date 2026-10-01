@@ -9,7 +9,7 @@ const createSummary = (
   status: "ok",
   fetchedAt: "2026-03-01T00:00:00.000Z",
   source: "gh-cli",
-  repo: "hesamsheikh/octogent",
+  repo: "ChristopherAlphonse/adadex",
   stargazerCount: 0,
   openIssueCount: 0,
   openPullRequestCount: 0,

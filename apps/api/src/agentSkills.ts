@@ -5,10 +5,6 @@ import type { DeckAvailableSkill } from "@adadex/core";
 
 const SKILL_MARKERS = [
   { start: "<!-- adadex:suggested-skills:start -->", end: "<!-- adadex:suggested-skills:end -->" },
-  {
-    start: "<!-- octogent:suggested-skills:start -->",
-    end: "<!-- octogent:suggested-skills:end -->",
-  },
 ] as const;
 const FRONT_MATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?/;
 const H1_PATTERN = /^#\s+(.+)$/m;

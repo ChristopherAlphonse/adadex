@@ -42,7 +42,7 @@ Terminal WebSockets do not own the PTY. They are clients attached to a PTY sessi
 
 - binds to `127.0.0.1` by default
 - enforces loopback `Host` and `Origin` checks by default
-- remote access must be enabled explicitly with `ADADEX_ALLOW_REMOTE_ACCESS=1` (legacy: `OCTOGENT_ALLOW_REMOTE_ACCESS=1`)
+- remote access must be enabled explicitly with `ADADEX_ALLOW_REMOTE_ACCESS=1`
 
 ## Persistence model
 

@@ -139,19 +139,12 @@ export const handleHookRoute: ApiRouteHandler = async (
 
   const hookName = match[1] ?? "";
   // HTTP hooks pass the session ID via header; command hooks via query param.
-  const headerKeys = ["x-adadex-session", "x-octogent-session"] as const;
-  let hookSessionId: string | undefined;
-  for (const key of headerKeys) {
-    const value = request.headers[key];
-    if (typeof value === "string" && value.length > 0) {
-      hookSessionId = value;
-      break;
-    }
-  }
-  hookSessionId =
-    hookSessionId ??
+  const hookSessionId =
+    (typeof request.headers["x-adadex-session"] === "string" &&
+    request.headers["x-adadex-session"].length > 0
+      ? request.headers["x-adadex-session"]
+      : undefined) ??
     requestUrl.searchParams.get("adadex_session") ??
-    requestUrl.searchParams.get("octogent_session") ??
     undefined;
   const result = runtime.handleHook(hookName, body.payload, hookSessionId);
 

@@ -65,8 +65,6 @@ You can use these skills if you need to.
 
 The managed block is rewritten by the API when suggested skills change. Put human-authored architecture notes outside that block.
 
-Legacy workspaces may still contain `<!-- octogent:suggested-skills:* -->` markers; the API accepts both during migration.
-
 ## What goes in `todo.md`
 
 `todo.md` should contain markdown checkbox items:

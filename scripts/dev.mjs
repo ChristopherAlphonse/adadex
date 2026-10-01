@@ -73,9 +73,7 @@ const findOpenPort = async (startPort) => {
 
 // Windows: spawn("npm.cmd", ...) throws EINVAL on recent Node; use the shell to resolve npm.
 const npmSpawnShell = process.platform === "win32";
-const startPort = parseStartPort(
-  process.env.ADADEX_DEV_START_PORT ?? process.env.OCTOGENT_DEV_START_PORT,
-);
+const startPort = parseStartPort(process.env.ADADEX_DEV_START_PORT);
 const apiPort = await findOpenPort(startPort);
 const apiOrigin = `http://127.0.0.1:${apiPort}`;
 
@@ -88,14 +86,7 @@ const resolveProjectStateDir = (workspaceCwd) => {
   if (process.env.ADADEX_PROJECT_STATE_DIR) {
     return process.env.ADADEX_PROJECT_STATE_DIR;
   }
-  if (process.env.OCTOGENT_PROJECT_STATE_DIR) {
-    return process.env.OCTOGENT_PROJECT_STATE_DIR;
-  }
-  const projectConfigPathNew = join(workspaceCwd, ".adadex", "project.json");
-  const projectConfigPathLegacy = join(workspaceCwd, ".octogent", "project.json");
-  const projectConfigPath = existsSync(projectConfigPathNew)
-    ? projectConfigPathNew
-    : projectConfigPathLegacy;
+  const projectConfigPath = join(workspaceCwd, ".adadex", "project.json");
   if (existsSync(projectConfigPath)) {
     try {
       const projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
@@ -109,25 +100,17 @@ const resolveProjectStateDir = (workspaceCwd) => {
       // fall through
     }
   }
-  const projectsFileNew = join(homedir(), ".adadex", "projects.json");
-  const projectsFileLegacy = join(homedir(), ".octogent", "projects.json");
-  const projectsFile = existsSync(projectsFileNew) ? projectsFileNew : projectsFileLegacy;
+  const projectsFile = join(homedir(), ".adadex", "projects.json");
   if (existsSync(projectsFile)) {
     try {
       const registry = JSON.parse(readFileSync(projectsFile, "utf-8"));
       const project = registry.projects?.find((p) => p.path === workspaceCwd);
       if (project) {
         if (typeof project.id === "string" && project.id.trim().length > 0) {
-          const base = projectsFile.includes(".adadex")
-            ? join(homedir(), ".adadex")
-            : join(homedir(), ".octogent");
-          return join(base, "projects", project.id);
+          return join(homedir(), ".adadex", "projects", project.id);
         }
         if (typeof project.name === "string" && project.name.trim().length > 0) {
-          const base = projectsFile.includes(".adadex")
-            ? join(homedir(), ".adadex")
-            : join(homedir(), ".octogent");
-          return join(base, "projects", project.name);
+          return join(homedir(), ".adadex", "projects", project.name);
         }
       }
     } catch {
@@ -137,8 +120,7 @@ const resolveProjectStateDir = (workspaceCwd) => {
   return `${workspaceCwd}/.adadex`;
 };
 
-const workspaceCwd =
-  process.env.ADADEX_WORKSPACE_CWD ?? process.env.OCTOGENT_WORKSPACE_CWD ?? monorepoRoot;
+const workspaceCwd = process.env.ADADEX_WORKSPACE_CWD ?? monorepoRoot;
 const projectStateDir = resolveProjectStateDir(workspaceCwd);
 
 const child = spawn("npm", ["run", "dev", "--workspace=@adadex/api", "--workspace=@adadex/web"], {
@@ -148,20 +130,9 @@ const child = spawn("npm", ["run", "dev", "--workspace=@adadex/api", "--workspac
     ...process.env,
     ADADEX_API_PORT: String(apiPort),
     ADADEX_API_ORIGIN: apiOrigin,
-    OCTOGENT_API_PORT: String(apiPort),
-    OCTOGENT_API_ORIGIN: apiOrigin,
     ADADEX_WORKSPACE_CWD: workspaceCwd,
-    OCTOGENT_WORKSPACE_CWD: workspaceCwd,
     ADADEX_PROJECT_STATE_DIR: projectStateDir,
-    OCTOGENT_PROJECT_STATE_DIR: projectStateDir,
-    ADADEX_PROMPTS_DIR:
-      process.env.ADADEX_PROMPTS_DIR ??
-      process.env.OCTOGENT_PROMPTS_DIR ??
-      `${monorepoRoot}/prompts`,
-    OCTOGENT_PROMPTS_DIR:
-      process.env.ADADEX_PROMPTS_DIR ??
-      process.env.OCTOGENT_PROMPTS_DIR ??
-      `${monorepoRoot}/prompts`,
+    ADADEX_PROMPTS_DIR: process.env.ADADEX_PROMPTS_DIR ?? `${monorepoRoot}/prompts`,
   },
 });
 

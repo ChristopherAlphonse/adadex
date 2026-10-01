@@ -18,7 +18,7 @@ describe("readGithubRepoSummary", () => {
     const runCommand = vi.fn(async (command: string, args: string[]) => {
       if (command === "gh" && args[0] === "repo" && args[1] === "view") {
         return {
-          stdout: "hesamsheikh/octogent\n",
+          stdout: "ChristopherAlphonse/adadex\n",
           stderr: "",
         };
       }
@@ -28,7 +28,7 @@ describe("readGithubRepoSummary", () => {
           stdout: JSON.stringify({
             data: {
               repository: {
-                nameWithOwner: "hesamsheikh/octogent",
+                nameWithOwner: "ChristopherAlphonse/adadex",
                 stargazerCount: 42,
                 issues: { totalCount: 7 },
                 pullRequests: { totalCount: 3 },
@@ -75,7 +75,7 @@ describe("readGithubRepoSummary", () => {
     });
 
     expect(snapshot.status).toBe("ok");
-    expect(snapshot.repo).toBe("hesamsheikh/octogent");
+    expect(snapshot.repo).toBe("ChristopherAlphonse/adadex");
     expect(snapshot.stargazerCount).toBe(42);
     expect(snapshot.openIssueCount).toBe(7);
     expect(snapshot.openPullRequestCount).toBe(3);

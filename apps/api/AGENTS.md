@@ -18,7 +18,7 @@
 - Do not make the web app depend on server-only implementation details. Expose stable API/runtime contracts instead.
 
 ## State And Persistence
-- Runtime state under `.adadex/` (migrated from legacy `.octogent/`) is a contract surface. Be careful with compatibility when changing file formats or paths.
+- Runtime state under `.adadex/` is a contract surface. Be careful with compatibility when changing file formats or paths.
 - Transcript, coordination registry, and worktree data should remain predictable and inspectable on disk.
 - Prefer explicit migration or normalization paths over silent shape drift.
 

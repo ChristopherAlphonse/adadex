@@ -35,13 +35,13 @@ Adadex is not published to the npm registry yet, so `npm install -g adadex` will
 
 Running `adadex` inside a project directory will:
 
-- create `.adadex/` if it does not exist (or migrate from `.octogent/` when legacy paths are present)
+- create `.adadex/` if it does not exist
 - add `.adadex` to `.gitignore` or create `.gitignore` when it is missing
 - write a stable project ID to `.adadex/project.json`
 - register the project under `~/.adadex/projects.json`
 - move runtime state to `~/.adadex/projects/<project-id>/state/`
 - choose an open local API port starting at `8787`
-- open the browser unless `ADADEX_NO_OPEN=1` (legacy: `OCTOGENT_NO_OPEN=1`)
+- open the browser unless `ADADEX_NO_OPEN=1`
 - show a Deck setup card until the first coordination is created
 
 ## Startup rules

@@ -425,7 +425,7 @@ describe("createApiServer", () => {
     const workspaceCwd =
       options.workspaceCwd ??
       (() => {
-        const directory = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+        const directory = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
         temporaryDirectories.push(directory);
         return directory;
       })();
@@ -524,7 +524,7 @@ describe("createApiServer", () => {
   });
 
   it("returns session summaries for GET /api/conversations", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     writeConversationTranscript(workspaceCwd, "terminal-1", [
       {
@@ -593,7 +593,7 @@ describe("createApiServer", () => {
   });
 
   it("returns assembled conversation details and export payloads", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     writeConversationTranscript(workspaceCwd, "terminal-2-agent-1", [
       {
@@ -678,7 +678,7 @@ describe("createApiServer", () => {
   });
 
   it("returns 400 for unsupported conversation export format", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     writeConversationTranscript(workspaceCwd, "terminal-3-agent-1", [
       {
@@ -831,7 +831,7 @@ describe("createApiServer", () => {
       status: "ok",
       fetchedAt: "2026-02-27T12:00:00.000Z",
       source: "gh-cli",
-      repo: "hesamsheikh/octogent",
+      repo: "ChristopherAlphonse/adadex",
       stargazerCount: 42,
       openIssueCount: 7,
       openPullRequestCount: 3,
@@ -883,7 +883,7 @@ describe("createApiServer", () => {
     expect(createResponse.status).toBe(201);
 
     const hookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      `${baseUrl}/api/hooks/user-prompt-submit?adadex_session=terminal-1`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -893,7 +893,7 @@ describe("createApiServer", () => {
     expect(hookResponse.status).toBe(200);
 
     const secondHookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      `${baseUrl}/api/hooks/user-prompt-submit?adadex_session=terminal-1`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -933,7 +933,7 @@ describe("createApiServer", () => {
     expect(createResponse.status).toBe(201);
 
     const hookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      `${baseUrl}/api/hooks/user-prompt-submit?adadex_session=terminal-1`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -960,7 +960,7 @@ describe("createApiServer", () => {
   });
 
   it("infers generated terminal names from older registry entries", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".adadex", "state", "coordinations.json");
     mkdirSync(join(workspaceCwd, ".adadex", "state"), { recursive: true });
@@ -989,7 +989,7 @@ describe("createApiServer", () => {
     const baseUrl = await startServer({ workspaceCwd });
 
     const hookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=terminal-1`,
+      `${baseUrl}/api/hooks/user-prompt-submit?adadex_session=terminal-1`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1043,7 +1043,7 @@ describe("createApiServer", () => {
   });
 
   it("reports file-backed workspace setup status and updates it through setup actions", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({ workspaceCwd });
 
@@ -1166,7 +1166,7 @@ describe("createApiServer", () => {
   });
 
   it("lists Kiro skills from the project skills folder", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const projectSkillDir = join(workspaceCwd, ".kiro", "skills", "docs-writer");
     mkdirSync(projectSkillDir, { recursive: true });
@@ -1204,7 +1204,7 @@ describe("createApiServer", () => {
   });
 
   it("ignores a root project skills SKILL.md file and only lists folder-based skills", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const skillsDir = join(workspaceCwd, ".kiro", "skills");
     mkdirSync(skillsDir, { recursive: true });
@@ -1250,7 +1250,7 @@ describe("createApiServer", () => {
   });
 
   it("creates orchestrations with suggested skills and appends the managed context block", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({ workspaceCwd });
 
@@ -1299,7 +1299,7 @@ describe("createApiServer", () => {
   });
 
   it("updates orchestration suggested skills and removes the managed context block when cleared", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({ workspaceCwd });
 
@@ -1381,7 +1381,7 @@ describe("createApiServer", () => {
   });
 
   it("restores ui state across API restarts using persisted registry", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
 
     const firstBaseUrl = await startServer({
@@ -1585,7 +1585,7 @@ describe("createApiServer", () => {
   });
 
   it("ignores stale persisted nextOrchestrationNumber values and starts from the minimum available id", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".adadex", "state", "coordinations.json");
     mkdirSync(join(workspaceCwd, ".adadex", "state"), { recursive: true });
@@ -1622,7 +1622,7 @@ describe("createApiServer", () => {
   });
 
   it("skips orchestration ids that already have an existing worktree directory", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     mkdirSync(join(workspaceCwd, ".adadex", "worktrees", "terminal-1"), {
       recursive: true,
@@ -1647,7 +1647,7 @@ describe("createApiServer", () => {
   });
 
   it("persists orchestration metadata without runtime bootstrap flags", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({
       workspaceCwd,
@@ -1689,7 +1689,7 @@ describe("createApiServer", () => {
   });
 
   it("marks auto-started prompted terminals as active immediately", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const baseUrl = await startServer({
       workspaceCwd,
@@ -1720,7 +1720,7 @@ describe("createApiServer", () => {
   });
 
   it("injects a default orchestration context prompt for orchestration terminals", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const orchestrationDir = join(workspaceCwd, ".adadex", "coordinations", "docs");
     const relativeOrchestrationDir = ".adadex/coordinations/docs";
@@ -1765,7 +1765,7 @@ describe("createApiServer", () => {
   });
 
   it("creates isolated worktree terminals with dedicated cwd", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -1828,7 +1828,7 @@ describe("createApiServer", () => {
   });
 
   it("returns git status for worktree orchestrations", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -1909,7 +1909,7 @@ describe("createApiServer", () => {
   });
 
   it("commits pending worktree changes with a required message", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -1972,7 +1972,7 @@ describe("createApiServer", () => {
   });
 
   it("returns 400 for commit when message is empty", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2011,7 +2011,7 @@ describe("createApiServer", () => {
   });
 
   it("pushes worktree branch and updates ahead count", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2070,7 +2070,7 @@ describe("createApiServer", () => {
   });
 
   it("syncs worktree branch with base ref", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2133,7 +2133,7 @@ describe("createApiServer", () => {
   });
 
   it("returns PR status for worktree orchestrations", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2189,7 +2189,7 @@ describe("createApiServer", () => {
   });
 
   it("creates PR for worktree orchestrations and returns PR snapshot", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2252,7 +2252,7 @@ describe("createApiServer", () => {
   });
 
   it("returns 409 when creating a PR and an open PR already exists for the branch", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2318,7 +2318,7 @@ describe("createApiServer", () => {
   });
 
   it("merges the current branch PR for worktree orchestrations", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2398,7 +2398,7 @@ describe("createApiServer", () => {
   });
 
   it("removes isolated worktree metadata when deleting a worktree orchestration", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2438,7 +2438,7 @@ describe("createApiServer", () => {
   });
 
   it("returns 409 and keeps orchestration state when worktree deletion fails", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     const baseUrl = await startServer({
@@ -2516,9 +2516,9 @@ describe("createApiServer", () => {
   });
 
   it("refreshes builtin prompts from promptsDir on server start", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
-    const projectStateDir = mkdtempSync(join(tmpdir(), "octogent-state-test-"));
-    const promptsDir = mkdtempSync(join(tmpdir(), "octogent-prompts-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
+    const projectStateDir = mkdtempSync(join(tmpdir(), "adadex-state-test-"));
+    const promptsDir = mkdtempSync(join(tmpdir(), "adadex-prompts-test-"));
     temporaryDirectories.push(workspaceCwd, projectStateDir, promptsDir);
 
     mkdirSync(join(projectStateDir, "prompts", "core"), { recursive: true });
@@ -2555,9 +2555,9 @@ describe("createApiServer", () => {
   });
 
   it("reads builtin prompts from the live promptsDir after server start", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
-    const projectStateDir = mkdtempSync(join(tmpdir(), "octogent-state-test-"));
-    const promptsDir = mkdtempSync(join(tmpdir(), "octogent-prompts-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
+    const projectStateDir = mkdtempSync(join(tmpdir(), "adadex-state-test-"));
+    const promptsDir = mkdtempSync(join(tmpdir(), "adadex-prompts-test-"));
     temporaryDirectories.push(workspaceCwd, projectStateDir, promptsDir);
 
     writeFileSync(join(promptsDir, "coordination-update.md"), "version one\n", "utf8");
@@ -2586,7 +2586,7 @@ describe("createApiServer", () => {
   });
 
   it("returns 400 when creating worktree orchestration outside a git repository", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     gitClient.setRepositoryAvailable(false);
@@ -2655,7 +2655,7 @@ describe("createApiServer", () => {
   });
 
   it("spawns a shared-workspace todo agent for an individual item", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     mkdirSync(join(workspaceCwd, ".adadex", "coordinations", "docs-knowledge"), {
       recursive: true,
@@ -2712,7 +2712,7 @@ describe("createApiServer", () => {
   });
 
   it("auto-renames todo agents from the todo item context on first prompt submit", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     mkdirSync(join(workspaceCwd, ".adadex", "coordinations", "docs-knowledge"), {
       recursive: true,
@@ -2744,7 +2744,7 @@ describe("createApiServer", () => {
     expect(solveResponse.status).toBe(201);
 
     const hookResponse = await fetch(
-      `${baseUrl}/api/hooks/user-prompt-submit?octogent_session=docs-knowledge-todo-0`,
+      `${baseUrl}/api/hooks/user-prompt-submit?adadex_session=docs-knowledge-todo-0`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2772,7 +2772,7 @@ describe("createApiServer", () => {
   });
 
   it("limits swarm prompts to the top-priority items that fit under the child cap", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     mkdirSync(join(workspaceCwd, ".adadex", "coordinations", "docs-knowledge"), {
       recursive: true,
@@ -2930,7 +2930,7 @@ describe("createApiServer", () => {
   });
 
   it("restores orchestrations across API restarts using persisted registry", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
 
     const firstBaseUrl = await startServer({
@@ -2976,7 +2976,7 @@ describe("createApiServer", () => {
   });
 
   it("marks persisted running terminals as stale when the API starts without their session", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".adadex", "state", "coordinations.json");
     mkdirSync(join(workspaceCwd, ".adadex", "state"), { recursive: true });
@@ -3024,7 +3024,7 @@ describe("createApiServer", () => {
   });
 
   it("stops and prunes stale terminal records through lifecycle endpoints", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".adadex", "state", "coordinations.json");
     mkdirSync(join(workspaceCwd, ".adadex", "state"), { recursive: true });

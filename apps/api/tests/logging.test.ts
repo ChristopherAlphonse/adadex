@@ -9,13 +9,13 @@ describe("logging", () => {
   });
 
   it("keeps verbose logs disabled by default", () => {
-    vi.stubEnv("OCTOGENT_VERBOSE_LOGS", undefined);
+    vi.stubEnv("ADADEX_VERBOSE_LOGS", undefined);
 
     expect(isVerboseLoggingEnabled()).toBe(false);
   });
 
-  it("enables verbose logs when OCTOGENT_VERBOSE_LOGS=1", () => {
-    vi.stubEnv("OCTOGENT_VERBOSE_LOGS", "1");
+  it("enables verbose logs when ADADEX_VERBOSE_LOGS=1", () => {
+    vi.stubEnv("ADADEX_VERBOSE_LOGS", "1");
 
     expect(isVerboseLoggingEnabled()).toBe(true);
   });
@@ -24,7 +24,7 @@ describe("logging", () => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     logVerbose("hidden");
-    vi.stubEnv("OCTOGENT_VERBOSE_LOGS", "1");
+    vi.stubEnv("ADADEX_VERBOSE_LOGS", "1");
     logVerbose("shown");
 
     expect(consoleSpy).toHaveBeenCalledTimes(1);

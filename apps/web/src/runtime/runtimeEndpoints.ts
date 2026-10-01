@@ -1,7 +1,7 @@
 type LocationLike = Pick<Location, "host" | "protocol">;
 
 const readRuntimeBaseUrl = (): string | null => {
-  const value = import.meta.env.VITE_ADADEX_API_ORIGIN ?? import.meta.env.VITE_OCTOGENT_API_ORIGIN;
+  const value = import.meta.env.VITE_ADADEX_API_ORIGIN;
   if (typeof value !== "string") {
     return null;
   }

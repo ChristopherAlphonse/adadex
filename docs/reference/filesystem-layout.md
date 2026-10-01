@@ -4,7 +4,7 @@ Adadex splits files by ownership. Agent-facing project context stays in the work
 
 ## Project-local files
 
-`.adadex/` is created in the workspace (migrated from `.octogent/` on first run when legacy paths exist).
+`.adadex/` is created in the workspace.
 
 Main paths:
 

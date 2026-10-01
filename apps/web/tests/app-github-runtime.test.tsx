@@ -45,7 +45,7 @@ const mockGithubRuntimeRequests = () => {
         status: "ok",
         source: "gh-cli",
         fetchedAt: "2026-02-27T12:00:00.000Z",
-        repo: "hesamsheikh/octogent",
+        repo: "ChristopherAlphonse/adadex",
         stargazerCount: 42,
         openIssueCount: 7,
         openPullRequestCount: 3,
@@ -82,7 +82,7 @@ describe("App GitHub runtime views", () => {
 
     expect(await screen.findByLabelText("Activity primary view")).toBeInTheDocument();
     const githubView = await screen.findByLabelText("GitHub primary view");
-    expect(within(githubView).getByText("hesamsheikh/octogent")).toBeInTheDocument();
+    expect(within(githubView).getByText("ChristopherAlphonse/adadex")).toBeInTheDocument();
     expect(
       within(githubView).getByRole("button", { name: "Refresh GitHub overview data" }),
     ).toBeInTheDocument();
@@ -166,7 +166,7 @@ describe("App GitHub runtime views", () => {
       reader.onerror = () => reject(reader.error);
       reader.readAsText(blob as Blob);
     });
-    expect(exported).toBe(buildGitHistoryText(buildRecentCommits(), "hesamsheikh/octogent"));
+    expect(exported).toBe(buildGitHistoryText(buildRecentCommits(), "ChristopherAlphonse/adadex"));
 
     expect(document.querySelector("a[download]")).toBeNull();
   });

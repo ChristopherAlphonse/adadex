@@ -46,7 +46,7 @@ When one terminal is messaging another, pass the sender explicitly:
 adadex channel send <target-terminal-id> "DONE: parser change is ready" --from <sender-terminal-id>
 ```
 
-If `--from` is omitted, the CLI uses `ADADEX_SESSION_ID` when it is available (legacy: `OCTOGENT_SESSION_ID`).
+If `--from` is omitted, the CLI uses `ADADEX_SESSION_ID` when it is available.
 
 List messages:
 

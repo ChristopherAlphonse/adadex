@@ -106,7 +106,7 @@ describe("createSessionRuntime", () => {
   const temporaryDirectories: string[] = [];
 
   const createTemporaryDirectory = () => {
-    const directory = mkdtempSync(join(tmpdir(), "octogent-session-runtime-test-"));
+    const directory = mkdtempSync(join(tmpdir(), "adadex-session-runtime-test-"));
     temporaryDirectories.push(directory);
     return directory;
   };

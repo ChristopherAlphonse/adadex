@@ -91,7 +91,7 @@ Removes terminal records whose lifecycle state is `stale`, `stopped`, or `exited
 adadex channel send <terminal-id> "message"
 ```
 
-Use `--from <terminal-id>` when sending on behalf of a worker or parent terminal. If `--from` is omitted, the CLI falls back to `ADADEX_SESSION_ID` (or legacy `OCTOGENT_SESSION_ID`) when the command is running inside an Adadex-managed terminal.
+Use `--from <terminal-id>` when sending on behalf of a worker or parent terminal. If `--from` is omitted, the CLI falls back to `ADADEX_SESSION_ID` when the command is running inside an Adadex-managed terminal.
 
 ## List messages
 

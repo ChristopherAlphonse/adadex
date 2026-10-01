@@ -99,12 +99,12 @@ The `npm install -g adadex` registry path will work once the package is publishe
 
 On first run, Adadex:
 
-- creates a `.adadex/` scaffold in the project directory (migrating from `.octogent/` when present)
+- creates a `.adadex/` scaffold in the project directory
 - assigns a stable project ID
 - picks an available local API port starting at `8787`
 - opens the UI in your browser
 
-Set `ADADEX_NO_OPEN=1` to suppress the browser launch. The legacy `OCTOGENT_NO_OPEN` variable is still honored.
+Set `ADADEX_NO_OPEN=1` to suppress the browser launch.
 
 ## How It Works
 
@@ -150,20 +150,6 @@ PTY sessions survive browser reloads during the idle grace period but do not sur
 
 Adadex caps live PTY sessions at 32 by default. Set `ADADEX_MAX_TERMINAL_SESSIONS` to a positive integer to change that limit.
 
-## Upgrading from Octogent
-
-This rename is a breaking change for scripts and clients that used Octogent paths or API routes.
-
-**Disk migration:** Starting the API migrates a legacy workspace when `.octogent/` exists and `.adadex/` does not. Project dir `.octogent` becomes `.adadex`; legacy filenames under `state/` are renamed to `coordinations.json`; agent-facing directories consolidate under `coordinations/`; global `~/.octogent` becomes `~/.adadex` with the same inner renames. Back up production checkouts before upgrading.
-
-**HTTP API:** Deck resources are served under `/api/deck/coordinations/...`. Git helpers use `/api/coordinations/:coordinationId/git/...`.
-
-**CLI and env:** Prefer the `adadex` command and `ADADEX_*` variables. Many code paths still accept the former `octogent` and `OCTOGENT_*` names for compatibility.
-
 ## Contributing
 
 Adadex is not actively reviewing pull requests right now. If you open one and any code was written with AI, disclose the coding agent and model used. See [CONTRIBUTING.md](CONTRIBUTING.md) for full expectations.
-
-## Credits
-
-Adadex is a personal spin on [OCTOGENT](https://github.com/hesamsheikh/octogent) by **Hesam Sheikh**.
