@@ -1,24 +1,6 @@
 import type { ApiRouteHandler } from "./routeHelpers";
 import { writeJson, writeMethodNotAllowed } from "./routeHelpers";
 
-export const handleCodexUsageRoute: ApiRouteHandler = async (
-  { request, response, requestUrl, corsOrigin },
-  { readCodexUsageSnapshot },
-) => {
-  if (requestUrl.pathname !== "/api/codex/usage") {
-    return false;
-  }
-
-  if (request.method !== "GET") {
-    writeMethodNotAllowed(response, corsOrigin);
-    return true;
-  }
-
-  const payload = await readCodexUsageSnapshot();
-  writeJson(response, 200, payload, corsOrigin);
-  return true;
-};
-
 export const handleUsageHeatmapRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { scanUsageHeatmap },

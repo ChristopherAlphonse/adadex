@@ -127,7 +127,6 @@ export type PersistedTerminal = {
   createdAt: string;
   workspaceMode: CoordinationWorkspaceMode;
   agentProvider?: TerminalAgentProvider;
-  agentModel?: string;
   initialPrompt?: string;
   initialInputDraft?: string;
   lastActiveAt?: string;

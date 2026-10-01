@@ -7,7 +7,6 @@ export * from "./domain/conversation";
 export * from "./domain/deck";
 export * from "./domain/git";
 export * from "./domain/legacyProductKeys";
-export * from "./domain/monitor";
 export * from "./domain/runtimeLayout";
 export * from "./domain/setup";
 export * from "./domain/terminal";

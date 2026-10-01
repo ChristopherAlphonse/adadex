@@ -1,7 +1,7 @@
 # API Guidelines
 
 ## Ownership
-- `apps/api` owns HTTP/WebSocket routing, PTY session orchestration, worktree lifecycle, transcript persistence, monitor service, and runtime integrations.
+- `apps/api` owns HTTP/WebSocket routing, PTY session orchestration, worktree lifecycle, transcript persistence, and runtime integrations.
 - Keep infrastructure details here. Do not push PTY, filesystem, process, or git orchestration into `packages/core` or `apps/web`.
 
 ## Relevant Docs
@@ -19,7 +19,7 @@
 
 ## State And Persistence
 - Runtime state under `.adadex/` (migrated from legacy `.octogent/`) is a contract surface. Be careful with compatibility when changing file formats or paths.
-- Transcript, coordination registry, monitor config, and worktree data should remain predictable and inspectable on disk.
+- Transcript, coordination registry, and worktree data should remain predictable and inspectable on disk.
 - Prefer explicit migration or normalization paths over silent shape drift.
 
 ## PTY, Process, And Git Safety

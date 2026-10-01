@@ -15,22 +15,20 @@ describe("startup prerequisites", () => {
     expect(formatStartupPrerequisiteReport(report)).toEqual([]);
   });
 
-  it("warns when no coding agent CLI is installed", () => {
+  it("warns when kiro-cli is not installed", () => {
     const report = collectStartupPrerequisiteReport((command) => command === "git");
 
     expect(report.errors).toEqual([]);
-    expect(report.warnings.map((issue) => issue.command)).toEqual(["codex", "gh", "curl"]);
+    expect(report.warnings.map((issue) => issue.command)).toEqual(["kiro-cli", "gh", "curl"]);
   });
 
-  it("warns for degraded optional integrations when codex is available", () => {
-    const report = collectStartupPrerequisiteReport((command) => command === "codex");
+  it("passes cleanly for optional integrations when kiro-cli is available", () => {
+    const report = collectStartupPrerequisiteReport((command) => command === "kiro-cli");
 
     expect(report.errors).toEqual([]);
-    expect(report.warnings.map((issue) => issue.command)).toEqual(["claude", "git", "gh", "curl"]);
+    expect(report.warnings.map((issue) => issue.command)).toEqual(["git", "gh", "curl"]);
     expect(formatStartupPrerequisiteReport(report)).toEqual([
       "Adadex startup preflight:",
-      "  Warning: `claude` is not installed.",
-      "    Install Claude Code (`npm install -g @anthropic-ai/claude-code`) to use it as an agent provider.",
       "  Warning: `git` is not installed.",
       "    Worktree terminals and git lifecycle actions are unavailable. Install Git to enable branch/worktree flows.",
       "  Warning: `gh` is not installed.",
@@ -43,7 +41,7 @@ describe("startup prerequisites", () => {
   it("uses where on Windows and which elsewhere when checking commands", () => {
     const calls: Array<{ file: string; args: string[] }> = [];
 
-    const windowsAvailable = isCommandAvailable("codex", {
+    const windowsAvailable = isCommandAvailable("kiro-cli", {
       platform: "win32",
       execFileSyncImpl: ((file, args) => {
         calls.push({ file, args: args as string[] });
@@ -51,7 +49,7 @@ describe("startup prerequisites", () => {
       }) as typeof import("node:child_process").execFileSync,
     });
 
-    const unixAvailable = isCommandAvailable("codex", {
+    const unixAvailable = isCommandAvailable("kiro-cli", {
       platform: "linux",
       execFileSyncImpl: ((file, args) => {
         calls.push({ file, args: args as string[] });
@@ -62,8 +60,8 @@ describe("startup prerequisites", () => {
     expect(windowsAvailable).toBe(true);
     expect(unixAvailable).toBe(true);
     expect(calls).toEqual([
-      { file: "where", args: ["codex"] },
-      { file: "which", args: ["codex"] },
+      { file: "where", args: ["kiro-cli"] },
+      { file: "which", args: ["kiro-cli"] },
     ]);
   });
 });

@@ -1,11 +1,11 @@
 # Troubleshooting
 
-## `pnpm test` fails because of browser APIs
+## `npm test` fails because of browser APIs
 
 Make sure the workspace dependencies are installed from the repo root:
 
 ```bash
-pnpm install
+npm install
 ```
 
 ## Package resolution is broken
@@ -37,10 +37,6 @@ Verify:
 ```bash
 gh auth status
 ```
-
-## Monitor refresh fails
-
-Verify your X bearer token and API access.
 
 ## Messages disappear after restart
 

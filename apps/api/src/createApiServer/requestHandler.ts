@@ -4,10 +4,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { extname, join } from "node:path";
 
 import type { CodeIntelStore } from "../codeIntelStore";
-import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { logVerbose } from "../logging";
-import type { MonitorService } from "../monitor";
 import type { UsageChartResponse } from "../usageHeatmapScanner";
 import { handleCodeIntelEventsRoute } from "./codeIntelRoutes";
 import {
@@ -39,11 +37,6 @@ import {
   handleUiStateRoute,
   handleWorkspaceSetupRoute,
 } from "./miscRoutes";
-import {
-  handleMonitorConfigRoute,
-  handleMonitorFeedRoute,
-  handleMonitorRefreshRoute,
-} from "./monitorRoutes";
 import type {
   ApiRouteHandler,
   RouteHandlerContext,
@@ -64,11 +57,7 @@ import {
   handleTerminalSnapshotsRoute,
   handleTerminalsCollectionRoute,
 } from "./terminalRoutes";
-import {
-  handleCodexUsageRoute,
-  handleGithubSummaryRoute,
-  handleUsageHeatmapRoute,
-} from "./usageRoutes";
+import { handleGithubSummaryRoute, handleUsageHeatmapRoute } from "./usageRoutes";
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html",
@@ -93,10 +82,8 @@ type CreateApiRequestHandlerOptions = {
   webDistDir?: string | undefined;
   getApiBaseUrl: () => string;
   getApiPort: () => string;
-  readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageChartResponse>;
-  monitorService: MonitorService;
   codeIntelStore: CodeIntelStore;
   allowRemoteAccess: boolean;
 };
@@ -123,12 +110,10 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     ],
   ],
   ["terminal-snapshots", [handleTerminalSnapshotsRoute]],
-  ["codex", [handleCodexUsageRoute]],
   ["analytics", [handleUsageHeatmapRoute]],
   ["github", [handleGithubSummaryRoute]],
   ["setup", [handleWorkspaceSetupRoute]],
   ["ui-state", [handleUiStateRoute]],
-  ["monitor", [handleMonitorConfigRoute, handleMonitorFeedRoute, handleMonitorRefreshRoute]],
   [
     "conversations",
     [
@@ -200,10 +185,8 @@ export const createApiRequestHandler = ({
   webDistDir,
   getApiBaseUrl,
   getApiPort,
-  readCodexUsageSnapshot,
   readGithubRepoSummary,
   scanUsageHeatmap,
-  monitorService,
   codeIntelStore,
   allowRemoteAccess,
 }: CreateApiRequestHandlerOptions) => {
@@ -217,10 +200,8 @@ export const createApiRequestHandler = ({
     userPromptsDir,
     getApiBaseUrl,
     getApiPort,
-    readCodexUsageSnapshot,
     readGithubRepoSummary,
     scanUsageHeatmap,
-    monitorService,
     codeIntelStore,
   };
 

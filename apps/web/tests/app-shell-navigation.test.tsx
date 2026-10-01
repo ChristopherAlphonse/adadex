@@ -13,14 +13,6 @@ const mockShellRequests = () => {
       return jsonResponse([]);
     }
 
-    if (url.endsWith("/api/codex/usage") && method === "GET") {
-      return jsonResponse({
-        status: "unavailable",
-        source: "none",
-        fetchedAt: "2026-02-27T12:00:00.000Z",
-      });
-    }
-
     if (url.endsWith("/api/github/summary") && method === "GET") {
       return jsonResponse({
         status: "unavailable",

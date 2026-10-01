@@ -46,162 +46,110 @@ export const createHookProcessor = (deps: {
     onStateChange,
   } = deps;
 
-  const parseSettingsObject = (fileContents: string): Record<string, unknown> | null => {
+  const parseHookFile = (fileContents: string): { hooks: unknown[] } | null => {
     try {
       const parsed = JSON.parse(fileContents) as unknown;
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         return null;
       }
-      return parsed as Record<string, unknown>;
+      const record = parsed as Record<string, unknown>;
+      return { hooks: Array.isArray(record.hooks) ? record.hooks : [] };
     } catch {
       return null;
     }
   };
 
-  const mergeHookEntries = (
-    existingValue: unknown,
-    eventName: string,
-    nextEntries: unknown[],
-  ): Record<string, unknown> => {
-    const nextHooks =
-      existingValue && typeof existingValue === "object" && !Array.isArray(existingValue)
-        ? { ...(existingValue as Record<string, unknown>) }
-        : {};
-    const existingEntries = Array.isArray(nextHooks[eventName])
-      ? [...(nextHooks[eventName] as unknown[])]
-      : [];
-    const mergedEntries = [...existingEntries];
+  const mergeHookList = (existingHooks: unknown[], nextHooks: unknown[]): unknown[] => {
+    const merged = [...existingHooks];
 
-    for (const nextEntry of nextEntries) {
-      const serializedNextEntry = JSON.stringify(nextEntry);
-      const alreadyPresent = existingEntries.some(
-        (existingEntry) => JSON.stringify(existingEntry) === serializedNextEntry,
+    for (const nextHook of nextHooks) {
+      const serializedNextHook = JSON.stringify(nextHook);
+      const alreadyPresent = existingHooks.some(
+        (existingHook) => JSON.stringify(existingHook) === serializedNextHook,
       );
       if (!alreadyPresent) {
-        mergedEntries.push(nextEntry);
+        merged.push(nextHook);
       }
     }
 
-    nextHooks[eventName] = mergedEntries;
-    return nextHooks;
+    return merged;
   };
 
-  const PROVIDER_CONFIG_DIRS: Record<string, string> = {
-    codex: ".codex",
-    claude: ".claude",
-    opencode: ".opencode",
-  };
-
-  const installHooksInDirectory = (targetCwd: string, agentProvider = "codex") => {
-    const configDir = PROVIDER_CONFIG_DIRS[agentProvider] ?? ".codex";
-    const targetCodexDir = join(targetCwd, configDir);
-    const targetSettingsPath = join(targetCodexDir, "settings.json");
+  const installHooksInDirectory = (targetCwd: string, _agentProvider = "kiro") => {
+    const targetKiroHooksDir = join(targetCwd, ".kiro", "hooks");
+    const targetHookFilePath = join(targetKiroHooksDir, "adadex.json");
     const apiBaseUrl = getApiBaseUrl();
 
-    const hooksConfig = {
-      hooks: {
-        SessionStart: [
-          {
-            matcher: "*",
-            hooks: [
-              {
-                type: "command",
-                command: `curl -s -X POST "${apiBaseUrl}/api/hooks/session-start?adadex_session=$ADADEX_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
-                timeout: 5,
-              },
-            ],
-          },
-        ],
-        UserPromptSubmit: [
-          {
-            matcher: "*",
-            hooks: [
-              {
-                type: "command",
-                command: `curl -s -X POST "${apiBaseUrl}/api/hooks/user-prompt-submit?adadex_session=$ADADEX_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
-                timeout: 5,
-              },
-            ],
-          },
-        ],
-        PreToolUse: [
-          {
-            matcher: "*",
-            hooks: [
-              {
-                type: "http",
-                url: `${apiBaseUrl}/api/hooks/pre-tool-use`,
-                headers: { "X-Adadex-Session": "$ADADEX_SESSION_ID" },
-                allowedEnvVars: ["ADADEX_SESSION_ID", "OCTOGENT_SESSION_ID"],
-                timeout: 5,
-              },
-            ],
-          },
-        ],
-        PostToolUse: [
-          {
-            matcher: "Edit|Write",
-            hooks: [
-              {
-                type: "http",
-                url: `${apiBaseUrl}/api/code-intel/events`,
-                headers: { "X-Adadex-Session": "$ADADEX_SESSION_ID" },
-                allowedEnvVars: ["ADADEX_SESSION_ID", "OCTOGENT_SESSION_ID"],
-                timeout: 5,
-              },
-            ],
-          },
-        ],
-        Notification: [
-          {
-            matcher: "*",
-            hooks: [
-              {
-                type: "http",
-                url: `${apiBaseUrl}/api/hooks/notification`,
-                headers: { "X-Adadex-Session": "$ADADEX_SESSION_ID" },
-                allowedEnvVars: ["ADADEX_SESSION_ID", "OCTOGENT_SESSION_ID"],
-                timeout: 5,
-              },
-            ],
-          },
-        ],
-        Stop: [
-          {
-            matcher: "*",
-            hooks: [
-              {
-                type: "command",
-                command: `curl -s -X POST "${apiBaseUrl}/api/hooks/stop?adadex_session=$ADADEX_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
-                timeout: 15,
-              },
-            ],
-          },
-        ],
+    const nextHooks = [
+      {
+        name: "adadex-session-start",
+        trigger: "SessionStart",
+        matcher: "*",
+        action: {
+          type: "command",
+          command: `curl -s -X POST "${apiBaseUrl}/api/hooks/session-start?adadex_session=$ADADEX_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
+        },
+        timeout: 5,
       },
-    };
+      {
+        name: "adadex-user-prompt-submit",
+        trigger: "UserPromptSubmit",
+        matcher: "*",
+        action: {
+          type: "command",
+          command: `curl -s -X POST "${apiBaseUrl}/api/hooks/user-prompt-submit?adadex_session=$ADADEX_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
+        },
+        timeout: 5,
+      },
+      {
+        name: "adadex-pre-tool-use",
+        trigger: "PreToolUse",
+        matcher: "*",
+        action: {
+          type: "command",
+          // ponytail: PreToolUse is fail-closed in Kiro (a non-zero exit blocks the tool
+          // call), so we force `exit 0` even on curl failure — this trades hook-delivery
+          // reliability for not blocking every tool call on a transient curl hiccup.
+          // Upgrade path: a local queue/retry if false negatives from the API being down
+          // become a problem.
+          command: `curl -s -X POST "${apiBaseUrl}/api/hooks/pre-tool-use?adadex_session=$ADADEX_SESSION_ID" -H 'Content-Type: application/json' -d @- ; exit 0`,
+        },
+        timeout: 5,
+      },
+      {
+        name: "adadex-post-tool-use",
+        trigger: "PostToolUse",
+        matcher: "fs_write",
+        action: {
+          type: "command",
+          command: `curl -s -X POST "${apiBaseUrl}/api/code-intel/events?adadex_session=$ADADEX_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
+        },
+        timeout: 5,
+      },
+      // Note: Kiro has no Notification trigger today, so permission/idle-prompt
+      // detection (previously driven by the "notification" hook) is unavailable.
+      {
+        name: "adadex-stop",
+        trigger: "Stop",
+        matcher: "*",
+        action: {
+          type: "command",
+          command: `curl -s -X POST "${apiBaseUrl}/api/hooks/stop?adadex_session=$ADADEX_SESSION_ID" -H 'Content-Type: application/json' -d @- || true`,
+        },
+        timeout: 15,
+      },
+    ];
 
     try {
-      mkdirSync(targetCodexDir, { recursive: true });
-      const existingSettings = existsSync(targetSettingsPath)
-        ? parseSettingsObject(readFileSync(targetSettingsPath, "utf8"))
+      mkdirSync(targetKiroHooksDir, { recursive: true });
+      const existingFile = existsSync(targetHookFilePath)
+        ? parseHookFile(readFileSync(targetHookFilePath, "utf8"))
         : null;
-      const mergedSettings =
-        existingSettings && typeof existingSettings === "object" ? { ...existingSettings } : {};
+      const existingHooks = existingFile?.hooks ?? [];
+      const mergedHooks = mergeHookList(existingHooks, nextHooks);
 
-      let mergedHooks =
-        mergedSettings.hooks &&
-        typeof mergedSettings.hooks === "object" &&
-        !Array.isArray(mergedSettings.hooks)
-          ? { ...(mergedSettings.hooks as Record<string, unknown>) }
-          : {};
-
-      for (const [eventName, eventEntries] of Object.entries(hooksConfig.hooks)) {
-        mergedHooks = mergeHookEntries(mergedHooks, eventName, eventEntries);
-      }
-
-      mergedSettings.hooks = mergedHooks;
-      writeFileSync(targetSettingsPath, `${JSON.stringify(mergedSettings, null, 2)}\n`, "utf8");
+      const document = { version: "v1", hooks: mergedHooks };
+      writeFileSync(targetHookFilePath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
     } catch {
       // Best-effort
     }
@@ -377,7 +325,7 @@ export const createHookProcessor = (deps: {
       const effectiveTurns = turns ?? [];
       const lastTurn = effectiveTurns.length > 0 ? effectiveTurns[effectiveTurns.length - 1] : null;
 
-      if (!lastTurn || lastTurn.role !== "assistant" || lastTurn.content !== lastAssistantMessage) {
+      if (lastTurn?.role !== "assistant" || lastTurn.content !== lastAssistantMessage) {
         const now = new Date().toISOString();
         effectiveTurns.push({
           turnId: `turn-${effectiveTurns.length + 1}`,

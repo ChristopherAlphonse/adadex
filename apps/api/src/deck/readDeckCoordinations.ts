@@ -42,7 +42,6 @@ type DeckCoordinationState = {
   mascot: DeckMascotAppearance;
   scope: { paths: string[]; tags: string[] };
   agentProvider?: TerminalAgentProvider;
-  agentModel?: string;
 };
 
 type DeckStateDocument = {
@@ -136,9 +135,6 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
 
   if (typeof rec.agentProvider === "string" && isTerminalAgentProvider(rec.agentProvider)) {
     result.agentProvider = rec.agentProvider;
-  }
-  if (typeof rec.agentModel === "string" && rec.agentModel.trim().length > 0) {
-    result.agentModel = rec.agentModel.trim();
   }
 
   return result;
@@ -286,7 +282,6 @@ export const readDeckCoordinations = (
       todoItems,
       suggestedSkills: agentInfo.suggestedSkills,
       ...(state.agentProvider ? { agentProvider: state.agentProvider } : {}),
-      ...(state.agentModel ? { agentModel: state.agentModel } : {}),
     });
   }
 
@@ -578,7 +573,7 @@ export const listDeckAvailableSkills = (workspaceCwd: string): DeckAvailableSkil
 export const updateDeckCoordinationAgent = (
   workspaceCwd: string,
   coordinationId: string,
-  agent: { agentProvider?: TerminalAgentProvider | null; agentModel?: string | null },
+  agent: { agentProvider?: TerminalAgentProvider | null },
   projectStateDir?: string,
 ): DeckCoordinationSummary | null => {
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
@@ -592,13 +587,6 @@ export const updateDeckCoordinationAgent = (
       delete entry.agentProvider;
     } else {
       entry.agentProvider = agent.agentProvider;
-    }
-  }
-  if (agent.agentModel !== undefined) {
-    if (agent.agentModel === null || agent.agentModel.trim() === "") {
-      delete entry.agentModel;
-    } else {
-      entry.agentModel = agent.agentModel.trim();
     }
   }
 

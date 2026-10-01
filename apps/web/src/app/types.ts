@@ -3,7 +3,6 @@ import type { buildTerminalList, GitHubCommitPoint } from "@adadex/core";
 export type TerminalView = Awaited<ReturnType<typeof buildTerminalList>>;
 
 export type {
-  CodexUsageSnapshot,
   ConversationSearchHit,
   ConversationSessionDetail,
   ConversationSessionSummary,

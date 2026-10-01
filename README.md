@@ -32,14 +32,14 @@
 
 Adadex is a web-first orchestration layer for running multiple coding agents in parallel. Instead of juggling many terminal sessions and losing track of what each one is doing, Adadex gives each job its own scoped context, task list, and notes. One agent session can spawn others, assign them work, and exchange messages with them while you stay at the orchestration layer.
 
-> **Multi-provider support.** Adadex is no longer tied to a single coding agent CLI. You can set a global default from the header, then override it per coordination in the Customize tab. Each coordination stores its own provider and model, so when a terminal is deployed for it, it launches with exactly the right CLI and `--model` flag — no manual configuration required.
+> **Kiro CLI powered.** Adadex launches every terminal with [Kiro CLI](https://kiro.dev) (`kiro-cli`) as the coding agent. There is no provider switcher and no per-coordination model override — every terminal uses the same CLI, configured once.
 
 ## What Adadex Does
 
 - Creates **coordinations** as scoped job containers: each one gets its own `CONTEXT.md`, `todo.md`, and notes
 - Runs multiple coding agent terminals side by side so one developer can manage several sessions at once
-- Runs against **Codex**, **Claude Code**, or **opencode** — switch the global provider from the header at any time
-- Lets each coordination run its own **agent CLI and model** — one coordination can use Codex with o4-mini, another Claude Code with Opus 4.7, another opencode with a different model entirely
+- Runs every terminal against **Kiro CLI** (`kiro-cli`)
+- Lets one agent session spawn others, assign them work, and exchange messages while you stay at the orchestration layer
 
 - Spawns child agents from todo items so parallel work has a concrete source of truth
 - Supports inter-agent messaging so workers and coordinators can report completion, blockers, and handoffs
@@ -56,7 +56,7 @@ Adadex is a web-first orchestration layer for running multiple coding agents in 
 </tr>
 <tr>
 <td><img src="./static/images/preview_3.png" alt="Deck view with coordinations" width="100%"/></td>
-<td><img src="./static/images/preview_4.png" alt="Per-agent CLI and model selection in Customize" width="100%"/></td>
+<td><img src="./static/images/preview_4.png" alt="Per-coordination customization options" width="100%"/></td>
 </tr>
 <tr>
 <td><img src="./static/images/preview_5.png" alt="Activity view with token usage and GitHub commits" width="100%"/></td>
@@ -68,7 +68,7 @@ Adadex is a web-first orchestration layer for running multiple coding agents in 
 ## Requirements
 
 - Node.js `22+`
-- At least one coding agent CLI: `codex`, `claude` (Claude Code), or `opencode`
+- Kiro CLI (`kiro-cli`) — install via `curl -fsSL https://cli.kiro.dev/install | bash`
 - `git` for worktree terminals
 - `gh` for GitHub pull request features
 - `curl` for agent hook callbacks
@@ -80,15 +80,15 @@ Adadex is not yet published to the npm registry. Use one of the options below.
 **Local development:**
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 **Global CLI from a local clone:**
 
 ```bash
-pnpm install
-pnpm build
+npm install
+npm run build
 npm install -g .
 adadex
 ```
@@ -143,7 +143,7 @@ For the current model, see [Orchestrating Child Agents](docs/guides/orchestratin
 | Location                                   | What it holds                                       |
 | ------------------------------------------ | --------------------------------------------------- |
 | `.adadex/`                                 | Project-local scaffold and worktrees                |
-| `~/.adadex/projects/<project-id>/state/`   | Runtime state, transcripts, monitor cache, metadata |
+| `~/.adadex/projects/<project-id>/state/`   | Runtime state, transcripts, metadata                |
 | `.adadex/coordinations/<coordination-id>/` | Context files and todos that agents read            |
 
 PTY sessions survive browser reloads during the idle grace period but do not survive an API restart. Adadex marks previously running terminal records as `stale` on startup when it cannot reattach them to a live PTY session. Use `adadex terminal list`, `stop`, `kill`, and `prune` to inspect and clean them up.

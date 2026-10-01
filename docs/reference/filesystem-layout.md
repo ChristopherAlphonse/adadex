@@ -25,14 +25,14 @@ Coordination example:
       routes.md
 ```
 
-`CONTEXT.md` may end with a managed `Suggested Skills` block when the operator or planner attaches Codex skills to that coordination.
+`CONTEXT.md` may end with a managed `Suggested Skills` block when the operator or planner attaches Kiro skills to that coordination.
 
 Deck also writes UI metadata for coordinations, but not into these markdown files. Color, status, appearance, paths, and tags are stored in global deck state.
 
-Project-local Codex skills, when present, live under:
+Project-local Kiro skills, when present, live under:
 
 ```text
-.codex/
+.kiro/
   skills/
     some-skill/
       SKILL.md
@@ -51,8 +51,6 @@ Notable files:
 - `coordinations.json`
 - `deck.json`
 - `transcripts/<sessionId>.jsonl`
-- `monitor-config.json`
-- `monitor-cache.json`
 - `code-intel.jsonl`
 
 `coordinations.json` is the terminal registry. It stores terminal records, lifecycle state, UI state, parent-child links, workspace mode, worktree IDs, and display names.

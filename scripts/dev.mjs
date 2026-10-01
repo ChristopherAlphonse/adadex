@@ -71,8 +71,8 @@ const findOpenPort = async (startPort) => {
   throw new Error(`Unable to find an open port starting from ${startPort}`);
 };
 
-// Windows: spawn("pnpm.cmd", ...) throws EINVAL on recent Node; use the shell to resolve pnpm.
-const pnpmSpawnShell = process.platform === "win32";
+// Windows: spawn("npm.cmd", ...) throws EINVAL on recent Node; use the shell to resolve npm.
+const npmSpawnShell = process.platform === "win32";
 const startPort = parseStartPort(
   process.env.ADADEX_DEV_START_PORT ?? process.env.OCTOGENT_DEV_START_PORT,
 );
@@ -141,33 +141,29 @@ const workspaceCwd =
   process.env.ADADEX_WORKSPACE_CWD ?? process.env.OCTOGENT_WORKSPACE_CWD ?? monorepoRoot;
 const projectStateDir = resolveProjectStateDir(workspaceCwd);
 
-const child = spawn(
-  "pnpm",
-  ["-r", "--parallel", "--filter", "@adadex/api", "--filter", "@adadex/web", "dev"],
-  {
-    stdio: "inherit",
-    shell: pnpmSpawnShell,
-    env: {
-      ...process.env,
-      ADADEX_API_PORT: String(apiPort),
-      ADADEX_API_ORIGIN: apiOrigin,
-      OCTOGENT_API_PORT: String(apiPort),
-      OCTOGENT_API_ORIGIN: apiOrigin,
-      ADADEX_WORKSPACE_CWD: workspaceCwd,
-      OCTOGENT_WORKSPACE_CWD: workspaceCwd,
-      ADADEX_PROJECT_STATE_DIR: projectStateDir,
-      OCTOGENT_PROJECT_STATE_DIR: projectStateDir,
-      ADADEX_PROMPTS_DIR:
-        process.env.ADADEX_PROMPTS_DIR ??
-        process.env.OCTOGENT_PROMPTS_DIR ??
-        `${monorepoRoot}/prompts`,
-      OCTOGENT_PROMPTS_DIR:
-        process.env.ADADEX_PROMPTS_DIR ??
-        process.env.OCTOGENT_PROMPTS_DIR ??
-        `${monorepoRoot}/prompts`,
-    },
+const child = spawn("npm", ["run", "dev", "--workspace=@adadex/api", "--workspace=@adadex/web"], {
+  stdio: "inherit",
+  shell: npmSpawnShell,
+  env: {
+    ...process.env,
+    ADADEX_API_PORT: String(apiPort),
+    ADADEX_API_ORIGIN: apiOrigin,
+    OCTOGENT_API_PORT: String(apiPort),
+    OCTOGENT_API_ORIGIN: apiOrigin,
+    ADADEX_WORKSPACE_CWD: workspaceCwd,
+    OCTOGENT_WORKSPACE_CWD: workspaceCwd,
+    ADADEX_PROJECT_STATE_DIR: projectStateDir,
+    OCTOGENT_PROJECT_STATE_DIR: projectStateDir,
+    ADADEX_PROMPTS_DIR:
+      process.env.ADADEX_PROMPTS_DIR ??
+      process.env.OCTOGENT_PROMPTS_DIR ??
+      `${monorepoRoot}/prompts`,
+    OCTOGENT_PROMPTS_DIR:
+      process.env.ADADEX_PROMPTS_DIR ??
+      process.env.OCTOGENT_PROMPTS_DIR ??
+      `${monorepoRoot}/prompts`,
   },
-);
+});
 
 const forwardSignal = (signal) => {
   if (child.killed) {

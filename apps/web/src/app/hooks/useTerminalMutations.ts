@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useRef, useState } from "react";
 
-import type { TerminalAgentProvider, TerminalView, TerminalWorkspaceMode } from "../types";
+import type { TerminalView, TerminalWorkspaceMode } from "../types";
 
 export type PendingDeleteTerminal = {
   terminalId: string;
@@ -29,7 +29,6 @@ type UseTerminalMutationsResult = {
   submitTerminalRename: (terminalId: string, currentTerminalName: string) => Promise<void>;
   createTerminal: (
     workspaceMode: TerminalWorkspaceMode,
-    agentProvider?: TerminalAgentProvider,
     coordinationId?: string,
   ) => Promise<string | undefined>;
   requestDeleteTerminal: (
@@ -115,11 +114,7 @@ export const useTerminalMutations = ({
   );
 
   const createTerminal = useCallback(
-    async (
-      workspaceMode: TerminalWorkspaceMode,
-      agentProvider?: TerminalAgentProvider,
-      coordinationId?: string,
-    ) => {
+    async (workspaceMode: TerminalWorkspaceMode, coordinationId?: string) => {
       try {
         setIsCreatingTerminal(true);
         setLoadError(null);
@@ -131,7 +126,6 @@ export const useTerminalMutations = ({
           },
           body: JSON.stringify({
             workspaceMode,
-            agentProvider: agentProvider ?? "codex",
             ...(coordinationId ? { coordinationId } : {}),
           }),
         });

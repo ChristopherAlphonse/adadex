@@ -46,10 +46,7 @@ const inferTerminalNameOrigin = (
   terminalId: string,
   coordinationName: string,
 ): TerminalNameOrigin => {
-  if (
-    coordinationName === terminalId ||
-    /^(Octogent|Adadex) Terminal \d+$/.test(coordinationName)
-  ) {
+  if (coordinationName === terminalId || /^Adadex Terminal \d+$/.test(coordinationName)) {
     return "generated";
   }
 
@@ -77,18 +74,6 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
 
   if (typeof value.isRuntimeStatusStripVisible === "boolean") {
     nextState.isRuntimeStatusStripVisible = value.isRuntimeStatusStripVisible;
-  }
-
-  if (typeof value.isMonitorVisible === "boolean") {
-    nextState.isMonitorVisible = value.isMonitorVisible;
-  }
-
-  if (typeof value.isCodexUsageVisible === "boolean") {
-    nextState.isCodexUsageVisible = value.isCodexUsageVisible;
-  }
-
-  if (typeof value.isCodexUsageSectionExpanded === "boolean") {
-    nextState.isCodexUsageSectionExpanded = value.isCodexUsageSectionExpanded;
   }
 
   const completionSoundValue = value.terminalCompletionSound;

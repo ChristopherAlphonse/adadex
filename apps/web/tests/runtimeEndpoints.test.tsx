@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildCodexUsageUrl,
   buildConversationExportUrl,
   buildConversationSessionUrl,
   buildConversationsUrl,
@@ -40,16 +39,6 @@ describe("runtimeEndpoints", () => {
   it("builds absolute terminal creation URL when runtime base URL is configured", () => {
     expect(buildTerminalsUrl("https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/terminals",
-    );
-  });
-
-  it("builds codex usage URL on same origin by default", () => {
-    expect(buildCodexUsageUrl()).toBe("/api/codex/usage");
-  });
-
-  it("builds absolute codex usage URL when runtime base URL is configured", () => {
-    expect(buildCodexUsageUrl("https://runtime.example.com")).toBe(
-      "https://runtime.example.com/api/codex/usage",
     );
   });
 

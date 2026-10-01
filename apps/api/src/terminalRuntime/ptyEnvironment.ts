@@ -4,11 +4,7 @@ import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
 
-export const createShellEnvironment = (options?: {
-  adadexSessionId?: string;
-  /** @deprecated use `adadexSessionId` */
-  octogentSessionId?: string;
-}) => {
+export const createShellEnvironment = (options?: { adadexSessionId?: string }) => {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (typeof value === "string") {
@@ -17,10 +13,9 @@ export const createShellEnvironment = (options?: {
   }
   env.TERM = "xterm-256color";
   env.COLORTERM = "truecolor";
-  const sessionId = options?.adadexSessionId ?? options?.octogentSessionId;
+  const sessionId = options?.adadexSessionId;
   if (sessionId) {
     env.ADADEX_SESSION_ID = sessionId;
-    env.OCTOGENT_SESSION_ID = sessionId;
   }
   return env;
 };

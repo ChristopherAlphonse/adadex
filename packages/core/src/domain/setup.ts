@@ -1,8 +1,7 @@
 export type WorkspaceSetupStepId =
   | "initialize-workspace"
   | "ensure-gitignore"
-  | "check-codex"
-  | "check-claude"
+  | "check-kiro"
   | "check-git"
   | "check-curl"
   | "create-coordinations";

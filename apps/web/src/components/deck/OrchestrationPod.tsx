@@ -3,7 +3,7 @@ import type {
   DeckCoordinationSummary,
   TerminalAgentProvider,
 } from "@adadex/core";
-import { AGENT_PROVIDER_MODELS, TERMINAL_AGENT_PROVIDERS } from "@adadex/core";
+import { TERMINAL_AGENT_PROVIDERS } from "@adadex/core";
 import { useEffect, useRef, useState } from "react";
 import { formatColorForDisplay } from "../../app/mascotPalette";
 import { type AgentGlyphAccessory, type AgentGlyphMood, MascotSprite } from "../MascotSprite";
@@ -89,11 +89,7 @@ export type OrchestrationPodProps = {
       ) => Promise<boolean>)
     | undefined;
   onSaveAgent?:
-    | ((
-        coordinationId: string,
-        agentProvider: TerminalAgentProvider | null,
-        agentModel: string | null,
-      ) => Promise<boolean>)
+    | ((coordinationId: string, agentProvider: TerminalAgentProvider | null) => Promise<boolean>)
     | undefined;
 };
 
@@ -130,7 +126,6 @@ export const OrchestrationPod = ({
   const [editAgentProvider, setEditAgentProvider] = useState<TerminalAgentProvider | "">(
     orchestration.agentProvider ?? "",
   );
-  const [editAgentModel, setEditAgentModel] = useState<string>(orchestration.agentModel ?? "");
 
   useEffect(() => {
     setDraftSkills(orchestration.suggestedSkills);
@@ -138,8 +133,7 @@ export const OrchestrationPod = ({
 
   useEffect(() => {
     setEditAgentProvider(orchestration.agentProvider ?? "");
-    setEditAgentModel(orchestration.agentModel ?? "");
-  }, [orchestration.agentProvider, orchestration.agentModel]);
+  }, [orchestration.agentProvider]);
 
   const availableSkillNames = availableSkills.map((skill) => skill.name);
   const skillNames = [...new Set([...availableSkillNames, ...draftSkills])].sort((a, b) =>
@@ -169,11 +163,7 @@ export const OrchestrationPod = ({
         expression: editExpression,
         accessory: editAccessory,
       }),
-      onSaveAgent?.(
-        orchestration.coordinationId,
-        editAgentProvider || null,
-        editAgentModel.trim() || null,
-      ),
+      onSaveAgent?.(orchestration.coordinationId, editAgentProvider || null),
     ]);
     if (savedMascot || savedAgent) {
       setIsEditingMascot(false);
@@ -280,13 +270,10 @@ export const OrchestrationPod = ({
           </div>
         </div>
 
-        {(orchestration.agentProvider || orchestration.agentModel) && (
+        {orchestration.agentProvider && (
           <div className="deck-pod-agent-badge">
             <span className="deck-pod-vault-label">agent</span>
-            <span className="deck-pod-vault-file">{orchestration.agentProvider ?? "global"}</span>
-            {orchestration.agentModel && (
-              <span className="deck-pod-vault-file">{orchestration.agentModel}</span>
-            )}
+            <span className="deck-pod-vault-file">{orchestration.agentProvider}</span>
           </div>
         )}
 
@@ -360,7 +347,6 @@ export const OrchestrationPod = ({
                   data-selected={editAgentProvider === "" ? "true" : "false"}
                   onClick={() => {
                     setEditAgentProvider("");
-                    setEditAgentModel("");
                   }}
                 >
                   Global default
@@ -373,7 +359,6 @@ export const OrchestrationPod = ({
                     data-selected={editAgentProvider === p ? "true" : "false"}
                     onClick={() => {
                       setEditAgentProvider(p);
-                      setEditAgentModel("");
                     }}
                   >
                     {p}
@@ -381,33 +366,6 @@ export const OrchestrationPod = ({
                 ))}
               </div>
             </div>
-
-            {editAgentProvider !== "" && (
-              <div className="deck-pod-mascot-editor-group">
-                <span className="deck-pod-mascot-editor-label">Model</span>
-                <div className="deck-pod-mascot-editor-chips">
-                  <button
-                    type="button"
-                    className="deck-add-form-chip"
-                    data-selected={editAgentModel === "" ? "true" : "false"}
-                    onClick={() => setEditAgentModel("")}
-                  >
-                    Provider default
-                  </button>
-                  {(AGENT_PROVIDER_MODELS[editAgentProvider] ?? []).map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className="deck-add-form-chip"
-                      data-selected={editAgentModel === m.id ? "true" : "false"}
-                      onClick={() => setEditAgentModel(m.id)}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
             <div className="deck-pod-mascot-editor-actions">
               <button
                 type="button"
@@ -433,7 +391,7 @@ export const OrchestrationPod = ({
             <div className="deck-pod-skills-editor">
               {skillNames.length === 0 ? (
                 <span className="deck-pod-skills-empty">
-                  No project skills found (.codex/skills).
+                  No project skills found (.kiro/skills).
                 </span>
               ) : (
                 <div className="deck-pod-skills-options">

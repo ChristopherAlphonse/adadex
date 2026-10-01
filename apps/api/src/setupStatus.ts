@@ -57,12 +57,10 @@ export const readWorkspaceSetupSnapshot = (
   const setupState = readSetupState(projectStateDir);
   const isFirstRun = !hasAnyCoordinations && !setupState.coordinationsInitializedAt;
   const verifiedSteps = setupState.verifiedSteps ?? {};
-  const isCodexVerified = Boolean(verifiedSteps["check-codex"]);
-  const isClaudeVerified = Boolean(verifiedSteps["check-claude"]);
+  const isKiroVerified = Boolean(verifiedSteps["check-kiro"]);
   const isGitVerified = Boolean(verifiedSteps["check-git"]);
   const isCurlVerified = Boolean(verifiedSteps["check-curl"]);
-  const hasCodex = prerequisites.availability.codex;
-  const hasClaude = prerequisites.availability.claude;
+  const hasKiro = prerequisites.availability.kiro;
   const hasGit = prerequisites.availability.git;
   const hasCurl = prerequisites.availability.curl;
 
@@ -99,42 +97,23 @@ export const readWorkspaceSetupSnapshot = (
       command: hasGitignore ? null : "printf '.adadex/\\n.planning/\\n' >> .gitignore",
     },
     {
-      id: "check-codex",
-      title: "Check Codex",
-      description: "Verify the Codex CLI is available on this machine.",
-      complete: hasCodex && isCodexVerified,
+      id: "check-kiro",
+      title: "Check Kiro CLI",
+      description: "Verify the Kiro CLI is available on this machine.",
+      complete: hasKiro && isKiroVerified,
       required: false,
-      actionLabel: "Check Codex",
-      statusText: hasCodex
-        ? isCodexVerified
-          ? "Codex is available."
-          : "Confirm Codex before using it as your agent provider."
-        : "Codex is not installed.",
-      guidance: hasCodex
-        ? isCodexVerified
+      actionLabel: "Check Kiro CLI",
+      statusText: hasKiro
+        ? isKiroVerified
+          ? "Kiro CLI is available."
+          : "Confirm Kiro CLI before using it as your agent provider."
+        : "Kiro CLI is not installed.",
+      guidance: hasKiro
+        ? isKiroVerified
           ? null
-          : "Click to verify the Codex workflow on this machine."
-        : "Run `npm install -g @openai/codex` to install Codex.",
-      command: hasCodex ? null : "npm install -g @openai/codex",
-    },
-    {
-      id: "check-claude",
-      title: "Check Claude Code",
-      description: "Verify the Claude Code CLI is available on this machine.",
-      complete: hasClaude && isClaudeVerified,
-      required: false,
-      actionLabel: "Check Claude",
-      statusText: hasClaude
-        ? isClaudeVerified
-          ? "Claude Code is available."
-          : "Confirm Claude Code before using it as your agent provider."
-        : "Claude Code is not installed.",
-      guidance: hasClaude
-        ? isClaudeVerified
-          ? null
-          : "Click to verify the Claude Code workflow on this machine."
-        : "Run `npm install -g @anthropic-ai/claude-code` to install Claude Code.",
-      command: hasClaude ? null : "npm install -g @anthropic-ai/claude-code",
+          : "Click to verify the Kiro CLI workflow on this machine."
+        : "Run `curl -fsSL https://cli.kiro.dev/install | bash` to install Kiro CLI.",
+      command: hasKiro ? null : "curl -fsSL https://cli.kiro.dev/install | bash",
     },
     {
       id: "check-git",

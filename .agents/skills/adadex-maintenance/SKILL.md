@@ -9,25 +9,26 @@ Hard-won lessons from upgrading this monorepo. Run through this before every upg
 ### Before upgrading
 
 ```bash
-pnpm audit --audit-level=high   # baseline CVE state
-pnpm test                        # baseline test state
-pnpm lint                        # baseline lint state
+npm audit --audit-level=high    # baseline CVE state
+npm test                         # baseline test state
+npm run lint                     # baseline lint state
 ```
 
 ### Upgrade command
 
 ```bash
-pnpm update --latest             # bumps all packages in all workspaces
+npm update                       # bumps packages in all workspaces within semver range
+npx npm-check-updates -u -ws --root  # bumps package.json versions beyond semver range
 ```
 
 ### After upgrading — verify in this order
 
 ```bash
-pnpm install --frozen-lockfile   # will FAIL if lockfile is stale — expected
-pnpm install                     # regenerate lockfile
-pnpm lint                        # catch config breakage first (fast)
-pnpm test                        # catch logic breakage
-pnpm build                       # catch type/compile breakage
+npm ci                           # will FAIL if lockfile is stale — expected
+npm install                      # regenerate lockfile
+npm run lint                     # catch config breakage first (fast)
+npm test                         # catch logic breakage
+npm run build                    # catch type/compile breakage
 ```
 
 ---
@@ -41,18 +42,12 @@ pnpm build                       # catch type/compile breakage
 - `files.ignore` removed: use `files.includes` with `!!` negation patterns OR `.biomeignore`.
 - CSS linting added in v2 — existing CSS files will throw parse errors. Add to ignore: `"!!**/*.css"` if not actively linting CSS.
 - Worktree directories (`.adadex/worktrees/`) must be excluded: add `"!!.adadex"` to `files.includes`.
-- Run `pnpm biome migrate --write` first, then audit remaining errors.
+- Run `npx biome migrate --write` first, then audit remaining errors.
 - New `recommended` rules in each major: downgrade pre-existing violations to `"warn"` in biome.json rather than fixing them all at once.
 
 ### TypeScript (6.x+)
 
 - `baseUrl` is deprecated. Add `"ignoreDeprecations": "6.0"` to `compilerOptions` in affected tsconfig files.
-
-### pnpm/action-setup (GitHub Actions)
-
-- SHA pins must be verified. Do NOT guess SHAs.
-- Verify: `gh api repos/pnpm/action-setup/commits/v{VERSION} --jq '.sha'`
-- Current verified: `v6.0.8` → `0e279bb959325dab635dd2c09392533439d90093`
 
 ### vitest (v2 → v4)
 
@@ -147,8 +142,8 @@ Husky + lint-staged auto-fixes lint and formatting on every commit. Never skip w
 
 ### How it works
 
-1. `pnpm install` runs `"prepare": "husky"` → installs git hooks automatically.
-2. On commit, `.husky/pre-commit` runs `pnpm exec lint-staged`.
+1. `npm install` runs `"prepare": "husky"` → installs git hooks automatically.
+2. On commit, `.husky/pre-commit` runs `npx lint-staged`.
 3. lint-staged applies `biome check --write --unsafe` to staged JS/TS/JSON files and `biome format --write` to CSS files.
 4. Fixed files are re-staged automatically before the commit completes.
 
@@ -156,7 +151,7 @@ Husky + lint-staged auto-fixes lint and formatting on every commit. Never skip w
 
 - `.husky/pre-commit` — hook entry point
 - `.lintstagedrc` — maps file globs to Biome commands
-- `package.json` `"prepare": "husky"` — auto-installs hooks on `pnpm install`
+- `package.json` `"prepare": "husky"` — auto-installs hooks on `npm install`
 
 ### lint-staged config (`.lintstagedrc`)
 
@@ -176,14 +171,14 @@ Husky + lint-staged auto-fixes lint and formatting on every commit. Never skip w
 ### Troubleshooting
 
 - If a commit is blocked, it means Biome found an error it cannot auto-fix (e.g., a parse error). Fix the source, don't skip the hook.
-- If hooks stop running after a fresh clone, run `pnpm install` — the `prepare` script re-installs husky.
+- If hooks stop running after a fresh clone, run `npm install` — the `prepare` script re-installs husky.
 - Husky v9+ does not need shebangs in hook files.
 
 ---
 
 ## 6. Lint & Format — Recurring Fix Patterns
 
-Before every PR or after any refactor, run `pnpm lint` and address issues. These are the patterns that recur in this codebase.
+Before every PR or after any refactor, run `npm run lint` and address issues. These are the patterns that recur in this codebase.
 
 ### Unused variables and parameters
 
@@ -249,7 +244,7 @@ No `NPM_TOKEN` secret needed. `GITHUB_TOKEN` (built-in) handles everything.
 The reusable workflow runs: `checkout → actionlint → install → audit → lint → test → build`.
 
 - **actionlint** validates all workflow YAML (runs as Docker: `rhysd/actionlint:1.7.12`).
-- `pnpm audit --audit-level=high` will fail if a HIGH or CRITICAL CVE exists in the dependency tree. Resolve before merging — check dependabot PRs or run `pnpm audit --fix`.
+- `npm audit --audit-level=high` will fail if a HIGH or CRITICAL CVE exists in the dependency tree. Resolve before merging — check dependabot PRs or run `npm audit fix`.
 - The CI quality gate uses `permissions: contents: read` (least privilege). Individual jobs escalate only when needed (`pull-requests: write` for dependency-review).
 
 ---
@@ -266,11 +261,11 @@ Search: `grep -rn "resolvePrompt.*{template-name}" apps/api/src/`
 
 Before modifying any source file, verify:
 
-1. `pnpm lint` exits 0 (only warnings, no errors).
+1. `npm run lint` exits 0 (only warnings, no errors).
 2. Remove unused destructured bindings — don't leave dead variables from prior refactors.
 3. Remove unused imports — Biome's `organizeImports` handles ordering but not removal of dead imports.
 4. Check that commented-out JSX blocks don't reference variables that appear "used" to grep but are dead to the compiler.
-5. After editing, run `pnpm biome check --write --unsafe .` to auto-fix what you can before committing.
+5. After editing, run `npx biome check --write --unsafe .` to auto-fix what you can before committing.
 6. The pre-commit hook handles staged files automatically, but catching issues earlier avoids noisy diffs.
 
 ---
@@ -461,9 +456,9 @@ The quality workflow runs `rhysd/actionlint:1.7.12` in Docker to validate all wo
 After ANY maintenance session, before pushing, run this exact sequence:
 
 ```bash
-pnpm lint          # exit 0, warnings only
-pnpm test          # all tests pass
-pnpm build         # no type errors
+npm run lint       # exit 0, warnings only
+npm test           # all tests pass
+npm run build      # no type errors
 git status         # no accidentally tracked secrets or IDE state
 git ls-files '.cursor' '.planning' '.agents' 'skills-lock.json'  # must be empty
 ```

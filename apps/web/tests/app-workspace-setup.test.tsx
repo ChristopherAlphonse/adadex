@@ -38,13 +38,13 @@ const buildSetupSnapshot = (
       command: "printf '.adadex/\\n.planning/\\n' >> .gitignore",
     },
     {
-      id: "check-codex",
-      title: "Check Codex",
-      description: "Verify the Codex CLI workflow is available on this machine.",
+      id: "check-kiro",
+      title: "Check Kiro",
+      description: "Verify the Kiro CLI workflow is available on this machine.",
       complete: true,
       required: false,
-      actionLabel: "Check Codex",
-      statusText: "Codex is available.",
+      actionLabel: "Check Kiro",
+      statusText: "Kiro is available.",
       guidance: null,
       command: null,
     },
@@ -111,14 +111,6 @@ const mockAppRequests = (
       return jsonResponse(
         options.onEnsureGitignoreStep ? options.onEnsureGitignoreStep() : resolveSetup(),
       );
-    }
-
-    if (url.endsWith("/api/codex/usage") && method === "GET") {
-      return jsonResponse({
-        status: "unavailable",
-        source: "none",
-        fetchedAt: "2026-02-27T12:00:00.000Z",
-      });
     }
 
     if (url.endsWith("/api/github/summary") && method === "GET") {

@@ -147,7 +147,7 @@ export const DeckPrimaryView = ({
 
   // Fetch vault file content when focus changes
   useEffect(() => {
-    if (!focus || focus.type !== "vault") {
+    if (focus?.type !== "vault") {
       setVaultContent(null);
       return;
     }
@@ -321,16 +321,12 @@ export const DeckPrimaryView = ({
   );
 
   const handleSaveCoordinationAgent = useCallback(
-    async (
-      coordinationId: string,
-      agentProvider: TerminalAgentProvider | null,
-      agentModel: string | null,
-    ) => {
+    async (coordinationId: string, agentProvider: TerminalAgentProvider | null) => {
       try {
         const response = await fetch(buildDeckCoordinationAgentUrl(coordinationId), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentProvider, agentModel }),
+          body: JSON.stringify({ agentProvider }),
         });
         if (!response.ok) return false;
         await fetchOrchestrations();

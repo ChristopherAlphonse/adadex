@@ -55,12 +55,12 @@ describe("AgentStateTracker", () => {
     expect(tracker.currentState).toBe("idle");
   });
 
-  it("does not treat codex title/footer text as idle while processing", () => {
+  it("does not treat agent title/footer text as idle while processing", () => {
     const tracker = new AgentStateTracker({ idleAfterMs: 1_000 });
 
     tracker.observeSubmit(0);
 
-    expect(tracker.observeChunk("OpenAI Codex\n100% context left\n", 100)).toBeNull();
+    expect(tracker.observeChunk("Kiro CLI\n100% context left\n", 100)).toBeNull();
     expect(tracker.currentState).toBe("processing");
     expect(tracker.poll(1_050)).toBeNull();
   });

@@ -6,9 +6,6 @@ export type PersistedUiState = {
   sidebarWidth?: number;
   isActiveAgentsSectionExpanded?: boolean;
   isRuntimeStatusStripVisible?: boolean;
-  isMonitorVisible?: boolean;
-  isCodexUsageVisible?: boolean;
-  isCodexUsageSectionExpanded?: boolean;
   terminalCompletionSound?: TerminalCompletionSoundId;
   minimizedTerminalIds?: string[];
   terminalWidths?: Record<string, number>;

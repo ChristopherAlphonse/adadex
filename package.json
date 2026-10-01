@@ -4,20 +4,13 @@
   "description": "Web-first command surface for running multiple coding agents in parallel",
   "license": "MIT",
   "type": "module",
-  "packageManager": "pnpm@10.4.1",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "esbuild",
-      "node-pty"
-    ],
-    "patchedDependencies": {
-      "node-pty@1.1.0": "patches/node-pty@1.1.0.patch"
-    }
-  },
   "engines": {
     "node": ">=22.0.0"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "bin": {
     "adadex": "./bin/adadex"
   },
@@ -27,14 +20,14 @@
     "README.md"
   ],
   "scripts": {
-    "start": "pnpm dev",
+    "start": "npm run dev",
     "dev": "node scripts/dev.mjs",
-    "build": "pnpm --filter @adadex/web build && pnpm --filter @adadex/web exec vite build --config vite.api.bundle.config.mts && node scripts/build-package.mjs",
-    "smoke:public-install": "node scripts/smoke-public-install.mjs",
-    "test": "pnpm -r test",
+    "build": "npm run build --workspace=@adadex/web && npm exec --workspace=@adadex/web -- vite build --config vite.api.bundle.config.mts && node scripts/build-package.mjs",
+    "test": "npm run test --workspaces --if-present",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "node-pty": "^1.1.0",
@@ -46,6 +39,7 @@
     "husky": "^9.1.7",
     "knip": "^6.15.0",
     "lint-staged": "^17.0.5",
+    "patch-package": "8.0.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.7"
   }

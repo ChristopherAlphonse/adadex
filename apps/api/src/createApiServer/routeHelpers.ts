@@ -1,9 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { CodeIntelStore } from "../codeIntelStore";
-import type { CodexUsageSnapshot } from "../codexUsage";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
-import type { MonitorService } from "../monitor";
 import type { UsageChartResponse } from "../usageHeatmapScanner";
 import { RequestBodyTooLargeError, readJsonBody } from "./requestParsers";
 import { withCors } from "./security";
@@ -18,10 +16,8 @@ export type RouteHandlerDependencies = {
   userPromptsDir: string;
   getApiBaseUrl: () => string;
   getApiPort: () => string;
-  readCodexUsageSnapshot: () => Promise<CodexUsageSnapshot>;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageChartResponse>;
-  monitorService: MonitorService;
   codeIntelStore: CodeIntelStore;
 };
 

@@ -4,13 +4,10 @@ import { join } from "node:path";
 
 import { WORKSPACE_RUNTIME_DIR } from "@adadex/core";
 import { createCodeIntelStore } from "./codeIntelStore";
-import { readCodexUsageSnapshot as readCodexUsageSnapshotDefault } from "./codexUsage";
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
 import type { CreateApiServerOptions } from "./createApiServer/types";
 import { createUpgradeHandler } from "./createApiServer/upgradeHandler";
 import { readGithubRepoSummary as readGithubRepoSummaryDefault } from "./githubRepoSummary";
-import { createMonitorService } from "./monitor";
-import { migrateLegacyWorkspaceLayout } from "./projectPersistence";
 import { createTerminalRuntime } from "./terminalRuntime";
 import { scanUsageHeatmap as scanUsageHeatmapDefault } from "./usageHeatmapScanner";
 
@@ -21,14 +18,11 @@ export const createApiServer = ({
   webDistDir,
   apiBaseUrl,
   gitClient,
-  readCodexUsageSnapshot = readCodexUsageSnapshotDefault,
   readGithubRepoSummary,
   scanUsageHeatmap,
-  monitorService,
   allowRemoteAccess = false,
 }: CreateApiServerOptions = {}) => {
   const resolvedWorkspaceCwd = workspaceCwd ?? process.cwd();
-  migrateLegacyWorkspaceLayout(resolvedWorkspaceCwd);
   // State lives in ~/.adadex/projects/<name>/ when provided, else falls back to <project>/.adadex/
   const resolvedStateDir = projectStateDir ?? join(resolvedWorkspaceCwd, WORKSPACE_RUNTIME_DIR);
   let resolvedApiBaseUrl = apiBaseUrl ?? "http://127.0.0.1:8787";
@@ -77,11 +71,6 @@ export const createApiServer = ({
   }
 
   const runtime = createTerminalRuntime(runtimeOptions);
-  const monitorServiceWithDefault =
-    monitorService ??
-    createMonitorService({
-      projectStateDir: resolvedStateDir,
-    });
   const scanUsageHeatmapWithDefault =
     scanUsageHeatmap ??
     ((scope: "all" | "project") => scanUsageHeatmapDefault(scope, resolvedWorkspaceCwd));
@@ -97,10 +86,8 @@ export const createApiServer = ({
     webDistDir,
     getApiBaseUrl,
     getApiPort,
-    readCodexUsageSnapshot,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,
     scanUsageHeatmap: scanUsageHeatmapWithDefault,
-    monitorService: monitorServiceWithDefault,
     codeIntelStore,
     allowRemoteAccess,
   });

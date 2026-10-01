@@ -120,7 +120,7 @@ export const parseTerminalAgentProvider = (payload: unknown) => {
   if (!isTerminalAgentProvider(rawAgentProvider)) {
     return {
       agentProvider: undefined as TerminalAgentProvider | undefined,
-      error: "Terminal agent provider must be 'codex'.",
+      error: "Terminal agent provider must be 'kiro'.",
     };
   }
 

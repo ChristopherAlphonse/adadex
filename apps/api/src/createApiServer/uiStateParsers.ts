@@ -67,36 +67,6 @@ export const parseUiStatePatch = (
     patch.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
   }
 
-  if (record.isMonitorVisible !== undefined) {
-    if (typeof record.isMonitorVisible !== "boolean") {
-      return {
-        patch: null,
-        error: "isMonitorVisible must be a boolean.",
-      };
-    }
-    patch.isMonitorVisible = record.isMonitorVisible;
-  }
-
-  if (record.isCodexUsageVisible !== undefined) {
-    if (typeof record.isCodexUsageVisible !== "boolean") {
-      return {
-        patch: null,
-        error: "isCodexUsageVisible must be a boolean.",
-      };
-    }
-    patch.isCodexUsageVisible = record.isCodexUsageVisible;
-  }
-
-  if (record.isCodexUsageSectionExpanded !== undefined) {
-    if (typeof record.isCodexUsageSectionExpanded !== "boolean") {
-      return {
-        patch: null,
-        error: "isCodexUsageSectionExpanded must be a boolean.",
-      };
-    }
-    patch.isCodexUsageSectionExpanded = record.isCodexUsageSectionExpanded;
-  }
-
   const completionSoundKey = record.terminalCompletionSound;
   if (completionSoundKey !== undefined) {
     if (!isTerminalCompletionSoundId(completionSoundKey)) {

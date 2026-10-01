@@ -1,12 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import type { UsageChartData } from "../app/hooks/useUsageHeatmapPolling";
-import type { CodexUsageSnapshot } from "../app/types";
 
 type RuntimeStatusStripProps = {
   usageData: UsageChartData | null;
-  codexUsage: CodexUsageSnapshot | null;
-  isRefreshingCodexUsage?: boolean;
-  onRefreshCodexUsage?: () => void;
 };
 
 const MINI_USAGE_WIDTH = 160;
@@ -36,150 +32,8 @@ const buildUsageBars = (data: UsageChartData): MiniBar[] => {
   });
 };
 
-const pct = (value: number | null | undefined, loading?: boolean): string => {
-  if (loading) return "···";
-  return value == null ? "NA" : `${Math.round(value)}%`;
-};
-
-const usageState = (
-  codexUsage: CodexUsageSnapshot | null,
-): {
-  label: string;
-  loading: boolean;
-  sessionPercent: number | null | undefined;
-  weekPercent: number | null | undefined;
-  message?: string;
-} => {
-  if (codexUsage === null) {
-    return {
-      label: "Session",
-      loading: true,
-      sessionPercent: 0,
-      weekPercent: 0,
-    };
-  }
-
-  const label = codexUsage.source === "oauth-api" ? "5h" : "Session";
-  if (codexUsage.status === "ok") {
-    return {
-      label,
-      loading: false,
-      sessionPercent: codexUsage.primaryUsedPercent,
-      weekPercent: codexUsage.secondaryUsedPercent,
-    };
-  }
-
-  return {
-    label,
-    loading: false,
-    sessionPercent: null,
-    weekPercent: null,
-    message: codexUsage.message ?? "Usage unavailable",
-  };
-};
-
-const UsageRail = ({
-  label,
-  percent,
-  loading,
-  title,
-}: {
-  label: string;
-  percent: number | null | undefined;
-  loading?: boolean;
-  title?: string;
-}) => {
-  const [tooltip, setTooltip] = useState<{ x: number; y: number } | null>(null);
-
-  const showTooltip = (clientX: number, clientY: number) => {
-    if (!title) return;
-    setTooltip({ x: clientX, y: clientY });
-  };
-
-  return (
-    <div
-      className="console-status-usage-row"
-      data-has-tooltip={title ? "true" : undefined}
-      tabIndex={title ? 0 : -1}
-      onMouseEnter={(event) => showTooltip(event.clientX, event.clientY)}
-      onMouseMove={(event) => showTooltip(event.clientX, event.clientY)}
-      onMouseLeave={() => setTooltip(null)}
-      onBlur={() => setTooltip(null)}
-      onFocus={(event) => {
-        if (!title) return;
-        const rect = event.currentTarget.getBoundingClientRect();
-        setTooltip({ x: rect.left + 24, y: rect.bottom + 8 });
-      }}
-    >
-      <span className="console-status-usage-row-meta">
-        <span className="console-status-usage-row-label">{label}</span>
-        <span className="console-status-usage-row-value">{pct(percent, loading)}</span>
-      </span>
-      <span className="console-status-usage-rail">
-        <span
-          className="console-status-usage-rail-fill"
-          style={{ width: `${Math.min(100, percent ?? 0)}%` }}
-        />
-      </span>
-      {title && tooltip ? (
-        <span
-          className="console-status-usage-tooltip"
-          style={{
-            left: `${Math.max(8, tooltip.x - 260)}px`,
-            top: `${Math.min(window.innerHeight - 80, tooltip.y + 14)}px`,
-          }}
-        >
-          {title}
-        </span>
-      ) : null}
-    </div>
-  );
-};
-
-export const RuntimeStatusStrip = ({
-  usageData,
-  codexUsage,
-  isRefreshingCodexUsage = false,
-  onRefreshCodexUsage,
-}: RuntimeStatusStripProps) => {
+export const RuntimeStatusStrip = ({ usageData }: RuntimeStatusStripProps) => {
   const _usageBars = useMemo(() => (usageData ? buildUsageBars(usageData) : []), [usageData]);
-  const codexUsageState = usageState(codexUsage);
-  const [showRefreshSpin, setShowRefreshSpin] = useState(false);
-  const refreshStartedAtRef = useRef<number | null>(null);
-  const refreshHideTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (refreshHideTimerRef.current !== null) {
-        window.clearTimeout(refreshHideTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isRefreshingCodexUsage) {
-      if (refreshHideTimerRef.current !== null) {
-        window.clearTimeout(refreshHideTimerRef.current);
-        refreshHideTimerRef.current = null;
-      }
-      refreshStartedAtRef.current = Date.now();
-      setShowRefreshSpin(true);
-      return;
-    }
-
-    if (refreshStartedAtRef.current === null) {
-      setShowRefreshSpin(false);
-      return;
-    }
-
-    const elapsedMs = Date.now() - refreshStartedAtRef.current;
-    const remainingMs = Math.max(0, 450 - elapsedMs);
-    refreshHideTimerRef.current = window.setTimeout(() => {
-      setShowRefreshSpin(false);
-      refreshStartedAtRef.current = null;
-      refreshHideTimerRef.current = null;
-    }, remainingMs);
-  }, [isRefreshingCodexUsage]);
 
   return (
     <section className="console-status-strip" aria-label="Runtime status strip">
@@ -235,39 +89,6 @@ export const RuntimeStatusStrip = ({
           )}
         </div>
       </div> */}
-      <div className="console-status-codex-usage" aria-label="Codex usage limits">
-        {onRefreshCodexUsage && (
-          <button
-            type="button"
-            className="console-status-codex-usage-refresh"
-            onClick={onRefreshCodexUsage}
-            aria-label="Refresh Codex usage"
-            title="Refresh Codex usage"
-            data-refreshing={showRefreshSpin ? "true" : "false"}
-          >
-            ↻
-          </button>
-        )}
-        <span className="console-status-codex-usage-title">
-          CODEX
-          <br />
-          USAGE
-        </span>
-        <div className="console-status-codex-usage-bars">
-          <UsageRail
-            label={codexUsageState.label}
-            percent={codexUsageState.sessionPercent}
-            loading={codexUsageState.loading}
-            {...(codexUsageState.message ? { title: codexUsageState.message } : {})}
-          />
-          <UsageRail
-            label="Week (all)"
-            percent={codexUsageState.weekPercent}
-            loading={codexUsageState.loading}
-            {...(codexUsageState.message ? { title: codexUsageState.message } : {})}
-          />
-        </div>
-      </div>
     </section>
   );
 };

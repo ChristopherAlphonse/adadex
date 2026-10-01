@@ -88,7 +88,6 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workspaceMode: "shared",
-          agentProvider: "codex",
           promptTemplate: "meta-prompt-generator",
         }),
       });

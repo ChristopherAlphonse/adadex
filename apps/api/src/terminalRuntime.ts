@@ -71,8 +71,7 @@ export const createTerminalRuntime = ({
   workspaceCwd,
   projectStateDir,
   gitClient = createDefaultGitClient(),
-  getApiBaseUrl = () =>
-    process.env.ADADEX_API_ORIGIN ?? process.env.OCTOGENT_API_ORIGIN ?? "http://127.0.0.1:8787",
+  getApiBaseUrl = () => process.env.ADADEX_API_ORIGIN ?? "http://127.0.0.1:8787",
   maxConcurrentSessions,
 }: CreateTerminalRuntimeOptions) => {
   const stateDir = projectStateDir ?? join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
@@ -94,21 +93,15 @@ export const createTerminalRuntime = ({
   const registryPersistence = createTerminalRegistryPersistence(registryPath);
   const terminals = registryState.terminals;
   let uiState = registryState.uiState;
-  const isDebugPtyLogsEnabled =
-    process.env.ADADEX_DEBUG_PTY_LOGS === "1" || process.env.OCTOGENT_DEBUG_PTY_LOGS === "1";
-  const ptyLogDir =
-    process.env.ADADEX_DEBUG_PTY_LOG_DIR ??
-    process.env.OCTOGENT_DEBUG_PTY_LOG_DIR ??
-    join(stateDir, "logs");
+  const isDebugPtyLogsEnabled = process.env.ADADEX_DEBUG_PTY_LOGS === "1";
+  const ptyLogDir = process.env.ADADEX_DEBUG_PTY_LOG_DIR ?? join(stateDir, "logs");
   const transcriptDirectoryPath = join(stateDir, "state", "transcripts");
   const configuredMaxConcurrentSessions = (() => {
     if (maxConcurrentSessions !== undefined) {
       return maxConcurrentSessions;
     }
 
-    const raw =
-      process.env.ADADEX_MAX_TERMINAL_SESSIONS?.trim() ??
-      process.env.OCTOGENT_MAX_TERMINAL_SESSIONS?.trim();
+    const raw = process.env.ADADEX_MAX_TERMINAL_SESSIONS?.trim();
     if (!raw) {
       return TERMINAL_MAX_CONCURRENT_SESSIONS;
     }
@@ -332,10 +325,10 @@ export const createTerminalRuntime = ({
 
   const allocateDefaultTerminalName = (): string => {
     const usedNumbers = new Set<number>();
-    const pattern = /^(Octogent|Adadex) Terminal (\d+)$/;
+    const pattern = /^Adadex Terminal (\d+)$/;
     for (const t of terminals.values()) {
       const match = pattern.exec(t.coordinationName);
-      if (match) usedNumbers.add(Number(match[2]));
+      if (match) usedNumbers.add(Number(match[1]));
     }
     let n = 1;
     while (usedNumbers.has(n)) n++;
@@ -418,7 +411,6 @@ export const createTerminalRuntime = ({
     coordinationName,
     workspaceMode = "shared",
     agentProvider,
-    agentModel,
     initialPrompt,
     initialInputDraft,
     baseRef,
@@ -432,7 +424,6 @@ export const createTerminalRuntime = ({
     coordinationName?: string;
     workspaceMode?: CoordinationWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
-    agentModel?: string;
     initialPrompt?: string;
     initialInputDraft?: string;
     baseRef?: string;
@@ -475,9 +466,8 @@ export const createTerminalRuntime = ({
     const worktreeId =
       requestedWorktreeId ?? (workspaceMode === "worktree" ? terminalId : undefined);
 
-    // Apply per-coordination agent defaults if not already specified
+    // Apply per-coordination agent provider default if not already specified
     let effectiveAgentProvider = agentProvider;
-    let effectiveAgentModel = agentModel;
     if (requestedCoordinationId) {
       const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
       const coordination = deckOrchestrations.find(
@@ -486,9 +476,6 @@ export const createTerminalRuntime = ({
       if (coordination) {
         if (!effectiveAgentProvider && coordination.agentProvider) {
           effectiveAgentProvider = coordination.agentProvider;
-        }
-        if (!effectiveAgentModel && coordination.agentModel) {
-          effectiveAgentModel = coordination.agentModel;
         }
       }
     }
@@ -503,7 +490,6 @@ export const createTerminalRuntime = ({
       createdAt: new Date().toISOString(),
       workspaceMode,
       agentProvider: effectiveAgentProvider ?? DEFAULT_AGENT_PROVIDER,
-      ...(effectiveAgentModel ? { agentModel: effectiveAgentModel } : {}),
       lifecycleState: "registered",
       lifecycleUpdatedAt: new Date().toISOString(),
       ...(initialPrompt ? { initialPrompt } : {}),
@@ -522,7 +508,7 @@ export const createTerminalRuntime = ({
       const hookTargetCwd = shouldCreateWorktree
         ? worktreeManager.getOrchestrationWorkspaceCwd(effectiveWorktreeId)
         : workspaceCwd;
-      hookProcessor.installHooksInDirectory(hookTargetCwd, terminal.agentProvider ?? "codex");
+      hookProcessor.installHooksInDirectory(hookTargetCwd, terminal.agentProvider ?? "kiro");
     } catch {
       // Best-effort: hook installation should not block terminal creation.
     }
@@ -618,15 +604,6 @@ export const createTerminalRuntime = ({
       }
       if (patch.isRuntimeStatusStripVisible !== undefined) {
         uiState.isRuntimeStatusStripVisible = patch.isRuntimeStatusStripVisible;
-      }
-      if (patch.isMonitorVisible !== undefined) {
-        uiState.isMonitorVisible = patch.isMonitorVisible;
-      }
-      if (patch.isCodexUsageVisible !== undefined) {
-        uiState.isCodexUsageVisible = patch.isCodexUsageVisible;
-      }
-      if (patch.isCodexUsageSectionExpanded !== undefined) {
-        uiState.isCodexUsageSectionExpanded = patch.isCodexUsageSectionExpanded;
       }
       if (patch.terminalCompletionSound !== undefined) {
         uiState.terminalCompletionSound = patch.terminalCompletionSound;

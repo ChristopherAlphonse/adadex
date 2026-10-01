@@ -6,7 +6,6 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  renameSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
@@ -15,17 +14,12 @@ import { basename, join } from "node:path";
 import {
   COORDINATIONS_DIR_SEGMENT,
   GLOBAL_RUNTIME_DIR_NAME,
-  LEGACY_COORDINATIONS_DIR_SEGMENT,
-  LEGACY_GLOBAL_RUNTIME_DIR_NAME,
   LEGACY_TERMINAL_REGISTRY_FILENAME,
-  LEGACY_WORKSPACE_RUNTIME_DIR,
   TERMINAL_REGISTRY_FILENAME,
   WORKSPACE_RUNTIME_DIR,
 } from "@adadex/core";
 
 export const GLOBAL_ADADEX_DIR = join(homedir(), GLOBAL_RUNTIME_DIR_NAME);
-/** @deprecated Use GLOBAL_ADADEX_DIR */
-export const GLOBAL_OCTOGENT_DIR = GLOBAL_ADADEX_DIR;
 export const PROJECTS_FILE = join(GLOBAL_ADADEX_DIR, "projects.json");
 export const PROJECT_CONFIG_RELATIVE_PATH = join(WORKSPACE_RUNTIME_DIR, "project.json");
 
@@ -135,76 +129,14 @@ const readJsonFile = (filePath: string): unknown | null => {
   }
 };
 
-export const migrateLegacyGlobalLayout = (): void => {
-  const home = homedir();
-  const legacy = join(home, LEGACY_GLOBAL_RUNTIME_DIR_NAME);
-  const next = join(home, GLOBAL_RUNTIME_DIR_NAME);
-  if (existsSync(legacy) && !existsSync(next)) {
-    try {
-      renameSync(legacy, next);
-      console.log(
-        `[adadex] Migrated global directory ${LEGACY_GLOBAL_RUNTIME_DIR_NAME} → ${GLOBAL_RUNTIME_DIR_NAME}`,
-      );
-    } catch (error) {
-      console.warn("[adadex] Could not migrate global config directory:", error);
-    }
-  }
-};
-
-/** Rename `.octogent` → `.adadex` and `orchestrations` → `coordinations` when present. */
-export const migrateLegacyWorkspaceLayout = (workspaceCwd: string): void => {
-  const legacyRoot = join(workspaceCwd, LEGACY_WORKSPACE_RUNTIME_DIR);
-  const nextRoot = join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
-  if (existsSync(legacyRoot) && !existsSync(nextRoot)) {
-    try {
-      renameSync(legacyRoot, nextRoot);
-      console.log(
-        `[adadex] Migrated workspace ${LEGACY_WORKSPACE_RUNTIME_DIR} → ${WORKSPACE_RUNTIME_DIR}`,
-      );
-    } catch (error) {
-      console.warn("[adadex] Could not migrate workspace runtime directory:", error);
-      return;
-    }
-  }
-  const root = existsSync(nextRoot) ? nextRoot : legacyRoot;
-  if (!existsSync(root)) {
-    return;
-  }
-  const legacyCoord = join(root, LEGACY_COORDINATIONS_DIR_SEGMENT);
-  const nextCoord = join(root, COORDINATIONS_DIR_SEGMENT);
-  if (existsSync(legacyCoord) && !existsSync(nextCoord)) {
-    try {
-      renameSync(legacyCoord, nextCoord);
-    } catch (error) {
-      console.warn("[adadex] Could not migrate coordinations folder:", error);
-    }
-  }
-  const stateDir = join(root, "state");
-  if (existsSync(stateDir)) {
-    const prevReg = join(stateDir, LEGACY_TERMINAL_REGISTRY_FILENAME);
-    const newReg = join(stateDir, TERMINAL_REGISTRY_FILENAME);
-    if (existsSync(prevReg) && !existsSync(newReg)) {
-      try {
-        renameSync(prevReg, newReg);
-      } catch (error) {
-        console.warn("[adadex] Could not rename terminal registry file:", error);
-      }
-    }
-  }
-};
-
 export const ensureGlobalAdadexDir = () => {
-  migrateLegacyGlobalLayout();
   if (!existsSync(GLOBAL_ADADEX_DIR)) {
     mkdirSync(GLOBAL_ADADEX_DIR, { recursive: true });
   }
 };
 
-/** @deprecated Use ensureGlobalAdadexDir */
-export const ensureGlobalOctogentDir = ensureGlobalAdadexDir;
-
 export const loadProjectsRegistry = (): ProjectsRegistry => {
-  ensureGlobalOctogentDir();
+  ensureGlobalAdadexDir();
 
   if (!existsSync(PROJECTS_FILE)) {
     return { projects: [] };
@@ -223,7 +155,7 @@ export const loadProjectsRegistry = (): ProjectsRegistry => {
 };
 
 export const saveProjectsRegistry = (registry: ProjectsRegistry) => {
-  ensureGlobalOctogentDir();
+  ensureGlobalAdadexDir();
   writeFileSync(PROJECTS_FILE, `${JSON.stringify(registry, null, 2)}\n`, "utf8");
 };
 
@@ -353,10 +285,7 @@ export const hasAdadexGitignoreEntry = (workspaceCwd: string) => {
   const content = readFileSync(gitignorePath, "utf-8");
   const lines = content.split("\n").map((line) => line.trim());
   const hasRuntimeEntry =
-    lines.includes(WORKSPACE_RUNTIME_DIR) ||
-    lines.includes(`${WORKSPACE_RUNTIME_DIR}/`) ||
-    lines.includes(LEGACY_WORKSPACE_RUNTIME_DIR) ||
-    lines.includes(`${LEGACY_WORKSPACE_RUNTIME_DIR}/`);
+    lines.includes(WORKSPACE_RUNTIME_DIR) || lines.includes(`${WORKSPACE_RUNTIME_DIR}/`);
   return hasRuntimeEntry && lines.includes(".planning/");
 };
 
@@ -381,15 +310,9 @@ export const ensureAdadexGitignoreEntry = (workspaceCwd: string) => {
   return { changed: true };
 };
 
-/** @deprecated */
-export const hasOctogentGitignoreEntry = hasAdadexGitignoreEntry;
-/** @deprecated */
-export const ensureOctogentGitignoreEntry = ensureAdadexGitignoreEntry;
-
 export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: string) => {
-  const legacyLocalRoot = join(workspaceCwd, LEGACY_WORKSPACE_RUNTIME_DIR);
-  const newLocalRoot = join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
-  if (projectStateDir === legacyLocalRoot || projectStateDir === newLocalRoot) {
+  const localRoot = join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
+  if (projectStateDir === localRoot) {
     return;
   }
 
@@ -400,11 +323,7 @@ export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: stri
       ? join(GLOBAL_ADADEX_DIR, "projects", legacyProjectName)
       : null;
 
-  const oldStateDir =
-    [join(legacyLocalRoot, "state"), join(newLocalRoot, "state")].find((candidate) =>
-      existsSync(candidate),
-    ) ?? join(legacyLocalRoot, "state");
-
+  const oldStateDir = join(localRoot, "state");
   const newStateDir = join(projectStateDir, "state");
 
   mkdirSync(newStateDir, { recursive: true });

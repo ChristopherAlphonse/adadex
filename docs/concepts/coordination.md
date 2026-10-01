@@ -36,7 +36,6 @@ Examples:
 - API runtime
 - frontend shell
 - prompt system
-- monitor integration
 - release work
 
 ## What goes in `CONTEXT.md`
@@ -48,11 +47,11 @@ Examples:
 - what already exists
 - constraints and edge cases
 - what not to break
-- any Codex skills that are especially useful for this coordination, when relevant
+- any Kiro skills that are especially useful for this coordination, when relevant
 
 The first heading and first non-empty paragraph are runtime-significant. Keep them stable and useful because they become the name and description shown in Deck, Canvas, prompt summaries, and terminal creation flows.
 
-When a coordination has suggested Codex skills, Adadex appends a managed block at the bottom of `CONTEXT.md`:
+When a coordination has suggested Kiro skills, Adadex appends a managed block at the bottom of `CONTEXT.md`:
 
 ```md
 <!-- adadex:suggested-skills:start -->
@@ -75,7 +74,7 @@ Legacy workspaces may still contain `<!-- octogent:suggested-skills:* -->` marke
 ```md
 # Todo
 
-- [ ] add request validation for monitor config
+- [ ] add request validation for the new endpoint
 - [ ] cover the invalid payload case in tests
 - [x] wire the route into the request handler
 ```

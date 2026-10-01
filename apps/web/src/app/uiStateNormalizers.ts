@@ -40,14 +40,6 @@ export const normalizeFrontendUiStateSnapshot = (
     nextState.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
   }
 
-  if (typeof record.isCodexUsageVisible === "boolean") {
-    nextState.isCodexUsageVisible = record.isCodexUsageVisible;
-  }
-
-  if (typeof record.isCodexUsageSectionExpanded === "boolean") {
-    nextState.isCodexUsageSectionExpanded = record.isCodexUsageSectionExpanded;
-  }
-
   const completionSoundValue = record.terminalCompletionSound;
   if (isTerminalCompletionSoundId(completionSoundValue)) {
     nextState.terminalCompletionSound = completionSoundValue;

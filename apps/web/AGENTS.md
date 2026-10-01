@@ -24,7 +24,7 @@
 - **Design tokens:** Semantic colors and radii live in `src/styles/tailwind.css` (`bg-background`, `text-primary`, `border-border`, status tokens like `bg-running`). Follow `design.md`; avoid raw palette classes (`text-white`, `bg-black`).
 - **Legacy CSS:** Files under `src/styles/*.css` (except `tailwind.css` / `tailwind-components.css`) are migration leftovers. When touching a view, move its rules into Tailwind classes and delete the obsolete selectors.
 - `src/styles.css` imports Tailwind first, then remaining legacy sheets until each view is migrated.
-- Add shadcn components with `pnpm dlx shadcn@latest add <component>` from `apps/web`.
+- Add shadcn components with `npx shadcn@latest add <component>` from `apps/web`.
 
 ## UI Conventions
 - Use the existing product vocabulary: agents, sessions, worktrees, logs, pipelines, coordinations, and terminal columns.

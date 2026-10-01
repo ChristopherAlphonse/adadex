@@ -9,7 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@adadex/core": "workspace:*",
+    "@adadex/core": "*",
     "node-pty": "^1.1.0",
     "ws": "^8.21.0"
   },

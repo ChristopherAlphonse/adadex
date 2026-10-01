@@ -327,19 +327,12 @@ export const handleDeckOrchestrationAgentRoute: ApiRouteHandler = async (
     }
   }
 
-  const agentUpdate: { agentProvider?: TerminalAgentProvider | null; agentModel?: string | null } =
-    {};
+  const agentUpdate: { agentProvider?: TerminalAgentProvider | null } = {};
 
   if (rawAgentProvider === null) {
     agentUpdate.agentProvider = null;
   } else if (typeof rawAgentProvider === "string" && isTerminalAgentProvider(rawAgentProvider)) {
     agentUpdate.agentProvider = rawAgentProvider;
-  }
-
-  if (payload.agentModel === null) {
-    agentUpdate.agentModel = null;
-  } else if (typeof payload.agentModel === "string") {
-    agentUpdate.agentModel = payload.agentModel;
   }
 
   const updated = updateDeckCoordinationAgent(

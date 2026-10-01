@@ -21,8 +21,6 @@ const DEFAULT_ACTIVE_PRIMARY_NAV: PrimaryNavIndex = 1;
 const DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE = true;
 const DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED = true;
 const DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE = true;
-const DEFAULT_IS_CODEX_USAGE_VISIBLE = true;
-const DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED = true;
 const DEFAULT_MINIMIZED_TERMINAL_IDS: string[] = [];
 const DEFAULT_TERMINAL_WIDTHS: Record<string, number> = {};
 const DEFAULT_CANVAS_OPEN_TERMINAL_IDS: string[] = [];
@@ -87,8 +85,6 @@ const buildPersistedUiStateSnapshot = ({
   sidebarWidth,
   isActiveAgentsSectionExpanded,
   isRuntimeStatusStripVisible,
-  isCodexUsageVisible,
-  isCodexUsageSectionExpanded,
   terminalCompletionSound,
   minimizedTerminalIds,
   terminalWidths,
@@ -101,8 +97,6 @@ const buildPersistedUiStateSnapshot = ({
   sidebarWidth: number;
   isActiveAgentsSectionExpanded: boolean;
   isRuntimeStatusStripVisible: boolean;
-  isCodexUsageVisible: boolean;
-  isCodexUsageSectionExpanded: boolean;
   terminalCompletionSound: TerminalCompletionSoundId;
   minimizedTerminalIds: string[];
   terminalWidths: Record<string, number>;
@@ -115,8 +109,6 @@ const buildPersistedUiStateSnapshot = ({
   sidebarWidth: clampSidebarWidth(sidebarWidth),
   isActiveAgentsSectionExpanded,
   isRuntimeStatusStripVisible,
-  isCodexUsageVisible,
-  isCodexUsageSectionExpanded,
   terminalCompletionSound,
   minimizedTerminalIds,
   terminalWidths,
@@ -135,8 +127,6 @@ const areUiStateSnapshotsEqual = (
   left.sidebarWidth === right.sidebarWidth &&
   left.isActiveAgentsSectionExpanded === right.isActiveAgentsSectionExpanded &&
   left.isRuntimeStatusStripVisible === right.isRuntimeStatusStripVisible &&
-  left.isCodexUsageVisible === right.isCodexUsageVisible &&
-  left.isCodexUsageSectionExpanded === right.isCodexUsageSectionExpanded &&
   left.terminalCompletionSound === right.terminalCompletionSound &&
   areStringArraysEqual(left.minimizedTerminalIds, right.minimizedTerminalIds) &&
   areNumberRecordMapsEqual(left.terminalWidths, right.terminalWidths) &&
@@ -158,10 +148,6 @@ type UsePersistedUiStateResult = {
   setIsActiveAgentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
   isRuntimeStatusStripVisible: boolean;
   setIsRuntimeStatusStripVisible: Dispatch<SetStateAction<boolean>>;
-  isCodexUsageVisible: boolean;
-  setIsCodexUsageVisible: Dispatch<SetStateAction<boolean>>;
-  isCodexUsageSectionExpanded: boolean;
-  setIsCodexUsageSectionExpanded: Dispatch<SetStateAction<boolean>>;
   terminalCompletionSound: TerminalCompletionSoundId;
   setTerminalCompletionSound: Dispatch<SetStateAction<TerminalCompletionSoundId>>;
   minimizedTerminalIds: string[];
@@ -196,10 +182,6 @@ export const usePersistedUiState = ({
   );
   const [isRuntimeStatusStripVisible, setIsRuntimeStatusStripVisible] = useState(
     DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
-  );
-  const [isCodexUsageVisible, setIsCodexUsageVisible] = useState(DEFAULT_IS_CODEX_USAGE_VISIBLE);
-  const [isCodexUsageSectionExpanded, setIsCodexUsageSectionExpanded] = useState(
-    DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
   );
   const [terminalCompletionSound, setTerminalCompletionSound] = useState<TerminalCompletionSoundId>(
     () => readLocalTerminalCompletionSound() ?? DEFAULT_TERMINAL_COMPLETION_SOUND,
@@ -266,8 +248,6 @@ export const usePersistedUiState = ({
           sidebarWidth: MIN_SIDEBAR_WIDTH,
           isActiveAgentsSectionExpanded: DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
           isRuntimeStatusStripVisible: DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
-          isCodexUsageVisible: DEFAULT_IS_CODEX_USAGE_VISIBLE,
-          isCodexUsageSectionExpanded: DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
           terminalCompletionSound: nextTerminalCompletionSound,
           minimizedTerminalIds: DEFAULT_MINIMIZED_TERMINAL_IDS,
           terminalWidths: DEFAULT_TERMINAL_WIDTHS,
@@ -306,9 +286,6 @@ export const usePersistedUiState = ({
           snapshot.isActiveAgentsSectionExpanded ?? DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
         isRuntimeStatusStripVisible:
           snapshot.isRuntimeStatusStripVisible ?? DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
-        isCodexUsageVisible: snapshot.isCodexUsageVisible ?? DEFAULT_IS_CODEX_USAGE_VISIBLE,
-        isCodexUsageSectionExpanded:
-          snapshot.isCodexUsageSectionExpanded ?? DEFAULT_IS_CODEX_USAGE_SECTION_EXPANDED,
         terminalCompletionSound: nextTerminalCompletionSound,
         minimizedTerminalIds: nextMinimizedTerminalIds,
         terminalWidths: nextTerminalWidths,
@@ -335,14 +312,6 @@ export const usePersistedUiState = ({
 
       if (snapshot.isRuntimeStatusStripVisible !== undefined) {
         setIsRuntimeStatusStripVisible(snapshot.isRuntimeStatusStripVisible);
-      }
-
-      if (snapshot.isCodexUsageVisible !== undefined) {
-        setIsCodexUsageVisible(snapshot.isCodexUsageVisible);
-      }
-
-      if (snapshot.isCodexUsageSectionExpanded !== undefined) {
-        setIsCodexUsageSectionExpanded(snapshot.isCodexUsageSectionExpanded);
       }
 
       if (localTerminalCompletionSound || snapshot.terminalCompletionSound !== undefined) {
@@ -402,8 +371,6 @@ export const usePersistedUiState = ({
       sidebarWidth,
       isActiveAgentsSectionExpanded,
       isRuntimeStatusStripVisible,
-      isCodexUsageVisible,
-      isCodexUsageSectionExpanded,
       terminalCompletionSound,
       minimizedTerminalIds,
       terminalWidths,
@@ -447,8 +414,6 @@ export const usePersistedUiState = ({
     isActiveAgentsSectionExpanded,
     isAgentsSidebarVisible,
     isRuntimeStatusStripVisible,
-    isCodexUsageVisible,
-    isCodexUsageSectionExpanded,
     isUiStateHydrated,
     minimizedTerminalIds,
     sidebarWidth,
@@ -470,10 +435,6 @@ export const usePersistedUiState = ({
     setIsActiveAgentsSectionExpanded,
     isRuntimeStatusStripVisible,
     setIsRuntimeStatusStripVisible,
-    isCodexUsageVisible,
-    setIsCodexUsageVisible,
-    isCodexUsageSectionExpanded,
-    setIsCodexUsageSectionExpanded,
     terminalCompletionSound,
     setTerminalCompletionSound,
     minimizedTerminalIds,

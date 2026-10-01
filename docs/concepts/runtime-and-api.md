@@ -34,7 +34,7 @@ The API process owns the moving parts that cannot live in markdown:
 - HTTP handles CRUD, snapshots, prompt resolution, setup checks, and file-backed operations
 - `WS /api/terminals/:terminalId/ws` attaches a browser terminal to one PTY session
 - `WS /api/terminal-events/ws` broadcasts terminal-created, terminal-updated, terminal-deleted, and state-change events
-- file-backed state is the restart boundary for terminal records, UI state, transcripts, deck metadata, and monitor/cache data
+- file-backed state is the restart boundary for terminal records, UI state, transcripts, and deck metadata
 
 Terminal WebSockets do not own the PTY. They are clients attached to a PTY session owned by the API process. When a browser reloads, a new WebSocket can receive scrollback during the idle grace window. When the API restarts, the PTY is gone.
 
@@ -73,7 +73,7 @@ Stopping or killing a terminal tears down the active PTY and updates lifecycle m
 
 ## Hook mechanism
 
-For Codex-backed terminals, Adadex writes hooks into the target `.codex/settings.json`. The hooks call back into the local API and provide state transitions that terminal output alone cannot reliably express.
+Adadex writes a standalone Kiro CLI hook file to `.kiro/hooks/adadex.json` in the target workspace (Kiro CLI 3.0 hook format: a JSON array of hook objects, each with `trigger`, an optional `matcher`, and an `action` that calls back into the local API). The hooks provide state transitions that terminal output alone cannot reliably express.
 
 Hooks currently feed these mechanisms:
 
@@ -94,7 +94,6 @@ Channel delivery is also tied to hooks. Messages are queued in memory and inject
 - code intel
 - hook ingestion
 - usage and telemetry
-- monitor
 - conversations
 
 For the exact endpoints, see [API reference](../reference/api.md).

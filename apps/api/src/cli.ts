@@ -23,8 +23,7 @@ const args = process.argv.slice(2);
 const command = args[0];
 
 const resolvePackageRoot = () => {
-  const envRoot =
-    process.env.ADADEX_PACKAGE_ROOT?.trim() ?? process.env.OCTOGENT_PACKAGE_ROOT?.trim();
+  const envRoot = process.env.ADADEX_PACKAGE_ROOT?.trim();
   if (envRoot) {
     return resolve(envRoot);
   }
@@ -137,10 +136,7 @@ const findOpenPort = async (startPort: number): Promise<number> => {
 };
 
 const readPreferredStartPort = () => {
-  const rawPort =
-    process.env.ADADEX_API_PORT?.trim() ??
-    process.env.OCTOGENT_API_PORT?.trim() ??
-    process.env.PORT;
+  const rawPort = process.env.ADADEX_API_PORT?.trim() ?? process.env.PORT;
   if (!rawPort) {
     return DEFAULT_START_PORT;
   }
@@ -154,11 +150,7 @@ const readPreferredStartPort = () => {
 };
 
 const resolveRuntimeApiBase = () => {
-  const explicitBase =
-    process.env.ADADEX_API_ORIGIN?.trim() ??
-    process.env.ADADEX_API_BASE?.trim() ??
-    process.env.OCTOGENT_API_ORIGIN?.trim() ??
-    process.env.OCTOGENT_API_BASE?.trim();
+  const explicitBase = process.env.ADADEX_API_ORIGIN?.trim() ?? process.env.ADADEX_API_BASE?.trim();
   if (explicitBase) {
     return explicitBase;
   }
@@ -183,11 +175,7 @@ const apiError = () => {
 };
 
 const maybeOpenBrowser = (url: string) => {
-  if (
-    process.env.ADADEX_NO_OPEN === "1" ||
-    process.env.OCTOGENT_NO_OPEN === "1" ||
-    process.env.CI === "1"
-  ) {
+  if (process.env.ADADEX_NO_OPEN === "1" || process.env.CI === "1") {
     return;
   }
 
@@ -239,9 +227,7 @@ const startServer = async () => {
     projectStateDir,
     promptsDir,
     webDistDir: existsSync(webDistDir) ? webDistDir : undefined,
-    allowRemoteAccess:
-      process.env.ADADEX_ALLOW_REMOTE_ACCESS === "1" ||
-      process.env.OCTOGENT_ALLOW_REMOTE_ACCESS === "1",
+    allowRemoteAccess: process.env.ADADEX_ALLOW_REMOTE_ACCESS === "1",
   });
 
   const shutdown = async () => {
@@ -546,11 +532,7 @@ const channelSend = async () => {
     process.exit(1);
   }
 
-  const fromTerminalId =
-    parseFlag("--from") ??
-    process.env.ADADEX_SESSION_ID?.trim() ??
-    process.env.OCTOGENT_SESSION_ID?.trim() ??
-    "";
+  const fromTerminalId = parseFlag("--from") ?? process.env.ADADEX_SESSION_ID?.trim() ?? "";
   const fromIndex = args.indexOf("--from");
   const message =
     fromIndex !== -1

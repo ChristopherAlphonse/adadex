@@ -826,73 +826,6 @@ describe("createApiServer", () => {
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("returns codex usage snapshot for GET /api/codex/usage", async () => {
-    const codexSnapshot = {
-      status: "ok",
-      source: "oauth-api",
-      fetchedAt: "2026-02-25T12:00:00.000Z",
-      planType: "pro",
-      primaryUsedPercent: 12,
-      secondaryUsedPercent: 28,
-      creditsBalance: 88.5,
-      creditsUnlimited: false,
-    } as const;
-
-    const baseUrl = await startServer({
-      readCodexUsageSnapshot: async () => codexSnapshot,
-    });
-
-    const response = await fetch(`${baseUrl}/api/codex/usage`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(codexSnapshot);
-  });
-
-  it("POST /api/hooks/session-start triggers codex usage snapshot read", async () => {
-    let callCount = 0;
-    const readCodexUsageSnapshot = async () => {
-      callCount += 1;
-      return {
-        status: "ok" as const,
-        source: "oauth-api" as const,
-        fetchedAt: "2026-03-03T12:00:00.000Z",
-        planType: "pro",
-        primaryUsedPercent: callCount * 10,
-        secondaryUsedPercent: 50,
-        creditsBalance: null,
-        creditsUnlimited: null,
-      };
-    };
-
-    const baseUrl = await startServer({ readCodexUsageSnapshot });
-
-    const first = await fetch(`${baseUrl}/api/codex/usage`, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    expect(first.status).toBe(200);
-
-    const hookResponse = await fetch(`${baseUrl}/api/hooks/session-start`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: "test-session" }),
-    });
-    expect(hookResponse.status).toBe(200);
-
-    const second = await fetch(`${baseUrl}/api/codex/usage`, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    expect(second.status).toBe(200);
-    const secondBody = (await second.json()) as { primaryUsedPercent: number };
-    expect(secondBody.primaryUsedPercent).toBeGreaterThan(10);
-  });
-
   it("returns github summary for GET /api/github/summary", async () => {
     const githubSummary: GitHubRepoSummarySnapshot = {
       status: "ok",
@@ -936,22 +869,6 @@ describe("createApiServer", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual(githubSummary);
-  });
-
-  it("returns 405 for unsupported methods on /api/codex/usage", async () => {
-    const baseUrl = await startServer({
-      readCodexUsageSnapshot: async () => ({
-        status: "unavailable",
-        source: "none",
-        fetchedAt: "2026-02-25T12:00:00.000Z",
-      }),
-    });
-
-    const response = await fetch(`${baseUrl}/api/codex/usage`, {
-      method: "POST",
-    });
-
-    expect(response.status).toBe(405);
   });
 
   it("POST /api/hooks/user-prompt-submit auto-renames generated default terminal names", async () => {
@@ -1248,10 +1165,10 @@ describe("createApiServer", () => {
     });
   });
 
-  it("lists Codex skills from the project skills folder", async () => {
+  it("lists Kiro skills from the project skills folder", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
-    const projectSkillDir = join(workspaceCwd, ".codex", "skills", "docs-writer");
+    const projectSkillDir = join(workspaceCwd, ".kiro", "skills", "docs-writer");
     mkdirSync(projectSkillDir, { recursive: true });
     writeFileSync(
       join(projectSkillDir, "SKILL.md"),
@@ -1289,7 +1206,7 @@ describe("createApiServer", () => {
   it("ignores a root project skills SKILL.md file and only lists folder-based skills", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "octogent-api-test-"));
     temporaryDirectories.push(workspaceCwd);
-    const skillsDir = join(workspaceCwd, ".codex", "skills");
+    const skillsDir = join(workspaceCwd, ".kiro", "skills");
     mkdirSync(skillsDir, { recursive: true });
     writeFileSync(
       join(skillsDir, "SKILL.md"),
@@ -1490,9 +1407,6 @@ describe("createApiServer", () => {
         sidebarWidth: 380,
         isActiveAgentsSectionExpanded: false,
         isRuntimeStatusStripVisible: false,
-        isMonitorVisible: false,
-        isCodexUsageVisible: false,
-        isCodexUsageSectionExpanded: false,
         terminalCompletionSound: "double-beep",
         minimizedTerminalIds: ["terminal-1"],
         terminalWidths: {
@@ -1506,9 +1420,6 @@ describe("createApiServer", () => {
       sidebarWidth: 380,
       isActiveAgentsSectionExpanded: false,
       isRuntimeStatusStripVisible: false,
-      isMonitorVisible: false,
-      isCodexUsageVisible: false,
-      isCodexUsageSectionExpanded: false,
       terminalCompletionSound: "double-beep",
       minimizedTerminalIds: ["terminal-1"],
       terminalWidths: {
@@ -1538,9 +1449,6 @@ describe("createApiServer", () => {
       sidebarWidth: 380,
       isActiveAgentsSectionExpanded: false,
       isRuntimeStatusStripVisible: false,
-      isMonitorVisible: false,
-      isCodexUsageVisible: false,
-      isCodexUsageSectionExpanded: false,
       terminalCompletionSound: "double-beep",
       minimizedTerminalIds: ["terminal-1"],
       terminalWidths: {

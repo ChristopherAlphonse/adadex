@@ -5,25 +5,25 @@ Adadex is a local Node.js project with a local API and web UI.
 ## Requirements
 
 - Node.js `22+`
-- `codex` for the supported workflow
+- Kiro CLI (`kiro-cli`) for the supported workflow
 - `git` for worktree terminals
 - `gh` for GitHub pull request features
 - `curl` for agent hook callbacks to this API
 
-Docs and defaults assume the **OpenAI Codex** CLI as the terminal agent.
+Docs and defaults assume **Kiro CLI** as the terminal agent.
 
 ## Local development install
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 ## Local global CLI install from a clone
 
 ```bash
-pnpm install
-pnpm build
+npm install
+npm run build
 npm install -g .
 ```
 
@@ -46,7 +46,7 @@ Running `adadex` inside a project directory will:
 
 ## Startup rules
 
-- startup fails if the `codex` CLI is not available
+- startup fails if the `kiro-cli` CLI is not available
 - startup warns when optional integrations like `git`, `gh`, or `curl` are missing
 
 ## Next step

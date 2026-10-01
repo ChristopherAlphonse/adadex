@@ -1,7 +1,7 @@
 version: 2
 
 updates:
-  # npm/pnpm ecosystem — monorepo root
+  # npm ecosystem — monorepo root
   - package-ecosystem: npm
     directory: /
     schedule:

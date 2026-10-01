@@ -12,20 +12,19 @@ Adadex is an experimental personal project and is not actively reviewing pull re
 ## Prerequisites
 
 - Node.js `22+`
-- pnpm
 - `codex` for the supported agent workflow
 - `git` for worktree features
 
 ## Setup
 
 ```bash
-pnpm install
+npm install
 ```
 
 ## Development
 
 ```bash
-pnpm dev
+npm run dev
 ```
 
 The dev runner starts the local API and web app together.
@@ -35,12 +34,12 @@ The dev runner starts the local API and web app together.
 Run these before opening a pull request:
 
 ```bash
-pnpm test
-pnpm lint
-pnpm build
+npm test
+npm run lint
+npm run build
 ```
 
-Use `pnpm format` if you need to rewrite formatting.
+Use `npm run format` if you need to rewrite formatting.
 
 ## What good contributions look like
 

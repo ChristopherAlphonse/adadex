@@ -10,13 +10,13 @@
 - Design defensively. Validate assumptions, handle edge cases, and treat security boundaries as part of the implementation, not a follow-up.
 
 ## Project Structure
-- Monorepo: `apps/*` and `packages/*` via `pnpm-workspace.yaml`.
-- Runtime: Node.js 22+, TypeScript, `pnpm`.
+- Monorepo: `apps/*` and `packages/*` via npm workspaces (`package.json` `workspaces` field).
+- Runtime: Node.js 22+, TypeScript, `npm`.
 - Core package: `packages/core`
   - Framework-agnostic domain types, application logic, and ports.
   - Must stay free of React, HTTP, PTY, and filesystem orchestration concerns.
 - API app: `apps/api`
-  - Node HTTP/WebSocket server, PTY session runtime, worktree lifecycle, transcript persistence, monitor service.
+  - Node HTTP/WebSocket server, PTY session runtime, worktree lifecycle, transcript persistence.
 - Web app: `apps/web`
   - Vite + React operator UI, modular CSS, UI orchestration over API/runtime contracts.
 - Runtime state: `.adadex/`
@@ -56,12 +56,12 @@
 - Preserve the product vocabulary already documented in `CLAUDE.md` and `README.md`: agents, sessions, worktrees, logs, pipelines, coordinations, and terminal columns.
 
 ## Verification
-- Install: `pnpm install`
-- Dev: `pnpm dev`
-- Build: `pnpm build`
-- Test: `pnpm test`
-- Lint: `pnpm lint`
-- Format: `pnpm format`
+- Install: `npm install`
+- Dev: `npm run dev`
+- Build: `npm run build`
+- Test: `npm test`
+- Lint: `npm run lint`
+- Format: `npm run format`
 - For narrow changes, run the most direct test or package-scoped test first, then widen verification as needed.
 - For changes that affect shared contracts, persistence, or cross-app behavior, run the relevant package tests and the root build before landing.
 
@@ -86,4 +86,4 @@
 Before upgrading packages, changing CI workflows, or touching the prompt template system, read `.agents/skills/adadex-maintenance/SKILL.md`. It documents every known breaking point in this repo: Biome major upgrades, TypeScript deprecations, stale test patterns, prompt variable completeness, GitHub Actions SHA pinning, and the release workflow.
 
 ## Learned Workspace Facts
-- On Windows, `scripts/dev.mjs` spawns `pnpm` with `shell: true` and resolves the monorepo root with `fileURLToPath(import.meta.url)` so `ADADEX_WORKSPACE_CWD` is a valid drive path (avoids `/D:/...` from `URL.pathname` and `spawn EINVAL` when Node resolves the pnpm shim).
+- On Windows, `scripts/dev.mjs` spawns `npm` with `shell: true` and resolves the monorepo root with `fileURLToPath(import.meta.url)` so `ADADEX_WORKSPACE_CWD` is a valid drive path (avoids `/D:/...` from `URL.pathname` and `spawn EINVAL` when Node resolves the npm shim).

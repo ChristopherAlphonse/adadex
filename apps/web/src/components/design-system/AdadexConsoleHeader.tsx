@@ -62,7 +62,7 @@ export const AdadexConsoleHeader = (): React.ReactElement => (
 
     <div className="ml-auto flex shrink-0 items-center gap-2">
       <div className="hidden items-center gap-3 pr-1 xl:flex">
-        <Meter label="Codex" value={30} />
+        <Meter label="Kiro" value={30} />
         <Meter label="Weekly" value={7} muted />
       </div>
     </div>

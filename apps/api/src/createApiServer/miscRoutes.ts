@@ -28,7 +28,7 @@ const WORKSPACE_SETUP_STEP_PATH_PATTERN = /^\/api\/setup\/steps\/([^/]+)$/;
 const isWorkspaceSetupStepId = (value: string): value is WorkspaceSetupStepId =>
   value === "initialize-workspace" ||
   value === "ensure-gitignore" ||
-  value === "check-codex" ||
+  value === "check-kiro" ||
   value === "check-git" ||
   value === "check-curl" ||
   value === "create-coordinations";
@@ -67,7 +67,7 @@ export const handleWorkspaceSetupRoute: ApiRouteHandler = async (
     initializeWorkspaceFiles(workspaceCwd, projectStateDir);
   } else if (stepId === "ensure-gitignore") {
     ensureWorkspaceGitignore(workspaceCwd);
-  } else if (stepId === "check-codex" || stepId === "check-git" || stepId === "check-curl") {
+  } else if (stepId === "check-kiro" || stepId === "check-git" || stepId === "check-curl") {
     markSetupStepVerified(projectStateDir, stepId);
   }
 
@@ -120,7 +120,7 @@ const HOOK_PATH_PATTERN =
 
 export const handleHookRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
-  { runtime, readCodexUsageSnapshot },
+  { runtime },
 ) => {
   const match = requestUrl.pathname.match(HOOK_PATH_PATTERN);
   if (!match) {
@@ -154,10 +154,6 @@ export const handleHookRoute: ApiRouteHandler = async (
     requestUrl.searchParams.get("octogent_session") ??
     undefined;
   const result = runtime.handleHook(hookName, body.payload, hookSessionId);
-
-  if (hookName === "session-start" || hookName === "stop") {
-    void readCodexUsageSnapshot();
-  }
 
   writeJson(response, 200, result, corsOrigin);
   return true;

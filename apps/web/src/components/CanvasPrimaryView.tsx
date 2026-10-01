@@ -21,7 +21,6 @@ import {
   type TerminalRuntimeStateStore,
 } from "../app/terminalRuntimeStateStore";
 import type {
-  CodexUsageSnapshot,
   CoordinationGitStatusSnapshot,
   TerminalView,
   TerminalWorkspaceMode,
@@ -99,7 +98,6 @@ type CanvasPrimaryViewProps = {
   onTerminalActivity?: ((terminalId: string) => void) | undefined;
   onRefreshColumns?: () => Promise<void> | void;
   gitStatusByOrchestrationId?: Record<string, CoordinationGitStatusSnapshot>;
-  codexUsage?: CodexUsageSnapshot | null;
 };
 
 const CLICK_THRESHOLD = 5;
@@ -233,7 +231,6 @@ export const CanvasPrimaryView = ({
   onTerminalActivity,
   onRefreshColumns,
   gitStatusByOrchestrationId = {},
-  codexUsage = null,
 }: CanvasPrimaryViewProps) => {
   const runtimeStateStoreRef = useRef<TerminalRuntimeStateStore | null>(null);
   if (runtimeStateStoreRef.current === null) {
@@ -1376,7 +1373,6 @@ export const CanvasPrimaryView = ({
           gitStatus={
             selectedNode ? (gitStatusByOrchestrationId[selectedNode.coordinationId] ?? null) : null
           }
-          codexUsage={codexUsage}
         />
       </div>
 

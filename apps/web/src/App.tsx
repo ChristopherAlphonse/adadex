@@ -9,10 +9,8 @@ import { type ReactElement, type ReactNode, useCallback, useEffect, useRef, useS
 import { cn } from "@/lib/utils";
 
 import { ColorThemeProvider, useColorThemeContext } from "./app/ColorThemeContext";
-import { useAgentProviderPreference } from "./app/hooks/useAgentProviderPreference";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { DECK_LEAD_ID } from "./app/hooks/useCanvasGraphData";
-import { useCodexUsagePolling } from "./app/hooks/useCodexUsagePolling";
 import { useConsoleKeyboardShortcuts } from "./app/hooks/useConsoleKeyboardShortcuts";
 import { useGitHubPrimaryViewModel } from "./app/hooks/useGitHubPrimaryViewModel";
 import { useGithubSummaryPolling } from "./app/hooks/useGithubSummaryPolling";
@@ -271,9 +269,7 @@ const AppShell = () => {
     };
   }, [refreshColumns, runtimeStateStore, sortTerminalSnapshots]);
 
-  const { agentProvider, setAgentProvider } = useAgentProviderPreference();
   const { colorTheme, isLight, setColorTheme, toggleColorTheme } = useColorThemeContext();
-  const { codexUsageSnapshot, isRefreshingCodexUsage } = useCodexUsagePolling();
   useBackendLivenessPolling();
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
     useGithubSummaryPolling();
@@ -405,10 +401,6 @@ const AppShell = () => {
       <ConsoleChromeHeader
         activePrimaryNav={activePrimaryNav}
         onPrimaryNavChange={setActivePrimaryNav}
-        agentProvider={agentProvider}
-        onAgentProviderChange={setAgentProvider}
-        codexUsage={codexUsageSnapshot}
-        isRefreshingCodexUsage={isRefreshingCodexUsage}
         isLight={isLight}
         onToggleColorTheme={toggleColorTheme}
       />
@@ -499,7 +491,6 @@ const AppShell = () => {
                   body: JSON.stringify({
                     name: "coordination-planner",
                     workspaceMode: "shared",
-                    agentProvider,
                     promptTemplate: "coordination-planner",
                   }),
                 });
@@ -517,13 +508,13 @@ const AppShell = () => {
               onCanvasOpenOrchestrationIdsChange: setCanvasOpenCoordinationIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
               onCreateAgent: async (coordinationId) => {
-                return await createTerminal("shared", agentProvider, coordinationId);
+                return await createTerminal("shared", coordinationId);
               },
               onCreateTerminal: async () => {
-                return await createTerminal("shared", agentProvider, DECK_LEAD_ID);
+                return await createTerminal("shared", DECK_LEAD_ID);
               },
               onCreateWorktreeTerminal: async () => {
-                return await createTerminal("worktree", agentProvider, DECK_LEAD_ID);
+                return await createTerminal("worktree", DECK_LEAD_ID);
               },
               onCreateOrchestration: async () => {
                 const response = await fetch("/api/deck/coordinations", {
@@ -612,7 +603,6 @@ const AppShell = () => {
                 await refreshColumns();
               },
               gitStatusByOrchestrationId,
-              codexUsage: codexUsageSnapshot,
             }}
             conversationsEnabled={isUiStateHydrated && activePrimaryNav === 5}
             onConversationsSidebarContent={setConversationsSidebarContent}

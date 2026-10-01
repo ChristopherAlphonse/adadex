@@ -7,15 +7,15 @@ This is the shortest useful path through the project.
 For local development:
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 For a local global CLI install from a clone:
 
 ```bash
-pnpm install
-pnpm build
+npm install
+npm run build
 npm install -g .
 adadex
 ```

@@ -50,14 +50,6 @@ describe("App UI state persistence", () => {
         return jsonResponse([]);
       }
 
-      if (url.endsWith("/api/codex/usage") && method === "GET") {
-        return jsonResponse({
-          status: "unavailable",
-          fetchedAt: "2026-02-24T10:00:00.000Z",
-          source: "none",
-        });
-      }
-
       if (url.endsWith("/api/github/summary") && method === "GET") {
         return jsonResponse({
           status: "unavailable",
@@ -138,14 +130,6 @@ describe("App UI state persistence", () => {
 
       if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         return jsonResponse([]);
-      }
-
-      if (url.endsWith("/api/codex/usage") && method === "GET") {
-        return jsonResponse({
-          status: "unavailable",
-          fetchedAt: "2026-02-24T10:00:00.000Z",
-          source: "none",
-        });
       }
 
       if (url.endsWith("/api/github/summary") && method === "GET") {

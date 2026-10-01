@@ -44,5 +44,4 @@ export type DeckCoordinationSummary = {
   todoItems: { text: string; done: boolean }[];
   suggestedSkills: string[];
   agentProvider?: TerminalAgentProvider;
-  agentModel?: string;
 };

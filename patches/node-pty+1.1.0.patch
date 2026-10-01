@@ -1,7 +1,7 @@
-diff --git a/lib/conpty_console_list_agent.js b/lib/conpty_console_list_agent.js
+diff --git a/node_modules/node-pty/lib/conpty_console_list_agent.js b/node_modules/node-pty/lib/conpty_console_list_agent.js
 index 8c4fca9022a6d6f015bca87f61625cde2278f428..397e646b413724d826f9bdd0a574ca6f3dbe5a9c 100644
---- a/lib/conpty_console_list_agent.js
-+++ b/lib/conpty_console_list_agent.js
+--- a/node_modules/node-pty/lib/conpty_console_list_agent.js
++++ b/node_modules/node-pty/lib/conpty_console_list_agent.js
 @@ -10,7 +10,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
  var utils_1 = require("./utils");
  var getConsoleProcessList = utils_1.loadNativeModule('conpty_console_list').module.getConsoleProcessList;
@@ -18,10 +18,10 @@ index 8c4fca9022a6d6f015bca87f61625cde2278f428..397e646b413724d826f9bdd0a574ca6f
  process.exit(0);
  //# sourceMappingURL=conpty_console_list_agent.js.map
 \ No newline at end of file
-diff --git a/lib/windowsPtyAgent.js b/lib/windowsPtyAgent.js
+diff --git a/node_modules/node-pty/lib/windowsPtyAgent.js b/node_modules/node-pty/lib/windowsPtyAgent.js
 index a358ffb177357e177661033c1b092f9c9d0e5f5a..f0249e2cf72da35b07b35b1e9909c06662eb9a61 100644
---- a/lib/windowsPtyAgent.js
-+++ b/lib/windowsPtyAgent.js
+--- a/node_modules/node-pty/lib/windowsPtyAgent.js
++++ b/node_modules/node-pty/lib/windowsPtyAgent.js
 @@ -181,7 +181,8 @@ var WindowsPtyAgent = /** @class */ (function () {
      WindowsPtyAgent.prototype._getConsoleProcessList = function () {
          var _this = this;

@@ -76,14 +76,6 @@ export const buildTerminalsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/terminals");
 };
 
-export const buildCodexUsageUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
-  if (!runtimeBaseUrl) {
-    return "/api/codex/usage";
-  }
-
-  return buildAbsoluteUrl(runtimeBaseUrl, "/api/codex/usage");
-};
-
 export const buildGithubSummaryUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
     return "/api/github/summary";

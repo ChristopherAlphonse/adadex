@@ -9,14 +9,12 @@ const persistedUiStateMock = {
   applyHydratedUiState: vi.fn(),
   isActiveAgentsSectionExpanded: true,
   isAgentsSidebarVisible: false,
-  isCodexUsageSectionExpanded: true,
   isRuntimeStatusStripVisible: false,
   isUiStateHydrated: true,
   minimizedTerminalIds: [] as string[],
   readUiState: vi.fn(),
   setIsActiveAgentsSectionExpanded: vi.fn(),
   setIsAgentsSidebarVisible: vi.fn(),
-  setIsCodexUsageSectionExpanded: vi.fn(),
   setIsRuntimeStatusStripVisible: vi.fn(),
   setIsUiStateHydrated: vi.fn(),
   setMinimizedTerminalIds: vi.fn(),
@@ -34,14 +32,6 @@ const persistedUiStateMock = {
 
 vi.mock("../src/app/hooks/useBackendLivenessPolling", () => ({
   useBackendLivenessPolling: () => "online",
-}));
-
-vi.mock("../src/app/hooks/useCodexUsagePolling", () => ({
-  useCodexUsagePolling: () => ({
-    codexUsageSnapshot: null,
-    isRefreshingCodexUsage: false,
-    refreshCodexUsage: vi.fn(),
-  }),
 }));
 
 vi.mock("../src/app/hooks/useConsoleKeyboardShortcuts", () => ({

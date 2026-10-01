@@ -6,7 +6,7 @@ Adadex has three main layers:
 
 - **agent-facing files** in `.adadex/coordinations/<coordination-id>/`, which hold context, todos, and handoff notes
 - **runtime state** under `~/.adadex/projects/<project-id>/state/`, which tracks terminals, UI state, transcripts, and app metadata
-- **live sessions** in the API process, where WebSocket connections are attached to PTY-backed Codex CLI terminals
+- **live sessions** in the API process, where WebSocket connections are attached to PTY-backed Kiro CLI terminals
 
 ## Start here
 

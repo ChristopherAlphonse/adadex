@@ -5,14 +5,14 @@
   "type": "module",
   "scripts": {
     "clean:stale-js": "node scripts/clean-stale-src-js.mjs",
-    "predev": "pnpm run clean:stale-js",
-    "prebuild": "pnpm run clean:stale-js",
+    "predev": "npm run clean:stale-js",
+    "prebuild": "npm run clean:stale-js",
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
     "test": "vitest run"
   },
   "dependencies": {
-    "@adadex/core": "workspace:*",
+    "@adadex/core": "*",
     "@xterm/addon-fit": "^0.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

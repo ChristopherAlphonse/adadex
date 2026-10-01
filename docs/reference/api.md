@@ -35,11 +35,11 @@ Creating a terminal registers metadata first. A PTY starts immediately only when
 
 ## Deck and coordinations
 
-- `GET /api/deck/skills` - lists available Codex skills discovered from project-local `.codex/skills/<skill>/SKILL.md` entries
+- `GET /api/deck/skills` - lists available Kiro skills discovered from project-local `.kiro/skills/<skill>/SKILL.md` entries
 - `GET /api/deck/coordinations` - lists coordinations with metadata, vault files, and todo progress
 - `POST /api/deck/coordinations` - creates a new coordination
 - `DELETE /api/deck/coordinations/:coordinationId` - deletes a coordination and its stored files
-- `PATCH /api/deck/coordinations/:coordinationId/skills` - updates the coordination's suggested Codex skills and rewrites the managed block in `CONTEXT.md`
+- `PATCH /api/deck/coordinations/:coordinationId/skills` - updates the coordination's suggested Kiro skills and rewrites the managed block in `CONTEXT.md`
 - `POST /api/deck/coordinations/:coordinationId/todo` - adds a todo item to `todo.md`
 - `PATCH /api/deck/coordinations/:coordinationId/todo/toggle` - marks a todo item done or undone
 - `PATCH /api/deck/coordinations/:coordinationId/todo/edit` - edits the text of a todo item
@@ -71,7 +71,7 @@ Channel messages are queued in memory. The POST body provides `fromTerminalId` a
 
 ## Hooks
 
-- `POST /api/hooks/:hookName` - ingests lifecycle events coming from Codex CLI hooks
+- `POST /api/hooks/:hookName` - ingests lifecycle events coming from Kiro CLI hooks
 
 Current hook names:
 
@@ -83,7 +83,6 @@ Current hook names:
 
 ## Usage and telemetry
 
-- `GET /api/codex/usage` - returns Codex usage data when available
 - `GET /api/github/summary` - returns GitHub summary and repo telemetry data
 - `GET /api/analytics/usage-heatmap?scope=all|project` - returns heatmap aggregates when session history is available
 
@@ -96,13 +95,6 @@ Current hook names:
 
 - `GET /api/setup` - reads the verified first-run setup status for the current workspace
 - `POST /api/setup/steps/:stepId` - runs one setup step and returns the refreshed setup snapshot
-
-## Monitor
-
-- `GET /api/monitor/config` - reads monitor configuration
-- `PATCH /api/monitor/config` - updates monitor configuration
-- `GET /api/monitor/feed` - returns the current monitor feed snapshot
-- `POST /api/monitor/refresh` - forces a monitor refresh
 
 ## Conversations
 

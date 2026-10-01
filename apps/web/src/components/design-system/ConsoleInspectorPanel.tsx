@@ -1,7 +1,7 @@
 import type { TerminalSnapshot } from "@adadex/core";
 
 import type { GraphNode } from "../../app/canvas/types";
-import type { CodexUsageSnapshot, CoordinationGitStatusSnapshot } from "../../app/types";
+import type { CoordinationGitStatusSnapshot } from "../../app/types";
 import { KV, Section } from "./ConsolePrimitives";
 import { mapAgentStateToStatus } from "./mapAgentStatus";
 import { StatusPill } from "./StatusPill";
@@ -10,7 +10,6 @@ type ConsoleInspectorPanelProps = {
   selectedNode: GraphNode | null;
   terminal: TerminalSnapshot | null;
   gitStatus: CoordinationGitStatusSnapshot | null;
-  codexUsage: CodexUsageSnapshot | null;
 };
 
 const resolveTerminalId = (node: GraphNode): string =>
@@ -26,23 +25,14 @@ const formatUptime = (startedAt: string | undefined): string => {
   return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
 };
 
-const formatUsagePercent = (usage: CodexUsageSnapshot | null): number | null => {
-  if (!usage || usage.status !== "ok") return null;
-  const value = Number(usage.primaryUsedPercent ?? 0);
-  if (!Number.isFinite(value)) return null;
-  return Math.max(0, Math.min(100, Math.round(value)));
-};
-
 export const ConsoleInspectorPanel = ({
   selectedNode,
   terminal,
   gitStatus,
-  codexUsage,
 }: ConsoleInspectorPanelProps): React.ReactElement => {
   const status = mapAgentStateToStatus(terminal?.state ?? selectedNode?.agentState);
   const title = terminal?.label ?? selectedNode?.label ?? "No selection";
   const id = selectedNode ? resolveTerminalId(selectedNode) : "—";
-  const usagePercent = formatUsagePercent(codexUsage);
   const branchLabel = gitStatus?.branchName ?? "—";
   const worktreeLabel =
     gitStatus?.worktreePath ??
@@ -76,23 +66,6 @@ export const ConsoleInspectorPanel = ({
                 <KV label="Worktree" value={worktreeLabel} mono />
                 <KV label="Commit" value={commitLabel} mono />
                 <KV label="Uptime" value={formatUptime(terminal?.startedAt)} mono />
-              </div>
-            </Section>
-
-            <Section title="Resources">
-              <div>
-                <div className="mb-1.5 flex items-center justify-between text-[14.5px]">
-                  <span className="text-muted-foreground">Tokens</span>
-                  <span className="font-mono text-foreground">
-                    {usagePercent === null ? "Unavailable" : `${usagePercent}% used`}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
-                  <div
-                    className="h-full bg-brand transition-all"
-                    style={{ width: `${usagePercent ?? 0}%` }}
-                  />
-                </div>
               </div>
             </Section>
 

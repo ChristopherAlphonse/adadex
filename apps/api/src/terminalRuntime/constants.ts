@@ -3,22 +3,13 @@ export const TERMINAL_REGISTRY_VERSION = 3;
 export const TERMINAL_REGISTRY_RELATIVE_PATH = ".adadex/state/coordinations.json";
 export const TERMINAL_TRANSCRIPT_RELATIVE_PATH = ".adadex/state/transcripts";
 export const COORDINATION_WORKTREE_RELATIVE_PATH = ".adadex/worktrees";
-/** New worktree branches use this prefix; existing repos may still use legacy `octogent/`. */
 export const COORDINATION_WORKTREE_BRANCH_PREFIX = "adadex/";
-export const LEGACY_COORDINATION_WORKTREE_BRANCH_PREFIX = "octogent/";
-export const DEFAULT_AGENT_PROVIDER = "codex" as const;
+export const DEFAULT_AGENT_PROVIDER = "kiro" as const;
 
 export const TERMINAL_BOOTSTRAP_COMMANDS: Record<string, string> = {
-  codex: "codex",
-  opencode: "opencode",
-  claude: "claude",
+  kiro: "kiro-cli",
 };
 
-export const TERMINAL_MODEL_FLAG: Record<string, string> = {
-  codex: "--model",
-  claude: "--model",
-  opencode: "--model",
-};
 export const TERMINAL_SESSION_IDLE_GRACE_MS = 5 * 60 * 1000;
 export const TERMINAL_SCROLLBACK_MAX_BYTES = 512 * 1024;
 export const TERMINAL_MAX_CONCURRENT_SESSIONS = 32;
