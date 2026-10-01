@@ -20,7 +20,7 @@ Use Node.js `22+`.
 
 Check that your shell environment is available and executable.
 
-If startup fails with `Terminal session limit reached`, Adadex already has the configured number of live PTY-backed sessions. Stop unused terminals with `adadex terminal stop <terminal-id>` or prune inactive records with `adadex terminal prune`. The default cap is 32; set `ADADEX_MAX_TERMINAL_SESSIONS` (or legacy `OCTOGENT_MAX_TERMINAL_SESSIONS`) to a positive integer before starting Adadex to adjust it.
+If startup fails with `Terminal session limit reached`, Adadex already has the configured number of live PTY-backed sessions. Stop unused terminals with `adadex terminal stop <terminal-id>` or prune inactive records with `adadex terminal prune`. The default cap is 32; set `ADADEX_MAX_TERMINAL_SESSIONS` to a positive integer before starting Adadex to adjust it.
 
 ## Worktree terminal creation fails
 
