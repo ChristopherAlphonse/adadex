@@ -39,7 +39,7 @@ const ALPHA_MIN = 0.001;
 const ALPHA_TARGET = 0;
 const REHEAT_ALPHA = 0.8;
 
-// Reference dimensions for initial viewport fit (no longer used for clamping)
+// Reference dimensions used by useCanvasTransform to compute the initial viewport fit scale.
 export const WORLD_W = 1400;
 export const WORLD_H = 800;
 
