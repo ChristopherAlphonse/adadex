@@ -190,7 +190,7 @@ describe("the app, end to end, with real git", () => {
   it("quitting declines anything still waiting", async () => {
     const { app } = await boot();
     const waiting = app.approvals.gate.request("tool:Bash", "needs ok");
-    app.shutdown();
+    await app.shutdown();
     expect(await waiting).toBe(false);
   });
 });

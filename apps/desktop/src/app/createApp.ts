@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  type AgentProvider,
+  type AgentSession,
   BUILD_POLICY,
   createActionRegistry,
   FACTORY_ACTIONS,
@@ -53,8 +55,8 @@ export interface App {
   readonly policy: PolicyRules;
   /** Run an agent on a job: its own tools are allowed, behind the policy and the approval cards. */
   runAgentOnJob(jobId: string, goal: string): Promise<{ summary: string }>;
-  /** Decline anything waiting, so quitting never leaves a request hanging. */
-  shutdown(): void;
+  /** Stop every running agent and decline anything waiting, so quitting leaves nothing running. */
+  shutdown(): Promise<void>;
 }
 
 const DEFAULT_CHECKS: GateConfig = {
@@ -74,6 +76,7 @@ export const createApp = (options: AppOptions): App => {
   const guardDir = join(options.dataDir, "guard");
   const prefix = options.branchPrefix ?? "adadex/";
   const humanKey = createHumanKey();
+  const sessions = new Set<AgentSession>();
 
   const jobs = createJobStore(stateDir);
   const workflows = createWorkflowStore(join(options.dataDir, "workflows"));
@@ -139,7 +142,7 @@ export const createApp = (options: AppOptions): App => {
     policy,
     async runAgentOnJob(jobId, goal) {
       const job = await jobs.load(jobId);
-      const provider = createClaudeCodeProvider({
+      const inner = createClaudeCodeProvider({
         command: options.claudeCommand ?? "claude",
         bridgePath: options.bridgePath,
         cwd: cwdOf(job),
@@ -147,6 +150,20 @@ export const createApp = (options: AppOptions): App => {
         allowedTools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
         guard: { hookPath: options.hookPath, decide: createToolGuard(policy, approvals.gate) },
       });
+      const provider: AgentProvider = {
+        id: inner.id,
+        start: async (request) => {
+          const session = await inner.start(request);
+          sessions.add(session);
+          return {
+            ...session,
+            stop: async () => {
+              sessions.delete(session);
+              await session.stop();
+            },
+          };
+        },
+      };
       const ports = host.agentPorts();
       const result = await runAgent(
         { provider, registry, ...ports },
@@ -154,7 +171,10 @@ export const createApp = (options: AppOptions): App => {
       );
       return { summary: result.summary };
     },
-    shutdown: () => approvals.declineAll(),
+    async shutdown() {
+      approvals.declineAll();
+      await Promise.all([...sessions].map((s) => s.stop()));
+    },
   };
 };
 

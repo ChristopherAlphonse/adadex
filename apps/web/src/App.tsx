@@ -4,7 +4,15 @@ import {
   type TerminalSnapshot,
   type WorkspaceSetupStepId,
 } from "@adadex/core";
-import { type ReactElement, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -34,6 +42,7 @@ import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { ConsoleChromeHeader } from "./components/design-system/ConsoleChromeHeader";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
+import { createFactoryHost } from "./runtime/factoryHost";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import {
   buildTerminalEventsSocketUrl,
@@ -57,6 +66,7 @@ const AppShell = () => {
   const terminalEventsRefreshTimerRef = useRef<number | null>(null);
   const runtimeStateStoreRef = useRef(createTerminalRuntimeStateStore());
   const runtimeStateStore = runtimeStateStoreRef.current;
+  const factoryHost = useMemo(() => createFactoryHost(), []);
 
   const sortTerminalSnapshots = useCallback(
     (snapshots: TerminalView) =>
@@ -604,6 +614,7 @@ const AppShell = () => {
               },
               gitStatusByOrchestrationId,
             }}
+            factoryPrimaryViewProps={{ host: factoryHost }}
             conversationsEnabled={isUiStateHydrated && activePrimaryNav === 5}
             onConversationsSidebarContent={setConversationsSidebarContent}
             onConversationsActionPanel={setConversationsActionPanel}

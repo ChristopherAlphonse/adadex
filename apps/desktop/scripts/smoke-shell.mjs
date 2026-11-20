@@ -1,0 +1,20 @@
+// Starts the real Electron app hidden, sends it requests from its own page and from a stranger page,
+// and prints what came back. Run by hand: it needs a desktop session, so it is not part of `npm test`.
+import { spawnSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import electron from "electron";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const built = spawnSync(process.execPath, [join(root, "scripts/build-shell.mjs")], {
+  stdio: "inherit",
+});
+if (built.status !== 0) process.exit(built.status ?? 1);
+const run = spawnSync(electron, [join(root, "dist/main.mjs")], {
+  env: { ...process.env, ADADEX_SMOKE: "1" },
+  encoding: "utf8",
+  timeout: 60000,
+});
+const line = run.stdout.split("\n").find((l) => l.startsWith("SMOKE_RESULT "));
+console.log(line ?? `no result (exit ${run.status})\n${run.stderr.slice(-800)}`);
+process.exit(line ? 0 : 1);

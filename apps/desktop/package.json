@@ -5,12 +5,17 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:shell": "node scripts/build-shell.mjs",
+    "start": "npm run build:shell && electron .",
+    "smoke": "node scripts/smoke-shell.mjs"
   },
   "dependencies": {
     "@adadex/core": "*"
   },
   "devDependencies": {
-    "electron": "45.2.3"
-  }
+    "electron": "45.2.3",
+    "esbuild": "0.28.2"
+  },
+  "main": "dist/main.mjs"
 }
