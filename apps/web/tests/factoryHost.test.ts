@@ -117,6 +117,24 @@ describe("factory host bridge", () => {
     await expect(host.listJobs()).rejects.toThrow("not allowed; no job");
   });
 
+  it("reads the loop status, and treats a host without a loop as null", async () => {
+    const withLoop = createHostApiFactoryHost({
+      handle: async () => ({ ok: true, data: { enabled: true, running: [], lastPlan: null } }),
+      subscribe: () => () => undefined,
+    });
+    const withoutLoop = createHostApiFactoryHost({
+      handle: async () => ({ ok: false, errors: ["the unattended loop is not available"] }),
+      subscribe: () => () => undefined,
+    });
+    const handle = vi.fn(async () => ({ ok: true, data: { enabled: false } }));
+    const toggled = createHostApiFactoryHost({ handle, subscribe: () => () => undefined });
+
+    await expect(withLoop.getLoop()).resolves.toBe(true);
+    await expect(withoutLoop.getLoop()).resolves.toBeNull();
+    await toggled.setLoop(true);
+    expect(handle).toHaveBeenCalledWith({ kind: "scheduler.set", enabled: true });
+  });
+
   it("uses Electron's request/onEvent bridge when that is what the preload exposes", async () => {
     const request = vi.fn(async () => ({ ok: true, data: [] }));
     Object.assign(window, {

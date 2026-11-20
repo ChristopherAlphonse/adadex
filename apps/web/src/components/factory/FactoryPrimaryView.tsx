@@ -17,6 +17,7 @@ export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
     runAction,
     respondApproval,
     killProcess,
+    setLoop,
   } = useFactoryHost(host);
   const board = useMemo(
     () => buildFactoryBoard(snapshot.jobs, snapshot.workflows),
@@ -43,13 +44,26 @@ export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
             Jobs by stage. Every action is checked by the host before it runs.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void refresh()}
-          className="rounded border border-border bg-surface px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground"
-        >
-          Refresh
-        </button>
+        <div className="flex shrink-0 gap-2">
+          {snapshot.loop !== null && (
+            <button
+              type="button"
+              aria-pressed={snapshot.loop}
+              disabled={pendingKey === "loop"}
+              onClick={() => void setLoop(!snapshot.loop)}
+              className="rounded border border-border bg-surface px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              Unattended loop: {snapshot.loop ? "On" : "Off"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            className="rounded border border-border bg-surface px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+          >
+            Refresh
+          </button>
+        </div>
       </header>
 
       {!host.isAvailable() && (

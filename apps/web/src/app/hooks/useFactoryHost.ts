@@ -13,6 +13,7 @@ export interface FactorySnapshot {
   readonly workflows: readonly FactoryWorkflow[];
   readonly approvals: readonly FactoryApproval[];
   readonly processes: readonly FactoryProcess[];
+  readonly loop: boolean | null;
 }
 
 const EMPTY_SNAPSHOT: FactorySnapshot = {
@@ -20,25 +21,29 @@ const EMPTY_SNAPSHOT: FactorySnapshot = {
   workflows: [],
   approvals: [],
   processes: [],
+  loop: null,
 };
 
 const messageOf = (cause: unknown): string =>
   cause instanceof Error && cause.message.length > 0 ? cause.message : "Factory request failed";
 
 const readSnapshot = async (host: FactoryHost): Promise<FactorySnapshot> => {
-  const [jobs, workflows, approvals, processes] = await Promise.all([
+  const [jobs, workflows, approvals, processes, loop] = await Promise.all([
     host.listJobs(),
     host.listWorkflows(),
     host.listApprovals(),
     host.listProcesses(),
+    host.getLoop(),
   ]);
-  return { jobs, workflows, approvals, processes };
+  return { jobs, workflows, approvals, processes, loop };
 };
 
 export const useFactoryHost = (host: FactoryHost) => {
   const [snapshot, setSnapshot] = useState<FactorySnapshot>(EMPTY_SNAPSHOT);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // An action's error must survive the refresh its own host event triggers, so the two are kept apart.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const isMountedRef = useRef(false);
 
@@ -47,10 +52,10 @@ export const useFactoryHost = (host: FactoryHost) => {
       const next = await readSnapshot(host);
       if (isMountedRef.current) {
         setSnapshot(next);
-        setError(null);
+        setLoadError(null);
       }
     } catch (cause) {
-      if (isMountedRef.current) setError(messageOf(cause));
+      if (isMountedRef.current) setLoadError(messageOf(cause));
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
@@ -71,12 +76,12 @@ export const useFactoryHost = (host: FactoryHost) => {
   const runMutation = useCallback(
     async (key: string, mutate: () => Promise<void>) => {
       setPendingKey(key);
-      setError(null);
+      setActionError(null);
       try {
         await mutate();
         await refresh();
       } catch (cause) {
-        setError(messageOf(cause));
+        setActionError(messageOf(cause));
       } finally {
         setPendingKey(null);
       }
@@ -101,14 +106,20 @@ export const useFactoryHost = (host: FactoryHost) => {
     [host, runMutation],
   );
 
+  const setLoop = useCallback(
+    async (enabled: boolean) => runMutation("loop", () => host.setLoop(enabled)),
+    [host, runMutation],
+  );
+
   return {
     snapshot,
     isLoading,
-    error,
+    error: actionError ?? loadError,
     pendingKey,
     refresh,
     runAction,
     respondApproval,
     killProcess,
+    setLoop,
   };
 };

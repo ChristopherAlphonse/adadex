@@ -77,6 +77,36 @@ const createWindow = (): BrowserWindow => {
   return w;
 };
 
+/** Drives the real factory board the way a person would: open it, find a job, press buttons. */
+const smokeBoard = async (w: BrowserWindow): Promise<unknown> => {
+  await w.webContents.executeJavaScript(
+    `window.adadex.request({kind:"jobs.create",workflowId:"factory",id:"smoke-job",title:"Smoke job"})`,
+  );
+  const inPage = await w.webContents.executeJavaScript(`(async () => {
+    const until = async (check, what) => {
+      for (const t0 = Date.now(); Date.now() - t0 < 10000; await new Promise((r) => setTimeout(r, 50))) {
+        const found = check();
+        if (found) return found;
+      }
+      throw new Error("timed out waiting for " + what);
+    };
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "8" }));
+    const view = await until(() => document.querySelector('[aria-label="Factory primary view"]'), "factory view");
+    const card = await until(() => view.querySelector('[aria-label="Job Smoke job"]'), "job card");
+    const stage = card.closest('section[aria-label^="Stage "]').getAttribute("aria-label");
+    view.querySelector('[aria-label="Move to spec for Smoke job"]').click();
+    const refused = (await until(() => view.querySelector('[role="alert"]'), "refusal")).textContent;
+    const loop = await until(() => [...view.querySelectorAll("button")].find((b) => b.textContent.startsWith("Unattended loop")), "loop toggle");
+    loop.click();
+    const declined = await until(() => view.querySelector('[role="alert"]')?.textContent.includes("declined") && view.querySelector('[role="alert"]').textContent, "loop declined");
+    return { stage, refused, declined, loopAfter: loop.textContent };
+  })()`);
+  const jobs = (await w.webContents.executeJavaScript(
+    `window.adadex.request({kind:"jobs.list"})`,
+  )) as { data: { id: string; stage: string }[] };
+  return { ...inPage, stageAfter: jobs.data.find((j) => j.id === "smoke-job")?.stage };
+};
+
 const smoke = async (w: BrowserWindow): Promise<void> => {
   const run = (code: string) => w.webContents.executeJavaScript(code);
   const result = {
@@ -96,8 +126,9 @@ const smoke = async (w: BrowserWindow): Promise<void> => {
     `window.adadex.request({kind:"workflows.list"})`,
   );
   const names = (result.workflows as { data: { id: string }[] }).data.map((x) => x.id);
+  const board = await smokeBoard(w);
   console.log(
-    `SMOKE_RESULT ${JSON.stringify({ names, garbage: result.garbage, humanOnly: result.humanOnly, push: result.push, forged, dialogs: smokeLog })}`,
+    `SMOKE_RESULT ${JSON.stringify({ names, garbage: result.garbage, humanOnly: result.humanOnly, push: result.push, forged, board, dialogs: smokeLog })}`,
   );
 };
 

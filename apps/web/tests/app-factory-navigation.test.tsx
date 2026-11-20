@@ -71,6 +71,14 @@ const factoryBridge = (): { bridge: HostApiBridge; handle: ReturnType<typeof vi.
         ],
       };
     }
+    if (
+      typeof request === "object" &&
+      request !== null &&
+      "kind" in request &&
+      request.kind === "scheduler.status"
+    ) {
+      return { ok: true, data: { enabled: false, running: [], lastPlan: null } };
+    }
     return { ok: true, data: [] };
   });
   return { bridge: { handle, subscribe: () => () => undefined }, handle };

@@ -49,6 +49,10 @@ export interface FactoryHost {
   runAction(actionId: string, input: Readonly<Record<string, unknown>>): Promise<void>;
   respondApproval(approvalId: string, approved: boolean): Promise<void>;
   killProcess(processId: string): Promise<void>;
+  /** Whether the unattended loop is on, or null when this host has no loop. */
+  getLoop(): Promise<boolean | null>;
+  /** Turning the loop on needs the user's yes in a native dialog the page cannot press. */
+  setLoop(enabled: boolean): Promise<void>;
   /** Called for every host event. Returns an unsubscribe function. */
   subscribe(onChange: () => void): () => void;
 }
@@ -202,6 +206,17 @@ export const createHostApiFactoryHost = (bridge: HostBridge): FactoryHost => {
     killProcess: async (processId) => {
       await send("process.kill", { processId });
     },
+    getLoop: async () => {
+      const raw = await transport.send({ kind: "scheduler.status" });
+      if (!isRecord(raw) || raw.ok !== true) return null;
+      if (!isRecord(raw.data) || typeof raw.data.enabled !== "boolean") {
+        throw new Error("host returned an invalid loop status");
+      }
+      return raw.data.enabled;
+    },
+    setLoop: async (enabled) => {
+      await send("scheduler.set", { enabled });
+    },
     subscribe: (onChange) => transport.listen(() => onChange()),
   };
 };
@@ -215,6 +230,8 @@ export const createEmptyFactoryHost = (): FactoryHost => ({
   runAction: async () => undefined,
   respondApproval: async () => undefined,
   killProcess: async () => undefined,
+  getLoop: async () => null,
+  setLoop: async () => undefined,
   subscribe: () => () => undefined,
 });
 
