@@ -2975,7 +2975,7 @@ describe("createApiServer", () => {
     );
   });
 
-  it("marks persisted running terminals as stale when the API starts without their session", async () => {
+  it("marks persisted running terminals as resumable when the API starts without their session", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const registryPath = join(workspaceCwd, ".adadex", "state", "coordinations.json");
@@ -3012,15 +3012,16 @@ describe("createApiServer", () => {
     });
 
     expect(listResponse.status).toBe(200);
-    await expect(listResponse.json()).resolves.toEqual([
+    const snapshots = (await listResponse.json()) as Array<Record<string, unknown>>;
+    expect(snapshots).toEqual([
       expect.objectContaining({
         terminalId: "terminal-1",
-        state: "stale",
-        lifecycleState: "stale",
-        lifecycleReason: "missing_process",
-        processId: 99999999,
+        state: "stopped",
+        lifecycleState: "stopped",
+        lifecycleReason: "restart_pending",
       }),
     ]);
+    expect(snapshots[0]).not.toHaveProperty("processId");
   });
 
   it("stops and prunes stale terminal records through lifecycle endpoints", async () => {

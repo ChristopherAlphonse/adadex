@@ -41,6 +41,7 @@ import {
   loadTerminalRegistry,
   pruneUiStateTerminalReferences,
 } from "./terminalRuntime/registry";
+import { recoverPersistedSessions } from "./terminalRuntime/sessionRecovery";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
 import { createDefaultGitClient } from "./terminalRuntime/systemClients";
 import type { DirectSessionListener } from "./terminalRuntime/types";
@@ -97,6 +98,7 @@ export const createTerminalRuntime = ({
   }
   const registryPath = registryPathPrimary;
   const processRegistryPath = join(stateDir, "state", "processes.json");
+  const channelMessagesPath = join(stateDir, "state", "channel-messages.json");
   const processSupervisor = createProcessSupervisor({
     clock: () => new Date(),
     load: () => loadProcessRegistry(processRegistryPath),
@@ -219,28 +221,6 @@ export const createTerminalRuntime = ({
     });
   };
 
-  const reconcilePersistedLifecycle = () => {
-    let didChange = false;
-    const now = new Date().toISOString();
-
-    for (const terminal of terminals.values()) {
-      if (terminal.lifecycleState !== "running") {
-        continue;
-      }
-
-      terminal.lifecycleState = "stale";
-      terminal.lifecycleReason = isProcessAlive(terminal.processId)
-        ? "orphaned_process"
-        : "missing_process";
-      terminal.lifecycleUpdatedAt = now;
-      didChange = true;
-    }
-
-    if (didChange) {
-      persistRegistry();
-    }
-  };
-
   const worktreeManager = createWorktreeManager({
     workspaceCwd,
     gitClient,
@@ -302,6 +282,7 @@ export const createTerminalRuntime = ({
     terminals,
     sessions,
     writeInput: (terminalId: string, data: string) => sessionRuntime.writeInput(terminalId, data),
+    messagesPath: channelMessagesPath,
   });
 
   const hookProcessor = createHookProcessor({
@@ -315,10 +296,17 @@ export const createTerminalRuntime = ({
     onStateChange: broadcastTerminalStateChanged,
   });
 
-  // Reap before reconciling lifecycle so orphaned groups are gone before
-  // terminals are marked stale on the next launch.
+  // Reap before recovery so a surviving process group is gone before a
+  // recorded session is treated as resumable on the next launch.
   processSupervisor.reapOrphansOnLaunch();
-  reconcilePersistedLifecycle();
+  const recovery = recoverPersistedSessions({
+    terminals,
+    now: new Date().toISOString(),
+    isProcessAlive,
+  });
+  if (recovery.recoveredTerminalIds.length > 0 || recovery.orphanedTerminalIds.length > 0) {
+    persistRegistry();
+  }
 
   const allocateTerminalId = () => {
     let candidateNumber = 1;

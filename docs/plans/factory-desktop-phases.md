@@ -10,11 +10,11 @@ Phase 0 findings may change the details below. Phase 0 is not finished until its
 | --- | --- | --- | --- | --- |
 | 0 | Baseline and reading | Claude (two read-only agents) | Done | none |
 | 1 | Core: workflow engine, policy, action registry | Claude | Done, committed in d7eae0f | 0 |
-| 2 | Runtime: process supervisor, persisted sessions, reaping | opencode | In progress | 0 |
+| 2 | Runtime: process supervisor, persisted sessions, reaping | opencode | Done (no commit yet) | 0 |
 | 3 | Agent runner: provider adapter, agents call actions | Claude (core half done; adapter waits on 2) | In progress | 1, 2 |
 | 4 | Shell: Electron, IPC, remove server and cookie auth | Claude (host logic first; Electron not installed yet) | In progress | 2 |
 | 5 | UI: factory board, processes panel, approval cards | unassigned (suggested: opencode) | Not started | 1, 4 |
-| 5b | Workflow builder: n8n-style canvas to create, copy and edit workflows; skill sources settings | unassigned (suggested: opencode for UI, Claude for storage) | Not started | 1, 5 |
+| 5b | Workflow builder: n8n-style canvas to create, copy and edit workflows; skill sources settings | Storage: Claude (done). Canvas UI: unassigned (suggested: opencode) | Storage done, UI not started | 1, 5 |
 | 6 | Cutover: docs, factory skill pointers, delete Python | unassigned (suggested: Claude) | Not started | 3, 4, 5 |
 
 Phases 1 and 2 can run at the same time. Phases 3 and 4 can run at the same time once their inputs are done.
@@ -150,3 +150,5 @@ Add a line per handoff: date, phase, who, what changed, what is next.
 - Phase 3, core half done by Claude, uncommitted: `ports/AgentProvider.ts`, `ports/ActionPorts.ts` and `application/runAgent.ts` (every agent call goes through the registry; tested with a fake provider). Still to do: the Claude Code adapter and the executor, which need the Phase 2 supervisor. opencode: Phase 2 files in `apps/api` were not touched by Claude.
 - Design change by Claude, per the user: workflows are user-built data, with `factory` and `factory-review` as bundled presets and no preloaded skills. Core refactored to a declarative engine (`WorkflowDefinition`, `parseWorkflow`, `resolveSkills`, `presets/`). The old behavior tests pass unchanged against the presets, so nothing regressed. Added Phase 5b (workflow builder). Core tests: 81 pass.
 - Claude checked the tree: Phase 1 and the core half of Phase 3 are committed in d7eae0f together with opencode's Phase 2 files, and `origin/adadex-factory` exists. Claude made no commit and no push. Tests: core 81, api 125, web 79 pass.
+- Phase 4, host logic by Claude (`apps/desktop`, no Electron yet): `host/actionHost.ts` is the only place a request becomes a run and the only place a human click is made. A human-only action runs only after a native OS confirmation, which web content and agents cannot press. `jobs/` holds the job store (atomic writes, audit log), the facts reader, and executors for advance, approve spec and unblock. 17 tests, all on temp dirs and fakes. Core `runAgent` gained `onNeedsHumanClick` so the UI can show the button when an agent asks for a human-only action. Still to do: Electron main process, IPC, tray, window, and removing the old server. Blocked on approving the Electron dependency and its install script.
+- Phase 5b storage by Claude (`apps/desktop`): `skills/fsSkillCatalog.ts` (scans configured folders, earlier folder wins, ships none), `workflows/workflowStore.ts` (user workflows as validated JSON files, presets read-only, fork a preset to edit it, corrupt or shadowing files ignored), `config/machineConfig.ts` (skill folders and the per-machine skill map). Desktop tests: 31 pass. The canvas UI is not started.

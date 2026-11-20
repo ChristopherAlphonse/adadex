@@ -1,14 +1,18 @@
+import { randomUUID } from "node:crypto";
+
 import { logVerbose } from "../logging";
+import { loadChannelMessages, persistChannelMessages } from "./channelMessageStore";
 import type { ChannelMessage, PersistedTerminal, TerminalSession } from "./types";
 
 export const createChannelMessaging = (deps: {
   terminals: Map<string, PersistedTerminal>;
   sessions: Map<string, TerminalSession>;
   writeInput: (terminalId: string, data: string) => boolean;
+  messagesPath: string;
 }) => {
-  const { terminals, sessions, writeInput } = deps;
-  const channelQueues = new Map<string, ChannelMessage[]>();
-  let channelMessageCounter = 0;
+  const { terminals, sessions, writeInput, messagesPath } = deps;
+  const channelQueues = loadChannelMessages(messagesPath);
+  const persist = () => persistChannelMessages(messagesPath, channelQueues);
 
   const deliverChannelMessages = (terminalId: string): number => {
     const queue = channelQueues.get(terminalId);
@@ -39,6 +43,7 @@ export const createChannelMessaging = (deps: {
     }
 
     writeInput(terminalId, prompt);
+    persist();
     return undelivered.length;
   };
 
@@ -52,9 +57,8 @@ export const createChannelMessaging = (deps: {
         return null;
       }
 
-      channelMessageCounter += 1;
       const message: ChannelMessage = {
-        messageId: `msg-${channelMessageCounter}`,
+        messageId: `msg-${randomUUID()}`,
         fromTerminalId,
         toTerminalId,
         content,
@@ -65,6 +69,7 @@ export const createChannelMessaging = (deps: {
       const queue = channelQueues.get(toTerminalId) ?? [];
       queue.push(message);
       channelQueues.set(toTerminalId, queue);
+      persist();
 
       logVerbose(
         `[Channel] Queued message ${message.messageId} from=${fromTerminalId} to=${toTerminalId}`,
