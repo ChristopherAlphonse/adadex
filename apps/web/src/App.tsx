@@ -404,6 +404,7 @@ const AppShell = () => {
     activePrimaryNav !== 3 &&
     activePrimaryNav !== 4 &&
     activePrimaryNav !== 7 &&
+    activePrimaryNav !== 8 &&
     (hasPrimarySidebarContent || hasSidebarActionPanel);
 
   return (
