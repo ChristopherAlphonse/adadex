@@ -8,8 +8,8 @@ Phase 0 findings may change the details below. Phase 0 is not finished until its
 
 | Phase | What | Owner | Status | Depends on |
 | --- | --- | --- | --- | --- |
-| 0 | Baseline and reading | Claude (two read-only agents) | Done, waiting for user review | none |
-| 1 | Core: workflow engine, policy, action registry | Claude | Done, uncommitted | 0 |
+| 0 | Baseline and reading | Claude (two read-only agents) | Done | none |
+| 1 | Core: workflow engine, policy, action registry | Claude | Done, committed in d7eae0f | 0 |
 | 2 | Runtime: process supervisor, persisted sessions, reaping | opencode | In progress | 0 |
 | 3 | Agent runner: provider adapter, agents call actions | Claude (core half done; adapter waits on 2) | In progress | 1, 2 |
 | 4 | Shell: Electron, IPC, remove server and cookie auth | unassigned (suggested: opencode) | Not started | 2 |
@@ -149,3 +149,4 @@ Add a line per handoff: date, phase, who, what changed, what is next.
 - Phase 1 done by Claude, uncommitted. In `packages/core`: `domain/workflow.ts` (build and review definitions), `application/advanceJob.ts` (pure stage moves with evidence and rounds), `application/evaluatePolicy.ts` (guard semantics), `domain/action.ts` and `application/actionRegistry.ts` (typed actions, hard blocks, human-click class). Core tests: 62 pass, `tsc` and `biome` clean.
 - Phase 3, core half done by Claude, uncommitted: `ports/AgentProvider.ts`, `ports/ActionPorts.ts` and `application/runAgent.ts` (every agent call goes through the registry; tested with a fake provider). Still to do: the Claude Code adapter and the executor, which need the Phase 2 supervisor. opencode: Phase 2 files in `apps/api` were not touched by Claude.
 - Design change by Claude, per the user: workflows are user-built data, with `factory` and `factory-review` as bundled presets and no preloaded skills. Core refactored to a declarative engine (`WorkflowDefinition`, `parseWorkflow`, `resolveSkills`, `presets/`). The old behavior tests pass unchanged against the presets, so nothing regressed. Added Phase 5b (workflow builder). Core tests: 81 pass.
+- Claude checked the tree: Phase 1 and the core half of Phase 3 are committed in d7eae0f together with opencode's Phase 2 files, and `origin/adadex-factory` exists. Claude made no commit and no push. Tests: core 81, api 125, web 79 pass.
