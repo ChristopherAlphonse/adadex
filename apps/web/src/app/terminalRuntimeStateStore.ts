@@ -1,5 +1,5 @@
 import type { AgentRuntimeState } from "@adadex/core";
-import { useEffect, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 import type { TerminalView } from "./types";
 
@@ -260,29 +260,36 @@ export const createTerminalRuntimeStateStore = () => {
 
 export type TerminalRuntimeStateStore = ReturnType<typeof createTerminalRuntimeStateStore>;
 
+// getRuntimeStates builds a new Map on every call, so keep the last snapshot and reuse
+// it while its contents are unchanged: useSyncExternalStore requires a stable value.
+const createRuntimeStateSource = (
+  runtimeStateStore: TerminalRuntimeStateStore,
+  terminalIds: string[],
+) => {
+  let snapshot = runtimeStateStore.getRuntimeStates(terminalIds);
+
+  return {
+    subscribe: (onChange: () => void) => runtimeStateStore.subscribe(onChange, terminalIds),
+    getSnapshot: () => {
+      const next = runtimeStateStore.getRuntimeStates(terminalIds);
+
+      if (!areRuntimeStateMapsEqual(snapshot, next)) {
+        snapshot = next;
+      }
+
+      return snapshot;
+    },
+  };
+};
+
 export const useTerminalRuntimeStates = (
   runtimeStateStore: TerminalRuntimeStateStore,
   terminalIds: string[],
 ): Map<string, TerminalRuntimeStateInfo> => {
-  const [runtimeStates, setRuntimeStates] = useState(() =>
-    runtimeStateStore.getRuntimeStates(terminalIds),
+  const source = useMemo(
+    () => createRuntimeStateSource(runtimeStateStore, terminalIds),
+    [runtimeStateStore, terminalIds],
   );
 
-  useEffect(() => {
-    setRuntimeStates((current) => {
-      const next = runtimeStateStore.getRuntimeStates(terminalIds);
-
-      return areRuntimeStateMapsEqual(current, next) ? current : next;
-    });
-
-    return runtimeStateStore.subscribe(() => {
-      setRuntimeStates((current) => {
-        const next = runtimeStateStore.getRuntimeStates(terminalIds);
-
-        return areRuntimeStateMapsEqual(current, next) ? current : next;
-      });
-    }, terminalIds);
-  }, [runtimeStateStore, terminalIds]);
-
-  return runtimeStates;
+  return useSyncExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot);
 };

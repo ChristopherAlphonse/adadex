@@ -71,8 +71,7 @@ const AppShell = () => {
   const [conversationsActionPanel, setConversationsActionPanel] = useState<ReactNode>(null);
   const [promptsSidebarContent, setPromptsSidebarContent] = useState<ReactNode>(null);
   const terminalEventsRefreshTimerRef = useRef<number | null>(null);
-  const runtimeStateStoreRef = useRef(createTerminalRuntimeStateStore());
-  const runtimeStateStore = runtimeStateStoreRef.current;
+  const [runtimeStateStore] = useState(createTerminalRuntimeStateStore);
   const factoryHost = useMemo(() => createFactoryHost(), []);
 
   const sortTerminalSnapshots = useCallback(

@@ -1,6 +1,6 @@
 import { asRecord, isBoolean, isNumber, isString, type ParsedValue } from "@adadex/core";
 import type { Dispatch, SetStateAction } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   buildOrchestrationGitCommitUrl,
@@ -162,10 +162,6 @@ export const useOrchestrationGitLifecycle = ({
     Record<string, boolean>
   >({});
 
-  const [gitStatusAttemptedOrchestrationIds, setGitStatusAttemptedOrchestrationIds] = useState<
-    Record<string, boolean>
-  >({});
-
   const [pullRequestByOrchestrationId, setPullRequestByOrchestrationId] = useState<
     Record<string, CoordinationPullRequestSnapshot>
   >({});
@@ -174,9 +170,10 @@ export const useOrchestrationGitLifecycle = ({
     Record<string, boolean>
   >({});
 
-  const [pullRequestAttemptedOrchestrationIds, setPullRequestAttemptedOrchestrationIds] = useState<
-    Record<string, boolean>
-  >({});
+  // Only used to fetch each orchestration once; never rendered, so refs rather than state.
+  const gitStatusAttemptedIdsRef = useRef(new Set<string>());
+  const pullRequestAttemptedIdsRef = useRef(new Set<string>());
+  const [prunedForColumns, setPrunedForColumns] = useState(columns);
 
   const [openGitOrchestrationId, setOpenGitOrchestrationId] = useState<string | null>(null);
   const [gitCommitMessageDraft, setGitCommitMessageDraft] = useState("");
@@ -277,96 +274,69 @@ export const useOrchestrationGitLifecycle = ({
     [columns],
   );
 
-  useEffect(() => {
+  // Drop state for orchestrations that left `columns`. Done during render (React's
+  // "adjust state when a prop changes" pattern) instead of in an effect.
+  if (prunedForColumns !== columns) {
     const activeOrchestrationIds = new Set(columns.map((column) => column.coordinationId));
-    setGitStatusByOrchestrationId((current) =>
+
+    const keepActive = <T>(current: Record<string, T>): Record<string, T> =>
       Object.fromEntries(
         Object.entries(current).filter(([coordinationId]) =>
           activeOrchestrationIds.has(coordinationId),
         ),
-      ),
-    );
-    setGitStatusLoadingByOrchestrationId((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
-    setGitStatusAttemptedOrchestrationIds((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
-    setPullRequestByOrchestrationId((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
-    setPullRequestLoadingByOrchestrationId((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
-    setPullRequestAttemptedOrchestrationIds((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
+      );
+
+    setPrunedForColumns(columns);
+    setGitStatusByOrchestrationId(keepActive);
+    setGitStatusLoadingByOrchestrationId(keepActive);
+    setPullRequestByOrchestrationId(keepActive);
+    setPullRequestLoadingByOrchestrationId(keepActive);
 
     if (openGitOrchestrationId && !activeOrchestrationIds.has(openGitOrchestrationId)) {
       setOpenGitOrchestrationId(null);
       setGitDialogError(null);
       setGitCommitMessageDraft("");
     }
-  }, [columns, openGitOrchestrationId]);
+  }
 
   useEffect(() => {
-    for (const coordinationId of worktreeOrchestrationIds) {
-      if (gitStatusAttemptedOrchestrationIds[coordinationId]) {
-        continue;
-      }
+    const activeOrchestrationIds = new Set(columns.map((column) => column.coordinationId));
 
-      setGitStatusAttemptedOrchestrationIds((current) => ({
-        ...current,
-        [coordinationId]: true,
-      }));
-      void fetchOrchestrationGitStatus(coordinationId).catch((cause: unknown) => {
-        console.warn(`[git] Failed to fetch status for orchestration ${coordinationId}:`, cause);
-      });
+    for (const attemptedIds of [
+      gitStatusAttemptedIdsRef.current,
+      pullRequestAttemptedIdsRef.current,
+    ]) {
+      for (const coordinationId of attemptedIds) {
+        if (!activeOrchestrationIds.has(coordinationId)) {
+          attemptedIds.delete(coordinationId);
+        }
+      }
     }
-  }, [fetchOrchestrationGitStatus, gitStatusAttemptedOrchestrationIds, worktreeOrchestrationIds]);
+  }, [columns]);
 
   useEffect(() => {
+    const gitStatusAttemptedIds = gitStatusAttemptedIdsRef.current;
+    const pullRequestAttemptedIds = pullRequestAttemptedIdsRef.current;
+
     for (const coordinationId of worktreeOrchestrationIds) {
-      if (pullRequestAttemptedOrchestrationIds[coordinationId]) {
-        continue;
+      if (!gitStatusAttemptedIds.has(coordinationId)) {
+        gitStatusAttemptedIds.add(coordinationId);
+        void fetchOrchestrationGitStatus(coordinationId).catch((cause: unknown) => {
+          console.warn(`[git] Failed to fetch status for orchestration ${coordinationId}:`, cause);
+        });
       }
 
-      setPullRequestAttemptedOrchestrationIds((current) => ({
-        ...current,
-        [coordinationId]: true,
-      }));
-      void fetchOrchestrationPullRequest(coordinationId).catch((cause: unknown) => {
-        console.warn(
-          `[git] Failed to fetch pull request for orchestration ${coordinationId}:`,
-          cause,
-        );
-      });
+      if (!pullRequestAttemptedIds.has(coordinationId)) {
+        pullRequestAttemptedIds.add(coordinationId);
+        void fetchOrchestrationPullRequest(coordinationId).catch((cause: unknown) => {
+          console.warn(
+            `[git] Failed to fetch pull request for orchestration ${coordinationId}:`,
+            cause,
+          );
+        });
+      }
     }
-  }, [
-    fetchOrchestrationPullRequest,
-    pullRequestAttemptedOrchestrationIds,
-    worktreeOrchestrationIds,
-  ]);
+  }, [fetchOrchestrationGitStatus, fetchOrchestrationPullRequest, worktreeOrchestrationIds]);
 
   const openOrchestrationGitActions = useCallback(
     (coordinationId: string) => {

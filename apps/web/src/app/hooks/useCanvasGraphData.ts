@@ -1,6 +1,6 @@
 import { asRecord, isNumber, isString, type ParsedValue } from "@adadex/core";
 import type { DeckCoordinationSummary } from "@adadex/core";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { buildConversationsUrl, buildDeckOrchestrationsUrl } from "../../runtime/runtimeEndpoints";
 import type { GraphEdge, GraphNode } from "../canvas/types";
@@ -145,6 +145,63 @@ const normalizeDeckCoordinationSummary = (value: ParsedValue): DeckCoordinationS
   };
 };
 
+const JITTER_SPREAD = 60;
+
+/**
+ * Stable pseudo-random offset in [-JITTER_SPREAD/2, JITTER_SPREAD/2) for a new node, derived
+ * from its id (FNV-1a), so render stays pure and a node lands in the same spot every time.
+ */
+const jitterFor = (nodeId: string, axis: "x" | "y"): number => {
+  let hash = 0x811c9dc5;
+
+  for (const char of `${nodeId}:${axis}`) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return ((hash >>> 0) / 0x100000000 - 0.5) * JITTER_SPREAD;
+};
+
+const requestDeckOrchestrations = async (): Promise<DeckCoordinationSummary[] | null> => {
+  try {
+    const response = await fetch(buildDeckOrchestrationsUrl(), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) return null;
+    const payload: ParsedValue = await response.json();
+
+    if (!Array.isArray(payload)) return null;
+
+    return payload
+      .map((entry) => normalizeDeckCoordinationSummary(entry))
+      .filter((entry): entry is DeckCoordinationSummary => entry !== null);
+  } catch {
+    return null;
+  }
+};
+
+const requestInactiveSessions = async (): Promise<ConversationSessionSummary[] | null> => {
+  try {
+    const response = await fetch(buildConversationsUrl(), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) return null;
+    const payload: ParsedValue = await response.json();
+
+    return Array.isArray(payload)
+      ? payload
+          .map((entry) => normalizeConversationSessionSummary(entry))
+          .filter((entry): entry is ConversationSessionSummary => entry !== null)
+      : [];
+  } catch {
+    return null;
+  }
+};
+
 export const useCanvasGraphData = ({
   columns,
   enabled,
@@ -152,59 +209,38 @@ export const useCanvasGraphData = ({
 }: UseCanvasGraphDataOptions): UseCanvasGraphDataResult => {
   const [deckOrchestrations, setDeckOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [inactiveSessions, setInactiveSessions] = useState<ConversationSessionSummary[]>([]);
-  const prevNodesRef = useRef<Map<string, GraphNode>>(new Map());
+  // Last rendered nodes by id. The force simulation mutates these objects in place, so
+  // the next build reads positions from here. Read during render, written after commit.
+  const [renderedNodesById] = useState(() => new Map<string, GraphNode>());
+  const [previousEnabled, setPreviousEnabled] = useState(enabled);
 
-  const fetchDeckOrchestrations = useCallback(async () => {
-    try {
-      const response = await fetch(buildDeckOrchestrationsUrl(), {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
+  if (previousEnabled !== enabled) {
+    setPreviousEnabled(enabled);
 
-      if (!response.ok) return;
-      const payload: ParsedValue = await response.json();
-
-      if (!Array.isArray(payload)) return;
-
-      const items = payload
-        .map((entry) => normalizeDeckCoordinationSummary(entry))
-        .filter((entry): entry is DeckCoordinationSummary => entry !== null);
-
-      setDeckOrchestrations(items);
-    } catch {
-      // silent
-    }
-  }, []);
-
-  const fetchInactiveSessions = useCallback(async () => {
-    try {
-      const response = await fetch(buildConversationsUrl(), {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-
-      if (!response.ok) return;
-      const payload: ParsedValue = await response.json();
-
-      const normalized = Array.isArray(payload)
-        ? payload
-            .map((entry) => normalizeConversationSessionSummary(entry))
-            .filter((entry): entry is ConversationSessionSummary => entry !== null)
-        : [];
-
-      setInactiveSessions(normalized);
-    } catch {
-      // silent
-    }
-  }, []);
-
-  useEffect(() => {
     if (!enabled) {
       setDeckOrchestrations([]);
       setInactiveSessions([]);
-
-      return;
     }
+  }
+
+  const fetchDeckOrchestrations = useCallback(
+    () =>
+      requestDeckOrchestrations().then((items) => {
+        if (items) setDeckOrchestrations(items);
+      }),
+    [],
+  );
+
+  const fetchInactiveSessions = useCallback(
+    () =>
+      requestInactiveSessions().then((sessions) => {
+        if (sessions) setInactiveSessions(sessions);
+      }),
+    [],
+  );
+
+  useEffect(() => {
+    if (!enabled) return;
 
     void fetchDeckOrchestrations();
     void fetchInactiveSessions();
@@ -245,7 +281,7 @@ export const useCanvasGraphData = ({
 
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
-  const prevNodes = prevNodesRef.current;
+  const prevNodes = renderedNodesById;
   const currentNodesById = new Map<string, GraphNode>();
   const seenOrchestrationIds = new Set<string>();
 
@@ -324,15 +360,13 @@ export const useCanvasGraphData = ({
           : orchestrationNodeId;
 
         const parentNode = currentNodesById.get(parentNodeId) ?? node;
-        const jitter = () => (Math.random() - 0.5) * 60;
-
         const runtimeInfo = agentRuntimeStates?.get(activeTerminal.terminalId);
 
         const sessionNode: GraphNode = {
           id: sessionNodeId,
           type: "active-session",
-          x: prevSession?.x ?? parentNode.x + jitter(),
-          y: prevSession?.y ?? parentNode.y + jitter(),
+          x: prevSession?.x ?? parentNode.x + jitterFor(sessionNodeId, "x"),
+          y: prevSession?.y ?? parentNode.y + jitterFor(sessionNodeId, "y"),
           vx: prevSession?.vx ?? 0,
           vy: prevSession?.vy ?? 0,
           pinned: prevSession?.pinned ?? false,
@@ -401,15 +435,13 @@ export const useCanvasGraphData = ({
     if (!isDeckLeadCoordinationId(terminal.coordinationId)) continue;
     const sessionNodeId = buildActiveSessionNodeId(terminal.terminalId);
     const prevSession = prevNodes.get(sessionNodeId);
-    const jitter = () => (Math.random() - 0.5) * 60;
-
     const bossRuntimeInfo = agentRuntimeStates?.get(terminal.terminalId);
 
     const sessionNode: GraphNode = {
       id: sessionNodeId,
       type: "active-session",
-      x: prevSession?.x ?? deckLeadNode.x + jitter(),
-      y: prevSession?.y ?? deckLeadNode.y + jitter(),
+      x: prevSession?.x ?? deckLeadNode.x + jitterFor(sessionNodeId, "x"),
+      y: prevSession?.y ?? deckLeadNode.y + jitterFor(sessionNodeId, "y"),
       vx: prevSession?.vx ?? 0,
       vy: prevSession?.vy ?? 0,
       pinned: prevSession?.pinned ?? false,
@@ -462,13 +494,11 @@ export const useCanvasGraphData = ({
       deckMap.get(session.coordinationId)?.color,
     );
 
-    const jitter = () => (Math.random() - 0.5) * 60;
-
     const sessionNode: GraphNode = {
       id: sessionNodeId,
       type: "inactive-session",
-      x: prevSession?.x ?? parentX + jitter(),
-      y: prevSession?.y ?? parentY + jitter(),
+      x: prevSession?.x ?? parentX + jitterFor(sessionNodeId, "x"),
+      y: prevSession?.y ?? parentY + jitterFor(sessionNodeId, "y"),
       vx: prevSession?.vx ?? 0,
       vy: prevSession?.vy ?? 0,
       pinned: prevSession?.pinned ?? false,
@@ -490,14 +520,14 @@ export const useCanvasGraphData = ({
     edges.push({ source: orchestrationNodeId, target: sessionNodeId });
   }
 
-  // Update position cache
-  const nextMap = new Map<string, GraphNode>();
+  // Remember the committed nodes so the next build keeps their simulated positions.
+  useEffect(() => {
+    renderedNodesById.clear();
 
-  for (const n of nodes) {
-    nextMap.set(n.id, n);
-  }
-
-  prevNodesRef.current = nextMap;
+    for (const node of nodes) {
+      renderedNodesById.set(node.id, node);
+    }
+  });
 
   return {
     nodes,

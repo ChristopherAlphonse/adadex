@@ -87,13 +87,47 @@ const normalizeConversationSearchHit = (value: ParsedValue): ConversationSearchH
 const buildExportFilename = (sessionId: string, format: ConversationExportFormat) =>
   `${sessionId}.${format === "json" ? "json" : "md"}`;
 
+type ConversationSessionsResult =
+  | { ok: true; sessions: ConversationSessionSummary[] }
+  | { ok: false; errorMessage: string };
+
+const requestConversationSessions = async (): Promise<ConversationSessionsResult> => {
+  try {
+    const response = await fetch(buildConversationsUrl(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Unable to read conversations (${response.status})`);
+    }
+
+    const payload: ParsedValue = await response.json();
+
+    const sessions = Array.isArray(payload)
+      ? payload
+          .map((entry) => normalizeConversationSessionSummary(entry))
+          .filter((entry): entry is ConversationSessionSummary => entry !== null)
+      : [];
+
+    return { ok: true, sessions };
+  } catch (error) {
+    return {
+      ok: false,
+      errorMessage: buildErrorMessage("Unable to load conversations.", error),
+    };
+  }
+};
+
 export const useConversationsRuntime = ({
   enabled = true,
 }: UseConversationsRuntimeOptions = {}): UseConversationsRuntimeResult => {
   const [sessions, setSessions] = useState<ConversationSessionSummary[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<ConversationSessionDetail | null>(null);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(enabled);
   const [isLoadingSelectedSession, setIsLoadingSelectedSession] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -104,48 +138,39 @@ export const useConversationsRuntime = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedSessionRequestRef = useRef(0);
 
+  const loadSessions = useCallback(
+    () =>
+      requestConversationSessions().then((result) => {
+        setIsLoadingSessions(false);
+
+        if (!result.ok) {
+          setErrorMessage(result.errorMessage);
+
+          return;
+        }
+
+        const { sessions: normalized } = result;
+        setSessions(normalized);
+        setSelectedSessionId((current) => {
+          if (current && normalized.some((session) => session.sessionId === current)) {
+            return current;
+          }
+
+          return normalized[0]?.sessionId ?? null;
+        });
+        setErrorMessage(null);
+      }),
+    [],
+  );
+
   const refreshSessions = useCallback(async () => {
     if (!enabled) {
       return;
     }
 
     setIsLoadingSessions(true);
-
-    try {
-      const response = await fetch(buildConversationsUrl(), {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Unable to read conversations (${response.status})`);
-      }
-
-      const payload: ParsedValue = await response.json();
-
-      const normalized = Array.isArray(payload)
-        ? payload
-            .map((entry) => normalizeConversationSessionSummary(entry))
-            .filter((entry): entry is ConversationSessionSummary => entry !== null)
-        : [];
-
-      setSessions(normalized);
-      setSelectedSessionId((current) => {
-        if (current && normalized.some((session) => session.sessionId === current)) {
-          return current;
-        }
-
-        return normalized[0]?.sessionId ?? null;
-      });
-      setErrorMessage(null);
-    } catch (error) {
-      setErrorMessage(buildErrorMessage("Unable to load conversations.", error));
-    } finally {
-      setIsLoadingSessions(false);
-    }
-  }, [enabled]);
+    await loadSessions();
+  }, [enabled, loadSessions]);
 
   const clearAllSessions = useCallback(async () => {
     if (!enabled) {
@@ -334,13 +359,19 @@ export const useConversationsRuntime = ({
     setHighlightedTurnId(hit.turnId);
   }, []);
 
-  useEffect(() => {
+  // Reset and loading flags follow `enabled` and the selected session. They are adjusted
+  // during render when those inputs change (React's "adjust state when a prop changes"
+  // pattern) so the effects below only talk to the API.
+  const [previousEnabled, setPreviousEnabled] = useState(enabled);
+
+  if (previousEnabled !== enabled) {
+    setPreviousEnabled(enabled);
+
+    setIsLoadingSessions(enabled);
+
     if (!enabled) {
       setSessions([]);
       setSelectedSessionId(null);
-      setSelectedSession(null);
-      setIsLoadingSessions(false);
-      setIsLoadingSelectedSession(false);
       setIsExporting(false);
       setIsClearing(false);
       setIsSearching(false);
@@ -348,27 +379,36 @@ export const useConversationsRuntime = ({
       setSearchHits([]);
       setHighlightedTurnId(null);
       setErrorMessage(null);
-
-      return;
     }
+  }
 
-    void refreshSessions();
-  }, [enabled, refreshSessions]);
+  const activeSessionId = enabled ? selectedSessionId : null;
+  const [previousActiveSessionId, setPreviousActiveSessionId] = useState(activeSessionId);
+
+  if (previousActiveSessionId !== activeSessionId) {
+    setPreviousActiveSessionId(activeSessionId);
+    setIsLoadingSelectedSession(activeSessionId !== null);
+
+    if (activeSessionId === null) {
+      setSelectedSession(null);
+    }
+  }
 
   useEffect(() => {
-    if (!enabled || !selectedSessionId) {
-      setSelectedSession(null);
-
-      return;
+    if (enabled) {
+      void loadSessions();
     }
+  }, [enabled, loadSessions]);
+
+  useEffect(() => {
+    if (!activeSessionId) return;
 
     const requestId = selectedSessionRequestRef.current + 1;
     selectedSessionRequestRef.current = requestId;
-    setIsLoadingSelectedSession(true);
 
     const loadSelectedSession = async () => {
       try {
-        const response = await fetch(buildConversationSessionUrl(selectedSessionId), {
+        const response = await fetch(buildConversationSessionUrl(activeSessionId), {
           method: "GET",
           headers: {
             Accept: "application/json",
@@ -402,7 +442,7 @@ export const useConversationsRuntime = ({
     };
 
     void loadSelectedSession();
-  }, [enabled, selectedSessionId]);
+  }, [activeSessionId]);
 
   return {
     sessions,

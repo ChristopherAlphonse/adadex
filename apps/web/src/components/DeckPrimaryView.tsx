@@ -63,6 +63,22 @@ type DeckPrimaryViewProps = {
   suppressWorkspaceSetupCard?: boolean;
 };
 
+type LoadedVaultFile = { focus: FocusState; content: string | null };
+
+const requestDeckOrchestrations = async (): Promise<DeckCoordinationSummary[] | null> => {
+  try {
+    const response = await fetch(buildDeckOrchestrationsUrl(), {
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) return null;
+
+    return await response.json();
+  } catch {
+    return null;
+  }
+};
+
 export const DeckPrimaryView = ({
   onSidebarContent,
   workspaceSetup,
@@ -74,8 +90,7 @@ export const DeckPrimaryView = ({
 }: DeckPrimaryViewProps) => {
   const [orchestrations, setOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [focus, setFocus] = useState<FocusState | null>(null);
-  const [vaultContent, setVaultContent] = useState<string | null>(null);
-  const [loadingVault, setLoadingVault] = useState(false);
+  const [loadedVault, setLoadedVault] = useState<LoadedVaultFile | null>(null);
   const [emptyViewMode, setEmptyViewMode] = useState<EmptyViewMode>("idle");
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -95,14 +110,13 @@ export const DeckPrimaryView = ({
 
   // Fetch orchestration list
   const fetchOrchestrations = useCallback(async () => {
-    try {
-      const response = await fetch(buildDeckOrchestrationsUrl(), {
-        headers: { Accept: "application/json" },
-      });
+    const data = await requestDeckOrchestrations();
 
-      if (!response.ok) return;
-      const data = await response.json();
-      setOrchestrations(data);
+    if (data === null) return;
+
+    setOrchestrations(data);
+
+    try {
       await onRefreshWorkspaceSetup();
     } catch {
       // silently ignore
@@ -110,8 +124,24 @@ export const DeckPrimaryView = ({
   }, [onRefreshWorkspaceSetup]);
 
   useEffect(() => {
-    void fetchOrchestrations();
-  }, [fetchOrchestrations]);
+    let cancelled = false;
+
+    void requestDeckOrchestrations().then(async (data) => {
+      if (cancelled || data === null) return;
+
+      setOrchestrations(data);
+
+      try {
+        await onRefreshWorkspaceSetup();
+      } catch {
+        // silently ignore
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onRefreshWorkspaceSetup]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,43 +187,30 @@ export const DeckPrimaryView = ({
     return map;
   }, [orchestrations]);
 
-  // Fetch vault file content when focus changes
+  // Fetch vault file content when focus changes. The result is tagged with the focus it
+  // was fetched for, so loading and stale content are derived instead of reset in the effect.
   useEffect(() => {
-    if (focus?.type !== "vault") {
-      setVaultContent(null);
-
-      return;
-    }
+    if (focus?.type !== "vault") return;
 
     let cancelled = false;
-    setLoadingVault(true);
 
     const fetchVault = async () => {
+      let content: string | null = null;
+
       try {
         const response = await fetch(buildDeckVaultFileUrl(focus.coordinationId, focus.fileName), {
           headers: { Accept: "text/markdown" },
         });
 
-        if (cancelled) return;
-
-        if (!response.ok) {
-          setVaultContent(null);
-          setLoadingVault(false);
-
-          return;
-        }
-
-        const text = await response.text();
-
-        if (!cancelled) {
-          setVaultContent(text);
-          setLoadingVault(false);
+        if (response.ok) {
+          content = await response.text();
         }
       } catch {
-        if (!cancelled) {
-          setVaultContent(null);
-          setLoadingVault(false);
-        }
+        content = null;
+      }
+
+      if (!cancelled) {
+        setLoadedVault({ focus, content });
       }
     };
 
@@ -203,6 +220,10 @@ export const DeckPrimaryView = ({
       cancelled = true;
     };
   }, [focus]);
+
+  const isVaultFocused = focus?.type === "vault";
+  const vaultContent = isVaultFocused && loadedVault?.focus === focus ? loadedVault.content : null;
+  const loadingVault = isVaultFocused && loadedVault?.focus !== focus;
 
   // Agent menu click-outside/escape
   const handleDismissAgentMenu = useCallback(() => setAgentMenuOpen(false), []);
