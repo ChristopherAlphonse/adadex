@@ -108,6 +108,25 @@ describe("runAgent", () => {
     expect(s.responses[0]?.outcome).toMatchObject({ status: "needs-human-click" });
   });
 
+  it("tells the caller when an agent asks for a human-only action", async () => {
+    const s = scripted([
+      act("c1", "job.commit_local", { id: "j1" }),
+      { type: "done", summary: "" },
+    ]);
+    const seen: string[] = [];
+    await runAgent(
+      {
+        provider: s.provider,
+        registry,
+        executor: executor([]),
+        approvals: gate(true),
+        onNeedsHumanClick: (id) => seen.push(id),
+      },
+      request,
+    );
+    expect(seen).toEqual(["job.commit_local"]);
+  });
+
   it("refuses an unknown action, such as a push", async () => {
     const s = scripted([act("c1", "git.push", {}), { type: "done", summary: "" }]);
     const calls: { id: string; input: unknown }[] = [];

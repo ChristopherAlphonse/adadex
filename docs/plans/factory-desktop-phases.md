@@ -12,7 +12,7 @@ Phase 0 findings may change the details below. Phase 0 is not finished until its
 | 1 | Core: workflow engine, policy, action registry | Claude | Done, committed in d7eae0f | 0 |
 | 2 | Runtime: process supervisor, persisted sessions, reaping | opencode | In progress | 0 |
 | 3 | Agent runner: provider adapter, agents call actions | Claude (core half done; adapter waits on 2) | In progress | 1, 2 |
-| 4 | Shell: Electron, IPC, remove server and cookie auth | unassigned (suggested: opencode) | Not started | 2 |
+| 4 | Shell: Electron, IPC, remove server and cookie auth | Claude (host logic first; Electron not installed yet) | In progress | 2 |
 | 5 | UI: factory board, processes panel, approval cards | unassigned (suggested: opencode) | Not started | 1, 4 |
 | 5b | Workflow builder: n8n-style canvas to create, copy and edit workflows; skill sources settings | unassigned (suggested: opencode for UI, Claude for storage) | Not started | 1, 5 |
 | 6 | Cutover: docs, factory skill pointers, delete Python | unassigned (suggested: Claude) | Not started | 3, 4, 5 |

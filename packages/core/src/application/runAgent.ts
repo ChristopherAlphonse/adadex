@@ -7,6 +7,8 @@ export interface RunAgentDeps {
   readonly registry: ActionRegistry;
   readonly executor: ActionExecutor;
   readonly approvals: ApprovalGate;
+  /** Called when the agent asked for a human-only action, so the UI can show the button for a person to press. */
+  readonly onNeedsHumanClick?: (actionId: string, reason: string) => void;
 }
 
 export interface CallRecord {

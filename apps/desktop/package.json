@@ -1,0 +1,13 @@
+{
+  "name": "@adadex/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@adadex/core": "*"
+  }
+}
