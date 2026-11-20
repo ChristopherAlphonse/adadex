@@ -8,7 +8,7 @@ Phase 0 findings may change the details below. Phase 0 is not finished until its
 
 | Phase | What | Owner | Status | Depends on |
 | --- | --- | --- | --- | --- |
-| 0 | Baseline and reading | Claude (two read-only agents) | In progress | none |
+| 0 | Baseline and reading | Claude (two read-only agents) | Done, waiting for user review | none |
 | 1 | Core: workflow engine, policy, action registry | unassigned (suggested: Claude) | Not started | 0 |
 | 2 | Runtime: process supervisor, persisted sessions, reaping | unassigned (suggested: opencode) | Not started | 0 |
 | 3 | Agent runner: provider adapter, agents call actions | unassigned (suggested: Claude) | Not started | 1, 2 |
@@ -45,7 +45,7 @@ flowchart TD
 
 ## Phase 0: Baseline and reading
 
-Owner: Claude. Status: in progress.
+Owner: Claude. Status: done, waiting for user review. Report: `docs/plans/phase-0-findings.md`.
 
 - Read the adadex runtime, core and routes, and find everything hard-wired to Kiro.
 - Diff `factory/` and `factory-review/` in the `calphonse-skills` repo.
@@ -123,3 +123,4 @@ Done when: parity is shown, and the user approves deleting the Python.
 Add a line per handoff: date, phase, who, what changed, what is next.
 
 - Phase 0 started by Claude.
+- Phase 0 finished by Claude. Findings in `docs/plans/phase-0-findings.md`. Next: user reviews, then Phases 1 and 2 can start in parallel.
