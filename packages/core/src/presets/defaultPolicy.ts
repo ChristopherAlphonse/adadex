@@ -1,8 +1,7 @@
 import type { PolicyRules } from "../domain/policy";
 import { PROTECTED_FLOOR } from "../domain/protectedPaths";
 
-// Shell commands only: precedence is
-// deny, then ask, then allow, and a command no rule names needs a human.
+// Shell commands only: precedence is deny, then ask, then allow, and a command no rule names needs a human.
 
 const DENY: readonly string[] = ["git push*", "git -C * push*", "aws s3 rm*", "curl -X POST*"];
 

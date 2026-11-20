@@ -2,9 +2,6 @@ import { isTerminalAgentProvider, type TerminalAgentProvider } from "@adadex/cor
 
 export const AGENT_PROVIDER_STORAGE_KEY = "adadex.agentProvider";
 
-// value at call sites) so the provider-switcher UI can be removed from
-// ConsoleChromeHeader/ActionCards without touching this module again if a
-// second provider is ever added.
 export const AGENT_PROVIDER_OPTIONS: ReadonlyArray<{
   value: TerminalAgentProvider;
   label: string;
