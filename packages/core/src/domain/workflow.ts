@@ -66,6 +66,8 @@ export interface StageDef {
   readonly title?: string;
   readonly hint: string;
   readonly skills?: readonly SkillRef[];
+  /** The role an agent works in at this stage. A stage with no role waits for a person. */
+  readonly role?: string;
   readonly terminal?: boolean;
   readonly moves: readonly MoveDef[];
 }

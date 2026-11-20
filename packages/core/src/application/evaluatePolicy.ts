@@ -52,6 +52,13 @@ export const evaluateWrite = (rules: PolicyRules, absolutePath: string): PolicyD
   if (rules.writeOnly.length > 0 && !anyMatch(rules.writeOnly, absolutePath, pathGlob)) {
     return deny(`writing ${absolutePath}, which is outside the places this agent may write`);
   }
+  for (const scope of rules.scopedWrites ?? []) {
+    const root = `${scope.root.replace(/\/+$/, "")}/`;
+    if (!absolutePath.startsWith(root)) continue;
+    const relative = absolutePath.slice(root.length);
+    if (!anyMatch(scope.allow, relative, pathGlob))
+      return deny(`writing ${relative}, which this role may not write`);
+  }
   return ALLOW;
 };
 

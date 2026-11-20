@@ -24,6 +24,7 @@ export const factoryBuildPreset: WorkflowDefinition = {
   stages: [
     {
       id: "shape",
+      role: "shaper",
       hint: "lets-talk-about-it -> shape.md (STATUS: READY, or reject with rejection.md)",
       skills: [{ name: "lets-talk-about-it", role: "shaper" }],
       moves: [
@@ -33,6 +34,7 @@ export const factoryBuildPreset: WorkflowDefinition = {
     },
     {
       id: "spec",
+      role: "planner",
       hint: "prd-mode -> spec.md and the tasks file, then wait for the user to approve",
       skills: [{ name: "prd-mode", role: "spec writer" }],
       moves: [
@@ -52,6 +54,7 @@ export const factoryBuildPreset: WorkflowDefinition = {
     },
     {
       id: "build",
+      role: "builder",
       hint: "swe plus stack skill, one task at a time -> build.md, then advance gate",
       skills: [{ name: "swe", role: "builder" }],
       moves: [
@@ -61,6 +64,7 @@ export const factoryBuildPreset: WorkflowDefinition = {
     },
     {
       id: "gate",
+      role: "gatekeeper",
       hint: "run the gate, then advance review (or prove after polish) or build",
       moves: [
         {
@@ -102,6 +106,7 @@ export const factoryBuildPreset: WorkflowDefinition = {
     },
     {
       id: "review",
+      role: "reviewer",
       hint: "reviewers -> round-N/review-<name>.md, reconcile-reviews -> reconcile.md, advance polish or build",
       skills: [
         { name: "code-review-frontend", role: "code reviewer" },
@@ -125,6 +130,7 @@ export const factoryBuildPreset: WorkflowDefinition = {
     },
     {
       id: "polish",
+      role: "polisher",
       hint: "comment-sicko then simplify -> polish.md, then advance gate or build",
       skills: [{ name: "comment-sicko", role: "polisher" }, { name: "simplify" }],
       moves: [
@@ -142,6 +148,7 @@ export const factoryBuildPreset: WorkflowDefinition = {
     },
     {
       id: "prove",
+      role: "verifier",
       hint: "prove-it-works -> uat.md, then advance ship or build",
       skills: [{ name: "prove-it-works", role: "verifier" }],
       moves: [
@@ -152,6 +159,7 @@ export const factoryBuildPreset: WorkflowDefinition = {
     },
     {
       id: "ship",
+      role: "shipper",
       hint: "pr-body-style (+ demo-script) -> pr-body.md, wait for user approval, advance ready",
       skills: [{ name: "pr-body-style", role: "writer" }],
       moves: [

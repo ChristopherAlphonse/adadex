@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { JobFacts, WorkflowJob } from "@adadex/core";
+import { attestedGate } from "./attestedGate";
+import type { JobStore } from "./jobStore";
 import { parseKv } from "./kv";
 
 const read = async (path: string): Promise<string | null> =>
@@ -9,7 +11,8 @@ const read = async (path: string): Promise<string | null> =>
 const names = async (dir: string): Promise<string[]> => readdir(dir).catch(() => [] as string[]);
 
 /** Read what the engine needs to judge a move: the stage documents, the gate result, the reviews, and the hash of anything approvable. */
-export const readFacts = async (jobDir: string, job: WorkflowJob): Promise<JobFacts> => {
+export const readFacts = async (store: JobStore, job: WorkflowJob): Promise<JobFacts> => {
+  const jobDir = store.jobDir(job.id);
   const docs: Record<string, Record<string, string>> = {};
   for (const name of await names(jobDir)) {
     if (!name.endsWith(".md")) continue;
@@ -17,8 +20,7 @@ export const readFacts = async (jobDir: string, job: WorkflowJob): Promise<JobFa
   }
 
   const roundDir = join(jobDir, `round-${job.round}`);
-  const checks = await read(join(roundDir, "checks.md"));
-  const gate = checks === null ? undefined : parseKv(checks).GATE;
+  const gate = (await attestedGate(store, job))?.gate;
 
   const reviews: Record<string, string | undefined> = {};
   for (const reviewer of job.reviewers) {

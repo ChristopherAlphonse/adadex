@@ -49,6 +49,7 @@ const record = async (
     action: "gate",
     jobId: job.id,
     detail: result.gate + (result.reason ? ` (${result.reason})` : ""),
+    data: { round: job.round, gate: result.gate, tree },
   });
   return result;
 };

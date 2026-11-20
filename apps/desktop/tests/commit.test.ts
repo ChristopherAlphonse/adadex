@@ -8,6 +8,7 @@ import type { GateConfig, GitPort } from "../src/jobs/gatePorts";
 import { createJobExecutor } from "../src/jobs/jobActions";
 import { createJobStore } from "../src/jobs/jobStore";
 import { nodeCheckRunner, nodeGit } from "../src/jobs/nodeGate";
+import { writeGate } from "./helpers/attest";
 
 let root: string;
 beforeEach(async () => {
@@ -67,10 +68,7 @@ const setup = async (
   await mkdir(join(dir, "round-1"), { recursive: true });
   if (doc.message !== "")
     await writeFile(join(dir, "commit.md"), doc.message ?? "feat: add login\n");
-  await writeFile(
-    join(dir, "round-1", "checks.md"),
-    `GATE: ${doc.gate ?? "PASS"}\nTREE: ${doc.tree ?? "t1"}\n`,
-  );
+  await writeGate(store, "j1", 1, (doc.gate ?? "PASS") as "PASS" | "FAIL", doc.tree ?? "t1");
   const executor = createJobExecutor({
     store,
     workflows: { factory: factoryBuildPreset },
@@ -188,11 +186,7 @@ describe("job.commit_local with real git", () => {
     await writeFile(join(work, "a.txt"), "2");
     await writeFile(join(work, "new.txt"), "n");
     const tree = await nodeGit.fingerprint(work);
-    await mkdir(join(store.jobDir("j1"), "round-1"), { recursive: true });
-    await writeFile(
-      join(store.jobDir("j1"), "round-1", "checks.md"),
-      `GATE: PASS\nTREE: ${tree}\n`,
-    );
+    await writeGate(store, "j1", 1, "PASS", tree);
     const { commit: sha } = (await commit(executor)) as { commit: string };
     expect(git(work, "rev-parse", "HEAD")).toBe(sha);
     expect(git(work, "log", "-1", "--format=%s")).toBe("feat: real commit");
@@ -208,11 +202,7 @@ describe("job.commit_local with real git", () => {
     const { work, store, executor } = await repo();
     await writeFile(join(work, "new.txt"), "before");
     const tree = await nodeGit.fingerprint(work);
-    await mkdir(join(store.jobDir("j1"), "round-1"), { recursive: true });
-    await writeFile(
-      join(store.jobDir("j1"), "round-1", "checks.md"),
-      `GATE: PASS\nTREE: ${tree}\n`,
-    );
+    await writeGate(store, "j1", 1, "PASS", tree);
     await writeFile(join(work, "new.txt"), "after the gate");
     await expect(commit(executor)).rejects.toThrow("working tree changed since the gate passed");
     expect(git(work, "log", "--oneline").split("\n")).toHaveLength(1);

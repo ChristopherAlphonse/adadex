@@ -26,6 +26,7 @@ export const factoryReviewPreset: WorkflowDefinition = {
   stages: [
     {
       id: "scope",
+      role: "scoper",
       hint: "find the repo's own lint, type and test tooling -> scope.md (STATUS: READY, or reject with rejection.md)",
       moves: [
         { to: "review", requires: [ready("scope.md")] },
@@ -35,6 +36,7 @@ export const factoryReviewPreset: WorkflowDefinition = {
     },
     {
       id: "review",
+      role: "reviewer",
       hint: "code, qa, test and routed extras -> round-1/review-<name>.md; read-only, never edit",
       skills: [
         { name: "code-review-frontend", role: "code reviewer" },
@@ -45,18 +47,21 @@ export const factoryReviewPreset: WorkflowDefinition = {
     },
     {
       id: "reconcile",
+      role: "reconciler",
       hint: "reconcile-reviews -> reconcile.md (STATUS: READY), one ranked list with file and line",
       skills: [{ name: "reconcile-reviews", role: "reconciler" }],
       moves: [{ to: "verify", requires: [ready("reconcile.md")] }, park],
     },
     {
       id: "verify",
+      role: "verifier",
       hint: "rerun every VERIFIED command and check every cited line -> verified.md (STATUS: READY)",
       skills: [{ name: "prove-it-works", role: "verifier" }],
       moves: [{ to: "report", requires: [ready("verified.md")] }, park],
     },
     {
       id: "report",
+      role: "reporter",
       hint: "report.md (STATUS: READY, FINDINGS: n, BLOCKERS: n) and comments.md to paste by hand; never post",
       skills: [{ name: "simplify", role: "writer" }],
       moves: [

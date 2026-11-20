@@ -1,3 +1,4 @@
+import type { AuthorizeResult } from "../domain/action";
 import type { ActionExecutor, ActionOutcome, ApprovalGate } from "../ports/ActionPorts";
 import type { AgentProvider, AgentRunRequest } from "../ports/AgentProvider";
 import { type ActionRegistry, authorize } from "./actionRegistry";
@@ -9,6 +10,8 @@ export interface RunAgentDeps {
   readonly approvals: ApprovalGate;
   /** Called when the agent asked for a human-only action, so the UI can show the button for a person to press. */
   readonly onNeedsHumanClick?: (actionId: string, reason: string) => void;
+  /** Replaces the plain registry check, so a run can be limited to the actions of its role. `approved` is true once a person said yes. */
+  readonly authorize?: (actionId: string, input: unknown, approved: boolean) => AuthorizeResult;
 }
 
 export interface CallRecord {
@@ -41,7 +44,14 @@ const decide = async (
   actionId: string,
   rawInput: unknown,
 ): Promise<ActionOutcome> => {
-  const first = authorize(deps.registry, actionId, rawInput, { caller: "agent" });
+  const decideFor = (approved: boolean): AuthorizeResult =>
+    deps.authorize
+      ? deps.authorize(actionId, rawInput, approved)
+      : authorize(deps.registry, actionId, rawInput, {
+          caller: "agent",
+          ...(approved ? { approvedActionId: actionId } : {}),
+        });
+  const first = decideFor(false);
   if (first.kind === "run") return execute(deps.executor, actionId, first.input);
   if (first.kind === "deny") return { status: "denied", reason: first.reason };
   if (first.kind === "needs-human-click") {

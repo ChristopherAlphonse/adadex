@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { appendFile, mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { newJob, type WorkflowDefinition, type WorkflowJob } from "@adadex/core";
@@ -9,7 +10,29 @@ export interface AuditEntry {
   readonly action: string;
   readonly jobId: string;
   readonly detail: string;
+  /** The role and run an agent was working in, when an agent did it. */
+  readonly role?: string;
+  readonly runId?: string;
+  /** Facts a later check needs, such as the gate verdict and tree. */
+  readonly data?: Readonly<Record<string, string | number>>;
 }
+
+/** An audit line as stored: the entry, when, what the job record looked like, and the chain. */
+export interface StoredAudit extends AuditEntry {
+  readonly ts: string;
+  /** Hash of job.json when this line was written. */
+  readonly state: string;
+  readonly prev: string;
+  readonly hash: string;
+}
+
+export type VerifyResult =
+  | { readonly ok: true; readonly entries: number }
+  | { readonly ok: false; readonly reason: string };
+
+export const GENESIS = "0".repeat(64);
+const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
+const lineHash = (prev: string, body: object): string => sha(prev + JSON.stringify(body));
 
 export interface JobStore {
   readonly jobDir: (id: string) => string;
@@ -22,7 +45,12 @@ export interface JobStore {
   load(id: string): Promise<WorkflowJob>;
   save(job: WorkflowJob): Promise<void>;
   list(): Promise<readonly WorkflowJob[]>;
+  /** Append to the audit log. Each line carries the hash of the one before it and of the job record. */
   audit(entry: AuditEntry): Promise<void>;
+  /** Check the whole chain, and that the job record is what the last line says it was. */
+  verify(id: string): Promise<VerifyResult>;
+  /** The audit lines, only if the chain is intact. */
+  readAudit(id: string): Promise<readonly StoredAudit[]>;
 }
 
 const exists = async (path: string): Promise<boolean> =>
@@ -45,10 +73,63 @@ export const createJobStore = (root: string, now: () => Date = () => new Date())
     await rename(tmp, file(job.id));
   };
 
-  const audit = async (entry: AuditEntry): Promise<void> => {
-    await mkdir(jobDir(entry.jobId), { recursive: true });
-    const line = JSON.stringify({ ts: now().toISOString(), ...entry });
-    await appendFile(join(jobDir(entry.jobId), "audit.log"), `${line}\n`);
+  const chains = new Map<string, Promise<unknown>>();
+  const readLines = async (id: string): Promise<StoredAudit[]> => {
+    const text = await readFile(join(jobDir(id), "audit.log"), "utf8").catch(() => "");
+    return text
+      .split("\n")
+      .filter((l) => l !== "")
+      .map((l) => JSON.parse(l) as StoredAudit);
+  };
+
+  const audit = (entry: AuditEntry): Promise<void> => {
+    // One writer per job at a time, so two calls cannot both extend the same line.
+    const run = (chains.get(entry.jobId) ?? Promise.resolve()).then(async () => {
+      await mkdir(jobDir(entry.jobId), { recursive: true });
+      const lines = await readLines(entry.jobId).catch(() => [] as StoredAudit[]);
+      const prev = lines.at(-1)?.hash ?? GENESIS;
+      const record = await readFile(file(entry.jobId), "utf8").catch(() => "");
+      const body = { ts: now().toISOString(), ...entry, state: sha(record) };
+      await appendFile(
+        join(jobDir(entry.jobId), "audit.log"),
+        `${JSON.stringify({ ...body, prev, hash: lineHash(prev, body) })}\n`,
+      );
+    });
+    chains.set(
+      entry.jobId,
+      run.catch(() => undefined),
+    );
+    return run;
+  };
+
+  const verify = async (id: string): Promise<VerifyResult> => {
+    let lines: StoredAudit[];
+    try {
+      lines = await readLines(id);
+    } catch {
+      return { ok: false, reason: "the audit log cannot be read" };
+    }
+    let prev = GENESIS;
+    for (const [i, line] of lines.entries()) {
+      const { prev: p, hash, ...body } = line;
+      if (p !== prev)
+        return { ok: false, reason: `audit line ${i + 1} does not follow the line before it` };
+      if (hash !== lineHash(prev, body))
+        return { ok: false, reason: `audit line ${i + 1} was changed` };
+      prev = hash;
+    }
+    const record = await readFile(file(id), "utf8").catch(() => null);
+    const last = lines.at(-1);
+    if (record !== null && last && last.state !== sha(record)) {
+      return { ok: false, reason: "the job record was changed outside the app" };
+    }
+    return { ok: true, entries: lines.length };
+  };
+
+  const readAudit = async (id: string): Promise<readonly StoredAudit[]> => {
+    const v = await verify(id);
+    if (!v.ok) throw new Error(v.reason);
+    return readLines(id);
   };
 
   const load = async (id: string): Promise<WorkflowJob> => {
@@ -63,6 +144,8 @@ export const createJobStore = (root: string, now: () => Date = () => new Date())
     jobDir,
     save,
     audit,
+    verify,
+    readAudit,
     load,
     async create(def, id, title, roundLimit) {
       if (await exists(file(id))) throw new Error(`${id} exists`);

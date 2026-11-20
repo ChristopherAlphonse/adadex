@@ -7,6 +7,7 @@ import { createJobExecutor } from "../src/jobs/jobActions";
 import { createJobStore } from "../src/jobs/jobStore";
 import { parseKv } from "../src/jobs/kv";
 import { readFacts } from "../src/jobs/readFacts";
+import { writeGate } from "./helpers/attest";
 
 let root: string;
 beforeEach(async () => {
@@ -70,9 +71,9 @@ describe("readFacts", () => {
     await mkdir(join(dir, "round-1"), { recursive: true });
     await writeFile(join(dir, "build.md"), "STATUS: READY\n");
     await writeFile(join(dir, "spec.md"), "the spec");
-    await writeFile(join(dir, "round-1", "checks.md"), "GATE: PASS\n");
+    await writeGate(store, "j1", 1, "PASS");
     await writeFile(join(dir, "round-1", "review-code.md"), "VERDICT: CHANGES\n");
-    const facts = await readFacts(dir, { ...job, round: 1 });
+    const facts = await readFacts(store, { ...job, round: 1 });
     expect(facts.docs["build.md"]).toEqual({ STATUS: "READY" });
     expect(facts.gate).toBe("PASS");
     expect(facts.reviews).toEqual({ code: "CHANGES", qa: undefined, test: undefined });
@@ -118,9 +119,8 @@ describe("job actions on disk", () => {
     const { store, executor } = setup();
     const job = await store.create(factoryBuildPreset, "j1", "t", 1);
     await store.save({ ...job, stage: "gate", round: 1 });
-    const dir = store.jobDir("j1");
-    await mkdir(join(dir, "round-1"), { recursive: true });
-    await writeFile(join(dir, "round-1", "checks.md"), "GATE: FAIL\n");
+    const _dir = store.jobDir("j1");
+    await writeGate(store, "j1", 1, "FAIL");
     expect(await executor.execute("job.advance", { id: "j1", to: "build" })).toMatchObject({
       stage: "needs-human",
     });

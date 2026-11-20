@@ -164,6 +164,8 @@ export const parseWorkflow = (input: unknown): ParseWorkflowResult => {
     if (!isObj(s) || !str(s.id) || !SLUG.test(s.id))
       errors.push(`stage ${i + 1} needs an id matching [a-z0-9][a-z0-9-]*`);
     else if (!str(s.hint)) errors.push(`stage ${s.id} needs a hint`);
+    else if (s.role !== undefined && (!str(s.role) || !SLUG.test(s.role)))
+      errors.push(`stage ${s.id} role must be a role id`);
     else stages.push(s);
   }
   if (errors.length === 0 || stages.length > 0) checkShape(stages, input.initial, errors);

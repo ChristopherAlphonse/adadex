@@ -305,7 +305,11 @@ const NO_WRITE: readonly string[] = [
   "**/.adadex/**/audit.log",
   "**/.adadex/**/config.json",
   // The floor is relative to the repo. A write is checked by absolute path, so match it in any folder.
-  ...PROTECTED_FLOOR.map((p) => (p.startsWith("**/") ? p : `**/${p}`)),
+  // The job state folders are not blocked wholesale: an agent must write its stage documents there. What it may
+  // write is scoped per role (see policyForRole), and the app's own files in it are always protected.
+  ...PROTECTED_FLOOR.filter((p) => !p.includes("/factory/")).map((p) =>
+    p.startsWith("**/") ? p : `**/${p}`,
+  ),
 ];
 
 /** The policy for review and read-only work. */

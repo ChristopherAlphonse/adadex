@@ -109,6 +109,7 @@ export const createApp = (options: AppOptions): App => {
         job,
       );
       await jobs.save({ ...job, ...made });
+      await jobs.audit({ actor: "system", action: "worktree", jobId: job.id, detail: made.branch });
     },
     gate: { runner: nodeCheckRunner, git: nodeGit, config: gateConfig, cwdOf },
     commit: { git: nodeGit, config: gateConfig, cwdOf, humanKey: humanKey.key },
@@ -122,7 +123,7 @@ export const createApp = (options: AppOptions): App => {
     emit: options.emit,
   });
 
-  const policy = withProtectedLocations(BUILD_POLICY, [options.dataDir, stateDir]);
+  const policy = withProtectedLocations(BUILD_POLICY, [options.dataDir]);
   const api = createHostApi({
     workflows,
     jobs,

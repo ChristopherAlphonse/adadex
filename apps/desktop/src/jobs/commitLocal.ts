@@ -7,10 +7,10 @@ import {
   type WorkflowDefinition,
   type WorkflowJob,
 } from "@adadex/core";
+import { attestedGate } from "./attestedGate";
 import type { GateConfig, GitPort } from "./gatePorts";
 import { KEY_ENV } from "./gitGuard";
 import type { JobStore } from "./jobStore";
-import { parseKv } from "./kv";
 import { findWorkflow, type WorkflowLookup } from "./workflowLookup";
 
 export interface CommitDeps {
@@ -47,9 +47,9 @@ export const commitLocal = async (deps: CommitDeps, jobId: string): Promise<{ co
 
   const cwd = deps.cwdOf(job);
   const config = await deps.config();
-  const checks = parseKv((await text(join(dir, `round-${job.round}`, "checks.md"))) ?? "");
-  if (checks.GATE !== "PASS") throw new Error("no passing gate in this round");
-  if (checks.TREE !== (await deps.git.fingerprint(cwd))) {
+  const gate = await attestedGate(deps.store, job);
+  if (gate?.gate !== "PASS") throw new Error("no passing gate in this round");
+  if (gate.tree !== (await deps.git.fingerprint(cwd))) {
     throw new Error("working tree changed since the gate passed, rerun the gate");
   }
 

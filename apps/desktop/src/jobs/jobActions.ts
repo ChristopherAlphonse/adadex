@@ -45,7 +45,7 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
 
     if (actionId === "job.advance") {
       const def = await findWorkflow(deps.workflows, job.workflowId);
-      const facts = await readFacts(store.jobDir(job.id), job);
+      const facts = await readFacts(store, job);
       const to = field(input, "to");
       const result = advanceJob(def, job, to, facts);
       if (!result.ok) {
@@ -69,7 +69,7 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
     }
 
     if (actionId === "job.approve_spec") {
-      const facts = await readFacts(store.jobDir(job.id), job);
+      const facts = await readFacts(store, job);
       const hash = facts.hashes?.spec;
       if (hash === undefined) throw new Error("spec.md missing");
       await store.save(approve(job, "spec", hash));
