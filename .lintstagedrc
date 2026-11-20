@@ -1,4 +1,4 @@
 {
-  "*.{js,ts,jsx,tsx,json,jsonc}": ["biome check --write --unsafe --no-errors-on-unmatched"],
-  "*.css": ["biome format --write --no-errors-on-unmatched"]
+  "*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}": ["oxlint --fix", "oxfmt --no-error-on-unmatched-pattern"],
+  "*.{json,jsonc,css}": ["oxfmt --no-error-on-unmatched-pattern"]
 }

@@ -5,6 +5,7 @@ import type {
 } from "@adadex/core";
 import { TERMINAL_AGENT_PROVIDERS } from "@adadex/core";
 import { useEffect, useRef, useState } from "react";
+
 import { formatColorForDisplay } from "../../app/mascotPalette";
 import { type AgentGlyphAccessory, type AgentGlyphMood, MascotSprite } from "../MascotSprite";
 import type { MascotVisuals } from "./mascotVisuals";

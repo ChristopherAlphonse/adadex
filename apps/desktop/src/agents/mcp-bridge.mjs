@@ -12,8 +12,7 @@ readline.createInterface({ input: socket }).on("line", (line) => {
     const reply = JSON.parse(line);
     pending.get(reply.callId)?.(reply);
     pending.delete(reply.callId);
-  } catch {
-  }
+  } catch {}
 });
 
 const TOOL = {

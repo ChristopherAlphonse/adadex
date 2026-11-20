@@ -10,6 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import type { GraphNode } from "../app/canvas/types";
 import { useAgentRuntimeStates } from "../app/hooks/useAgentRuntimeStates";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
@@ -30,8 +31,8 @@ import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
 import { DeleteAllTerminalsDialog } from "./canvas/DeleteAllTerminalsDialog";
 import { MascotNode } from "./canvas/MascotNode";
 import { SessionNode } from "./canvas/SessionNode";
-import { DeleteOrchestrationDialog } from "./DeleteOrchestrationDialog";
 import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
+import { DeleteOrchestrationDialog } from "./DeleteOrchestrationDialog";
 import { ConsoleCanvasViewportControls } from "./design-system/ConsoleCanvasViewportControls";
 import { ConsoleChromeToolbar } from "./design-system/ConsoleChromeToolbar";
 import { ConsoleInspectorPanel } from "./design-system/ConsoleInspectorPanel";

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { advanceJob } from "../src/application/advanceJob";
 import {
   addMove,

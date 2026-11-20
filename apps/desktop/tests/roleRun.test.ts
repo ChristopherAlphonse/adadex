@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import {
   type AgentEvent,
   BUILD_POLICY,
@@ -12,6 +13,7 @@ import {
   type WorkflowJob,
 } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import type { GuardDecide } from "../src/agents/guardHost";
 import { createApp } from "../src/app/createApp";
 import { createRoleStore, missingRoles } from "../src/roles/roleStore";

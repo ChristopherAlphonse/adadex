@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { WORLD_H, WORLD_W } from "./useForceSimulation";
 
 type CanvasTransform = {

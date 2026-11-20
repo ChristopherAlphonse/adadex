@@ -39,7 +39,7 @@ export const createApprovalBroker = (onRequested: (p: PendingApproval) => void):
       return true;
     },
     declineAll() {
-      for (const [id, entry] of [...waiting]) {
+      for (const [id, entry] of waiting) {
         waiting.delete(id);
         entry.resolve(false);
       }

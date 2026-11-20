@@ -2,7 +2,9 @@ import { execFile } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
+
 import type { WorkflowJob } from "@adadex/core";
+
 import { installGitGuard } from "./gitGuard";
 
 const run = promisify(execFile);

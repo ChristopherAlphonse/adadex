@@ -38,6 +38,6 @@ export const MarkdownContent = ({ content, className, highlightTerm }: MarkdownC
     return rendered;
   }, [content, highlightTerm]);
 
-  // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is rendered only inside the local operator UI and highlight markup is controlled.
+  // oxlint-disable-next-line react/no-danger -- markdown is rendered only inside the local operator UI and highlight markup is controlled.
   return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 };

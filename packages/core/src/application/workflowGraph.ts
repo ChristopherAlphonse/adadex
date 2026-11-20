@@ -122,15 +122,13 @@ export const toGraph = (def: WorkflowDefinition): WorkflowGraph => {
   const edges = def.stages.flatMap((s) =>
     s.moves
       .filter((m) => ids.has(m.to))
-      .map(
-        (m): GraphEdge => ({
-          from: s.id,
-          to: m.to,
-          kind: (layer.get(m.to) ?? 0) <= (layer.get(s.id) ?? 0) ? "back" : "forward",
-          requires: (m.requires ?? []).map(describeCondition),
-          effects: (m.effects ?? []).map(describeEffect),
-        }),
-      ),
+      .map((m): GraphEdge => ({
+        from: s.id,
+        to: m.to,
+        kind: (layer.get(m.to) ?? 0) <= (layer.get(s.id) ?? 0) ? "back" : "forward",
+        requires: (m.requires ?? []).map(describeCondition),
+        effects: (m.effects ?? []).map(describeEffect),
+      })),
   );
   return { nodes, edges };
 };

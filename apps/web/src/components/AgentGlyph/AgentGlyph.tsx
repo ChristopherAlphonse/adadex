@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+
 import { resolveIdentity } from "./agent-identity";
 import { getMotion, prefersReducedMotion } from "./agent-motion";
 import {

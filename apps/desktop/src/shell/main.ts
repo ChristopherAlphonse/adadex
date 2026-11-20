@@ -2,6 +2,7 @@ import { mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
 import {
   app,
   BrowserWindow,
@@ -14,6 +15,7 @@ import {
   session,
   Tray,
 } from "electron";
+
 import { type App, createApp } from "../app/createApp";
 import type { HostEvent, NativeConfirm } from "../host/actionHost";
 

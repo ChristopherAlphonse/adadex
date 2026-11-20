@@ -12,7 +12,7 @@ const shellGlob = (pattern: string): RegExp =>
 
 const pathGlob = (pattern: string): RegExp => {
   let out = "";
-  for (let i = 0; i < pattern.length; ) {
+  for (let i = 0; i < pattern.length;) {
     if (pattern.startsWith("**/", i)) {
       out += "(?:[\\s\\S]*/)?";
       i += 3;

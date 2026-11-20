@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { describeCondition, describeEffect, toGraph } from "../src/application/workflowGraph";
 import { factoryBuildPreset, factoryReviewPreset } from "../src/presets";
 

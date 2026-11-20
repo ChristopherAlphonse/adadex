@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
 import electron from "electron";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");

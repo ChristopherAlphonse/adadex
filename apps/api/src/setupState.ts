@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
 import type { WorkspaceSetupStepId } from "@adadex/core";
 
 const SETUP_STATE_RELATIVE_PATH = join("state", "setup.json");

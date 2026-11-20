@@ -2,8 +2,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { BUILD_POLICY, evaluateToolCall } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { withProtectedLocations } from "../src/host/protectedLocations";
 import { createHumanKey, installGitGuard, KEY_ENV } from "../src/jobs/gitGuard";
 import { nodeGit } from "../src/jobs/nodeGate";

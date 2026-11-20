@@ -52,7 +52,7 @@ Security model, controls and the honest gap list: `docs/plans/security-model.md`
 
 ```
 npm test                      # core 138, desktop 170, api 147, web 93 at the time of writing
-npx biome check apps/desktop packages/core
+npx oxlint apps/desktop packages/core && npx oxfmt --check apps/desktop packages/core
 npx tsc -p packages/core/tsconfig.json --noEmit     # also apps/desktop, apps/api
 npm run build
 cd apps/desktop && npm run smoke    # starts the real Electron app hidden
@@ -66,7 +66,7 @@ Live checks against the real Claude Code (needs `claude` signed in, costs tokens
 
 - **`ELECTRON_RUN_AS_NODE`.** VS Code sets it, which makes Electron start as plain Node. Clear it before launching Electron by hand (`npm run smoke` does).
 - **Real paths.** The guard compares paths with symlinks resolved. On macOS `/var/folders` is really `/private/var/folders`. Any rule folder must go through `resolveReal` or it silently never matches. A role's folder scope failed this way once.
-- **Biome rewrites files.** Editing with scripted string replacement after `biome --write` often fails to match. Re-read the file first.
+- **oxfmt rewrites files.** Editing with scripted string replacement after `oxfmt` often fails to match. Re-read the file first.
 - **Test helpers.** A gate result in a test must be written with `writeGate` (`tests/helpers/attest.ts`), which writes the audit line too. A hand-written `checks.md` is rightly ignored. Any test that edits `job.json` directly must follow it with `store.audit(...)` or the chain check fails.
 - **Do not touch `packages/core/tsconfig.tsbuildinfo`.** `tsc` rewrites it. `git checkout` it after type-checking.
 - **Node 22.13 or newer** is needed for `node:sqlite`.

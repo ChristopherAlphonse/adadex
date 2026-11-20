@@ -1,6 +1,7 @@
 import { Grid3x3, Minus, Plus, Scan } from "lucide-react";
-import { StatusPill } from "./StatusPill";
+
 import { statusToken } from "./statusColor";
+import { StatusPill } from "./StatusPill";
 import type { Agent, AgentStatus } from "./types";
 
 type AdadexConsoleCanvasProps = {

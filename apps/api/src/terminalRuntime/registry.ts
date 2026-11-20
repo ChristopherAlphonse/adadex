@@ -1,14 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
+
 import {
   LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY,
   LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY,
   LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY,
   LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY,
 } from "@adadex/core";
+
 import { writeTextFileAtomic, writeTextFileAtomicAsync } from "../atomicJsonFile";
-
 import { TERMINAL_REGISTRY_VERSION } from "./constants";
-
 import { toErrorMessage } from "./systemClients";
 import type {
   CoordinationWorkspaceMode,

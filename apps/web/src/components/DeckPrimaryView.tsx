@@ -5,6 +5,7 @@ import type {
   WorkspaceSetupStepId,
 } from "@adadex/core";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { useAgentProviderPreference } from "../app/hooks/useAgentProviderPreference";
 import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";

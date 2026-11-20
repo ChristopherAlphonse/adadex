@@ -4,8 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { PassThrough } from "node:stream";
+
 import { createActionRegistry, FACTORY_ACTIONS, runAgent } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { createAsyncQueue } from "../src/agents/asyncQueue";
 import { startBridgeHost } from "../src/agents/bridgeHost";
 import {

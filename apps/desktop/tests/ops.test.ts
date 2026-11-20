@@ -2,8 +2,10 @@ import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { factoryBuildPreset } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/app/createApp";
 import { parseRequest } from "../src/ipc/contract";
 import { createProcessRegistry } from "../src/runs/processRegistry";

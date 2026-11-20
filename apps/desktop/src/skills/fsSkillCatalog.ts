@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import type { SkillCatalog, SkillInfo } from "@adadex/core";
 
 export interface SkillSource {

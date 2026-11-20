@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import type { JobFacts, WorkflowJob } from "@adadex/core";
+
 import { attestedGate } from "./attestedGate";
 import type { JobStore } from "./jobStore";
 import { parseKv } from "./kv";

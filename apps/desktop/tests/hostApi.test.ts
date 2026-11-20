@@ -1,8 +1,10 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { createActionRegistry, FACTORY_ACTIONS, factoryBuildPreset, runAgent } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { loadMachineConfig } from "../src/config/machineConfig";
 import { createActionHost, type HostEvent } from "../src/host/actionHost";
 import { createApprovalBroker } from "../src/ipc/approvalBroker";

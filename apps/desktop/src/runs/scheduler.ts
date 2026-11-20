@@ -1,4 +1,5 @@
 import { planTick, type TickPlan, type WorkflowJob } from "@adadex/core";
+
 import type { JobStore } from "../jobs/jobStore";
 import { parkJob } from "../jobs/parkJob";
 import { findWorkflow, type WorkflowLookup } from "../jobs/workflowLookup";
@@ -75,7 +76,7 @@ export const createScheduler = (deps: SchedulerDeps) => {
     tick,
     /** Resolves when every run that is going has finished. */
     idle: async (): Promise<void> => {
-      while (running.size > 0) await Promise.allSettled([...running.values()]);
+      while (running.size > 0) await Promise.allSettled(running.values());
     },
     start(intervalMs: number): void {
       enabled = true;

@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import type { JobStore } from "../../src/jobs/jobStore";
 
 /** Write a gate result the way a real gate run does: the file, and the audit line that vouches for it. */

@@ -2,6 +2,7 @@ import { existsSync, renameSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
+
 import type { TerminalSnapshot } from "@adadex/core";
 import {
   LEGACY_TERMINAL_REGISTRY_FILENAME,
@@ -10,8 +11,8 @@ import {
 } from "@adadex/core";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
-import { readDeckCoordinations } from "./deck/readDeckCoordinations";
 
+import { readDeckCoordinations } from "./deck/readDeckCoordinations";
 import {
   createProcessSupervisor,
   loadProcessRegistry,

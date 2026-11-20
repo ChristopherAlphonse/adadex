@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+
 import type { UsageChartData } from "../app/hooks/useUsageHeatmapPolling";
 
 type RuntimeStatusStripProps = {

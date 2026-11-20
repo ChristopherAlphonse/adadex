@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import {
   findProtectedHits,
   PROTECTED_FLOOR,
@@ -7,6 +8,7 @@ import {
   type WorkflowDefinition,
   type WorkflowJob,
 } from "@adadex/core";
+
 import { attestedGate } from "./attestedGate";
 import type { GateConfig, GitPort } from "./gatePorts";
 import { KEY_ENV } from "./gitGuard";

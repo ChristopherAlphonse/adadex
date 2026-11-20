@@ -1,6 +1,8 @@
 import { realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+
 import { type ApprovalGate, evaluateToolCall, type PolicyRules } from "@adadex/core";
+
 import type { GuardDecide } from "../agents/guardHost";
 
 /** Real path of a file that may not exist yet: resolve the deepest folder that does, so a symlink cannot hide a protected path. */
