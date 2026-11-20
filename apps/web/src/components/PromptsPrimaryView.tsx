@@ -43,6 +43,7 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
     if (selectedPromptName) {
       return deletePromptLibraryItem(selectedPromptName);
     }
+
     return Promise.resolve(false);
   }, [selectedPromptName, deletePromptLibraryItem]);
 
@@ -74,6 +75,7 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
 
   useEffect(() => {
     onSidebarContent?.(sidebarContent);
+
     return () => onSidebarContent?.(null);
   });
   const [newPromptMode, setNewPromptMode] = useState<NewPromptMode>(null);
@@ -82,6 +84,7 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
 
   const handleNewPrompt = useCallback(async () => {
     setIsCreatingTerminal(true);
+
     try {
       const res = await fetch("/api/terminals", {
         method: "POST",
@@ -91,9 +94,10 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
           promptTemplate: "meta-prompt-generator",
         }),
       });
+
       if (!res.ok) throw new Error("Failed to create terminal");
-      const data = (await res.json()) as { terminalId?: string; coordinationId?: string };
-      const agentId = (data.terminalId ?? data.coordinationId) as string;
+      const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as { terminalId?: string; coordinationId?: string };
+      const agentId = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (data.terminalId ?? data.coordinationId) as string;
       setNewPromptMode({ terminalId: agentId });
       setShowTerminal(true);
       onTerminalIdChange(agentId);

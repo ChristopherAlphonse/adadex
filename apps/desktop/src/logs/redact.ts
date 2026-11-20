@@ -1,3 +1,5 @@
+import { type ParsedValue, isObjectValue, isString } from "@adadex/core";
+
 const WHOLE: readonly RegExp[] = [
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
   /\bsk-[A-Za-z0-9_-]{16,}/g,
@@ -5,6 +7,7 @@ const WHOLE: readonly RegExp[] = [
   /\bAKIA[0-9A-Z]{16}\b/g,
   /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/gi,
 ];
+
 /** `name = value` or `name: value` for names that hold secrets. The name stays, the value goes. */
 const KEYED =
   /\b(ADADEX_HUMAN_KEY|password|passwd|secret|token|api[_-]?key)(\s*[=:]\s*)("[^"]*"|'[^']*'|\S+)/gi;
@@ -17,11 +20,14 @@ export const redact = (text: string): string =>
   );
 
 /** Redact every string inside a value, keeping its shape. */
-export const redactDeep = (value: unknown): unknown => {
-  if (typeof value === "string") return redact(value);
+export const redactDeep = (value: ParsedValue): ParsedValue => {
+  if (isString(value)) return redact(value);
+
   if (Array.isArray(value)) return value.map(redactDeep);
-  if (value !== null && typeof value === "object") {
+
+  if (value !== null && isObjectValue(value)) {
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redactDeep(v)]));
   }
+
   return value;
 };

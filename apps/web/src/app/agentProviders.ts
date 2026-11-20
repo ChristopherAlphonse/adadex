@@ -18,6 +18,7 @@ export const readAgentProviderPreference = (): TerminalAgentProvider => {
 
   try {
     const stored = window.localStorage.getItem(AGENT_PROVIDER_STORAGE_KEY);
+
     return isTerminalAgentProvider(stored) ? stored : "claude";
   } catch {
     return "claude";

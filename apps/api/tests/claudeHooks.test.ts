@@ -9,6 +9,7 @@ import { createHookProcessor } from "../src/terminalRuntime/hookProcessor";
 describe("claude hook install", () => {
   it("writes grouped hooks to .claude/settings.local.json and is idempotent", () => {
     const dir = mkdtempSync(join(tmpdir(), "adadex-claude-"));
+
     const { installHooksInDirectory } = createHookProcessor({
       terminals: new Map(),
       sessions: new Map(),
@@ -18,6 +19,7 @@ describe("claude hook install", () => {
       deliverChannelMessages: () => 0,
       releaseSessionKeepAlive: () => false,
     });
+
     installHooksInDirectory(dir, "claude");
     installHooksInDirectory(dir, "claude");
     const { hooks } = JSON.parse(readFileSync(join(dir, ".claude", "settings.local.json"), "utf8"));

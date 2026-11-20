@@ -35,6 +35,7 @@ export type Condition =
 
 /** Work the runtime must do when a move happens. Core only names it. */
 export const EFFECT_NAMES = ["make-worktree", "clear-gate"] as const;
+
 export type EffectName = (typeof EFFECT_NAMES)[number];
 
 export type Effect =

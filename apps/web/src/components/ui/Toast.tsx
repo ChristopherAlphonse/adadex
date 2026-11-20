@@ -11,6 +11,7 @@ export type Toast = {
 };
 
 let toastListeners: Array<(toasts: Toast[]) => void> = [];
+
 let toasts: Toast[] = [];
 
 const TOAST_DURATIONS: Record<ToastType, number> = {
@@ -22,6 +23,7 @@ const TOAST_DURATIONS: Record<ToastType, number> = {
 
 function notify() {
   const snapshot = [...toasts];
+
   for (const listener of toastListeners) {
     listener(snapshot);
   }
@@ -59,6 +61,7 @@ export const ToastContainer = () => {
   useEffect(() => {
     const listener: (toasts: Toast[]) => void = (t) => listenerRef.current(t);
     toastListeners.push(listener);
+
     return () => {
       toastListeners = toastListeners.filter((l) => l !== listener);
     };
@@ -84,6 +87,7 @@ const ToastItem = ({ toast: toastItem }: { toast: Toast }) => {
       setExiting(true);
       setTimeout(() => setVisible(false), 300);
     }, 3500);
+
     return () => clearTimeout(timer);
   }, []);
 

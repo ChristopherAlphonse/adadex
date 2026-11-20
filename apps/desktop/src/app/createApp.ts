@@ -123,21 +123,27 @@ export const createApp = (options: AppOptions): App => {
   const humanKey = createHumanKey();
   const sessions = new Set<AgentSession>();
   let running = 0;
+
   const processes = createProcessRegistry(undefined, undefined, (event, info) => {
     logs.log(event === "kill" ? "warn" : "info", "process", `${event}: ${info.label}`, {
       data: { processId: info.processId },
     });
+
     if (event === "start") {
       running += 1;
+
       if (running === 1) options.onBusyChange?.(true);
     } else if (event === "end") {
       running -= 1;
+
       if (running === 0) options.onBusyChange?.(false);
     }
   });
+
   const checkRunner: CheckRunner = {
     run: (command, cwd, timeoutMs, onStart) => {
       let handle: { done(): void } | undefined;
+
       return nodeCheckRunner
         .run(command, cwd, timeoutMs, (kill) => {
           handle = processes.register(`checks: ${command}`, kill);
@@ -157,10 +163,13 @@ export const createApp = (options: AppOptions): App => {
   const jobs = createJobStore(stateDir, undefined, { db: logDb, project, signer, anchors });
   const workflows = createWorkflowStore(join(options.dataDir, "workflows"));
   const projectPath = join(options.dataDir, "project.json");
+
   const gateConfig = async (): Promise<GateConfig> => {
     const raw = (await loadProjectChecks(projectPath)) ?? {};
+
     return { ...DEFAULT_CHECKS, ...raw };
   };
+
   const cwdOf = (job: WorkflowJob): string => job.worktree ?? options.projectRoot;
   const registry = createActionRegistry(FACTORY_ACTIONS);
 
@@ -176,11 +185,14 @@ export const createApp = (options: AppOptions): App => {
     } else {
       logs.log("info", "approval", `approval requested for ${event.actionId}: ${event.reason}`);
     }
+
     options.emit(event);
   };
+
   const broker = createApprovalBroker((p) =>
     emit({ type: "approval-requested", actionId: p.actionId, reason: p.reason }),
   );
+
   const approvals: ApprovalBroker = {
     ...broker,
     respond: (approvalId, approved) => {
@@ -190,6 +202,7 @@ export const createApp = (options: AppOptions): App => {
         "approval",
         `${approved ? "approved" : "declined"} ${approvalId}${found ? "" : " (not waiting)"}`,
       );
+
       return found;
     },
   };
@@ -202,6 +215,7 @@ export const createApp = (options: AppOptions): App => {
     runEffect: async (name, job) => {
       if (name !== "make-worktree") return;
       const config = await gateConfig();
+
       const made = await makeWorktree(
         {
           projectRoot: options.projectRoot,
@@ -212,6 +226,7 @@ export const createApp = (options: AppOptions): App => {
         },
         job,
       );
+
       await jobs.save({ ...job, ...made });
       await jobs.audit({ actor: "system", action: "worktree", jobId: job.id, detail: made.branch });
     },
@@ -240,6 +255,7 @@ export const createApp = (options: AppOptions): App => {
   const defaultProvider = (request: ProviderRequest): AgentProvider => {
     const base = options.spawn ?? spawnAgent;
     let spawn = base;
+
     if ((options.sandbox ?? "required") === "required") {
       if (!sandboxAvailable())
         throw new Error(
@@ -255,6 +271,7 @@ export const createApp = (options: AppOptions): App => {
         }),
       );
     }
+
     return createClaudeCodeProvider({
       command: options.claudeCommand ?? "claude",
       bridgePath: options.bridgePath,
@@ -263,19 +280,23 @@ export const createApp = (options: AppOptions): App => {
         const child = spawn(command, args, cwd);
         const handle = processes.register(request.label, () => child.kill());
         child.onExit(() => handle.done());
+
         return child;
       },
       allowedTools: [...request.tools],
       guard: { hookPath: options.hookPath, decide: request.decide },
     });
   };
+
   const trackedProvider = (request: ProviderRequest): AgentProvider => {
     const inner = (options.makeProvider ?? defaultProvider)(request);
+
     return {
       id: inner.id,
       start: async (r) => {
         const session = await inner.start(r);
         sessions.add(session);
+
         return {
           ...session,
           stop: async () => {
@@ -286,6 +307,7 @@ export const createApp = (options: AppOptions): App => {
       },
     };
   };
+
   const runner = createRoleRunner({
     logger: logs,
     store: jobs,
@@ -299,6 +321,7 @@ export const createApp = (options: AppOptions): App => {
     makeProvider: trackedProvider,
     cwdOf,
   });
+
   const scheduler = createScheduler({
     store: jobs,
     workflows: (id) => workflows.get(id),
@@ -310,6 +333,7 @@ export const createApp = (options: AppOptions): App => {
         data: { start: plan.start, park: plan.park },
       }),
   });
+
   const api = createHostApi({
     workflows,
     jobs,

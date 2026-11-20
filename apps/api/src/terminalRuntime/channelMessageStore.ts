@@ -33,12 +33,14 @@ const isChannelMessage = (value: unknown): value is ChannelMessage => {
 /** Loads persisted queues grouped by recipient. A corrupt store is ignored, not fatal. */
 export const loadChannelMessages = (registryPath: string): Map<string, ChannelMessage[]> => {
   const queues = new Map<string, ChannelMessage[]>();
+
   if (!existsSync(registryPath)) {
     return queues;
   }
 
   try {
     const parsed: unknown = JSON.parse(readFileSync(registryPath, "utf8"));
+
     if (
       !isRecord(parsed) ||
       parsed.version !== CHANNEL_MESSAGES_VERSION ||
@@ -70,5 +72,6 @@ export const persistChannelMessages = (
     version: CHANNEL_MESSAGES_VERSION,
     messages: [...queues.values()].flat(),
   };
+
   writeTextFileAtomic(registryPath, `${JSON.stringify(document, null, 2)}\n`, dependencies);
 };

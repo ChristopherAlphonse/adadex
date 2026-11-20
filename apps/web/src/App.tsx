@@ -3,7 +3,7 @@ import {
   isAgentRuntimeState,
   type TerminalSnapshot,
   type WorkspaceSetupStepId,
-} from "@adadex/core";
+, isString} from "@adadex/core";
 import {
   type ReactElement,
   type ReactNode,
@@ -51,14 +51,18 @@ import {
 
 const AppShell = () => {
   const [terminals, setTerminals] = useState<TerminalView>([]);
+
   const [recentlyCreatedTerminal, setRecentlyCreatedTerminal] = useState<
     TerminalView[number] | null
   >(null);
+
   const [, setIsLoading] = useState(true);
   const [, setLoadError] = useState<string | null>(null);
+
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
+
   const [deckSidebarContent, setDeckSidebarContent] = useState<ReactNode>(null);
   const [conversationsSidebarContent, setConversationsSidebarContent] = useState<ReactNode>(null);
   const [conversationsActionPanel, setConversationsActionPanel] = useState<ReactNode>(null);
@@ -99,6 +103,7 @@ const AppShell = () => {
     canvasTerminalsPanelWidth,
     setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns: terminals });
+
   const {
     workspaceSetup,
     isWorkspaceSetupLoading,
@@ -106,6 +111,7 @@ const AppShell = () => {
     refreshWorkspaceSetup,
     runWorkspaceSetupStep,
   } = useWorkspaceSetup();
+
   const [runningWorkspaceSetupStepId, setRunningWorkspaceSetupStepId] =
     useState<WorkspaceSetupStepId | null>(null);
 
@@ -114,12 +120,15 @@ const AppShell = () => {
       const readerOptions: { endpoint: string; signal?: AbortSignal } = {
         endpoint: buildTerminalSnapshotsUrl(),
       };
+
       if (signal) {
         readerOptions.signal = signal;
       }
+
       const reader = new HttpTerminalSnapshotReader(readerOptions);
       const nextColumns = await buildTerminalList(reader);
       runtimeStateStore.syncFromTerminals(nextColumns);
+
       return stripTerminalRuntimeStates(nextColumns);
     },
     [runtimeStateStore],
@@ -128,6 +137,7 @@ const AppShell = () => {
   const refreshColumns = useCallback(async () => {
     const nextColumns = await readColumns();
     setTerminals(nextColumns);
+
     return nextColumns;
   }, [readColumns]);
 
@@ -189,7 +199,7 @@ const AppShell = () => {
     const socket = new WebSocket(buildTerminalEventsSocketUrl());
 
     socket.addEventListener("message", (event) => {
-      if (typeof event.data !== "string") {
+      if (!isString(event.data)) {
         return;
       }
 
@@ -203,7 +213,8 @@ const AppShell = () => {
               toolName?: string;
             }
           | undefined;
-        if (!payload || typeof payload.type !== "string") {
+
+        if (!payload || !isString(payload.type)) {
           return;
         }
 
@@ -211,12 +222,15 @@ const AppShell = () => {
           if (!payload.snapshot) {
             return;
           }
+
           const runtimeState = getTerminalRuntimeStateInfo(payload.snapshot);
           runtimeStateStore.setRuntimeState(payload.snapshot.terminalId, runtimeState);
           const structuralSnapshot = stripTerminalRuntimeState(payload.snapshot);
+
           if (payload.type === "terminal-created") {
             setRecentlyCreatedTerminal(structuralSnapshot as TerminalView[number]);
           }
+
           setTerminals((current) =>
             sortTerminalSnapshots([
               ...current.filter(
@@ -225,6 +239,7 @@ const AppShell = () => {
               structuralSnapshot,
             ]),
           );
+
           return;
         }
 
@@ -232,10 +247,12 @@ const AppShell = () => {
           if (!payload.terminalId || !isAgentRuntimeState(payload.agentRuntimeState)) {
             return;
           }
+
           runtimeStateStore.setRuntimeState(payload.terminalId, {
             state: payload.agentRuntimeState,
             ...(payload.toolName ? { toolName: payload.toolName } : {}),
           });
+
           return;
         }
 
@@ -243,10 +260,12 @@ const AppShell = () => {
           if (!payload.terminalId) {
             return;
           }
+
           runtimeStateStore.removeTerminal(payload.terminalId);
           setTerminals((current) =>
             current.filter((terminal) => terminal.terminalId !== payload.terminalId),
           );
+
           return;
         }
 
@@ -260,6 +279,7 @@ const AppShell = () => {
       if (terminalEventsRefreshTimerRef.current !== null) {
         window.clearTimeout(terminalEventsRefreshTimerRef.current);
       }
+
       terminalEventsRefreshTimerRef.current = window.setTimeout(() => {
         terminalEventsRefreshTimerRef.current = null;
         void refreshColumns();
@@ -271,6 +291,7 @@ const AppShell = () => {
         window.clearTimeout(terminalEventsRefreshTimerRef.current);
         terminalEventsRefreshTimerRef.current = null;
       }
+
       if (socket.readyState === WebSocket.OPEN) {
         socket.close();
       } else if (socket.readyState === WebSocket.CONNECTING) {
@@ -281,8 +302,10 @@ const AppShell = () => {
 
   const { colorTheme, isLight, setColorTheme, toggleColorTheme } = useColorThemeContext();
   useBackendLivenessPolling();
+
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
     useGithubSummaryPolling();
+
   const handleActiveTerminalIdsChange = useCallback(
     (activeTerminalIds: ReadonlySet<string>) => {
       runtimeStateStore.retainTerminalIds(activeTerminalIds);
@@ -295,10 +318,12 @@ const AppShell = () => {
     setMinimizedTerminalIds,
     onActiveTerminalIdsChange: handleActiveTerminalIdsChange,
   });
+
   const { playCompletionSoundPreview } = useTerminalCompletionNotification(
     runtimeStateStore,
     terminalCompletionSound,
   );
+
   const { heatmapData, isLoadingHeatmap, refreshHeatmap } = useUsageHeatmapPolling({
     enabled: isUiStateHydrated && (activePrimaryNav === 3 || isRuntimeStatusStripVisible),
   });
@@ -321,6 +346,7 @@ const AppShell = () => {
     hoveredGitHubOverviewPointIndex,
     setHoveredGitHubOverviewPointIndex,
   });
+
   const hasSidebarActionPanel =
     conversationsActionPanel !== null ||
     pendingDeleteTerminal !== null ||
@@ -361,6 +387,7 @@ const AppShell = () => {
     if (!hasSidebarActionPanel || isAgentsSidebarVisible) {
       return;
     }
+
     setIsAgentsSidebarVisible(true);
   }, [isAgentsSidebarVisible, setIsAgentsSidebarVisible, hasSidebarActionPanel]);
 
@@ -381,6 +408,7 @@ const AppShell = () => {
   const handleRunWorkspaceSetupStep = useCallback(
     async (stepId: WorkspaceSetupStepId) => {
       setRunningWorkspaceSetupStepId(stepId);
+
       try {
         await runWorkspaceSetupStep(stepId);
       } finally {
@@ -398,6 +426,7 @@ const AppShell = () => {
         : activePrimaryNav === 6
           ? promptsSidebarContent !== null
           : true;
+
   const showAgentsSidebar =
     isAgentsSidebarVisible &&
     activePrimaryNav !== 1 &&
@@ -505,14 +534,18 @@ const AppShell = () => {
                     promptTemplate: "coordination-planner",
                   }),
                 });
+
                 if (!response.ok) {
                   return undefined;
                 }
+
                 const snapshot = (await response.json()) as { terminalId?: string };
                 await refreshColumns();
-                if (typeof snapshot.terminalId !== "string") {
+
+                if (!isString(snapshot.terminalId)) {
                   return undefined;
                 }
+
                 return snapshot.terminalId;
               },
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
@@ -533,6 +566,7 @@ const AppShell = () => {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ name: "", description: "" }),
                 });
+
                 if (!response.ok) return;
                 await refreshColumns();
               },
@@ -545,18 +579,23 @@ const AppShell = () => {
                     body: JSON.stringify({ workspaceMode }),
                   },
                 );
+
                 if (!response.ok) {
                   let message = "Failed to spawn swarm.";
+
                   try {
                     const body = (await response.json()) as { error?: unknown };
-                    if (typeof body.error === "string" && body.error.trim().length > 0) {
+
+                    if (isString(body.error) && body.error.trim().length > 0) {
                       message = body.error;
                     }
                   } catch {
                     // Fall back to the generic message when the server returns a non-JSON error.
                   }
+
                   throw new Error(message);
                 }
+
                 await refreshColumns();
               },
               onDeckLeadAction: async (action) => {
@@ -569,10 +608,12 @@ const AppShell = () => {
                     promptTemplate: action,
                   }),
                 });
+
                 if (!response.ok) return undefined;
                 const snapshot = (await response.json()) as { terminalId?: string };
                 await refreshColumns();
-                return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
+
+                return isString(snapshot.terminalId) ? snapshot.terminalId : undefined;
               },
               onOrchestrationAction: async (coordinationId, action) => {
                 const response = await fetch("/api/terminals", {
@@ -587,10 +628,12 @@ const AppShell = () => {
                     },
                   }),
                 });
+
                 if (!response.ok) return undefined;
                 const snapshot = (await response.json()) as { terminalId?: string };
                 await refreshColumns();
-                return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
+
+                return isString(snapshot.terminalId) ? snapshot.terminalId : undefined;
               },
               onNavigateToConversation: (_sessionId) => {
                 setActivePrimaryNav(6);

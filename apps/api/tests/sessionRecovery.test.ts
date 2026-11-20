@@ -21,6 +21,7 @@ describe("recoverPersistedSessions", () => {
       exitCode: 0,
       exitSignal: "SIGKILL",
     });
+
     const terminals = new Map([["agent-1", running]]);
 
     const result = recoverPersistedSessions({
@@ -48,6 +49,7 @@ describe("recoverPersistedSessions", () => {
       initialInputDraft: "Draft context",
       agentProvider: "kiro",
     });
+
     const terminals = new Map([["agent-1", running]]);
 
     recoverPersistedSessions({
@@ -63,22 +65,26 @@ describe("recoverPersistedSessions", () => {
 
   it("leaves terminals that already ended untouched", () => {
     const stopped = terminal({ lifecycleState: "stopped", lifecycleReason: "operator_stop" });
+
     const exited = terminal({
       terminalId: "agent-2",
       coordinationId: "agent-2",
       lifecycleState: "exited",
       exitCode: 0,
     });
+
     const registered = terminal({
       terminalId: "agent-3",
       coordinationId: "agent-3",
       lifecycleState: "registered",
     });
+
     const terminals = new Map([
       ["agent-1", stopped],
       ["agent-2", exited],
       ["agent-3", registered],
     ]);
+
     const isProcessAlive = vi.fn(() => false);
 
     const result = recoverPersistedSessions({

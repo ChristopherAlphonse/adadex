@@ -1,3 +1,4 @@
+import { isFunctionValue } from "@adadex/core";
 import type { AgentGlyphAnimation, AgentGlyphMood, Motion } from "./agent-types";
 
 export const getMotion = (
@@ -47,6 +48,7 @@ export const getMotion = (
 };
 
 export const prefersReducedMotion = (): boolean => {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  if (typeof window === "undefined" || !isFunctionValue(window.matchMedia)) return false;
+
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 };

@@ -6,7 +6,9 @@ import type { FactoryApproval, FactoryHost } from "../../runtime/factoryHost";
 import { ApprovalCards } from "./ApprovalCards";
 import { ChecksForm } from "./ChecksForm";
 import { FactoryBoard } from "./FactoryBoard";
+import { LogsPanel } from "./LogsPanel";
 import { ProcessesPanel } from "./ProcessesPanel";
+import { RolesPanel } from "./RolesPanel";
 
 export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
   const {
@@ -20,16 +22,21 @@ export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
     killProcess,
     setLoop,
     setChecks,
+    saveRole,
+    removeRole,
   } = useFactoryHost(host);
+
   const board = useMemo(
     () => buildFactoryBoard(snapshot.jobs, snapshot.workflows),
     [snapshot.jobs, snapshot.workflows],
   );
+
   const nowMs = Date.now();
 
   const handleAction = (key: string, action: FactoryAction) => {
     void runAction(key, action.id, action.input);
   };
+
   const handleRespond = (key: string, approval: FactoryApproval, approved: boolean) => {
     void respondApproval(key, approval.approvalId, approved);
   };
@@ -102,6 +109,7 @@ export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
             placedJobs={board.placedJobs}
             pendingKey={pendingKey}
             onAction={handleAction}
+            onVerify={(jobId) => host.verifyAudit(jobId)}
           />
           <div className="grid shrink-0 gap-3 lg:grid-cols-2">
             <ApprovalCards
@@ -115,6 +123,15 @@ export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
               pendingKey={pendingKey}
               onKill={(key, processId) => void killProcess(key, processId)}
             />
+            {snapshot.roles !== null && (
+              <RolesPanel
+                roles={snapshot.roles}
+                pendingKey={pendingKey}
+                onSave={saveRole}
+                onRemove={(id) => void removeRole(id)}
+              />
+            )}
+            {snapshot.logs !== null && <LogsPanel logs={snapshot.logs} />}
           </div>
         </>
       )}

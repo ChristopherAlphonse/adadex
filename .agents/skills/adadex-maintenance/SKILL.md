@@ -89,8 +89,10 @@ The strip component exists but is **NOT mounted** in the App layout. The sparkli
 ## 4. Lint and Format Config (current working state)
 
 - `.oxlintrc.json`: plugins `typescript`, `unicorn`, `oxc`, `import`, `react`, `jsx-a11y`, `vitest`; the `correctness` category as errors. Pre-existing React Compiler, hooks-deps and a11y findings are downgraded to `"warn"`. `vitest/valid-expect` allows 2 args because `expect(value, message)` is valid in Vitest.
-- `.oxfmtrc.json`: 2-space indent, 100 columns, double quotes, trailing commas, `sortImports` on, `sortPackageJson` off. Ignores `dist`, `coverage`, `.adadex`, `apps/web/src/styles/**`, the Tailwind CSS files, `package-lock.json`, and all `*.md` / `*.html` (prompt templates and docs are not reformatted).
-- `npm run lint` runs `oxlint && oxfmt --check`. `npm run format` runs `oxfmt` (writes in place).
+- Anti-slop rules are vendored from reinvoice at `tools/oxlint/anti-slop/` and loaded as a local `jsPlugin`. All generic anti-slop rules are errors; `no-module-mocking` is off because the repo intentionally uses `vi.mock`. `no-runtime-typeof` sets `allowInTypeGuards: true` because adadex has no schema library; boundary narrowing belongs in the named predicates in `packages/core/src/util/typeCoercion.ts`. Do not add `oxlint-disable` comments or `any` to satisfy these rules.
+- `@oxlint/plugins` is pinned to the same exact version as `oxlint`; update both together.
+- Both configs ignore `tools/oxlint/anti-slop/**` so vendored rule source keeps its upstream style. `.oxfmtrc.json`: 2-space indent, 100 columns, double quotes, trailing commas, `sortImports` on, `sortPackageJson` off. It also ignores `dist`, `coverage`, `.adadex`, `apps/web/src/styles/**`, the Tailwind CSS files, `package-lock.json`, and all `*.md` / `*.html` (prompt templates and docs are not reformatted).
+- `npm run lint` runs `oxlint && oxfmt --check`. `npm run format` runs `oxfmt` (writes in place). `npx oxlint --fix` applies anti-slop spacing fixes.
 
 ---
 

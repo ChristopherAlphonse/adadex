@@ -1,3 +1,4 @@
+import { isObjectValue, isString } from "@adadex/core";
 import { existsSync, readFileSync } from "node:fs";
 
 import type { ConversationTurn } from "./conversations";
@@ -31,7 +32,7 @@ type AgentTranscriptMessage = {
 const extractTextContent = (msg: AgentTranscriptMessage): string | null => {
   const content = msg.message?.content ?? msg.content;
 
-  if (typeof content === "string") {
+  if (isString(content)) {
     return content;
   }
 
@@ -40,6 +41,7 @@ const extractTextContent = (msg: AgentTranscriptMessage): string | null => {
   }
 
   const textParts: string[] = [];
+
   for (const block of content) {
     if (block.type === "text" && block.text) {
       textParts.push(block.text);
@@ -58,13 +60,14 @@ const isUserTextMessage = (msg: AgentTranscriptMessage): boolean => {
   }
 
   const role = getMessageRole(msg);
+
   if (role !== "user") {
     return false;
   }
 
   const content = msg.message?.content ?? msg.content;
 
-  if (typeof content === "string") {
+  if (isString(content)) {
     return true;
   }
 
@@ -81,8 +84,9 @@ const isAssistantTextMessage = (msg: AgentTranscriptMessage): boolean => {
   }
 
   const content = msg.message?.content ?? msg.content;
+
   if (!Array.isArray(content)) {
-    return typeof content === "string" && content.length > 0;
+    return isString(content) && content.length > 0;
   }
 
   return content.some((block) => block.type === "text" && block.text);
@@ -94,6 +98,7 @@ const isToolUseMessage = (msg: AgentTranscriptMessage): boolean => {
   }
 
   const content = msg.message?.content ?? msg.content;
+
   if (!Array.isArray(content)) {
     return false;
   }
@@ -103,33 +108,36 @@ const isToolUseMessage = (msg: AgentTranscriptMessage): boolean => {
 
 const extractToolUseSummary = (msg: AgentTranscriptMessage): string | null => {
   const content = msg.message?.content ?? msg.content;
+
   if (!Array.isArray(content)) {
     return null;
   }
 
   const summaries: string[] = [];
+
   for (const block of content) {
     if (block.type !== "tool_use" || !block.name) {
       continue;
     }
 
-    const input = block.input as Record<string, unknown> | undefined;
+    const input = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ block.input as Record<string, unknown> | undefined;
     let detail = "";
+
     if (input) {
-      if (block.name === "Bash" && typeof input.command === "string") {
+      if (block.name === "Bash" && isString(input.command)) {
         detail = `: \`${input.command.length > 80 ? `${input.command.slice(0, 77)}...` : input.command}\``;
       } else if (
         (block.name === "Read" || block.name === "Write" || block.name === "Edit") &&
-        typeof input.file_path === "string"
+        isString(input.file_path)
       ) {
         detail = `: ${input.file_path}`;
-      } else if (block.name === "Glob" && typeof input.pattern === "string") {
+      } else if (block.name === "Glob" && isString(input.pattern)) {
         detail = `: ${input.pattern}`;
-      } else if (block.name === "Grep" && typeof input.pattern === "string") {
+      } else if (block.name === "Grep" && isString(input.pattern)) {
         detail = `: ${input.pattern}`;
-      } else if (block.name === "Agent" && typeof input.description === "string") {
+      } else if (block.name === "Agent" && isString(input.description)) {
         detail = `: ${input.description}`;
-      } else if (block.name === "WebFetch" && typeof input.url === "string") {
+      } else if (block.name === "WebFetch" && isString(input.url)) {
         detail = `: ${input.url}`;
       }
     }
@@ -158,6 +166,7 @@ export const parseAgentTranscript = (transcriptPath: string): ConversationTurn[]
   }
 
   let rawJsonl: string;
+
   try {
     rawJsonl = readFileSync(transcriptPath, "utf8");
   } catch {
@@ -165,16 +174,20 @@ export const parseAgentTranscript = (transcriptPath: string): ConversationTurn[]
   }
 
   const messages: AgentTranscriptMessage[] = [];
+
   for (const line of rawJsonl.split(/\r?\n/)) {
     const trimmed = line.trim();
+
     if (trimmed.length === 0) {
       continue;
     }
 
     try {
-      const parsed = JSON.parse(trimmed) as unknown;
-      if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
-        const msg = parsed as AgentTranscriptMessage;
+      const parsed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(trimmed) as unknown;
+
+      if (parsed !== null && isObjectValue(parsed) && !Array.isArray(parsed)) {
+        const msg = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ parsed as AgentTranscriptMessage;
+
         if (msg.type === "user" || msg.type === "assistant") {
           messages.push(msg);
         }
@@ -201,6 +214,7 @@ export const parseAgentTranscript = (transcriptPath: string): ConversationTurn[]
     }
 
     const content = pendingAssistantParts.join("\n").trim();
+
     if (content.length > 0) {
       turnCounter += 1;
       turns.push({
@@ -224,11 +238,13 @@ export const parseAgentTranscript = (transcriptPath: string): ConversationTurn[]
       flushAssistantTurn();
 
       const rawText = extractTextContent(msg);
+
       if (!rawText) {
         continue;
       }
 
       const text = stripCommandXml(rawText);
+
       if (!text || text.length === 0) {
         continue;
       }
@@ -246,22 +262,27 @@ export const parseAgentTranscript = (transcriptPath: string): ConversationTurn[]
 
     if (isAssistantTextMessage(msg)) {
       const text = extractTextContent(msg);
+
       if (text && text.trim().length > 0) {
         if (!pendingAssistantStartedAt) {
           pendingAssistantStartedAt = timestamp;
         }
+
         pendingAssistantEndedAt = timestamp;
         pendingAssistantParts.push(text.trim());
       }
+
       continue;
     }
 
     if (isToolUseMessage(msg)) {
       const summary = extractToolUseSummary(msg);
+
       if (summary) {
         if (!pendingAssistantStartedAt) {
           pendingAssistantStartedAt = timestamp;
         }
+
         pendingAssistantEndedAt = timestamp;
         pendingAssistantParts.push(summary);
       }

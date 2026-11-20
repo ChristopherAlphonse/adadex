@@ -9,11 +9,13 @@ export const spawnAgent: SpawnAgent = (command, args, cwd): AgentChild => {
     detached: true,
     stdio: ["ignore", "pipe", "ignore"],
   });
+
   return {
     stdout: child.stdout,
     onExit: (cb) => child.on("close", (code) => cb(code)),
     kill: () => {
       if (child.pid === undefined) return;
+
       try {
         process.kill(-child.pid, "SIGTERM");
       } catch {}

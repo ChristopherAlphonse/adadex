@@ -1,3 +1,4 @@
+import { isString } from "@adadex/core";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -6,6 +7,7 @@ import { jsonResponse, notFoundResponse, resetAppTestHarness } from "./test-util
 
 const createLocalStorageMock = () => {
   const store: Record<string, string> = {};
+
   return {
     getItem: (key: string) => store[key] ?? null,
     setItem: (key: string, value: string) => {
@@ -77,8 +79,9 @@ describe("App UI state persistence", () => {
 
       if (url.endsWith("/api/ui-state") && method === "PATCH") {
         const body = init?.body;
-        if (typeof body === "string") {
-          uiStatePatchBodies.push(JSON.parse(body) as Record<string, unknown>);
+
+        if (isString(body)) {
+          uiStatePatchBodies.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(body) as Record<string, unknown>);
         }
 
         return new Response(body ?? "{}", {

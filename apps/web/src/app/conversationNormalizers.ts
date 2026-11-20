@@ -1,4 +1,4 @@
-import { asNumber, asRecord, asString } from "@adadex/core";
+import { asNumber, asRecord, asString, type ParsedValue } from "@adadex/core";
 
 import type {
   ConversationSessionDetail,
@@ -7,8 +7,9 @@ import type {
   ConversationTurn,
 } from "./types";
 
-const normalizeConversationTurn = (value: unknown): ConversationTurn | null => {
+const normalizeConversationTurn = (value: ParsedValue): ConversationTurn | null => {
   const record = asRecord(value);
+
   if (!record) {
     return null;
   }
@@ -18,6 +19,7 @@ const normalizeConversationTurn = (value: unknown): ConversationTurn | null => {
   const content = asString(record.content);
   const startedAt = asString(record.startedAt);
   const endedAt = asString(record.endedAt);
+
   if (
     !turnId ||
     (role !== "user" && role !== "assistant") ||
@@ -38,9 +40,10 @@ const normalizeConversationTurn = (value: unknown): ConversationTurn | null => {
 };
 
 const normalizeConversationTranscriptEvent = (
-  value: unknown,
+  value: ParsedValue,
 ): ConversationTranscriptEvent | null => {
   const record = asRecord(value);
+
   if (!record) {
     return null;
   }
@@ -50,6 +53,7 @@ const normalizeConversationTranscriptEvent = (
   const coordinationId = asString(record.coordinationId);
   const timestamp = asString(record.timestamp);
   const type = record.type;
+
   if (
     !eventId ||
     !sessionId ||
@@ -74,19 +78,22 @@ const normalizeConversationTranscriptEvent = (
 };
 
 export const normalizeConversationSessionSummary = (
-  value: unknown,
+  value: ParsedValue,
 ): ConversationSessionSummary | null => {
   const record = asRecord(value);
+
   if (!record) {
     return null;
   }
 
   const sessionId = asString(record.sessionId);
+
   if (!sessionId) {
     return null;
   }
 
   const coordinationId = asString(record.coordinationId);
+
   return {
     sessionId,
     coordinationId,
@@ -104,14 +111,16 @@ export const normalizeConversationSessionSummary = (
 };
 
 export const normalizeConversationSessionDetail = (
-  value: unknown,
+  value: ParsedValue,
 ): ConversationSessionDetail | null => {
   const record = asRecord(value);
+
   if (!record) {
     return null;
   }
 
   const summary = normalizeConversationSessionSummary(record);
+
   if (!summary) {
     return null;
   }
@@ -121,6 +130,7 @@ export const normalizeConversationSessionDetail = (
         .map((turn) => normalizeConversationTurn(turn))
         .filter((turn): turn is ConversationTurn => turn !== null)
     : [];
+
   const events = Array.isArray(record.events)
     ? record.events
         .map((event) => normalizeConversationTranscriptEvent(event))

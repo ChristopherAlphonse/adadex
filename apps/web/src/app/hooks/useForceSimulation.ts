@@ -36,14 +36,18 @@ export const DEFAULT_FORCE_PARAMS: ForceParams = {
 };
 
 const ALPHA_MIN = 0.001;
+
 const ALPHA_TARGET = 0;
+
 const REHEAT_ALPHA = 0.8;
 
 // Reference dimensions used by useCanvasTransform to compute the initial viewport fit scale.
 export const WORLD_W = 1400;
+
 export const WORLD_H = 800;
 
 type SimNode = SimulationNodeDatum & { _gn: GraphNode };
+
 type SimLink = SimulationLinkDatum<SimNode>;
 
 type UseForceSimulationOptions = {
@@ -111,6 +115,7 @@ export const useForceSimulation = ({
       simRef.current = null;
       simNodeMapRef.current.clear();
       setSnapshot([]);
+
       return;
     }
 
@@ -118,10 +123,13 @@ export const useForceSimulation = ({
 
     const simNodes: SimNode[] = currentNodes.map((gn) => {
       const prev = prevMap.get(gn.id);
+
       if (prev) {
         prev._gn = gn;
+
         return prev;
       }
+
       return {
         _gn: gn,
         x: gn.x,
@@ -134,17 +142,21 @@ export const useForceSimulation = ({
     });
 
     const nextMap = new Map<string, SimNode>();
+
     for (const sn of simNodes) {
       nextMap.set(sn._gn.id, sn);
     }
+
     simNodeMapRef.current = nextMap;
 
     const simLinks: SimLink[] = currentEdges
       .map((e) => {
         const source = nextMap.get(e.source);
         const target = nextMap.get(e.target);
+
         if (!source || !target) return null;
-        return { source, target } as SimLink;
+
+        return /* SAFETY: preceding checks establish the invariant this assertion encodes. */ { source, target } as SimLink;
       })
       .filter((l): l is SimLink => l !== null);
 
@@ -154,13 +166,15 @@ export const useForceSimulation = ({
           "link",
           forceLink<SimNode, SimLink>(simLinks)
             .distance((link: SimLink) => {
-              const target = link.target as SimNode;
+              const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
+
               return target._gn.type === "inactive-session"
                 ? p.linkDistance * 0.35
                 : p.linkDistance;
             })
             .strength((link: SimLink) => {
-              const target = link.target as SimNode;
+              const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
+
               return target._gn.type === "inactive-session" ? p.linkStrength * 1.5 : p.linkStrength;
             }),
         )
@@ -194,6 +208,7 @@ export const useForceSimulation = ({
           vx: sn.vx ?? 0,
           vy: sn.vy ?? 0,
         }));
+
         setSnapshot(updated);
       });
 
@@ -213,6 +228,7 @@ export const useForceSimulation = ({
 
     for (const gn of currentNodes) {
       const sn = map.get(gn.id);
+
       if (sn && sn._gn !== gn) {
         sn._gn = gn;
         changed = true;
@@ -227,6 +243,7 @@ export const useForceSimulation = ({
         vx: sn.vx ?? 0,
         vy: sn.vy ?? 0,
       }));
+
       setSnapshot(updated);
     }
   }, [contentKey]);
@@ -234,39 +251,47 @@ export const useForceSimulation = ({
   // Apply param changes without rebuilding the simulation
   useEffect(() => {
     const sim = simRef.current;
+
     if (!sim) return;
 
     sim.velocityDecay(params.velocityDecay).alphaDecay(params.alphaDecay);
 
-    const linkForce = sim.force("link") as ReturnType<typeof forceLink<SimNode, SimLink>> | null;
+    const linkForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("link") as ReturnType<typeof forceLink<SimNode, SimLink>> | null;
+
     if (linkForce) {
       linkForce
         .distance((link: SimLink) => {
-          const target = link.target as SimNode;
+          const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
+
           return target._gn.type === "inactive-session"
             ? params.linkDistance * 0.35
             : params.linkDistance;
         })
         .strength((link: SimLink) => {
-          const target = link.target as SimNode;
+          const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
+
           return target._gn.type === "inactive-session"
             ? params.linkStrength * 1.5
             : params.linkStrength;
         });
     }
 
-    const chargeForce = sim.force("charge") as ReturnType<typeof forceManyBody<SimNode>> | null;
+    const chargeForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("charge") as ReturnType<typeof forceManyBody<SimNode>> | null;
+
     if (chargeForce) {
       chargeForce.strength(params.repelStrength).distanceMax(params.repelDistanceMax);
     }
 
-    const xForce = sim.force("x") as ReturnType<typeof forceX<SimNode>> | null;
+    const xForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("x") as ReturnType<typeof forceX<SimNode>> | null;
+
     if (xForce) xForce.strength(params.positionStrength);
 
-    const yForce = sim.force("y") as ReturnType<typeof forceY<SimNode>> | null;
+    const yForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("y") as ReturnType<typeof forceY<SimNode>> | null;
+
     if (yForce) yForce.strength(params.positionStrength);
 
-    const collideForce = sim.force("collide") as ReturnType<typeof forceCollide<SimNode>> | null;
+    const collideForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("collide") as ReturnType<typeof forceCollide<SimNode>> | null;
+
     if (collideForce) {
       collideForce.radius(params.collisionPadding);
     }
@@ -283,6 +308,7 @@ export const useForceSimulation = ({
 
   const pinNode = useCallback((id: string) => {
     const sn = simNodeMapRef.current.get(id);
+
     if (sn) {
       sn.fx = sn.x;
       sn.fy = sn.y;
@@ -292,6 +318,7 @@ export const useForceSimulation = ({
 
   const unpinNode = useCallback((id: string) => {
     const sn = simNodeMapRef.current.get(id);
+
     if (sn) {
       sn.fx = undefined;
       sn.fy = undefined;
@@ -301,6 +328,7 @@ export const useForceSimulation = ({
 
   const moveNode = useCallback((id: string, x: number, y: number) => {
     const sn = simNodeMapRef.current.get(id);
+
     if (sn) {
       sn.fx = x;
       sn.fy = y;

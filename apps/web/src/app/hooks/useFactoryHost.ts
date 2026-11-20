@@ -1,10 +1,14 @@
+import type { ParsedRecord } from "@adadex/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
+  FactoryActionInput,
   FactoryApproval,
   FactoryHost,
   FactoryJob,
+  FactoryLogEvent,
   FactoryProcess,
+  FactoryRole,
   FactoryWorkflow,
 } from "../../runtime/factoryHost";
 
@@ -15,6 +19,8 @@ export interface FactorySnapshot {
   readonly processes: readonly FactoryProcess[];
   readonly loop: boolean | null;
   readonly checks: string | null;
+  readonly roles: readonly FactoryRole[] | null;
+  readonly logs: readonly FactoryLogEvent[] | null;
 }
 
 const EMPTY_SNAPSHOT: FactorySnapshot = {
@@ -24,21 +30,26 @@ const EMPTY_SNAPSHOT: FactorySnapshot = {
   processes: [],
   loop: null,
   checks: null,
+  roles: null,
+  logs: null,
 };
 
 const messageOf = (cause: unknown): string =>
   cause instanceof Error && cause.message.length > 0 ? cause.message : "Factory request failed";
 
 const readSnapshot = async (host: FactoryHost): Promise<FactorySnapshot> => {
-  const [jobs, workflows, approvals, processes, loop, checks] = await Promise.all([
+  const [jobs, workflows, approvals, processes, loop, checks, roles, logs] = await Promise.all([
     host.listJobs(),
     host.listWorkflows(),
     host.listApprovals(),
     host.listProcesses(),
     host.getLoop(),
     host.getChecks(),
+    host.listRoles(),
+    host.listLogs(),
   ]);
-  return { jobs, workflows, approvals, processes, loop, checks };
+
+  return { jobs, workflows, approvals, processes, loop, checks, roles, logs };
 };
 
 export const useFactoryHost = (host: FactoryHost) => {
@@ -53,6 +64,7 @@ export const useFactoryHost = (host: FactoryHost) => {
   const refresh = useCallback(async () => {
     try {
       const next = await readSnapshot(host);
+
       if (isMountedRef.current) {
         setSnapshot(next);
         setLoadError(null);
@@ -67,9 +79,11 @@ export const useFactoryHost = (host: FactoryHost) => {
   useEffect(() => {
     isMountedRef.current = true;
     void refresh();
+
     const unsubscribe = host.subscribe(() => {
       void refresh();
     });
+
     return () => {
       isMountedRef.current = false;
       unsubscribe();
@@ -77,14 +91,19 @@ export const useFactoryHost = (host: FactoryHost) => {
   }, [host, refresh]);
 
   const runMutation = useCallback(
-    async (key: string, mutate: () => Promise<void>) => {
+    async (key: string, mutate: () => Promise<void>): Promise<boolean> => {
       setPendingKey(key);
       setActionError(null);
+
       try {
         await mutate();
         await refresh();
+
+        return true;
       } catch (cause) {
         setActionError(messageOf(cause));
+
+        return false;
       } finally {
         setPendingKey(null);
       }
@@ -93,7 +112,7 @@ export const useFactoryHost = (host: FactoryHost) => {
   );
 
   const runAction = useCallback(
-    async (key: string, actionId: string, input: Readonly<Record<string, unknown>>) =>
+    async (key: string, actionId: string, input: FactoryActionInput) =>
       runMutation(key, () => host.runAction(actionId, input)),
     [host, runMutation],
   );
@@ -119,6 +138,16 @@ export const useFactoryHost = (host: FactoryHost) => {
     [host, runMutation],
   );
 
+  const saveRole = useCallback(
+    async (role: ParsedRecord) => runMutation("role:save", () => host.saveRole(role)),
+    [host, runMutation],
+  );
+
+  const removeRole = useCallback(
+    async (id: string) => runMutation(`role:remove:${id}`, () => host.removeRole(id)),
+    [host, runMutation],
+  );
+
   return {
     snapshot,
     isLoading,
@@ -130,5 +159,7 @@ export const useFactoryHost = (host: FactoryHost) => {
     killProcess,
     setLoop,
     setChecks,
+    saveRole,
+    removeRole,
   };
 };

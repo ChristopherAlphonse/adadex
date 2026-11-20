@@ -17,12 +17,16 @@ export const DeleteOrchestrationDialog = ({
   onConfirmDelete,
 }: DeleteOrchestrationDialogProps) => {
   const [cleanupConfirmationInput, setCleanupConfirmationInput] = useState("");
+
   const isCleanupIntent =
     pendingDeleteTerminal.intent === "cleanup-worktree" &&
     pendingDeleteTerminal.workspaceMode === "worktree";
+
   const isCloseIntent = pendingDeleteTerminal.intent === "close-terminal";
+
   const isCleanupConfirmationValid =
     !isCleanupIntent || cleanupConfirmationInput.trim() === pendingDeleteTerminal.terminalId;
+
   // Only treat *this* orchestration as busy. A stale `isDeletingTerminalId` for another id would
   // otherwise keep confirm/cancel disabled and make the dialog feel "stuck".
   const isThisDeleting = isDeletingTerminalId === pendingDeleteTerminal.terminalId;

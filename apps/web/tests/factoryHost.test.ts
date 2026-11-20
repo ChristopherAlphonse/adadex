@@ -1,3 +1,4 @@
+import { isObjectValue, isString } from "@adadex/core";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -33,10 +34,13 @@ const workflow = {
 
 const dataFor = (kind: string): unknown => {
   if (kind === "jobs.list") return [job];
+
   if (kind === "workflows.list") return [workflow];
+
   if (kind === "approvals.list") {
     return [{ approvalId: "approval-1", actionId: "job.advance", reason: "needs a decision" }];
   }
+
   if (kind === "processes.list") {
     return [
       {
@@ -46,20 +50,23 @@ const dataFor = (kind: string): unknown => {
       },
     ];
   }
+
   return null;
 };
 
 const createBridge = (): { bridge: HostApiBridge; handle: ReturnType<typeof vi.fn> } => {
   const handle = vi.fn(async (request: unknown) => {
     const kind =
-      typeof request === "object" &&
+      isObjectValue(request) &&
       request !== null &&
       "kind" in request &&
-      typeof request.kind === "string"
+      isString(request.kind)
         ? request.kind
         : "";
+
     return { ok: true, data: dataFor(kind) };
   });
+
   return { bridge: { handle, subscribe: vi.fn(() => () => undefined) }, handle };
 };
 
@@ -112,6 +119,7 @@ describe("factory host bridge", () => {
       handle: async () => ({ ok: false, errors: ["not allowed", "no job"] }),
       subscribe: () => () => undefined,
     };
+
     const host = createHostApiFactoryHost(bridge);
 
     await expect(host.listJobs()).rejects.toThrow("not allowed; no job");
@@ -122,10 +130,12 @@ describe("factory host bridge", () => {
       handle: async () => ({ ok: true, data: { enabled: true, running: [], lastPlan: null } }),
       subscribe: () => () => undefined,
     });
+
     const withoutLoop = createHostApiFactoryHost({
       handle: async () => ({ ok: false, errors: ["the unattended loop is not available"] }),
       subscribe: () => () => undefined,
     });
+
     const handle = vi.fn(async () => ({ ok: true, data: { enabled: false } }));
     const toggled = createHostApiFactoryHost({ handle, subscribe: () => () => undefined });
 
@@ -138,6 +148,7 @@ describe("factory host bridge", () => {
   it("reads the checks command, and treats a host without project settings as null", async () => {
     const handle = vi.fn(async () => ({ ok: true, data: { checks: "npm test" } }));
     const host = createHostApiFactoryHost({ handle, subscribe: () => () => undefined });
+
     const without = createHostApiFactoryHost({
       handle: async () => ({ ok: false, errors: ["project settings are not available"] }),
       subscribe: () => () => undefined,
@@ -149,29 +160,74 @@ describe("factory host bridge", () => {
     expect(handle).toHaveBeenCalledWith({ kind: "project.set", checks: "npm run check" });
   });
 
+  it("reads roles, logs and the audit check, and treats missing roles or logs as null", async () => {
+    const handle = vi.fn(async (request: unknown) => {
+      const kind = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ request as { kind: string }).kind;
+
+      if (kind === "roles.list")
+        return {
+          ok: true,
+          data: [{ id: "builder", name: "Builder", origin: "preset", tools: [] }],
+        };
+
+      if (kind === "logs.query")
+        return {
+          ok: true,
+          data: [
+            { id: 3, ts: "2026-11-19T12:00:00Z", level: "info", source: "app", message: "hi" },
+          ],
+        };
+
+      if (kind === "audit.verify") return { ok: true, data: { ok: true, entries: 4 } };
+
+      return { ok: true, data: null };
+    });
+
+    const host = createHostApiFactoryHost({ handle, subscribe: () => () => undefined });
+
+    const without = createHostApiFactoryHost({
+      handle: async () => ({ ok: false, errors: ["not available"] }),
+      subscribe: () => () => undefined,
+    });
+
+    const roles = await host.listRoles();
+    expect(roles?.[0]).toMatchObject({ id: "builder", origin: "preset" });
+    expect(roles?.[0]?.definition).toMatchObject({ tools: [] });
+    expect((await host.listLogs())?.[0]?.message).toBe("hi");
+    expect(handle).toHaveBeenCalledWith({ kind: "logs.query", limit: 50 });
+    await expect(host.verifyAudit("j1")).resolves.toEqual({ ok: true, entries: 4 });
+    await host.saveRole({ id: "x" });
+    expect(handle).toHaveBeenCalledWith({ kind: "roles.save", role: { id: "x" } });
+    await expect(without.listRoles()).resolves.toBeNull();
+    await expect(without.listLogs()).resolves.toBeNull();
+  });
+
   it("uses Electron's request/onEvent bridge when that is what the preload exposes", async () => {
     const request = vi.fn(async () => ({ ok: true, data: [] }));
     Object.assign(window, {
       adadex: { request, onEvent: vi.fn(() => () => undefined) },
     });
+
     try {
       const host = createFactoryHost();
       expect(host.isAvailable()).toBe(true);
       expect(await host.listJobs()).toEqual([]);
       expect(request).toHaveBeenCalledWith({ kind: "jobs.list" });
     } finally {
-      delete (window as { adadex?: unknown }).adadex;
+      delete (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ window as { adadex?: unknown }).adadex;
     }
   });
 
   it("uses the injected bridge when the preload has installed one", () => {
     const { bridge } = createBridge();
     installFactoryHost(bridge);
+
     try {
       expect(createFactoryHost().isAvailable()).toBe(true);
     } finally {
       installFactoryHost(null);
     }
+
     expect(createFactoryHost().isAvailable()).toBe(false);
     expect(createEmptyFactoryHost().isAvailable()).toBe(false);
   });

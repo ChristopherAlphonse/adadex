@@ -7,14 +7,14 @@ import type {
   ConversationSessionDetail,
   ConversationSessionSummary,
   ConversationTurn,
-} from "@adadex/core";
+, isNumber, isObjectValue, isString} from "@adadex/core";
 
 import type { AgentRuntimeState } from "../agentStateDetection";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
+  value !== null && isObjectValue(value) && !Array.isArray(value);
 
-const asString = (value: unknown): string | null => (typeof value === "string" ? value : null);
+const asString = (value: unknown): string | null => (isString(value) ? value : null);
 
 const parseRuntimeState = (value: unknown): AgentRuntimeState | null =>
   value === "idle" || value === "processing" ? value : null;
@@ -101,6 +101,7 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
   if (eventType === "input_submit") {
     const submitId = asString(value.submitId);
     const text = asString(value.text);
+
     if (!submitId || text === null) {
       return null;
     }
@@ -119,6 +120,7 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
   if (eventType === "output_chunk") {
     const chunkId = asString(value.chunkId);
     const text = asString(value.text);
+
     if (!chunkId || text === null) {
       return null;
     }
@@ -136,6 +138,7 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
 
   if (eventType === "state_change") {
     const state = parseRuntimeState(value.state);
+
     if (!state) {
       return null;
     }
@@ -152,6 +155,7 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
 
   if (eventType === "session_end") {
     const reason = value.reason;
+
     if (
       reason !== "pty_exit" &&
       reason !== "session_close" &&
@@ -161,9 +165,10 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
       return null;
     }
 
-    const exitCode = typeof value.exitCode === "number" ? value.exitCode : undefined;
+    const exitCode = isNumber(value.exitCode) ? value.exitCode : undefined;
+
     const signal =
-      typeof value.signal === "number" || typeof value.signal === "string"
+      isNumber(value.signal) || isString(value.signal)
         ? value.signal
         : undefined;
 
@@ -191,6 +196,7 @@ const buildConversationSummary = (
   const assistantTurns = turns.filter((turn) => turn.role === "assistant");
   const firstEvent = events[0] ?? null;
   const lastEvent = events.length > 0 ? events[events.length - 1] : null;
+
   const lastSessionEnd =
     [...events].reverse().find((event) => event.type === "session_end") ?? null;
 
@@ -217,8 +223,10 @@ const buildConversationSummary = (
 const parseTranscriptLines = (rawJsonl: string): ConversationTranscriptEvent[] => {
   const events: ConversationTranscriptEvent[] = [];
   const lines = rawJsonl.split(/\r?\n/);
+
   for (const line of lines) {
     const trimmed = line.trim();
+
     if (trimmed.length === 0) {
       continue;
     }
@@ -226,6 +234,7 @@ const parseTranscriptLines = (rawJsonl: string): ConversationTranscriptEvent[] =
     try {
       const parsed = JSON.parse(trimmed) as unknown;
       const event = parseTranscriptEvent(parsed);
+
       if (event) {
         events.push(event);
       }
@@ -242,11 +251,13 @@ const readSessionEventsFromFile = (
   sessionId: string,
 ): ConversationTranscriptEvent[] => {
   const transcriptPath = join(transcriptDirectoryPath, transcriptFilenameForSession(sessionId));
+
   if (!existsSync(transcriptPath)) {
     return [];
   }
 
   const rawJsonl = readFileSync(transcriptPath, "utf8");
+
   return parseTranscriptLines(rawJsonl);
 };
 
@@ -256,6 +267,7 @@ const parseSessionIdFromFilename = (filename: string): string | null => {
   }
 
   const basename = filename.slice(0, -".jsonl".length);
+
   if (basename.length === 0) {
     return null;
   }
@@ -273,6 +285,7 @@ const truncatePreview = (value: string | null): string | null => {
   }
 
   const normalized = value.replace(/\s+/g, " ").trim();
+
   if (normalized.length <= 160) {
     return normalized;
   }
@@ -285,6 +298,7 @@ export const readConversationSession = (
   sessionId: string,
 ): ConversationSessionDetail | null => {
   const events = readSessionEventsFromFile(transcriptDirectoryPath, sessionId);
+
   if (events.length === 0) {
     return null;
   }
@@ -317,6 +331,7 @@ export const listConversationSessions = (
   const summaries = sessionIds
     .map((sessionId) => {
       const detail = readConversationSession(transcriptDirectoryPath, sessionId);
+
       // Skip sessions that have no actual conversation turns — these are
       // PTY sessions that were spawned but never received any user input.
       if (!detail || detail.turnCount === 0) {
@@ -349,6 +364,7 @@ export const listConversationSessions = (
   return summaries.sort((left, right) => {
     const leftTime = left.lastEventAt ? Date.parse(left.lastEventAt) : 0;
     const rightTime = right.lastEventAt ? Date.parse(right.lastEventAt) : 0;
+
     return rightTime - leftTime;
   });
 };
@@ -393,6 +409,7 @@ export const deleteAllConversations = (transcriptDirectoryPath: string) => {
   }
 
   const files = readdirSync(transcriptDirectoryPath);
+
   for (const file of files) {
     if (
       file.endsWith(".jsonl") ||
@@ -431,6 +448,7 @@ const readAgentTranscriptTurns = (
   const primaryPath = join(transcriptDirectoryPath, agentTurnsFilename(sessionId));
   const legacyPath = join(transcriptDirectoryPath, legacyAgentTurnsFilename(sessionId));
   const filePath = existsSync(primaryPath) ? primaryPath : legacyPath;
+
   if (!existsSync(filePath)) {
     return null;
   }
@@ -438,6 +456,7 @@ const readAgentTranscriptTurns = (
   try {
     const raw = readFileSync(filePath, "utf8");
     const parsed = JSON.parse(raw) as unknown;
+
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return null;
     }
@@ -452,6 +471,7 @@ const buildSearchSnippet = (content: string, query: string, contextChars = 80): 
   const lowerContent = content.toLowerCase();
   const lowerQuery = query.toLowerCase();
   const matchIndex = lowerContent.indexOf(lowerQuery);
+
   if (matchIndex === -1) {
     return content
       .slice(0, contextChars * 2)
@@ -462,8 +482,11 @@ const buildSearchSnippet = (content: string, query: string, contextChars = 80): 
   const start = Math.max(0, matchIndex - contextChars);
   const end = Math.min(content.length, matchIndex + query.length + contextChars);
   let snippet = content.slice(start, end).replace(/\s+/g, " ").trim();
+
   if (start > 0) snippet = `...${snippet}`;
+
   if (end < content.length) snippet = `${snippet}...`;
+
   return snippet;
 };
 
@@ -484,6 +507,7 @@ export const searchConversations = (
 
   for (const sessionId of sessionIds) {
     const turns = readAgentTranscriptTurns(transcriptDirectoryPath, sessionId) ?? [];
+
     for (const turn of turns) {
       if (turn.content.toLowerCase().includes(lowerQuery)) {
         hits.push({

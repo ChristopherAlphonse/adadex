@@ -4,6 +4,7 @@ import {
   type ActionRegistry,
   type ApprovalGate,
   authorize,
+  type ParsedValue,
 } from "@adadex/core";
 
 /** Shown by the main process as a native OS dialog. Web content cannot click it. */
@@ -42,49 +43,61 @@ export interface AgentPorts {
 
 export interface ActionHost {
   /** A button press in the UI. */
-  fromUi(actionId: string, input: unknown): Promise<HostResult>;
+  fromUi(actionId: string, input: ParsedValue): Promise<HostResult>;
   /** The ports `runAgent` needs, so an agent's calls go through the same registry and policy. */
   agentPorts(): AgentPorts;
 }
 
-const message = (e: unknown): string => (e instanceof Error ? e.message : "action failed");
+const message = (cause: unknown): string =>
+  cause instanceof Error ? cause.message : "action failed";
 
 /**
  * The only place a request becomes a run, and the only place a human click is made. A human-only action
  * is confirmed with a native dialog here. The UI and agents can ask for one but cannot supply the click.
  */
 export const createActionHost = (deps: ActionHostDeps): ActionHost => {
-  const run = async (
+  const run = async <T,>(
     caller: "ui" | "agent",
     actionId: string,
-    input: unknown,
+    input: T,
   ): Promise<HostResult> => {
     let result: HostResult;
+
     try {
       result = { status: "ok", output: await deps.executor.execute(actionId, input) };
-    } catch (e) {
-      result = { status: "error", message: message(e) };
+    } catch (cause) {
+      result = { status: "error", message: message(cause) };
     }
+
     const outcome: ActionOutcome =
       result.status === "ok"
         ? { status: "ok", output: result.output }
         : { status: "error", message: result.status === "error" ? result.message : "" };
+
     deps.emit({ type: "ran", actionId, caller, outcome });
+
     return result;
   };
 
-  const fromUi = async (actionId: string, rawInput: unknown): Promise<HostResult> => {
+  const fromUi = async (actionId: string, rawInput: ParsedValue): Promise<HostResult> => {
     const def = deps.registry.get(actionId);
+
     if (!def) return { status: "denied", reason: `unknown action ${actionId}` };
 
+    // SAFETY: a UI request has a human caller; the humanClick is added only after the native dialog confirms.
     let ctx = { caller: "human" } as Parameters<typeof authorize>[3];
+
     if (def.class === "human") {
       const ok = await deps.confirm(def.title, `Run "${def.title}" now?`);
+
       if (!ok) return { status: "declined" };
       ctx = { caller: "human", humanClick: { actionId } };
     }
+
     const decision = authorize(deps.registry, actionId, rawInput, ctx);
+
     if (decision.kind === "run") return run("ui", actionId, decision.input);
+
     return { status: "denied", reason: decision.reason };
   };
 
@@ -97,7 +110,9 @@ export const createActionHost = (deps: ActionHostDeps): ActionHost => {
         ) {
           throw new Error(`${actionId} is not available to an agent`);
         }
+
         const r = await run("agent", actionId, input);
+
         if (r.status === "ok") return r.output;
         throw new Error(r.status === "error" ? r.message : "not run");
       },
@@ -105,6 +120,7 @@ export const createActionHost = (deps: ActionHostDeps): ActionHost => {
     approvals: {
       request: async (actionId, reason) => {
         deps.emit({ type: "approval-requested", actionId, reason });
+
         return deps.askApproval.request(actionId, reason);
       },
     },

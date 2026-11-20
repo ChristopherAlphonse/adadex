@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { BUILD_POLICY, REVIEW_POLICY } from "@adadex/core";
+import { BUILD_POLICY, REVIEW_POLICY , isString} from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createClaudeCodeProvider } from "../src/agents/claudeCodeProvider";
@@ -12,10 +12,13 @@ import { createToolGuard, resolveReal } from "../src/host/toolGuard";
 import { createApprovalBroker } from "../src/ipc/approvalBroker";
 
 const HOOK = join(import.meta.dirname, "../src/agents/guard-hook.mjs");
+
 let dir: string;
+
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), "adx-guard-"));
 });
+
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
 });
@@ -29,21 +32,24 @@ const runHook = (
     const child = spawn(process.execPath, [HOOK, socket, String(timeout)], {
       stdio: ["pipe", "ignore", "pipe"],
     });
+
     let stderr = "";
     child.stderr.on("data", (c) => {
       stderr += c;
     });
     child.on("close", (code) => resolve({ code, stderr }));
-    child.stdin.end(typeof event === "string" ? event : JSON.stringify(event));
+    child.stdin.end(isString(event) ? event : JSON.stringify(event));
   });
 
 describe("the hook script", () => {
   it("exits 0 when the app allows, and 2 with the reason when it does not", async () => {
     const decide: GuardDecide = async (e) =>
-      (e as { tool_name: string }).tool_name === "Read"
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e as { tool_name: string }).tool_name === "Read"
         ? { allow: true }
         : { allow: false, reason: "nope" };
+
     const host = await startGuardHost(join(dir, "g.sock"), decide);
+
     try {
       expect((await runHook(join(dir, "g.sock"), { tool_name: "Read", tool_input: {} })).code).toBe(
         0,
@@ -60,9 +66,11 @@ describe("the hook script", () => {
     expect(
       (await runHook(join(dir, "missing.sock"), { tool_name: "Read", tool_input: {} })).code,
     ).toBe(2);
+
     const host = await startGuardHost(join(dir, "g.sock"), async () => {
       throw new Error("boom");
     });
+
     try {
       expect((await runHook(join(dir, "g.sock"), "not json")).code).toBe(2);
       const r = await runHook(join(dir, "g.sock"), { tool_name: "Read", tool_input: {} });
@@ -75,6 +83,7 @@ describe("the hook script", () => {
 
   it("blocks when the app takes too long to answer", async () => {
     const host = await startGuardHost(join(dir, "g.sock"), () => new Promise(() => {}));
+
     try {
       const r = await runHook(join(dir, "g.sock"), { tool_name: "Read", tool_input: {} }, 0.2);
       expect(r.code).toBe(2);
@@ -89,12 +98,15 @@ describe("tool guard", () => {
   const guard = (policy = BUILD_POLICY, answer = true) => {
     const asked: string[] = [];
     const log: string[] = [];
+
     const broker = createApprovalBroker((p) => {
       asked.push(p.actionId);
       queueMicrotask(() => broker.respond(p.approvalId, answer));
     });
+
     return { decide: createToolGuard(policy, broker.gate, (l) => log.push(l)), asked, log };
   };
+
   const bash = (command: string) => ({ tool_name: "Bash", tool_input: { command }, cwd: dir });
 
   it("allows what the policy allows, refuses a push, and tells the agent why", async () => {
@@ -116,11 +128,13 @@ describe("tool guard", () => {
 
   it("refuses a write to a protected file, however the path is written", async () => {
     const { decide } = guard();
+
     for (const file_path of [".env", "./.github/workflows/ci.yml", "sub/../.husky/pre-commit"]) {
       expect(
         (await decide({ tool_name: "Write", tool_input: { file_path }, cwd: dir })).allow,
       ).toBe(false);
     }
+
     expect(
       (await decide({ tool_name: "Write", tool_input: { file_path: "src/app.ts" }, cwd: dir }))
         .allow,
@@ -154,6 +168,7 @@ describe("provider and the guard", () => {
     cwd: dir,
     tempDir: async () => join(dir, "run"),
   };
+
   const child = () => ({
     stdout: new (require("node:stream").PassThrough)(),
     onExit: () => {},
@@ -167,20 +182,25 @@ describe("provider and the guard", () => {
 
   it("installs the hook settings when a guard is given", async () => {
     let args: readonly string[] = [];
+
     const provider = createClaudeCodeProvider({
       ...base,
       allowedTools: ["Bash"],
       guard: { decide: async () => ({ allow: true }), hookPath: HOOK },
       spawn: (_c, a) => {
         args = a;
+
         return child();
       },
     });
+
     const session = await provider.start({ goal: "g", contextFiles: [] });
     const settingsPath = args[args.indexOf("--settings") + 1] ?? "";
+
     const settings = JSON.parse(
       await (await import("node:fs/promises")).readFile(settingsPath, "utf8"),
     );
+
     expect(settings.hooks.PreToolUse[0].matcher).toBe("*");
     expect(settings.hooks.PreToolUse[0].hooks[0].command).toContain("guard-hook.mjs");
     expect(args[args.indexOf("--allowedTools") + 1]).toContain("Bash");
@@ -188,11 +208,13 @@ describe("provider and the guard", () => {
   });
 
   it("builds settings that run the hook with the socket and a timeout", () => {
-    const s = guardSettings("/h.mjs", "/s.sock", 30) as {
+    const s = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ guardSettings("/h.mjs", "/s.sock", 30) as {
       hooks: { PreToolUse: { hooks: { command: string; timeout: number }[] }[] };
     };
+
     expect(s.hooks.PreToolUse[0]?.hooks[0]?.command).toContain('"/h.mjs" "/s.sock" 30');
     expect(s.hooks.PreToolUse[0]?.hooks[0]?.timeout).toBe(35);
   });
 });
+
 void REVIEW_POLICY;

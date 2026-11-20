@@ -1,3 +1,4 @@
+import { isObjectValue } from "@adadex/core";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -13,6 +14,7 @@ const mockShellRequests = () => {
     if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
       return jsonResponse([]);
     }
+
     if (url.endsWith("/api/github/summary") && method === "GET") {
       return jsonResponse({
         status: "unavailable",
@@ -21,12 +23,15 @@ const mockShellRequests = () => {
         commitsPerDay: [],
       });
     }
+
     if (url.includes("/api/analytics/usage-heatmap") && method === "GET") {
       return jsonResponse({ days: [], projects: [], models: [] });
     }
+
     if (url.endsWith("/api/ui-state") && method === "GET") {
       return jsonResponse({});
     }
+
     return notFoundResponse();
   });
 };
@@ -34,7 +39,7 @@ const mockShellRequests = () => {
 const factoryBridge = (): { bridge: HostApiBridge; handle: ReturnType<typeof vi.fn> } => {
   const handle = vi.fn(async (request: unknown) => {
     if (
-      typeof request === "object" &&
+      isObjectValue(request) &&
       request !== null &&
       "kind" in request &&
       request.kind === "jobs.list"
@@ -54,8 +59,9 @@ const factoryBridge = (): { bridge: HostApiBridge; handle: ReturnType<typeof vi.
         ],
       };
     }
+
     if (
-      typeof request === "object" &&
+      isObjectValue(request) &&
       request !== null &&
       "kind" in request &&
       request.kind === "workflows.list"
@@ -71,24 +77,28 @@ const factoryBridge = (): { bridge: HostApiBridge; handle: ReturnType<typeof vi.
         ],
       };
     }
+
     if (
-      typeof request === "object" &&
+      isObjectValue(request) &&
       request !== null &&
       "kind" in request &&
       request.kind === "scheduler.status"
     ) {
       return { ok: true, data: { enabled: false, running: [], lastPlan: null } };
     }
+
     if (
-      typeof request === "object" &&
+      isObjectValue(request) &&
       request !== null &&
       "kind" in request &&
       request.kind === "project.get"
     ) {
       return { ok: true, data: { checks: "npm test" } };
     }
+
     return { ok: true, data: [] };
   });
+
   return { bridge: { handle, subscribe: () => () => undefined }, handle };
 };
 

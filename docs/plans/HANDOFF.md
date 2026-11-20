@@ -75,7 +75,7 @@ Live checks against the real Claude Code (needs `claude` signed in, costs tokens
 ## Open work, in the order I would do it
 
 1. ~~Project checks have no way to be set.~~ Done: `project.get` / `project.set` (`config/projectChecks.ts`), and a field in the Factory view. Saving shows the command in a native dialog and changes only `checks` in `project.json`; `baseBranch`, `timeoutMs` and `protectedPaths` still have no request.
-2. **UI for what exists.** The loop toggle is done. Still missing: roles (`roles.list`, `roles.save`, `roles.remove`), logs (`logs.query`), chain check (`audit.verify`). An export request (`audit.export`) is not added yet; `store.exportAudit` and `verifyAuditExport` exist.
+2. ~~UI for what exists.~~ Done in the Factory view: loop toggle, roles panel (copy a preset or edit a user role as JSON, remove user roles; `roles.save` now needs a native dialog), the newest 50 log events, and a "Check audit" button per job. Still missing: an `audit.export` request (`store.exportAudit` and `verifyAuditExport` exist) and log filters in the UI.
 3. **Phase 5b canvas.** Build it on `toGraph` and the `editWorkflow` operations in core, with `problemsOf` shown beside the canvas and `workflows.save` to store. Presets are read-only: fork first. A workflow must set `unattended: true` to be worked by the loop.
 4. **Sub-agents.** Check whether the `PreToolUse` hook also runs for a sub-agent's tool calls. Not tested.
 5. **Per-reviewer roles.** One reviewer can overwrite another's `review-*.md`. Give each its own role or scope the pattern.

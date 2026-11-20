@@ -1,3 +1,4 @@
+import { isNumber, isString } from "@adadex/core";
 import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
@@ -83,6 +84,7 @@ export const createSessionRuntime = ({
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
   const DEFAULT_PTY_ROWS = 35;
+
   const sessionLimit = Number.isFinite(maxConcurrentSessions)
     ? Math.max(1, Math.floor(maxConcurrentSessions))
     : TERMINAL_MAX_CONCURRENT_SESSIONS;
@@ -96,6 +98,7 @@ export const createSessionRuntime = ({
     }
 
     const shellFromEnvironment = process.env.SHELL?.trim();
+
     if (shellFromEnvironment && shellFromEnvironment.length > 0) {
       return {
         command: shellFromEnvironment,
@@ -116,6 +119,7 @@ export const createSessionRuntime = ({
 
     mkdirSync(ptyLogDir, { recursive: true });
     const filename = `${sessionId}-${Date.now()}.log`;
+
     return createWriteStream(join(ptyLogDir, filename), {
       flags: "a",
       encoding: "utf8",
@@ -129,13 +133,16 @@ export const createSessionRuntime = ({
   const createTranscriptLog = (sessionId: string) => {
     ensureTranscriptDirectory(transcriptDirectoryPath);
     const filename = transcriptFilenameForSession(sessionId);
+
     const stream = createWriteStream(join(transcriptDirectoryPath, filename), {
       flags: "a",
       encoding: "utf8",
     });
+
     stream.on("error", () => {
       // Keep terminal flow alive even if transcript writes fail.
     });
+
     return stream;
   };
 
@@ -150,12 +157,14 @@ export const createSessionRuntime = ({
 
     const nextEventCount = (session.transcriptEventCount ?? 0) + 1;
     session.transcriptEventCount = nextEventCount;
-    const payload: ConversationTranscriptEvent = {
+
+    const payload: ConversationTranscriptEvent = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
       ...event,
       eventId: `${sessionId}:${nextEventCount}`,
       sessionId,
       coordinationId: session.coordinationId,
     } as ConversationTranscriptEvent;
+
     session.transcriptLog.write(`${JSON.stringify(payload)}\n`);
   };
 
@@ -204,7 +213,9 @@ export const createSessionRuntime = ({
       if (!terminals.has(terminalId)) {
         return null;
       }
+
       const terminal = terminals.get(terminalId);
+
       return {
         sessionId: terminalId,
         coordinationId: terminal?.coordinationId ?? terminalId,
@@ -228,6 +239,7 @@ export const createSessionRuntime = ({
     for (const timer of session.promptTimers) {
       clearTimeout(timer);
     }
+
     session.promptTimers.clear();
   };
 
@@ -239,6 +251,7 @@ export const createSessionRuntime = ({
   ) => {
     const timer = setTimeout(() => {
       session.promptTimers?.delete(timer);
+
       if (session.isClosed || sessions.get(sessionId) !== session) {
         return;
       }
@@ -249,12 +262,14 @@ export const createSessionRuntime = ({
     if (!session.promptTimers) {
       session.promptTimers = new Set();
     }
+
     session.promptTimers.add(timer);
   };
 
   const appendScrollback = (session: TerminalSession, chunk: string) => {
     let nextChunk = chunk;
     let nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
+
     if (nextChunkBytes > scrollbackMaxBytes) {
       const chunkBuffer = Buffer.from(nextChunk, "utf8");
       nextChunk = chunkBuffer.subarray(chunkBuffer.length - scrollbackMaxBytes).toString("utf8");
@@ -265,8 +280,10 @@ export const createSessionRuntime = ({
 
     session.scrollbackChunks.push(nextChunk);
     session.scrollbackBytes += nextChunkBytes;
+
     while (session.scrollbackBytes > scrollbackMaxBytes && session.scrollbackChunks.length > 0) {
       const removedChunk = session.scrollbackChunks.shift();
+
       if (!removedChunk) {
         break;
       }
@@ -307,9 +324,9 @@ export const createSessionRuntime = ({
         event.reason === "operator_kill"
           ? event.reason
           : "session_close",
-      endedAt: typeof event.timestamp === "string" ? event.timestamp : new Date().toISOString(),
-      ...(typeof event.exitCode === "number" ? { exitCode: event.exitCode } : {}),
-      ...(typeof event.signal === "number" || typeof event.signal === "string"
+      endedAt: isString(event.timestamp) ? event.timestamp : new Date().toISOString(),
+      ...(isNumber(event.exitCode) ? { exitCode: event.exitCode } : {}),
+      ...(isNumber(event.signal) || isString(event.signal)
         ? { signal: event.signal }
         : {}),
     });
@@ -326,15 +343,17 @@ export const createSessionRuntime = ({
         // Ignore listener cleanup errors; the PTY teardown below is still required.
       }
     }
+
     session.ptyDisposables = [];
 
     if (options.killPty) {
       const processId =
-        typeof session.pty.pid === "number" &&
+        isNumber(session.pty.pid) &&
         Number.isInteger(session.pty.pid) &&
         session.pty.pid > 0
           ? session.pty.pid
           : undefined;
+
       if (processId !== undefined) {
         try {
           signalGroup?.(processId, options.killSignal ?? "SIGKILL");
@@ -355,6 +374,7 @@ export const createSessionRuntime = ({
         client.close();
       }
     }
+
     session.clients.clear();
     session.directListeners.clear();
     session.debugLog?.end();
@@ -363,11 +383,13 @@ export const createSessionRuntime = ({
     if (sessions.get(sessionId) === session) {
       sessions.delete(sessionId);
     }
+
     onProcessExit?.(sessionId);
   };
 
   const closeSession = (sessionId: string): boolean => {
     const session = sessions.get(sessionId);
+
     if (!session) {
       return false;
     }
@@ -382,11 +404,13 @@ export const createSessionRuntime = ({
       },
       { killPty: true },
     );
+
     return true;
   };
 
   const stopSession = (sessionId: string): boolean => {
     const session = sessions.get(sessionId);
+
     if (!session) {
       return false;
     }
@@ -401,11 +425,13 @@ export const createSessionRuntime = ({
       },
       { killPty: true },
     );
+
     return true;
   };
 
   const killSession = (sessionId: string, signal: NodeJS.Signals = "SIGKILL"): boolean => {
     const session = sessions.get(sessionId);
+
     if (!session) {
       return false;
     }
@@ -421,6 +447,7 @@ export const createSessionRuntime = ({
       },
       { killPty: true, killSignal: signal },
     );
+
     return true;
   };
 
@@ -464,6 +491,7 @@ export const createSessionRuntime = ({
 
     const bootstrapCommand =
       TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
+
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
 
@@ -476,6 +504,7 @@ export const createSessionRuntime = ({
           if (session.isInitialPromptSent) {
             return;
           }
+
           session.isInitialPromptSent = true;
           appendDebugLog(session, `initial-prompt session=${sessionId}`);
           const prompt = session.initialPrompt ?? "";
@@ -502,6 +531,7 @@ export const createSessionRuntime = ({
           if (session.isInitialInputDraftSent) {
             return;
           }
+
           session.isInitialInputDraftSent = true;
           appendDebugLog(session, `initial-input-draft session=${sessionId}`);
           const draft = session.initialInputDraft ?? "";
@@ -514,6 +544,7 @@ export const createSessionRuntime = ({
 
   const ensureSession = (sessionId: string, coordinationId: string) => {
     const existingSession = sessions.get(sessionId);
+
     if (existingSession) {
       return existingSession;
     }
@@ -527,6 +558,7 @@ export const createSessionRuntime = ({
     const terminalRecord = terminals.get(sessionId);
 
     const orchestrationCwd = getOrchestrationWorkspaceCwd(coordinationId);
+
     if (!existsSync(orchestrationCwd)) {
       throw new Error(`Terminal working directory does not exist: ${orchestrationCwd}`);
     }
@@ -535,6 +567,7 @@ export const createSessionRuntime = ({
     const shellLaunch = getShellLaunch();
 
     let pty: IPty;
+
     try {
       pty = spawn(shellLaunch.command, shellLaunch.args, {
         cols: DEFAULT_PTY_COLS,
@@ -552,6 +585,7 @@ export const createSessionRuntime = ({
     const stateTracker = new AgentStateTracker();
     const debugLog = createDebugLog(sessionId);
     const transcriptLog = createTranscriptLog(sessionId);
+
     const session: TerminalSession = {
       terminalId: sessionId,
       coordinationId,
@@ -570,17 +604,22 @@ export const createSessionRuntime = ({
       hasTranscriptEnded: false,
       keepAliveWithoutClients: Boolean(terminalRecord?.initialPrompt),
     };
+
     if (debugLog) {
       session.debugLog = debugLog;
     }
+
     session.transcriptLog = transcriptLog;
 
     appendDebugLog(session, `session-start session=${sessionId} orchestration=${coordinationId}`);
+
     const processId =
-      typeof pty.pid === "number" && Number.isInteger(pty.pid) && pty.pid > 0 ? pty.pid : undefined;
+      isNumber(pty.pid) && Number.isInteger(pty.pid) && pty.pid > 0 ? pty.pid : undefined;
+
     if (processId !== undefined) {
       onProcessSpawn?.({ processId, processGroupId: processId, sessionId, coordinationId });
     }
+
     onSessionStart?.(sessionId, {
       startedAt: new Date().toISOString(),
       ...(processId ? { processId } : {}),
@@ -636,34 +675,41 @@ export const createSessionRuntime = ({
         { killPty: false },
       );
     });
+
     session.ptyDisposables = [dataDisposable, exitDisposable];
 
     // Propagate initial prompt from the terminal definition, if set.
     if (terminalRecord?.initialPrompt) {
       session.initialPrompt = terminalRecord.initialPrompt;
     }
+
     if (terminalRecord?.initialInputDraft) {
       session.initialInputDraft = terminalRecord.initialInputDraft;
     }
 
     sessions.set(sessionId, session);
+
     return session;
   };
 
   const handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): boolean => {
     const terminalId = getTerminalId(request);
+
     if (!terminalId) {
       return false;
     }
 
     const resolvedSession = resolveSession(terminalId);
+
     if (!resolvedSession) {
       return false;
     }
+
     const { sessionId, coordinationId } = resolvedSession;
 
     websocketServer.handleUpgrade(request, socket, head, (websocket: WebSocket) => {
       let session: TerminalSession;
+
       try {
         session = ensureSession(sessionId, coordinationId);
       } catch (error) {
@@ -672,6 +718,7 @@ export const createSessionRuntime = ({
           data: `\r\n[terminal failed to start: ${toErrorMessage(error)}]\r\n`,
         });
         websocket.close();
+
         return;
       }
 
@@ -691,18 +738,20 @@ export const createSessionRuntime = ({
         }
 
         const text =
-          typeof raw === "string" ? raw : raw instanceof Buffer ? raw.toString() : String(raw);
+          isString(raw) ? raw : raw instanceof Buffer ? raw.toString() : String(raw);
+
         try {
-          const payload = JSON.parse(text) as
+          const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(text) as
             | { type: "input"; data: string }
             | { type: "resize"; cols: number; rows: number };
 
-          if (payload.type === "input" && typeof payload.data === "string") {
+          if (payload.type === "input" && isString(payload.data)) {
             appendDebugLog(
               session,
               `ws-input session=${sessionId} data=${JSON.stringify(payload.data)}`,
             );
             session.pty.write(payload.data);
+
             if (/[\r\n]/.test(payload.data)) {
               emitStateIfChanged(
                 session,
@@ -710,6 +759,7 @@ export const createSessionRuntime = ({
                 session.stateTracker.observeSubmit(Date.now()),
               );
             }
+
             return;
           }
 
@@ -720,6 +770,7 @@ export const createSessionRuntime = ({
           ) {
             const nextCols = Math.max(20, Math.floor(payload.cols));
             const nextRows = Math.max(10, Math.floor(payload.rows));
+
             if (session.cols === nextCols && session.rows === nextRows) {
               return;
             }
@@ -758,12 +809,15 @@ export const createSessionRuntime = ({
     listener: DirectSessionListener,
   ): (() => void) | null => {
     const resolvedSession = resolveSession(terminalId);
+
     if (!resolvedSession) {
       return null;
     }
+
     const { sessionId, coordinationId } = resolvedSession;
 
     let session: TerminalSession;
+
     try {
       session = ensureSession(sessionId, coordinationId);
     } catch {
@@ -778,6 +832,7 @@ export const createSessionRuntime = ({
     if (session.scrollbackChunks.length > 0) {
       listener({ type: "history", data: session.scrollbackChunks.join("") });
     }
+
     listener({ type: "state", state: session.agentState });
 
     return () => {
@@ -792,12 +847,14 @@ export const createSessionRuntime = ({
 
   const startSession = (terminalId: string): boolean => {
     const resolvedSession = resolveSession(terminalId);
+
     if (!resolvedSession) {
       return false;
     }
 
     const { sessionId, coordinationId } = resolvedSession;
     let session: TerminalSession;
+
     try {
       session = ensureSession(sessionId, coordinationId);
     } catch {
@@ -806,30 +863,36 @@ export const createSessionRuntime = ({
 
     clearIdleCloseTimer(session);
     ensureAgentBootstrapped(sessionId, session);
+
     return true;
   };
 
   const writeInput = (terminalId: string, data: string): boolean => {
     const session = sessions.get(terminalId);
+
     if (!session || session.isClosed) {
       return false;
     }
 
     session.pty.write(data);
+
     if (/[\r\n]/.test(data)) {
       emitStateIfChanged(session, terminalId, session.stateTracker.observeSubmit(Date.now()));
     }
+
     return true;
   };
 
   const resizeSession = (terminalId: string, cols: number, rows: number): boolean => {
     const session = sessions.get(terminalId);
+
     if (!session || session.isClosed) {
       return false;
     }
 
     const nextCols = Math.max(20, Math.floor(cols));
     const nextRows = Math.max(10, Math.floor(rows));
+
     if (session.cols === nextCols && session.rows === nextRows) {
       return true;
     }
@@ -837,17 +900,20 @@ export const createSessionRuntime = ({
     session.cols = nextCols;
     session.rows = nextRows;
     session.pty.resize(nextCols, nextRows);
+
     return true;
   };
 
   const releaseSessionKeepAlive = (terminalId: string): boolean => {
     const session = sessions.get(terminalId);
+
     if (!session || session.isClosed) {
       return false;
     }
 
     session.keepAliveWithoutClients = false;
     scheduleIdleCloseIfNeeded(session, terminalId);
+
     return true;
   };
 

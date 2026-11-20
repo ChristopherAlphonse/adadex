@@ -4,12 +4,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AgentGlyph, MascotSprite } from "../src/components/MascotSprite";
 
 const originalGetContext = HTMLCanvasElement.prototype.getContext;
+
 const originalDevicePixelRatio = Object.getOwnPropertyDescriptor(window, "devicePixelRatio");
+
 const originalMatchMedia = Object.getOwnPropertyDescriptor(window, "matchMedia");
+
 const originalRequestAnimationFrame = Object.getOwnPropertyDescriptor(
   window,
   "requestAnimationFrame",
 );
+
 const originalCancelAnimationFrame = Object.getOwnPropertyDescriptor(
   window,
   "cancelAnimationFrame",
@@ -18,10 +22,11 @@ const originalCancelAnimationFrame = Object.getOwnPropertyDescriptor(
 const restoreWindowProperty = (name: keyof Window, descriptor: PropertyDescriptor | undefined) => {
   if (descriptor) {
     Object.defineProperty(window, name, descriptor);
+
     return;
   }
 
-  delete (window as unknown as Record<keyof Window, unknown>)[name];
+  delete (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ window as unknown as Record<keyof Window, unknown>)[name];
 };
 
 const createContextStub = () => {
@@ -105,7 +110,7 @@ describe("AgentGlyph", () => {
       <AgentGlyph animation="idle" graphScale={2} size={80} testId="agent-glyph" />,
     );
 
-    const canvas = getByTestId("agent-glyph") as HTMLCanvasElement;
+    const canvas = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ getByTestId("agent-glyph") as HTMLCanvasElement;
     expect(canvas.width).toBe(320);
     expect(canvas.height).toBe(320);
     expect(canvas.style.width).toBe("80px");

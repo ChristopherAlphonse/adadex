@@ -1,12 +1,15 @@
+import { isString } from "../src/util/typeCoercion";
 import { describe, expect, it } from "vitest";
 
 import { authorize, createActionRegistry } from "../src/application/actionRegistry";
 import { type ActionDef, FACTORY_ACTIONS } from "../src/domain/action";
 
 const parseText = (input: unknown): string => {
-  if (typeof input !== "string" || input === "") throw new Error("expected a non-empty string");
+  if (!isString(input) || input === "") throw new Error("expected a non-empty string");
+
   return input;
 };
+
 const act = (over: Partial<ActionDef<string>> = {}): ActionDef<string> => ({
   id: "demo.run",
   title: "Demo",
@@ -42,6 +45,7 @@ describe("authorize", () => {
     act({ id: "demo.ask", class: "ask" }),
     act({ id: "demo.human", class: "human", touches: ["git"] }),
   ]);
+
   const agent = { caller: "agent" } as const;
 
   it("denies an unknown action", () => {
@@ -61,10 +65,12 @@ describe("authorize", () => {
 
   it("makes an agent wait for approval on an ask action, then runs once approved", () => {
     expect(authorize(registry, "demo.ask", "x", agent).kind).toBe("ask");
+
     const approved = authorize(registry, "demo.ask", "x", {
       caller: "agent",
       approvedActionId: "demo.ask",
     });
+
     expect(approved.kind).toBe("run");
   });
 
@@ -73,6 +79,7 @@ describe("authorize", () => {
       caller: "agent",
       approvedActionId: "demo.run",
     });
+
     expect(r.kind).toBe("ask");
   });
 
@@ -81,6 +88,7 @@ describe("authorize", () => {
       caller: "agent",
       approvedActionId: "demo.human",
     });
+
     expect(r.kind).toBe("needs-human-click");
   });
 

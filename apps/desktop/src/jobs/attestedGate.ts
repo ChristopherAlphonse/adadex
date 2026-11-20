@@ -24,17 +24,22 @@ export const attestedGate = async (
     join(store.jobDir(job.id), `round-${job.round}`, "checks.md"),
     "utf8",
   ).catch(() => null);
+
   if (text === null) return null;
   const file = parseKv(text);
   let entries: Awaited<ReturnType<JobStore["readAudit"]>>;
+
   try {
     entries = await store.readAudit(job.id);
   } catch {
     return null;
   }
+
   const entry = [...entries]
     .reverse()
     .find((e) => e.action === "gate" && e.data?.round === job.round);
+
   if (!entry || entry.data?.gate !== file.GATE || entry.data?.tree !== file.TREE) return null;
+
   return { gate: String(file.GATE), tree: String(file.TREE) };
 };

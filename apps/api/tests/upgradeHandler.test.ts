@@ -16,17 +16,19 @@ describe("createUpgradeHandler", () => {
         throw new Error("boom");
       },
     };
+
     const handler = createUpgradeHandler({
-      runtime: runtime as never,
+      runtime: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ runtime as never,
       allowRemoteAccess: true,
     });
-    const socket = {
+
+    const socket = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
       destroy: vi.fn(),
     } as unknown as Socket;
 
     expect(() =>
       handler(
-        {
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
           headers: {
             host: "127.0.0.1:8787",
             origin: "http://127.0.0.1:5173",

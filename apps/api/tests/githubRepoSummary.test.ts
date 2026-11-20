@@ -7,11 +7,13 @@ describe("readGithubRepoSummary", () => {
     const recentCommitRecords = Array.from({ length: 52 }, (_, index) => {
       const offset = index + 1;
       const day = String(Math.min(28, 28 - index)).padStart(2, "0");
+
       return `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa${offset.toString(16)}\u001fshort${offset}\u001fAuthor ${offset}\u001fauthor${offset}@example.com\u001f2026-02-${day}T10:00:00.000Z\u001fbody ${offset}\u001fsubject ${offset}\u001e`;
     }).join("");
 
     const shortstatRecords = Array.from({ length: 52 }, (_, index) => {
       const offset = index + 1;
+
       return `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa${offset.toString(16)}\n ${offset + 1} files changed, ${offset * 10} insertions(+), ${offset * 2} deletions(-)\n`;
     }).join("");
 

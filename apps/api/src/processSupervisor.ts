@@ -1,3 +1,10 @@
+import {
+  asRecord,
+  isNumber,
+  isObjectValue,
+  isString,
+  type ParsedValue,
+} from "@adadex/core";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
@@ -17,6 +24,8 @@ export type ProcessRegistryDocument = {
   version: typeof PROCESS_REGISTRY_VERSION;
   processes: SupervisedProcess[];
 };
+
+type ReapOrphansResult = { killed: string[]; dropped: string[] };
 
 export type SupervisorDependencies = {
   clock: () => Date;
@@ -50,6 +59,7 @@ export const isProcessAlive = (processId: number): boolean => {
 
   try {
     process.kill(processId, 0);
+
     return true;
   } catch {
     return false;
@@ -66,11 +76,13 @@ export const readProcessStartedAt = (processId: number): string | null => {
     const output = execFileSync("ps", ["-p", String(processId), "-o", "lstart="], {
       encoding: "utf8",
     }).trim();
+
     if (!output) {
       return null;
     }
 
     const timestamp = Date.parse(output);
+
     return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
   } catch {
     return null;
@@ -78,36 +90,46 @@ export const readProcessStartedAt = (processId: number): string | null => {
 };
 
 const isSupervisedProcess = (value: unknown): value is SupervisedProcess => {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (value === null || !isObjectValue(value) || Array.isArray(value)) {
     return false;
   }
 
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
+
+  if (record === null) {
+    return false;
+  }
+
   return (
+    isNumber(record.processId) &&
     Number.isInteger(record.processId) &&
-    (record.processId as number) > 0 &&
+    record.processId > 0 &&
+    isNumber(record.processGroupId) &&
     Number.isInteger(record.processGroupId) &&
-    (record.processGroupId as number) > 0 &&
-    typeof record.sessionId === "string" &&
-    typeof record.coordinationId === "string" &&
-    typeof record.startedAt === "string"
+    record.processGroupId > 0 &&
+    isString(record.sessionId) &&
+    isString(record.coordinationId) &&
+    isString(record.startedAt)
   );
 };
 
 export const loadProcessRegistry = (registryPath: string): ProcessRegistryDocument => {
   const empty: ProcessRegistryDocument = { version: PROCESS_REGISTRY_VERSION, processes: [] };
+
   if (!existsSync(registryPath)) {
     return empty;
   }
 
   try {
-    const parsed: unknown = JSON.parse(readFileSync(registryPath, "utf8"));
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return empty;
-    }
+    // SAFETY: JSON.parse only yields JSON scalars, arrays, or plain objects.
+    const parsed = JSON.parse(readFileSync(registryPath, "utf8")) as ParsedValue;
+    const document = asRecord(parsed);
 
-    const document = parsed as Record<string, unknown>;
-    if (document.version !== PROCESS_REGISTRY_VERSION || !Array.isArray(document.processes)) {
+    if (
+      document === null ||
+      document.version !== PROCESS_REGISTRY_VERSION ||
+      !Array.isArray(document.processes)
+    ) {
       return empty;
     }
 
@@ -129,6 +151,7 @@ export const persistProcessRegistry = (
 
 export const createProcessSupervisor = (dependencies: SupervisorDependencies) => {
   const processes = new Map<string, SupervisedProcess>();
+
   for (const record of dependencies.load().processes) {
     processes.set(record.sessionId, record);
   }
@@ -146,12 +169,14 @@ export const createProcessSupervisor = (dependencies: SupervisorDependencies) =>
     }
 
     const observedStart = dependencies.readStartedAt(record.processId);
+
     if (!observedStart) {
       return false;
     }
 
     const recorded = Date.parse(record.startedAt);
     const observed = Date.parse(observedStart);
+
     if (!Number.isFinite(recorded) || !Number.isFinite(observed)) {
       return false;
     }
@@ -162,6 +187,7 @@ export const createProcessSupervisor = (dependencies: SupervisorDependencies) =>
   const terminateGroup = (record: SupervisedProcess, signal: NodeJS.Signals): boolean => {
     try {
       dependencies.signalGroup(record.processGroupId, signal);
+
       return true;
     } catch {
       return false;
@@ -191,14 +217,12 @@ export const createProcessSupervisor = (dependencies: SupervisorDependencies) =>
       for (const record of processes.values()) {
         terminateGroup(record, signal);
       }
+
       processes.clear();
       save();
     },
 
-    reapOrphansOnLaunch(signal: NodeJS.Signals = "SIGKILL"): {
-      killed: string[];
-      dropped: string[];
-    } {
+    reapOrphansOnLaunch(signal: NodeJS.Signals = "SIGKILL"): ReapOrphansResult {
       const killed: string[] = [];
       const dropped: string[] = [];
 
@@ -211,12 +235,14 @@ export const createProcessSupervisor = (dependencies: SupervisorDependencies) =>
           // A recycled pid must never be signalled just because it is live.
           dropped.push(sessionId);
         }
+
         processes.delete(sessionId);
       }
 
       if (killed.length > 0 || dropped.length > 0) {
         save();
       }
+
       return { killed, dropped };
     },
 

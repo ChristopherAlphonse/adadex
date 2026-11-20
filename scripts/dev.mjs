@@ -6,6 +6,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DEFAULT_START_PORT = 8787;
+
+const isStringValue = (value) => Object.prototype.toString.call(value) === "[object String]";
+
+const isObjectValue = (value) =>
+  value !== null && Object.prototype.toString.call(value) === "[object Object]";
+
 const MAX_PORT_ATTEMPTS = 200;
 
 const parseStartPort = (value) => {
@@ -14,6 +20,7 @@ const parseStartPort = (value) => {
   }
 
   const parsed = Number.parseInt(value, 10);
+
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
     return DEFAULT_START_PORT;
   }
@@ -22,8 +29,7 @@ const parseStartPort = (value) => {
 };
 
 const isPortInUseError = (error) =>
-  Boolean(error) &&
-  typeof error === "object" &&
+  isObjectValue(error) &&
   "code" in error &&
   (error.code === "EADDRINUSE" || error.code === "EACCES");
 
@@ -41,6 +47,7 @@ const canListenOnPort = (port) =>
     probeServer.once("error", (error) => {
       if (isPortInUseError(error)) {
         resolve(false);
+
         return;
       }
 
@@ -57,12 +64,14 @@ const canListenOnPort = (port) =>
 const findOpenPort = async (startPort) => {
   for (let offset = 0; offset < MAX_PORT_ATTEMPTS; offset += 1) {
     const port = startPort + offset;
+
     if (port > 65535) {
       break;
     }
 
     // eslint-disable-next-line no-await-in-loop
     const isAvailable = await canListenOnPort(port);
+
     if (isAvailable) {
       return port;
     }
@@ -73,8 +82,11 @@ const findOpenPort = async (startPort) => {
 
 // Windows: spawn("npm.cmd", ...) throws EINVAL on recent Node; use the shell to resolve npm.
 const npmSpawnShell = process.platform === "win32";
+
 const startPort = parseStartPort(process.env.ADADEX_DEV_START_PORT);
+
 const apiPort = await findOpenPort(startPort);
+
 const apiOrigin = `http://127.0.0.1:${apiPort}`;
 
 console.log(`[adadex-dev] using api port ${apiPort}`);
@@ -86,12 +98,15 @@ const resolveProjectStateDir = (workspaceCwd) => {
   if (process.env.ADADEX_PROJECT_STATE_DIR) {
     return process.env.ADADEX_PROJECT_STATE_DIR;
   }
+
   const projectConfigPath = join(workspaceCwd, ".adadex", "project.json");
+
   if (existsSync(projectConfigPath)) {
     try {
       const projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
+
       if (
-        typeof projectConfig.projectId === "string" &&
+        isStringValue(projectConfig.projectId) &&
         projectConfig.projectId.trim().length > 0
       ) {
         return join(homedir(), ".adadex", "projects", projectConfig.projectId);
@@ -100,16 +115,20 @@ const resolveProjectStateDir = (workspaceCwd) => {
       // fall through
     }
   }
+
   const projectsFile = join(homedir(), ".adadex", "projects.json");
+
   if (existsSync(projectsFile)) {
     try {
       const registry = JSON.parse(readFileSync(projectsFile, "utf-8"));
       const project = registry.projects?.find((p) => p.path === workspaceCwd);
+
       if (project) {
-        if (typeof project.id === "string" && project.id.trim().length > 0) {
+        if (isStringValue(project.id) && project.id.trim().length > 0) {
           return join(homedir(), ".adadex", "projects", project.id);
         }
-        if (typeof project.name === "string" && project.name.trim().length > 0) {
+
+        if (isStringValue(project.name) && project.name.trim().length > 0) {
           return join(homedir(), ".adadex", "projects", project.name);
         }
       }
@@ -117,10 +136,12 @@ const resolveProjectStateDir = (workspaceCwd) => {
       // fall through
     }
   }
+
   return `${workspaceCwd}/.adadex`;
 };
 
 const workspaceCwd = process.env.ADADEX_WORKSPACE_CWD ?? monorepoRoot;
+
 const projectStateDir = resolveProjectStateDir(workspaceCwd);
 
 const child = spawn("npm", ["run", "dev", "--workspace=@adadex/api", "--workspace=@adadex/web"], {
@@ -145,11 +166,13 @@ const forwardSignal = (signal) => {
 };
 
 process.on("SIGINT", () => forwardSignal("SIGINT"));
+
 process.on("SIGTERM", () => forwardSignal("SIGTERM"));
 
 child.on("exit", (code, signal) => {
   if (signal) {
     process.kill(process.pid, signal);
+
     return;
   }
 

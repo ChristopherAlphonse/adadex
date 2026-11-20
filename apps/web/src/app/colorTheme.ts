@@ -12,6 +12,7 @@ export const readColorThemePreference = (): ColorTheme => {
 
   try {
     const stored = window.localStorage.getItem(COLOR_THEME_STORAGE_KEY);
+
     return isColorTheme(stored) ? stored : "dark";
   } catch {
     return "dark";

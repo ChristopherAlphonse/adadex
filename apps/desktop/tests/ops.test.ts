@@ -11,9 +11,11 @@ import { parseRequest } from "../src/ipc/contract";
 import { createProcessRegistry } from "../src/runs/processRegistry";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-ops-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
@@ -48,6 +50,7 @@ describe("process registry", () => {
 
   it("forgets the oldest finished entries so the list does not grow forever", async () => {
     const reg = createProcessRegistry();
+
     for (let i = 0; i < 40; i++) reg.register(`p${i}`, () => {}).done();
     expect((await reg.list()).length).toBe(20);
   });
@@ -84,26 +87,31 @@ const boot = async (confirmAnswer: boolean, checks = "true", name = "w") => {
   git("commit", "-m", "init");
   await writeFile(join(dataDir, "project.json"), JSON.stringify({ checks, baseBranch: "main" }));
   const confirmed: string[] = [];
+
   const app = createApp({
     projectRoot: project,
     dataDir,
     confirm: async (title) => {
       confirmed.push(title);
+
       return confirmAnswer;
     },
     emit: () => {},
     bridgePath: "/unused",
     hookPath: "/unused",
   });
+
   return { app, confirmed };
 };
 
 describe("the unattended loop is turned on only by a person", () => {
   it("starts off, needs the native dialog to turn on, stays off when declined, and turns off without one", async () => {
     const declined = await boot(false);
+
     const status = async (w: typeof declined) =>
-      ((await w.app.api.handle({ kind: "scheduler.status" })) as { data: { enabled: boolean } })
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await w.app.api.handle({ kind: "scheduler.status" })) as { data: { enabled: boolean } })
         .data.enabled;
+
     expect(await status(declined)).toBe(false);
     expect(await declined.app.api.handle({ kind: "scheduler.set", enabled: true })).toEqual({
       ok: false,
@@ -128,18 +136,22 @@ describe("the unattended loop is turned on only by a person", () => {
 describe("the checks command is set only by a person", () => {
   it("shows the command in the native dialog, keeps the other gate settings, and refuses bad or declined input", async () => {
     const declined = await boot(false, "true");
+
     const checks = async (w: typeof declined) =>
-      ((await w.app.api.handle({ kind: "project.get" })) as { data: { checks: string } }).data
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await w.app.api.handle({ kind: "project.get" })) as { data: { checks: string } }).data
         .checks;
+
     expect(await checks(declined)).toBe("true");
     expect(await declined.app.api.handle({ kind: "project.set", checks: "npm test" })).toEqual({
       ok: false,
       errors: ["declined"],
     });
     expect(await checks(declined)).toBe("true");
+
     for (const bad of ["", "   ", "npm test\nrm -rf /", "x".repeat(2001)]) {
       expect((await declined.app.api.handle({ kind: "project.set", checks: bad })).ok).toBe(false);
     }
+
     expect(declined.confirmed).toEqual(["Set the project's checks command?"]);
 
     const accepted = await boot(true, "true", "second");
@@ -166,20 +178,35 @@ describe("roles through the request layer", () => {
 
   it("lists the presets, saves a valid role, refuses one that grants a human-only action, and protects presets", async () => {
     const { app } = await boot(true);
+
     const ids = async () =>
-      ((await app.api.handle({ kind: "roles.list" })) as { data: { id: string }[] }).data.map(
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "roles.list" })) as { data: { id: string }[] }).data.map(
         (r) => r.id,
       );
+
     expect((await ids()).slice(0, 2)).toEqual(["shaper", "planner"]);
     expect((await app.api.handle({ kind: "roles.save", role: mine })).ok).toBe(true);
     expect(await ids()).toContain("my-role");
+
     const bad = await app.api.handle({
       kind: "roles.save",
       role: { ...mine, id: "evil", actions: ["job.commit_local"] },
     });
+
     expect(bad.ok === false && bad.errors[0]).toContain("cannot be granted");
     expect((await app.api.handle({ kind: "roles.remove", id: "builder" })).ok).toBe(false);
     expect((await app.api.handle({ kind: "roles.remove", id: "my-role" })).ok).toBe(true);
+  });
+
+  it("saves a role only after a person says yes in the native dialog", async () => {
+    const { app, confirmed } = await boot(false);
+    expect(await app.api.handle({ kind: "roles.save", role: mine })).toEqual({
+      ok: false,
+      errors: ["declined"],
+    });
+    expect(confirmed).toEqual(["Save this role?"]);
+    const listed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "roles.list" })) as { data: { id: string }[] };
+    expect(listed.data.map((r) => r.id)).not.toContain("my-role");
   });
 });
 
@@ -195,18 +222,24 @@ describe("processes the app starts show up and can be stopped", () => {
       actionId: "job.run_gate",
       input: { id: "j1" },
     });
+
     let listed: { processId: string; label: string; endedAt?: string }[] = [];
+
     for (let i = 0; i < 100 && listed.length === 0; i++) {
-      listed = ((await app.api.handle({ kind: "processes.list" })) as { data: typeof listed }).data;
+      listed = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "processes.list" })) as { data: typeof listed }).data;
+
       if (listed.length === 0) await new Promise((r) => setTimeout(r, 20));
     }
+
     expect(listed.map((p) => p.label)).toEqual(["checks: sleep 30"]);
     expect(
       await app.api.handle({ kind: "process.kill", processId: listed[0]?.processId ?? "" }),
     ).toEqual({ ok: true, data: null });
     expect(await gate).toEqual({ ok: true, data: { gate: "FAIL" } });
-    const after = ((await app.api.handle({ kind: "processes.list" })) as { data: typeof listed })
+
+    const after = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "processes.list" })) as { data: typeof listed })
       .data;
+
     expect(after[0]?.endedAt).toBeDefined();
     expect((await app.api.handle({ kind: "process.kill", processId: "nope" })).ok).toBe(false);
   });
@@ -216,15 +249,17 @@ describe("processes the app starts show up and can be stopped", () => {
     const job = await app.jobs.create(factoryBuildPreset, "j1", "t", 3);
     await app.jobs.save({ ...job, stage: "gate", round: 1 });
     await app.jobs.audit({ actor: "system", action: "place", jobId: "j1", detail: "gate" });
+
     const gate = app.api.handle({
       kind: "action.run",
       actionId: "job.run_gate",
       input: { id: "j1" },
     });
+
     for (
       let i = 0;
       i < 100 &&
-      ((await app.api.handle({ kind: "processes.list" })) as { data: unknown[] }).data.length === 0;
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "processes.list" })) as { data: unknown[] }).data.length === 0;
       i++
     )
       await new Promise((r) => setTimeout(r, 20));

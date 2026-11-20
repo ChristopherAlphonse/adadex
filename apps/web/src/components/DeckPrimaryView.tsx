@@ -3,7 +3,7 @@ import type {
   DeckCoordinationSummary,
   WorkspaceSetupSnapshot,
   WorkspaceSetupStepId,
-} from "@adadex/core";
+, isObjectValue, isString} from "@adadex/core";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAgentProviderPreference } from "../app/hooks/useAgentProviderPreference";
@@ -32,13 +32,14 @@ import { MarkdownContent } from "./ui/MarkdownContent";
 export type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
 
 const normalizeDeckAvailableSkill = (value: unknown): DeckAvailableSkill | null => {
-  if (value === null || typeof value !== "object") return null;
+  if (value === null || !isObjectValue(value)) return null;
   const record = value as Record<string, unknown>;
-  if (typeof record.name !== "string") return null;
+
+  if (!isString(record.name)) return null;
 
   return {
     name: record.name,
-    description: typeof record.description === "string" ? record.description : "",
+    description: isString(record.description) ? record.description : "",
     source: record.source === "project" ? "project" : "user",
   };
 };
@@ -79,12 +80,14 @@ export const DeckPrimaryView = ({
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [availableSkills, setAvailableSkills] = useState<DeckAvailableSkill[]>([]);
+
   const [savingOrchestrationSkillsId, setSavingOrchestrationSkillsId] = useState<string | null>(
     null,
   );
 
   const { agentProvider: selectedAgent, setAgentProvider: setSelectedAgent } =
     useAgentProviderPreference();
+
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
   const agentMenuRef = useRef<HTMLDivElement>(null);
   const [isLaunchingAgent, setIsLaunchingAgent] = useState(false);
@@ -96,6 +99,7 @@ export const DeckPrimaryView = ({
       const response = await fetch(buildDeckOrchestrationsUrl(), {
         headers: { Accept: "application/json" },
       });
+
       if (!response.ok) return;
       const data = await response.json();
       setOrchestrations(data);
@@ -117,12 +121,16 @@ export const DeckPrimaryView = ({
         const response = await fetch(buildDeckSkillsUrl(), {
           headers: { Accept: "application/json" },
         });
+
         if (!response.ok) return;
         const payload = (await response.json()) as unknown;
+
         if (!Array.isArray(payload) || cancelled) return;
+
         const skills = payload
           .map((entry) => normalizeDeckAvailableSkill(entry))
           .filter((entry): entry is DeckAvailableSkill => entry !== null);
+
         if (!cancelled) {
           setAvailableSkills(skills);
         }
@@ -132,6 +140,7 @@ export const DeckPrimaryView = ({
     };
 
     void fetchSkills();
+
     return () => {
       cancelled = true;
     };
@@ -140,9 +149,11 @@ export const DeckPrimaryView = ({
   // Precompute visuals for all orchestrations
   const visualsMap = useMemo(() => {
     const map = new Map<string, MascotVisuals>();
+
     for (const t of orchestrations) {
       map.set(t.coordinationId, deriveMascotVisuals(t));
     }
+
     return map;
   }, [orchestrations]);
 
@@ -150,23 +161,30 @@ export const DeckPrimaryView = ({
   useEffect(() => {
     if (focus?.type !== "vault") {
       setVaultContent(null);
+
       return;
     }
 
     let cancelled = false;
     setLoadingVault(true);
+
     const fetchVault = async () => {
       try {
         const response = await fetch(buildDeckVaultFileUrl(focus.coordinationId, focus.fileName), {
           headers: { Accept: "text/markdown" },
         });
+
         if (cancelled) return;
+
         if (!response.ok) {
           setVaultContent(null);
           setLoadingVault(false);
+
           return;
         }
+
         const text = await response.text();
+
         if (!cancelled) {
           setVaultContent(text);
           setLoadingVault(false);
@@ -178,7 +196,9 @@ export const DeckPrimaryView = ({
         }
       }
     };
+
     void fetchVault();
+
     return () => {
       cancelled = true;
     };
@@ -198,6 +218,7 @@ export const DeckPrimaryView = ({
 
   const handleLaunchAgent = useCallback(async () => {
     setIsLaunchingAgent(true);
+
     try {
       const response = await fetch(buildTerminalsUrl(), {
         method: "POST",
@@ -212,6 +233,7 @@ export const DeckPrimaryView = ({
           promptTemplate: "coordination-planner",
         }),
       });
+
       if (!response.ok) return;
       const data = await response.json();
       const agentId = (data.terminalId ?? data.coordinationId) as string;
@@ -231,8 +253,10 @@ export const DeckPrimaryView = ({
   const handleRunSetupStep = useCallback(
     async (stepId: WorkspaceSetupStepId) => {
       setRunningSetupStepId(stepId);
+
       try {
         await onRunWorkspaceSetupStep(stepId);
+
         if (stepId === "initialize-workspace" || stepId === "ensure-gitignore") {
           await fetchOrchestrations();
         }
@@ -253,6 +277,7 @@ export const DeckPrimaryView = ({
     ) => {
       setIsCreating(true);
       setCreateError(null);
+
       try {
         const response = await fetch(buildDeckOrchestrationsUrl(), {
           method: "POST",
@@ -268,15 +293,20 @@ export const DeckPrimaryView = ({
             suggestedSkills,
           }),
         });
+
         if (!response.ok) {
           const body = await response.json().catch(() => null);
+
           const msg =
-            body && typeof body === "object" && "error" in body && typeof body.error === "string"
+            body && isObjectValue(body) && "error" in body && isString(body.error)
               ? body.error
               : "Failed to create orchestration";
+
           setCreateError(msg);
+
           return;
         }
+
         setEmptyViewMode("idle");
         await fetchOrchestrations();
         await onRefreshWorkspaceSetup();
@@ -311,8 +341,10 @@ export const DeckPrimaryView = ({
             },
           }),
         });
+
         if (!response.ok) return false;
         await fetchOrchestrations();
+
         return true;
       } catch {
         return false;
@@ -329,8 +361,10 @@ export const DeckPrimaryView = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ agentProvider }),
         });
+
         if (!response.ok) return false;
         await fetchOrchestrations();
+
         return true;
       } catch {
         return false;
@@ -342,6 +376,7 @@ export const DeckPrimaryView = ({
   const handleOrchestrationSkillsSave = useCallback(
     async (coordinationId: string, suggestedSkills: string[]) => {
       setSavingOrchestrationSkillsId(coordinationId);
+
       try {
         const response = await fetch(buildDeckOrchestrationSkillsUrl(coordinationId), {
           method: "PATCH",
@@ -351,8 +386,10 @@ export const DeckPrimaryView = ({
           },
           body: JSON.stringify({ suggestedSkills }),
         });
+
         if (!response.ok) return false;
         await fetchOrchestrations();
+
         return true;
       } catch {
         return false;
@@ -368,10 +405,12 @@ export const DeckPrimaryView = ({
   const handleDeleteOrchestration = useCallback(
     async (coordinationId: string) => {
       setDeletingOrchestrationId(coordinationId);
+
       try {
         const response = await fetch(buildDeckOrchestrationUrl(coordinationId), {
           method: "DELETE",
         });
+
         if (!response.ok) return;
         await fetchOrchestrations();
       } catch {
@@ -391,6 +430,7 @@ export const DeckPrimaryView = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemIndex, done }),
         });
+
         if (!response.ok) return;
         await fetchOrchestrations();
       } catch {
@@ -404,7 +444,9 @@ export const DeckPrimaryView = ({
     focus?.type === "vault" || focus?.type === "vault-browser"
       ? orchestrations.find((t) => t.coordinationId === focus.coordinationId)
       : null;
+
   const mode = focus ? "detail" : "grid";
+
   const shouldShowWorkspaceSetup =
     !suppressWorkspaceSetupCard &&
     orchestrations.length === 0 &&
@@ -453,6 +495,7 @@ export const DeckPrimaryView = ({
                       method: "DELETE",
                     });
                   }
+
                   await fetchOrchestrations();
                 }}
               />
@@ -480,6 +523,7 @@ export const DeckPrimaryView = ({
 
   useEffect(() => {
     onSidebarContent?.(sidebarContent);
+
     return () => onSidebarContent?.(null);
   }, [onSidebarContent, sidebarContent]);
 
@@ -551,6 +595,7 @@ export const DeckPrimaryView = ({
           const isThis =
             (focus?.type === "vault" || focus?.type === "vault-browser") &&
             focus.coordinationId === t.coordinationId;
+
           return (
             <div
               key={t.coordinationId}
@@ -619,9 +664,11 @@ export const DeckPrimaryView = ({
                 </span>
                 {(() => {
                   const files = [...focusedOrchestration.vaultFiles, "CONTEXT.md"];
+
                   return files.map((file, i) => {
                     const isLast = i === files.length - 1;
                     const prefix = isLast ? "└── " : "├── ";
+
                     return (
                       <span key={file} className="deck-vault-tree-row">
                         <span className="deck-vault-tree-branch">{prefix}</span>

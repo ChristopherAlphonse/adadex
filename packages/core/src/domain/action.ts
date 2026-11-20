@@ -1,3 +1,5 @@
+import { asRecord, isString, type ParsedRecord, type ParsedValue } from "../util/typeCoercion";
+
 /** What an action can reach. `git-remote` is never allowed in the registry. */
 export type ActionTouch = "fs" | "git" | "git-remote" | "process" | "network";
 
@@ -8,13 +10,13 @@ export type ActionTouch = "fs" | "git" | "git-remote" | "process" | "network";
  */
 export type ActionClass = "free" | "ask" | "human";
 
-export interface ActionDef<I = unknown> {
+export interface ActionDef<I = ParsedValue> {
   readonly id: string;
   readonly title: string;
   readonly touches: readonly ActionTouch[];
   readonly class: ActionClass;
-  /** Validates and narrows raw input. Throws with a readable message when it is wrong. */
-  readonly parse: (input: unknown) => I;
+  /** Validates and narrows decoded input. Throws with a readable message when it is wrong. */
+  readonly parse: (input: ParsedValue) => I;
 }
 
 export interface HumanClick {
@@ -29,7 +31,7 @@ export type ActionContext =
   | { readonly caller: "agent"; readonly approvedActionId?: string }
   | { readonly caller: "human"; readonly humanClick?: HumanClick };
 
-export type AuthorizeResult<I = unknown> =
+export type AuthorizeResult<I = ParsedValue> =
   | { readonly kind: "run"; readonly input: I }
   | { readonly kind: "ask"; readonly reason: string }
   | { readonly kind: "needs-human-click"; readonly reason: string }
@@ -37,23 +39,35 @@ export type AuthorizeResult<I = unknown> =
 
 const JOB_ID = /^[a-z0-9][a-z0-9-]*$/;
 
-const asRecord = (input: unknown): Record<string, unknown> => {
-  if (typeof input !== "object" || input === null) throw new Error("expected an object");
-  return input as Record<string, unknown>;
+/** Input for actions that only need to identify a job. */
+export type JobRef = { readonly id: string };
+
+/** Input for the action that moves a job to another stage. */
+export type AdvanceInput = JobRef & { readonly to: string };
+
+const requireRecord = (input: ParsedValue): ParsedRecord => {
+  const record = asRecord(input);
+
+  if (record === null) throw new Error("expected an object");
+
+  return record;
 };
 
-const jobId = (value: unknown): string => {
-  if (typeof value !== "string" || !JOB_ID.test(value))
+const jobId = (value: ParsedValue): string => {
+  if (!isString(value) || !JOB_ID.test(value))
     throw new Error("job id must match [a-z0-9][a-z0-9-]*");
+
   return value;
 };
 
-const parseJobRef = (input: unknown): { id: string } => ({ id: jobId(asRecord(input).id) });
+const parseJobRef = (input: ParsedValue): JobRef => ({ id: jobId(requireRecord(input).id ?? null) });
 
-const parseAdvance = (input: unknown): { id: string; to: string } => {
-  const r = asRecord(input);
-  if (typeof r.to !== "string" || r.to === "") throw new Error("expected a target stage");
-  return { id: jobId(r.id), to: r.to };
+const parseAdvance = (input: ParsedValue): AdvanceInput => {
+  const r = requireRecord(input);
+
+  if (!isString(r.to) || r.to === "") throw new Error("expected a target stage");
+
+  return { id: jobId(r.id ?? null), to: r.to };
 };
 
 /** The factory pipeline's actions as data. Execution is the runtime's job. */

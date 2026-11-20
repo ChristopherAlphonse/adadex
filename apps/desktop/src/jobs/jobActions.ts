@@ -27,7 +27,7 @@ export interface JobActionDeps {
 }
 
 const field = (input: unknown, key: string): string =>
-  String((input as Record<string, unknown>)[key]);
+  String((/* SAFETY: preceding checks establish the invariant this assertion encodes. */ input as Record<string, unknown>)[key]);
 
 /** Executors for the job actions. Input is already validated by the action's own parser. */
 export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
@@ -38,11 +38,13 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
 
     if (actionId === "job.commit_local") {
       if (!deps.commit) throw new Error("no executor for job.commit_local");
+
       return commitLocal({ ...deps.commit, store, workflows: deps.workflows }, job.id);
     }
 
     if (actionId === "job.run_gate") {
       if (!deps.gate) throw new Error("no executor for job.run_gate");
+
       return runGate({ ...deps.gate, store, workflows: deps.workflows, actor }, job.id);
     }
 
@@ -51,6 +53,7 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
       const facts = await readFacts(store, job);
       const to = field(input, "to");
       const result = advanceJob(def, job, to, facts);
+
       if (!result.ok) {
         await store.audit({
           actor,
@@ -60,6 +63,7 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
         });
         throw new Error(result.reason);
       }
+
       await store.save(result.job);
       await store.audit({
         actor,
@@ -67,16 +71,20 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
         jobId: job.id,
         detail: `${job.stage} -> ${result.job.stage}`,
       });
+
       for (const name of result.effects) await deps.runEffect(name, result.job);
+
       return { stage: result.job.stage, round: result.job.round };
     }
 
     if (actionId === "job.approve_spec") {
       const facts = await readFacts(store, job);
       const hash = facts.hashes?.spec;
+
       if (hash === undefined) throw new Error("spec.md missing");
       await store.save(approve(job, "spec", hash));
       await store.audit({ actor, action: "approve-spec", jobId: job.id, detail: hash });
+
       return { approved: hash };
     }
 
@@ -84,6 +92,7 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
       if (job.stage !== NEEDS_HUMAN || job.parkedFrom === undefined) {
         throw new Error(`${job.id} is not parked`);
       }
+
       // Back to where it was parked, with a fresh allowance of rounds, so a job parked for running out of rounds can go on.
       const { note: _note, parkedFrom: _from, ...rest } = job;
       const back = job.parkedFrom;
@@ -94,6 +103,7 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
         flags: back === "build" ? { ...job.flags, polished: false } : job.flags,
       });
       await store.audit({ actor, action: "unblock", jobId: job.id, detail: `back to ${back}` });
+
       return { stage: back };
     }
 

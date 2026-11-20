@@ -31,6 +31,7 @@ export const recoverPersistedSessions = ({
     }
 
     terminal.lifecycleUpdatedAt = now;
+
     if (isProcessAlive(terminal.processId)) {
       terminal.lifecycleState = "stale";
       terminal.lifecycleReason = "orphaned_process";

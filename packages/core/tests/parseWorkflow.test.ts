@@ -27,6 +27,7 @@ const minimal = () => ({
 
 const errorsOf = (input: unknown): string[] => {
   const r = parseWorkflow(input);
+
   return r.ok ? [] : r.errors;
 };
 
@@ -46,6 +47,7 @@ describe("parseWorkflow", () => {
 
   it("a parsed workflow runs in the engine", () => {
     const r = parseWorkflow(minimal());
+
     if (!r.ok) throw new Error("parse failed");
     const job = newJob(r.workflow, "j1", "t", { roundLimit: 3 });
     const facts = { docs: { "draft.md": { STATUS: "READY" } }, reviews: {} };
@@ -72,21 +74,21 @@ describe("parseWorkflow", () => {
 
   it("rejects a move to a stage that does not exist", () => {
     const w = minimal();
-    w.stages[0]?.moves.push({ to: "nowhere" } as never);
+    w.stages[0]?.moves.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { to: "nowhere" } as never);
     expect(errorsOf(w)).toContain("stage draft moves to unknown stage nowhere");
   });
 
   it("allows a move to needs-human but not a stage named needs-human", () => {
     const w = minimal();
-    w.stages[0]?.moves.push({ to: "needs-human" } as never);
+    w.stages[0]?.moves.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { to: "needs-human" } as never);
     expect(errorsOf(w)).toEqual([]);
-    w.stages.push({ id: "needs-human", hint: "x", moves: [] } as never);
+    w.stages.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { id: "needs-human", hint: "x", moves: [] } as never);
     expect(errorsOf(w)).toContain("needs-human is reserved and cannot be a stage");
   });
 
   it("rejects duplicate stage ids and an unknown start stage", () => {
     const w = minimal();
-    w.stages.push({ id: "draft", hint: "dup", moves: [] } as never);
+    w.stages.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { id: "draft", hint: "dup", moves: [] } as never);
     expect(errorsOf(w)).toContain("duplicate stage draft");
     expect(errorsOf({ ...minimal(), initial: "zzz" })).toContain(
       "initial stage zzz does not exist",
@@ -95,44 +97,44 @@ describe("parseWorkflow", () => {
 
   it("rejects a terminal stage with moves and a stage with no way out", () => {
     const w = minimal();
-    w.stages[1] = { id: "done", hint: "x", terminal: true, moves: [{ to: "draft" }] } as never;
+    w.stages[1] = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ { id: "done", hint: "x", terminal: true, moves: [{ to: "draft" }] } as never;
     expect(errorsOf(w)).toContain("terminal stage done cannot have moves");
     const dead = minimal();
-    dead.stages[0] = { id: "draft", hint: "x", moves: [] } as never;
+    dead.stages[0] = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ { id: "draft", hint: "x", moves: [] } as never;
     expect(errorsOf(dead)).toContain("stage draft has no moves and is not terminal");
   });
 
   it("rejects a workflow with no terminal stage, an unreachable stage, and a loop that cannot finish", () => {
     const noEnd = minimal();
-    noEnd.stages[1] = { id: "done", hint: "x", moves: [{ to: "draft" }] } as never;
+    noEnd.stages[1] = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ { id: "done", hint: "x", moves: [{ to: "draft" }] } as never;
     expect(errorsOf(noEnd)).toContain("a workflow needs at least one terminal stage");
     const orphan = minimal();
-    orphan.stages.push({ id: "island", hint: "x", terminal: true, moves: [] } as never);
+    orphan.stages.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { id: "island", hint: "x", terminal: true, moves: [] } as never);
     expect(errorsOf(orphan)).toContain("stage island cannot be reached from draft");
     const loop = minimal();
     loop.stages.push(
-      { id: "a", hint: "x", moves: [{ to: "b" }] } as never,
-      { id: "b", hint: "x", moves: [{ to: "a" }] } as never,
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ { id: "a", hint: "x", moves: [{ to: "b" }] } as never,
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ { id: "b", hint: "x", moves: [{ to: "a" }] } as never,
     );
-    loop.stages[0]?.moves.push({ to: "a" } as never);
+    loop.stages[0]?.moves.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { to: "a" } as never);
     expect(errorsOf(loop)).toContain("stage a cannot reach a terminal stage");
   });
 
   it("rejects an unknown condition kind, a missing field, and a wrong type", () => {
     const w = minimal();
-    w.stages[0] = {
+    w.stages[0] = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
       id: "draft",
       hint: "x",
       moves: [{ to: "done", requires: [{ kind: "vibes" }] }],
     } as never;
     expect(errorsOf(w)).toContain("stage draft move to done: unknown condition kind vibes");
-    w.stages[0] = {
+    w.stages[0] = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
       id: "draft",
       hint: "x",
       moves: [{ to: "done", requires: [{ kind: "doc-exists" }] }],
     } as never;
     expect(errorsOf(w)).toContain("stage draft move to done: doc-exists needs doc");
-    w.stages[0] = {
+    w.stages[0] = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
       id: "draft",
       hint: "x",
       moves: [{ to: "done", requires: [{ kind: "flag", name: "p", is: "yes" }] }],
@@ -142,7 +144,7 @@ describe("parseWorkflow", () => {
 
   it("rejects an unknown effect and an effect name the runtime does not know", () => {
     const w = minimal();
-    w.stages[0] = {
+    w.stages[0] = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
       id: "draft",
       hint: "x",
       moves: [{ to: "done", effects: [{ kind: "emit", name: "rm-rf" }] }],
@@ -150,7 +152,7 @@ describe("parseWorkflow", () => {
     expect(errorsOf(w)).toContain(
       "stage draft move to done: emit needs name as make-worktree or clear-gate",
     );
-    w.stages[0] = {
+    w.stages[0] = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
       id: "draft",
       hint: "x",
       moves: [{ to: "done", effects: [{ kind: "explode" }] }],

@@ -18,13 +18,21 @@ type UsePersistedUiStateOptions = {
 };
 
 const DEFAULT_ACTIVE_PRIMARY_NAV: PrimaryNavIndex = 1;
+
 const DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE = true;
+
 const DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED = true;
+
 const DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE = true;
+
 const DEFAULT_MINIMIZED_TERMINAL_IDS: string[] = [];
+
 const DEFAULT_TERMINAL_WIDTHS: Record<string, number> = {};
+
 const DEFAULT_CANVAS_OPEN_TERMINAL_IDS: string[] = [];
+
 const DEFAULT_CANVAS_OPEN_COORDINATION_IDS: string[] = [];
+
 const TERMINAL_COMPLETION_SOUND_STORAGE_KEY = "adadex.terminalCompletionSound";
 
 const readLocalTerminalCompletionSound = (): TerminalCompletionSoundId | null => {
@@ -34,6 +42,7 @@ const readLocalTerminalCompletionSound = (): TerminalCompletionSoundId | null =>
 
   try {
     const value = window.localStorage.getItem(TERMINAL_COMPLETION_SOUND_STORAGE_KEY);
+
     return isTerminalCompletionSoundId(value) ? value : null;
   } catch {
     return null;
@@ -55,6 +64,7 @@ const areStringArraysEqual = (left: string[] | undefined, right: string[] | unde
 
   const nextLeft = left ?? [];
   const nextRight = right ?? [];
+
   if (nextLeft.length !== nextRight.length) {
     return false;
   }
@@ -72,6 +82,7 @@ const areNumberRecordMapsEqual = (
 
   const leftEntries = Object.entries(left ?? {});
   const rightEntries = right ?? {};
+
   if (leftEntries.length !== Object.keys(rightEntries).length) {
     return false;
   }
@@ -103,19 +114,26 @@ const buildPersistedUiStateSnapshot = ({
   canvasOpenTerminalIds: string[];
   canvasOpenCoordinationIds: string[];
   canvasTerminalsPanelWidth: number | null;
-}): FrontendUiStateSnapshot => ({
-  activePrimaryNav,
-  isAgentsSidebarVisible,
-  sidebarWidth: clampSidebarWidth(sidebarWidth),
-  isActiveAgentsSectionExpanded,
-  isRuntimeStatusStripVisible,
-  terminalCompletionSound,
-  minimizedTerminalIds,
-  terminalWidths,
-  canvasOpenTerminalIds,
-  canvasOpenCoordinationIds,
-  ...(canvasTerminalsPanelWidth != null ? { canvasTerminalsPanelWidth } : {}),
-});
+}): FrontendUiStateSnapshot => {
+  const snapshot: FrontendUiStateSnapshot = {
+    activePrimaryNav,
+    isAgentsSidebarVisible,
+    sidebarWidth: clampSidebarWidth(sidebarWidth),
+    isActiveAgentsSectionExpanded,
+    isRuntimeStatusStripVisible,
+    terminalCompletionSound,
+    minimizedTerminalIds,
+    terminalWidths,
+    canvasOpenTerminalIds,
+    canvasOpenCoordinationIds,
+  };
+
+  if (canvasTerminalsPanelWidth != null) {
+    snapshot.canvasTerminalsPanelWidth = canvasTerminalsPanelWidth;
+  }
+
+  return snapshot;
+};
 
 const areUiStateSnapshotsEqual = (
   left: FrontendUiStateSnapshot | null,
@@ -173,52 +191,61 @@ export const usePersistedUiState = ({
   const [activePrimaryNav, setActivePrimaryNav] = useState<PrimaryNavIndex>(
     DEFAULT_ACTIVE_PRIMARY_NAV,
   );
+
   const [isAgentsSidebarVisible, setIsAgentsSidebarVisible] = useState(
     DEFAULT_IS_AGENTS_SIDEBAR_VISIBLE,
   );
+
   const [sidebarWidth, setSidebarWidth] = useState(MIN_SIDEBAR_WIDTH);
+
   const [isActiveAgentsSectionExpanded, setIsActiveAgentsSectionExpanded] = useState(
     DEFAULT_IS_ACTIVE_AGENTS_SECTION_EXPANDED,
   );
+
   const [isRuntimeStatusStripVisible, setIsRuntimeStatusStripVisible] = useState(
     DEFAULT_IS_RUNTIME_STATUS_STRIP_VISIBLE,
   );
+
   const [terminalCompletionSound, setTerminalCompletionSound] = useState<TerminalCompletionSoundId>(
     () => readLocalTerminalCompletionSound() ?? DEFAULT_TERMINAL_COMPLETION_SOUND,
   );
+
   const [isUiStateHydrated, setIsUiStateHydrated] = useState(false);
   const [hasHydratedUiStateSnapshot, setHasHydratedUiStateSnapshot] = useState(false);
+
   const [minimizedTerminalIds, setMinimizedTerminalIds] = useState<string[]>(
     DEFAULT_MINIMIZED_TERMINAL_IDS,
   );
+
   const [terminalWidths, setTerminalWidths] =
     useState<Record<string, number>>(DEFAULT_TERMINAL_WIDTHS);
+
   const [canvasOpenTerminalIds, setCanvasOpenTerminalIds] = useState<string[]>(
     DEFAULT_CANVAS_OPEN_TERMINAL_IDS,
   );
+
   const [canvasOpenCoordinationIds, setCanvasOpenCoordinationIds] = useState<string[]>(
     DEFAULT_CANVAS_OPEN_COORDINATION_IDS,
   );
+
   const [canvasTerminalsPanelWidth, setCanvasTerminalsPanelWidth] = useState<number | null>(null);
   const lastPersistedUiStateRef = useRef<FrontendUiStateSnapshot | null>(null);
 
   const readUiState = useCallback(async (signal?: AbortSignal) => {
     try {
-      const requestOptions: {
-        method: "GET";
-        headers: { Accept: string };
-        signal?: AbortSignal;
-      } = {
+      const requestOptions: RequestInit = {
         method: "GET",
         headers: {
           Accept: "application/json",
         },
       };
+
       if (signal) {
         requestOptions.signal = signal;
       }
 
       const response = await fetch(buildUiStateUrl(), requestOptions);
+
       if (!response.ok) {
         return null;
       }
@@ -235,10 +262,12 @@ export const usePersistedUiState = ({
       const activeOrchestrationIds = new Set(nextColumns.map((entry) => entry.coordinationId));
       const hasPersistedSnapshot = snapshot !== null && Object.keys(snapshot).length > 0;
       const localTerminalCompletionSound = readLocalTerminalCompletionSound();
+
       const nextTerminalCompletionSound =
         localTerminalCompletionSound ??
         snapshot?.terminalCompletionSound ??
         DEFAULT_TERMINAL_COMPLETION_SOUND;
+
       setHasHydratedUiStateSnapshot(hasPersistedSnapshot);
 
       if (!snapshot) {
@@ -255,21 +284,26 @@ export const usePersistedUiState = ({
           canvasOpenCoordinationIds: DEFAULT_CANVAS_OPEN_COORDINATION_IDS,
           canvasTerminalsPanelWidth: null,
         });
+
         if (localTerminalCompletionSound) {
           setTerminalCompletionSound(localTerminalCompletionSound);
         }
+
         return;
       }
 
       const nextMinimizedTerminalIds = snapshot.minimizedTerminalIds
         ? retainActiveTerminalIds(snapshot.minimizedTerminalIds, activeTerminalIds)
         : DEFAULT_MINIMIZED_TERMINAL_IDS;
+
       const nextTerminalWidths = snapshot.terminalWidths
         ? retainActiveTerminalEntries(snapshot.terminalWidths, activeTerminalIds)
         : DEFAULT_TERMINAL_WIDTHS;
+
       const nextCanvasOpenTerminalIds = snapshot.canvasOpenTerminalIds
         ? retainActiveTerminalIds(snapshot.canvasOpenTerminalIds, activeTerminalIds)
         : DEFAULT_CANVAS_OPEN_TERMINAL_IDS;
+
       const nextCanvasOpenCoordinationIds = snapshot.canvasOpenCoordinationIds
         ? retainActiveTerminalIds(snapshot.canvasOpenCoordinationIds, activeOrchestrationIds)
         : DEFAULT_CANVAS_OPEN_COORDINATION_IDS;
@@ -396,10 +430,11 @@ export const usePersistedUiState = ({
           if (!response.ok) {
             throw new Error(`Unexpected status ${response.status}`);
           }
+
           lastPersistedUiStateRef.current = payload;
         })
-        .catch((error: unknown) => {
-          console.warn("[ui-state] Failed to persist UI state:", error);
+        .catch((cause: unknown) => {
+          console.warn("[ui-state] Failed to persist UI state:", cause);
         });
     }, UI_STATE_SAVE_DEBOUNCE_MS);
 

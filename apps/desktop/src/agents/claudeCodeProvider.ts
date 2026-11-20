@@ -9,7 +9,7 @@ import type {
   AgentProvider,
   AgentRunRequest,
   AgentSession,
-} from "@adadex/core";
+, isString} from "@adadex/core";
 
 import { createAsyncQueue } from "./asyncQueue";
 import { type BridgeHost, startBridgeHost } from "./bridgeHost";
@@ -21,6 +21,7 @@ export interface AgentChild {
   onExit(cb: (code: number | null) => void): void;
   kill(): void;
 }
+
 export type SpawnAgent = (command: string, args: readonly string[], cwd: string) => AgentChild;
 
 export interface ClaudeCodeOptions {
@@ -72,18 +73,22 @@ export const eventsFromLine = (line: string): AgentEvent[] => {
     message?: { content?: { type?: string; text?: string }[] };
     result?: string;
   };
+
   try {
     msg = JSON.parse(line);
   } catch {
     return [];
   }
+
   if (msg.type === "assistant") {
     return (msg.message?.content ?? [])
-      .filter((c) => c.type === "text" && typeof c.text === "string" && c.text !== "")
+      .filter((c) => c.type === "text" && isString(c.text) && c.text !== "")
       .map((c): AgentEvent => ({ type: "message", text: c.text as string }));
   }
+
   if (msg.type === "result")
-    return [{ type: "done", summary: typeof msg.result === "string" ? msg.result : "" }];
+    return [{ type: "done", summary: isString(msg.result) ? msg.result : "" }];
+
   return [];
 };
 
@@ -108,6 +113,7 @@ export const createClaudeCodeProvider = (options: ClaudeCodeOptions): AgentProvi
         input: call.input,
       }),
     );
+
     await writeFile(
       configPath,
       JSON.stringify({
@@ -124,8 +130,10 @@ export const createClaudeCodeProvider = (options: ClaudeCodeOptions): AgentProvi
         "allowedTools needs a guard: an agent's own tools must go through the policy",
       );
     }
+
     let guardHost: GuardHost | undefined;
     const guardArgs: string[] = [];
+
     if (options.guard) {
       const guardSocket = join(dir, "guard.sock");
       guardHost = await startGuardHost(guardSocket, options.guard.decide);
@@ -155,6 +163,7 @@ export const createClaudeCodeProvider = (options: ClaudeCodeOptions): AgentProvi
       ...guardArgs,
       ...(options.extraArgs ?? []),
     ];
+
     const child = options.spawn(options.command, args, options.cwd);
 
     let sawDone = false;
@@ -170,6 +179,7 @@ export const createClaudeCodeProvider = (options: ClaudeCodeOptions): AgentProvi
     });
 
     let stopped = false;
+
     return {
       events: () => queue,
       async respond(callId, outcome) {

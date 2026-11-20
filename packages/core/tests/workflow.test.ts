@@ -8,7 +8,9 @@ import {
 } from "../src/presets";
 
 const noFacts: JobFacts = { docs: {}, reviews: {} };
+
 const facts = (over: Partial<JobFacts> = {}): JobFacts => ({ ...noFacts, ...over });
+
 const at = (stage: string, over: Partial<WorkflowJob> = {}): WorkflowJob => ({
   ...newJob(buildWorkflow, "j1", "title", { roundLimit: 3 }),
   stage,
@@ -19,6 +21,7 @@ describe("preset definitions", () => {
   it("only move to stages that exist", () => {
     for (const def of [buildWorkflow, reviewWorkflow]) {
       const known = new Set([...def.stages.map((st) => st.id), "needs-human"]);
+
       for (const st of def.stages) {
         for (const m of st.moves) expect(known.has(m.to)).toBe(true);
       }
@@ -38,8 +41,9 @@ describe("preset definitions", () => {
         .filter((st) => !st.terminal)
         .map((st) => [st.id, st.moves.map((m) => m.to).sort()]),
     );
+
     expect(table).toEqual({
-      shape: ["rejected", "spec"],
+      "shape": ["rejected", "spec"],
       spec: ["build"],
       build: ["gate", "needs-human"],
       gate: ["build", "needs-human", "prove", "review"],
@@ -69,23 +73,27 @@ describe("advanceJob: legality", () => {
 describe("advanceJob: evidence", () => {
   it("shape -> spec needs shape.md STATUS: READY", () => {
     expect(advanceJob(buildWorkflow, at("shape"), "spec", noFacts).ok).toBe(false);
+
     const ok = advanceJob(
       buildWorkflow,
       at("shape"),
       "spec",
       facts({ docs: { "shape.md": { STATUS: "READY" } } }),
     );
+
     expect(ok.ok).toBe(true);
   });
 
   it("shape -> rejected needs rejection.md", () => {
     expect(advanceJob(buildWorkflow, at("shape"), "rejected", noFacts).ok).toBe(false);
+
     const ok = advanceJob(
       buildWorkflow,
       at("shape"),
       "rejected",
       facts({ docs: { "rejection.md": {} } }),
     );
+
     expect(ok.ok).toBe(true);
   });
 
@@ -93,19 +101,23 @@ describe("advanceJob: evidence", () => {
     const docs = { "spec.md": {} };
     expect(advanceJob(buildWorkflow, at("spec"), "build", facts({ docs })).ok).toBe(false);
     const approved = approve(at("spec"), "spec", "sha-1");
+
     const changed = advanceJob(
       buildWorkflow,
       approved,
       "build",
       facts({ docs, hashes: { spec: "sha-2" } }),
     );
+
     expect(changed).toEqual({ ok: false, reason: "spec changed since the user approved it" });
+
     const ok = advanceJob(
       buildWorkflow,
       approved,
       "build",
       facts({ docs, hashes: { spec: "sha-1" } }),
     );
+
     expect(ok.ok && ok.job.round).toBe(1);
     expect(ok.ok && ok.effects).toContain("make-worktree");
   });
@@ -127,12 +139,14 @@ describe("advanceJob: evidence", () => {
         facts({ docs: { "build.md": { STATUS: "READY" } } }),
       ).ok,
     ).toBe(true);
+
     const parked = advanceJob(
       buildWorkflow,
       at("build"),
       "needs-human",
       facts({ docs: { "build.md": { STATUS: "BLOCKED" } } }),
     );
+
     expect(parked.ok && parked.job.stage).toBe("needs-human");
     expect(parked.ok && parked.job.parkedFrom).toBe("build");
   });
@@ -180,6 +194,7 @@ describe("advanceJob: gate, review, polish, prove, ship", () => {
       "build",
       facts({ gate: "FAIL" }),
     );
+
     expect(r.ok && r.job.stage).toBe("needs-human");
     expect(r.ok && r.job.parkedFrom).toBe("gate");
   });
@@ -191,6 +206,7 @@ describe("advanceJob: gate, review, polish, prove, ship", () => {
       "build",
       facts({ gate: "FAIL" }),
     );
+
     expect(r.ok && r.job.flags.polished).toBe(false);
   });
 
@@ -226,6 +242,7 @@ describe("advanceJob: gate, review, polish, prove, ship", () => {
       "gate",
       facts({ docs: { "polish.md": { STATUS: "DONE" } } }),
     );
+
     expect(r.ok && r.job.flags.polished).toBe(true);
     expect(r.ok && r.effects).toContain("clear-gate");
     expect(
@@ -255,12 +272,14 @@ describe("advanceJob: gate, review, polish, prove, ship", () => {
         facts({ docs: { "uat.md": { STATUS: "FAIL" } } }),
       ).ok,
     ).toBe(false);
+
     const back = advanceJob(
       buildWorkflow,
       at("prove", { round: 1 }),
       "build",
       facts({ docs: { "uat.md": { STATUS: "FAIL" } } }),
     );
+
     expect(back.ok && back.job.round).toBe(2);
   });
 
@@ -268,12 +287,14 @@ describe("advanceJob: gate, review, polish, prove, ship", () => {
     const docs = { "pr-body.md": {} };
     expect(advanceJob(buildWorkflow, at("ship"), "ready", facts({ docs })).ok).toBe(false);
     expect(advanceJob(buildWorkflow, at("ship"), "ready", facts()).ok).toBe(false);
+
     const ok = advanceJob(
       buildWorkflow,
       at("ship", { commit: "abc123" }),
       "ready",
       facts({ docs }),
     );
+
     expect(ok.ok && ok.job.stage).toBe("ready");
   });
 });
@@ -293,6 +314,7 @@ describe("advanceJob: review workflow", () => {
       ["verify", "report", facts({ docs: { "verified.md": { STATUS: "READY" } } })],
       ["report", "ready", facts({ docs: { "report.md": { STATUS: "READY", FINDINGS: "2" } } })],
     ];
+
     for (const [from, to, f] of steps) {
       const r = advanceJob(reviewWorkflow, rev(from), to, f);
       expect(r.ok && r.job.stage).toBe(to);
@@ -306,17 +328,20 @@ describe("advanceJob: review workflow", () => {
       "ready",
       facts({ docs: { "report.md": { STATUS: "READY", FINDINGS: "x" } } }),
     );
+
     expect(r.ok).toBe(false);
   });
 
   it("parks on blocked.md alone, without the stage's usual evidence", () => {
     expect(advanceJob(reviewWorkflow, rev("review"), "needs-human", noFacts).ok).toBe(false);
+
     const r = advanceJob(
       reviewWorkflow,
       rev("review"),
       "needs-human",
       facts({ docs: { "blocked.md": { STATUS: "BLOCKED" } } }),
     );
+
     expect(r.ok && r.job.parkedFrom).toBe("review");
   });
 

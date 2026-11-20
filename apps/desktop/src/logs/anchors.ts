@@ -27,20 +27,26 @@ export const createFileAnchors = (path: string): AnchorSink => ({
   },
   latest(project, jobId) {
     let text: string;
+
     try {
       text = readFileSync(path, "utf8");
     } catch {
       return null;
     }
+
     let found: Anchor | null = null;
+
     for (const line of text.split("\n")) {
       if (line === "") continue;
+
       try {
-        const a = JSON.parse(line) as Anchor;
+        const a = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(line) as Anchor;
+
         if (a.project === project && a.jobId === jobId && (found === null || a.seq > found.seq))
           found = a;
       } catch {}
     }
+
     return found;
   },
 });

@@ -12,6 +12,7 @@ describe("writeTextFileAtomic", () => {
   const createTemporaryDirectory = () => {
     const directory = mkdtempSync(join(tmpdir(), "adadex-atomic-write-test-"));
     directories.push(directory);
+
     return directory;
   };
 
@@ -19,6 +20,7 @@ describe("writeTextFileAtomic", () => {
     for (const directory of directories) {
       rmSync(directory, { recursive: true, force: true });
     }
+
     directories.length = 0;
   });
 

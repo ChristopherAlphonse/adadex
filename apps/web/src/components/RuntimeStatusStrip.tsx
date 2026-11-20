@@ -1,3 +1,4 @@
+import { isNumber } from "@adadex/core";
 import { useMemo } from "react";
 
 import type { UsageChartData } from "../app/hooks/useUsageHeatmapPolling";
@@ -7,23 +8,27 @@ type RuntimeStatusStripProps = {
 };
 
 const MINI_USAGE_WIDTH = 160;
+
 const MINI_USAGE_HEIGHT = 28;
+
 const MINI_BAR_GAP = 1;
 
 type MiniBar = { x: number; y: number; width: number; height: number };
 
 const buildUsageBars = (data: UsageChartData): MiniBar[] => {
   const days = Array.isArray(data.days) ? data.days.slice(-30) : [];
+
   if (days.length === 0) return [];
 
-  const totals = days.map((day) => (typeof day.totalTokens === "number" ? day.totalTokens : 0));
+  const totals = days.map((day) => (isNumber(day.totalTokens) ? day.totalTokens : 0));
   const max = Math.max(...totals, 1);
   const barSlot = MINI_USAGE_WIDTH / days.length;
   const barWidth = Math.max(1, barSlot - MINI_BAR_GAP);
 
   return days.map((day, index) => {
-    const totalTokens = typeof day.totalTokens === "number" ? day.totalTokens : 0;
+    const totalTokens = isNumber(day.totalTokens) ? day.totalTokens : 0;
     const h = Math.max(0.5, (totalTokens / max) * (MINI_USAGE_HEIGHT - 2));
+
     return {
       x: index * barSlot,
       y: MINI_USAGE_HEIGHT - h,

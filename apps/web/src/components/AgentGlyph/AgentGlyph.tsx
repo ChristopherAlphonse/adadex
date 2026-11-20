@@ -1,5 +1,6 @@
 "use client";
 
+import { isFunctionValue } from "@adadex/core";
 import { useEffect, useRef } from "react";
 
 import { resolveIdentity } from "./agent-identity";
@@ -37,8 +38,10 @@ export const AgentGlyph = ({
 
   useEffect(() => {
     const canvas = canvasRef.current;
+
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
+
     if (!ctx) return;
 
     const backing = Math.max(1, Math.round(canvasSize * resolutionScale));
@@ -58,6 +61,7 @@ export const AgentGlyph = ({
       bodyColor,
       identitySeed,
     };
+
     const palette = resolvePalette({ accentColor, bodyColor, secondaryColor, mood });
     const identity = resolveIdentity(identitySeed, variant);
     const shouldReduceMotion = prefersReducedMotion();
@@ -85,23 +89,25 @@ export const AgentGlyph = ({
 
     const tick = (time: number) => {
       render(time);
-      if (typeof window.requestAnimationFrame === "function") {
+
+      if (isFunctionValue(window.requestAnimationFrame)) {
         rafId = window.requestAnimationFrame(tick);
       } else {
         timeoutId = window.setTimeout(() => tick(performance.now()), speedMs);
       }
     };
 
-    if (typeof window.requestAnimationFrame === "function") {
+    if (isFunctionValue(window.requestAnimationFrame)) {
       rafId = window.requestAnimationFrame(tick);
     } else {
       timeoutId = window.setTimeout(() => tick(performance.now()), speedMs);
     }
 
     return () => {
-      if (rafId && typeof window.cancelAnimationFrame === "function") {
+      if (rafId && isFunctionValue(window.cancelAnimationFrame)) {
         window.cancelAnimationFrame(rafId);
       }
+
       if (timeoutId) window.clearTimeout(timeoutId);
     };
   }, [

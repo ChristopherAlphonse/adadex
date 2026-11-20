@@ -4,12 +4,15 @@ import { evaluateToolCall } from "../src/application/evaluateToolCall";
 import { BUILD_POLICY, REVIEW_POLICY } from "../src/presets/defaultPolicy";
 
 const at = (p: string) => p;
+
 const bash = (command: string) => ({ tool_name: "Bash", tool_input: { command }, cwd: "/repo" });
+
 const write = (tool: string, input: Record<string, unknown>) => ({
   tool_name: tool,
   tool_input: input,
   cwd: "/repo",
 });
+
 const kind = (e: unknown, policy = REVIEW_POLICY) => evaluateToolCall(policy, e, at).kind;
 
 describe("default policy, ported from factory", () => {
@@ -57,6 +60,7 @@ describe("default policy, ported from factory", () => {
     ]) {
       expect(kind(write("Write", { file_path: path }))).toBe("deny");
     }
+
     expect(kind(write("Write", { file_path: "/repo/src/app.ts" }))).toBe("allow");
   });
 });
@@ -75,6 +79,7 @@ describe("evaluateToolCall", () => {
     ]) {
       expect(kind(write(tool, { path: "/repo/.env" }))).toBe("deny");
     }
+
     expect(kind(write("NotebookEdit", { notebook_path: "/repo/.env" }))).toBe("deny");
     expect(kind(write("Edit", { filePath: "/repo/.env" }))).toBe("deny");
   });
@@ -82,6 +87,7 @@ describe("evaluateToolCall", () => {
   it("reads the file names inside a patch", () => {
     const patchText =
       "*** Begin Patch\n*** Update File: src/a.ts\n*** Add File: .env\n*** End Patch";
+
     const r = evaluateToolCall(REVIEW_POLICY, write("patch", { patchText }), (p) => `/repo/${p}`);
     expect(r.kind).toBe("deny");
   });

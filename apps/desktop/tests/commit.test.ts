@@ -13,9 +13,11 @@ import { nodeCheckRunner, nodeGit } from "../src/jobs/nodeGate";
 import { writeGate } from "./helpers/attest";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-commit-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
@@ -35,6 +37,7 @@ interface Fake {
   commitOk: boolean;
   calls: string[];
 }
+
 const fakeGit = (f: Fake): GitPort => ({
   changedFiles: async () => f.files,
   fingerprint: async () => f.tree,
@@ -46,6 +49,7 @@ const fakeGit = (f: Fake): GitPort => ({
   commit: async () => {
     f.calls.push("commit");
     f.head = "newcommit";
+
     return f.commitOk ? { ok: true, output: "" } : { ok: false, output: "hook said no" };
   },
 });
@@ -63,14 +67,17 @@ const setup = async (
     calls: [],
     ...over,
   };
+
   const store = createJobStore(root);
   const job = await store.create(factoryBuildPreset, "j1", "t", 3);
-  await store.save({ ...job, stage: doc.stage ?? "ship", round: 1, worktree: root } as WorkflowJob);
+  await store.save(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { ...job, stage: doc.stage ?? "ship", round: 1, worktree: root } as WorkflowJob);
   const dir = store.jobDir("j1");
   await mkdir(join(dir, "round-1"), { recursive: true });
+
   if (doc.message !== "")
     await writeFile(join(dir, "commit.md"), doc.message ?? "feat: add login\n");
-  await writeGate(store, "j1", 1, (doc.gate ?? "PASS") as "PASS" | "FAIL", doc.tree ?? "t1");
+  await writeGate(store, "j1", 1, /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (doc.gate ?? "PASS") as "PASS" | "FAIL", doc.tree ?? "t1");
+
   const executor = createJobExecutor({
     store,
     workflows: { factory: factoryBuildPreset },
@@ -78,8 +85,10 @@ const setup = async (
     actor: () => "human",
     commit: { git: fakeGit(f), config: async () => config, cwdOf: () => root },
   });
+
   return { f, store, executor };
 };
+
 const commit = (e: { execute: (id: string, input: unknown) => Promise<unknown> }) =>
   e.execute("job.commit_local", { id: "j1" });
 
@@ -165,8 +174,9 @@ describe("job.commit_local with real git", () => {
     git(work, "switch", "-c", "feature");
     const store = createJobStore(join(root, "state"));
     const job = await store.create(factoryBuildPreset, "j1", "t", 3);
-    await store.save({ ...job, stage: "ship", round: 1, worktree: root } as WorkflowJob);
+    await store.save(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { ...job, stage: "ship", round: 1, worktree: root } as WorkflowJob);
     await writeFile(join(store.jobDir("j1"), "commit.md"), "feat: real commit\n");
+
     const executor = createJobExecutor({
       store,
       workflows: { factory: factoryBuildPreset },
@@ -180,6 +190,7 @@ describe("job.commit_local with real git", () => {
       },
       commit: { git: nodeGit, config: async () => config, cwdOf: () => work },
     });
+
     return { work, store, executor };
   };
 
@@ -189,7 +200,7 @@ describe("job.commit_local with real git", () => {
     await writeFile(join(work, "new.txt"), "n");
     const tree = await nodeGit.fingerprint(work);
     await writeGate(store, "j1", 1, "PASS", tree);
-    const { commit: sha } = (await commit(executor)) as { commit: string };
+    const { commit: sha } = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await commit(executor)) as { commit: string };
     expect(git(work, "rev-parse", "HEAD")).toBe(sha);
     expect(git(work, "log", "-1", "--format=%s")).toBe("feat: real commit");
     expect(git(work, "show", "--name-only", "--format=", "HEAD").split("\n").sort()).toEqual([

@@ -18,18 +18,23 @@ import {
 import { sandboxPlan } from "../src/runs/roleRunner";
 
 let root: string;
+
 beforeEach(async () => {
   root = await realpath(await mkdtemp(join(tmpdir(), "adadex-sandbox-")));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
 const role = (id: string) => {
   const r = PRESET_ROLES.find((x) => x.id === id);
+
   if (!r) throw new Error(id);
+
   return r;
 };
+
 const job = (over: Partial<WorkflowJob> = {}): WorkflowJob => ({
   id: "j1",
   title: "t",
@@ -75,7 +80,8 @@ describe("sandbox profile", () => {
     let seen: { command: string; args: readonly string[] } | undefined;
     sandboxSpawn((command, args) => {
       seen = { command, args };
-      return { stdout: null as never, onExit: () => {}, kill: () => {} };
+
+      return { stdout: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ null as never, onExit: () => {}, kill: () => {} };
     }, "P")("claude", ["-p", "hi"], "/w");
     expect(seen).toEqual({
       command: "/usr/bin/sandbox-exec",
@@ -102,6 +108,7 @@ describe("what each role may write", () => {
     await mkdir(gitdir, { recursive: true });
     await writeFile(join(wt, ".git"), `gitdir: ${gitdir}\n`);
     expect(gitDirOf(wt)).toBe(gitdir);
+
     const plan = sandboxPlan(
       role("builder"),
       job({ worktree: wt }),
@@ -109,6 +116,7 @@ describe("what each role may write", () => {
       wt,
       [join(root, "data")],
     );
+
     expect(plan.writable).toEqual(
       expect.arrayContaining([join(root, "state", "jobs", "j1"), wt, gitdir]),
     );
@@ -131,6 +139,7 @@ describe("what each role may write", () => {
       join(root, "wt"),
       [],
     );
+
     expect(plan.writable).toEqual([join(root, "jobs", "j1")]);
   });
 });
@@ -146,6 +155,7 @@ describe.skipIf(!sandboxAvailable())("the real operating system sandbox", () => 
     const wt = join(root, "project", ".adadex", "worktrees", "j1");
     const gitdir = join(root, "project", ".git", "worktrees", "j1");
     const data = join(root, "data");
+
     for (const d of [jobDir, join(jobDir, "round-1"), wt, gitdir, data])
       await mkdir(d, { recursive: true });
     await writeFile(join(wt, ".git"), `gitdir: ${gitdir}\n`);
@@ -153,6 +163,7 @@ describe.skipIf(!sandboxAvailable())("the real operating system sandbox", () => 
     await writeFile(join(data, "adadex.db"), "secret");
     await writeFile(join(jobDir, "job.json"), "{}");
     const plan = (r: string) => sandboxPlan(role(r), job({ worktree: wt }), jobDir, wt, [data]);
+
     return { jobDir, wt, gitdir, data, plan };
   };
 
@@ -160,6 +171,7 @@ describe.skipIf(!sandboxAvailable())("the real operating system sandbox", () => 
     const { jobDir, wt, gitdir, data, plan } = await setup();
     const p = plan("builder");
     expect(run(p, `echo x > ${wt}/a.ts && echo y > ${jobDir}/build.md`).status).toBe(0);
+
     for (const blocked of [
       `echo x > ${root}/outside.txt`,
       `echo x > ${jobDir}/job.json`,
@@ -171,6 +183,7 @@ describe.skipIf(!sandboxAvailable())("the real operating system sandbox", () => 
     ]) {
       expect(run(p, blocked).status, blocked).not.toBe(0);
     }
+
     expect(await readFile(join(gitdir, "config.worktree"), "utf8")).toContain(
       "hooksPath = /guarded",
     );

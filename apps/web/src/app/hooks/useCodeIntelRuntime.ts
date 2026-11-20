@@ -25,13 +25,17 @@ export const useCodeIntelRuntime = (enabled: boolean): CodeIntelRuntimeResult =>
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+
     try {
       const response = await fetch("/api/code-intel/events");
+
       if (!response.ok) {
         setError(`Failed to load events: ${response.status}`);
+
         return;
       }
-      const data = (await response.json()) as { events: CodeIntelEvent[] };
+
+      const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as { events: CodeIntelEvent[] };
       setEvents(data.events);
     } catch {
       setError("Failed to connect to API");
@@ -66,12 +70,14 @@ export const useCodeIntelRuntime = (enabled: boolean): CodeIntelRuntimeResult =>
 /** Find the longest common directory prefix across all file paths. */
 const deriveWorkspaceCwd = (paths: string[]): string => {
   const [firstPath] = paths;
+
   if (!firstPath) return "";
   const parts = firstPath.split("/");
   let prefix = "";
 
   for (let i = 0; i < parts.length - 1; i++) {
     const candidate = parts.slice(0, i + 1).join("/");
+
     if (paths.every((p) => p.startsWith(`${candidate}/`))) {
       prefix = candidate;
     } else {

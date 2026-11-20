@@ -1,52 +1,78 @@
+import { isObjectValue, isString, type ParsedRecord } from "@adadex/core";
 import {
   type CoordinationWorkspaceMode,
   isTerminalAgentProvider,
   type TerminalAgentProvider,
   type TerminalNameOrigin,
 } from "../terminalRuntime";
+import type { JsonRequestPayload } from "./requestParsers";
+
+type TerminalNameParseResult = {
+  provided: boolean;
+  name: string | undefined;
+  error: string | null;
+};
+
+type TerminalWorkspaceModeParseResult = {
+  workspaceMode: CoordinationWorkspaceMode;
+  error: string | null;
+};
+
+type TerminalAgentProviderParseResult = {
+  agentProvider: TerminalAgentProvider | undefined;
+  error: string | null;
+};
+
+type TerminalNameOriginParseResult = {
+  nameOrigin: TerminalNameOrigin | undefined;
+  error: string | null;
+};
 
 const isTerminalNameOrigin = (value: unknown): value is TerminalNameOrigin =>
   value === "generated" || value === "user" || value === "prompt";
 
-export const parseTerminalName = (payload: unknown) => {
+export const parseTerminalName = (payload: JsonRequestPayload): TerminalNameParseResult => {
   if (payload === null || payload === undefined) {
     return {
       provided: false,
-      name: undefined as string | undefined,
-      error: null as string | null,
+      name: undefined,
+      error: null,
     };
   }
 
-  if (typeof payload !== "object") {
+  if (!isObjectValue(payload)) {
     return {
       provided: true,
-      name: undefined as string | undefined,
+      name: undefined,
       error: "Expected a JSON object body.",
     };
   }
 
-  const rawName = (payload as Record<string, unknown>).name;
+  // SAFETY: the parse boundary produced ParsedValue members; missing keys read as undefined.
+  const rawName = (payload as ParsedRecord).name;
+
   if (rawName === undefined) {
     return {
       provided: false,
-      name: undefined as string | undefined,
-      error: null as string | null,
+      name: undefined,
+      error: null,
     };
   }
 
-  if (typeof rawName !== "string") {
+  if (!isString(rawName)) {
     return {
       provided: true,
-      name: undefined as string | undefined,
+      name: undefined,
       error: "Terminal name must be a string.",
     };
   }
 
   const trimmed = rawName.trim();
+
   if (trimmed.length === 0) {
     return {
       provided: true,
-      name: undefined as string | undefined,
+      name: undefined,
       error: "Terminal name cannot be empty.",
     };
   }
@@ -54,114 +80,126 @@ export const parseTerminalName = (payload: unknown) => {
   return {
     provided: true,
     name: trimmed,
-    error: null as string | null,
+    error: null,
   };
 };
 
-export const parseTerminalWorkspaceMode = (payload: unknown) => {
+export const parseTerminalWorkspaceMode = (
+  payload: JsonRequestPayload,
+): TerminalWorkspaceModeParseResult => {
   if (payload === null || payload === undefined) {
     return {
-      workspaceMode: "shared" as CoordinationWorkspaceMode,
-      error: null as string | null,
+      workspaceMode: "shared",
+      error: null,
     };
   }
 
-  if (typeof payload !== "object") {
+  if (!isObjectValue(payload)) {
     return {
-      workspaceMode: "shared" as CoordinationWorkspaceMode,
+      workspaceMode: "shared",
       error: "Expected a JSON object body.",
     };
   }
 
-  const rawWorkspaceMode = (payload as Record<string, unknown>).workspaceMode;
+  // SAFETY: the parse boundary produced ParsedValue members; missing keys read as undefined.
+  const rawWorkspaceMode = (payload as ParsedRecord).workspaceMode;
+
   if (rawWorkspaceMode === undefined) {
     return {
-      workspaceMode: "shared" as CoordinationWorkspaceMode,
-      error: null as string | null,
+      workspaceMode: "shared",
+      error: null,
     };
   }
 
   if (rawWorkspaceMode !== "shared" && rawWorkspaceMode !== "worktree") {
     return {
-      workspaceMode: "shared" as CoordinationWorkspaceMode,
+      workspaceMode: "shared",
       error: "Terminal workspace mode must be either 'shared' or 'worktree'.",
     };
   }
 
   return {
-    workspaceMode: rawWorkspaceMode as CoordinationWorkspaceMode,
-    error: null as string | null,
+    workspaceMode: rawWorkspaceMode,
+    error: null,
   };
 };
 
-export const parseTerminalAgentProvider = (payload: unknown) => {
+export const parseTerminalAgentProvider = (
+  payload: JsonRequestPayload,
+): TerminalAgentProviderParseResult => {
   if (payload === null || payload === undefined) {
     return {
-      agentProvider: undefined as TerminalAgentProvider | undefined,
-      error: null as string | null,
+      agentProvider: undefined,
+      error: null,
     };
   }
 
-  if (typeof payload !== "object") {
+  if (!isObjectValue(payload)) {
     return {
-      agentProvider: undefined as TerminalAgentProvider | undefined,
+      agentProvider: undefined,
       error: "Expected a JSON object body.",
     };
   }
 
-  const rawAgentProvider = (payload as Record<string, unknown>).agentProvider;
+  // SAFETY: the parse boundary produced ParsedValue members; missing keys read as undefined.
+  const rawAgentProvider = (payload as ParsedRecord).agentProvider;
+
   if (rawAgentProvider === undefined) {
     return {
-      agentProvider: undefined as TerminalAgentProvider | undefined,
-      error: null as string | null,
+      agentProvider: undefined,
+      error: null,
     };
   }
 
   if (!isTerminalAgentProvider(rawAgentProvider)) {
     return {
-      agentProvider: undefined as TerminalAgentProvider | undefined,
+      agentProvider: undefined,
       error: "Terminal agent provider must be 'kiro'.",
     };
   }
 
   return {
     agentProvider: rawAgentProvider,
-    error: null as string | null,
+    error: null,
   };
 };
 
-export const parseTerminalNameOrigin = (payload: unknown) => {
+export const parseTerminalNameOrigin = (
+  payload: JsonRequestPayload,
+): TerminalNameOriginParseResult => {
   if (payload === null || payload === undefined) {
     return {
-      nameOrigin: undefined as TerminalNameOrigin | undefined,
-      error: null as string | null,
+      nameOrigin: undefined,
+      error: null,
     };
   }
 
-  if (typeof payload !== "object") {
+  if (!isObjectValue(payload)) {
     return {
-      nameOrigin: undefined as TerminalNameOrigin | undefined,
+      nameOrigin: undefined,
       error: "Expected a JSON object body.",
     };
   }
 
-  const rawNameOrigin = (payload as Record<string, unknown>).nameOrigin;
+  // SAFETY: the parse boundary produced ParsedValue members; missing keys read as undefined.
+  const rawNameOrigin = (payload as ParsedRecord).nameOrigin;
+
   if (rawNameOrigin === undefined) {
     return {
-      nameOrigin: undefined as TerminalNameOrigin | undefined,
-      error: null as string | null,
+      nameOrigin: undefined,
+      error: null,
     };
   }
 
   if (!isTerminalNameOrigin(rawNameOrigin)) {
     return {
-      nameOrigin: undefined as TerminalNameOrigin | undefined,
+      nameOrigin: undefined,
       error: "Terminal name origin must be 'generated', 'user', or 'prompt'.",
     };
   }
 
   return {
     nameOrigin: rawNameOrigin,
-    error: null as string | null,
+    error: null,
   };
 };

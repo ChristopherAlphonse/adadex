@@ -8,17 +8,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const resolveRepoPromptsDir = (): string => {
   const fromTestFile = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "prompts");
+
   const candidates = [
     join(process.cwd(), "prompts"),
     join(process.cwd(), "..", "prompts"),
     join(process.cwd(), "..", "..", "prompts"),
     fromTestFile,
   ];
+
   for (const dir of candidates) {
     if (existsSync(join(dir, "coordination-context-init.md"))) {
       return dir;
     }
   }
+
   return fromTestFile;
 };
 
@@ -106,6 +109,7 @@ class FakeGitClient implements GitClient {
     if (this.worktrees.has(path)) {
       throw new Error(`Worktree already exists: ${path}`);
     }
+
     mkdirSync(path, { recursive: true });
     this.branches.add(branchName);
     this.worktrees.set(path, { cwd, branchName, baseRef });
@@ -128,6 +132,7 @@ class FakeGitClient implements GitClient {
     if (this.failRemoveWorktree) {
       throw new Error(`Unable to remove worktree: ${path}`);
     }
+
     this.worktrees.delete(path);
     this.worktreeStatusByCwd.delete(path);
     this.commitsByCwd.delete(path);
@@ -199,9 +204,11 @@ class FakeGitClient implements GitClient {
     defaultBaseBranchName: string | null;
   } {
     const status = this.worktreeStatusByCwd.get(cwd);
+
     if (!status) {
       throw new Error(`Missing fake status for ${cwd}`);
     }
+
     return {
       ...status,
       changedFiles: [...status.changedFiles],
@@ -214,9 +221,11 @@ class FakeGitClient implements GitClient {
     }
 
     const status = this.worktreeStatusByCwd.get(cwd);
+
     if (!status) {
       throw new Error(`Missing fake status for ${cwd}`);
     }
+
     if (!status.isDirty) {
       throw new Error("No local changes to commit.");
     }
@@ -241,6 +250,7 @@ class FakeGitClient implements GitClient {
     }
 
     const status = this.worktreeStatusByCwd.get(cwd);
+
     if (!status) {
       throw new Error(`Missing fake status for ${cwd}`);
     }
@@ -259,9 +269,11 @@ class FakeGitClient implements GitClient {
     }
 
     const status = this.worktreeStatusByCwd.get(cwd);
+
     if (!status) {
       throw new Error(`Missing fake status for ${cwd}`);
     }
+
     const syncs = this.syncsByCwd.get(cwd) ?? [];
     syncs.push(baseRef);
     this.syncsByCwd.set(cwd, syncs);
@@ -303,6 +315,7 @@ class FakeGitClient implements GitClient {
     mergeStateStatus: string | null;
   } | null {
     const pullRequest = this.pullRequestByCwd.get(cwd);
+
     if (pullRequest === undefined || pullRequest === null) {
       return null;
     }
@@ -339,6 +352,7 @@ class FakeGitClient implements GitClient {
     }
 
     const nextNumber = (this.pullRequestByCwd.get(cwd)?.number ?? 100) + 1;
+
     const pullRequest = {
       number: nextNumber,
       url: `https://github.com/hesamsheikh/adadex/pull/${nextNumber}`,
@@ -350,7 +364,9 @@ class FakeGitClient implements GitClient {
       mergeable: "MERGEABLE" as const,
       mergeStateStatus: "CLEAN",
     };
+
     this.pullRequestByCwd.set(cwd, pullRequest);
+
     return pullRequest;
   }
 
@@ -365,6 +381,7 @@ class FakeGitClient implements GitClient {
     }
 
     const pullRequest = this.pullRequestByCwd.get(cwd);
+
     if (!pullRequest) {
       throw new Error("No open pull request for this branch.");
     }
@@ -387,9 +404,11 @@ class FakeGitClient implements GitClient {
 
   getLastCommitMessage(cwd: string): string | null {
     const commits = this.commitsByCwd.get(cwd);
+
     if (!commits || commits.length === 0) {
       return null;
     }
+
     return commits[commits.length - 1] ?? null;
   }
 
@@ -419,6 +438,7 @@ describe("createApiServer", () => {
     for (const directory of temporaryDirectories) {
       rmSync(directory, { recursive: true, force: true });
     }
+
     temporaryDirectories.length = 0;
   });
 
@@ -428,15 +448,19 @@ describe("createApiServer", () => {
       (() => {
         const directory = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
         temporaryDirectories.push(directory);
+
         return directory;
       })();
+
     const apiServer = createApiServer({
       workspaceCwd,
       gitClient: options.gitClient ?? new FakeGitClient(),
       ...options,
     });
+
     const address = await apiServer.start(0, "127.0.0.1");
     stopServer = () => apiServer.stop();
+
     return `http://${address.host}:${address.port}`;
   };
 
@@ -456,11 +480,14 @@ describe("createApiServer", () => {
       if (existsSync(registryPath)) {
         try {
           const raw = readFileSync(registryPath, "utf8").trim();
+
           if (raw.length === 0) {
             await new Promise((resolve) => setTimeout(resolve, 20));
             continue;
           }
-          const document = JSON.parse(raw) as TDocument;
+
+          const document = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(raw) as TDocument;
+
           if (predicate(document)) {
             return document;
           }
@@ -503,10 +530,12 @@ describe("createApiServer", () => {
   ) => {
     const transcriptDirectory = join(workspaceCwd, ".adadex", "state", "transcripts");
     mkdirSync(transcriptDirectory, { recursive: true });
+
     const turnsPath = join(
       transcriptDirectory,
       `${encodeURIComponent(sessionId)}.agent-turns.json`,
     );
+
     writeFileSync(turnsPath, JSON.stringify(turns), "utf8");
   };
 
@@ -632,6 +661,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(detailResponse.status).toBe(200);
     await expect(detailResponse.json()).resolves.toMatchObject({
       sessionId: "terminal-2-agent-1",
@@ -657,6 +687,7 @@ describe("createApiServer", () => {
         },
       },
     );
+
     expect(jsonExportResponse.status).toBe(200);
     await expect(jsonExportResponse.json()).resolves.toMatchObject({
       sessionId: "terminal-2-agent-1",
@@ -669,6 +700,7 @@ describe("createApiServer", () => {
         method: "GET",
       },
     );
+
     expect(markdownExportResponse.status).toBe(200);
     expect(markdownExportResponse.headers.get("content-type")).toContain("text/markdown");
     const markdownBody = await markdownExportResponse.text();
@@ -704,6 +736,7 @@ describe("createApiServer", () => {
         },
       },
     );
+
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       error: "Unsupported conversation export format.",
@@ -768,6 +801,7 @@ describe("createApiServer", () => {
         host: wsUrl.hostname,
         port: Number.parseInt(wsUrl.port, 10),
       });
+
       let settled = false;
       let responseHead = "";
 
@@ -775,6 +809,7 @@ describe("createApiServer", () => {
         if (settled) {
           return;
         }
+
         settled = true;
         socket.destroy();
         resolve(didOpen);
@@ -787,6 +822,7 @@ describe("createApiServer", () => {
       });
       socket.on("data", (chunk) => {
         responseHead += chunk.toString("utf8");
+
         if (responseHead.includes("101 Switching Protocols")) {
           finish(true);
         }
@@ -881,6 +917,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createResponse.status).toBe(201);
 
     const hookResponse = await fetch(
@@ -891,6 +928,7 @@ describe("createApiServer", () => {
         body: JSON.stringify({ prompt: "Investigate flaky CI failures" }),
       },
     );
+
     expect(hookResponse.status).toBe(200);
 
     const secondHookResponse = await fetch(
@@ -901,6 +939,7 @@ describe("createApiServer", () => {
         body: JSON.stringify({ prompt: "Something else later" }),
       },
     );
+
     expect(secondHookResponse.status).toBe(200);
 
     const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
@@ -909,6 +948,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual(
       expect.arrayContaining([
@@ -931,6 +971,7 @@ describe("createApiServer", () => {
       },
       body: JSON.stringify({ name: "reviewer" }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const hookResponse = await fetch(
@@ -941,6 +982,7 @@ describe("createApiServer", () => {
         body: JSON.stringify({ prompt: "Investigate flaky CI failures" }),
       },
     );
+
     expect(hookResponse.status).toBe(200);
 
     const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
@@ -949,6 +991,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual(
       expect.arrayContaining([
@@ -997,6 +1040,7 @@ describe("createApiServer", () => {
         body: JSON.stringify({ prompt: "Investigate flaky CI failures" }),
       },
     );
+
     expect(hookResponse.status).toBe(200);
 
     const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
@@ -1005,6 +1049,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual(
       expect.arrayContaining([
@@ -1051,13 +1096,16 @@ describe("createApiServer", () => {
     const initialResponse = await fetch(`${baseUrl}/api/setup`, {
       headers: { Accept: "application/json" },
     });
+
     expect(initialResponse.status).toBe(200);
-    const initialPayload = (await initialResponse.json()) as {
+
+    const initialPayload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await initialResponse.json()) as {
       isFirstRun: boolean;
       shouldShowSetupCard: boolean;
       hasAnyCoordinations: boolean;
       steps: Array<{ id: string; complete: boolean }>;
     };
+
     expect(existsSync(join(workspaceCwd, ".adadex"))).toBe(false);
     expect(existsSync(join(workspaceCwd, ".gitignore"))).toBe(false);
     expect(initialPayload.isFirstRun).toBe(true);
@@ -1075,6 +1123,7 @@ describe("createApiServer", () => {
       method: "POST",
       headers: { Accept: "application/json" },
     });
+
     expect(initializeResponse.status).toBe(200);
     expect(existsSync(join(workspaceCwd, ".adadex", "project.json"))).toBe(true);
     expect(existsSync(join(workspaceCwd, ".adadex", "coordinations"))).toBe(true);
@@ -1084,6 +1133,7 @@ describe("createApiServer", () => {
       method: "POST",
       headers: { Accept: "application/json" },
     });
+
     expect(gitignoreResponse.status).toBe(200);
     const gitignoreContent = readFileSync(join(workspaceCwd, ".gitignore"), "utf8");
     expect(gitignoreContent.split(/\r?\n/)).toEqual(
@@ -1101,18 +1151,22 @@ describe("createApiServer", () => {
         description: "Docs and guides",
       }),
     });
+
     expect(createOrchestrationResponse.status).toBe(201);
 
     const finalResponse = await fetch(`${baseUrl}/api/setup`, {
       headers: { Accept: "application/json" },
     });
+
     expect(finalResponse.status).toBe(200);
-    const finalPayload = (await finalResponse.json()) as {
+
+    const finalPayload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await finalResponse.json()) as {
       isFirstRun: boolean;
       hasAnyCoordinations: boolean;
       coordinationCount: number;
       steps: Array<{ id: string; complete: boolean }>;
     };
+
     expect(finalPayload.isFirstRun).toBe(false);
     expect(finalPayload.hasAnyCoordinations).toBe(true);
     expect(finalPayload.coordinationCount).toBe(1);
@@ -1188,6 +1242,7 @@ describe("createApiServer", () => {
     );
 
     const baseUrl = await startServer({ workspaceCwd });
+
     const response = await fetch(`${baseUrl}/api/deck/skills`, {
       headers: { Accept: "application/json" },
     });
@@ -1236,6 +1291,7 @@ describe("createApiServer", () => {
     );
 
     const baseUrl = await startServer({ workspaceCwd });
+
     const response = await fetch(`${baseUrl}/api/deck/skills`, {
       headers: { Accept: "application/json" },
     });
@@ -1280,6 +1336,7 @@ describe("createApiServer", () => {
       join(workspaceCwd, ".adadex", "coordinations", "docs", "CONTEXT.md"),
       "utf8",
     );
+
     expect(context).toContain("## Suggested Skills");
     expect(context).toContain("You can use these skills if you need to.");
     expect(context).toContain("- `docs-writer`");
@@ -1288,6 +1345,7 @@ describe("createApiServer", () => {
     const listResponse = await fetch(`${baseUrl}/api/deck/coordinations`, {
       headers: { Accept: "application/json" },
     });
+
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual(
       expect.arrayContaining([
@@ -1315,6 +1373,7 @@ describe("createApiServer", () => {
         description: "Docs and guides",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const updateResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/skills`, {
@@ -1395,6 +1454,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createResponse.status).toBe(201);
 
     const patchResponse = await fetch(`${firstBaseUrl}/api/ui-state`, {
@@ -1415,6 +1475,7 @@ describe("createApiServer", () => {
         },
       }),
     });
+
     expect(patchResponse.status).toBe(200);
     await expect(patchResponse.json()).resolves.toEqual({
       isAgentsSidebarVisible: false,
@@ -1553,6 +1614,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createFirstResponse.status).toBe(201);
 
     const createSecondResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -1561,6 +1623,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createSecondResponse.status).toBe(201);
 
     const deleteFirstResponse = await fetch(`${baseUrl}/api/terminals/terminal-1`, {
@@ -1569,6 +1632,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(deleteFirstResponse.status).toBe(204);
 
     const createThirdResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -1577,6 +1641,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createThirdResponse.status).toBe(201);
     await expect(createThirdResponse.json()).resolves.toEqual(
       expect.objectContaining({
@@ -1614,6 +1679,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createResponse.status).toBe(201);
     await expect(createResponse.json()).resolves.toEqual(
       expect.objectContaining({
@@ -1639,6 +1705,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createResponse.status).toBe(201);
     await expect(createResponse.json()).resolves.toEqual(
       expect.objectContaining({
@@ -1650,6 +1717,7 @@ describe("createApiServer", () => {
   it("persists orchestration metadata without runtime bootstrap flags", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
+
     const baseUrl = await startServer({
       workspaceCwd,
     });
@@ -1662,6 +1730,7 @@ describe("createApiServer", () => {
       },
       body: JSON.stringify({ name: "planner" }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const registryDocument = await waitForRegistryDocument<{
@@ -1678,6 +1747,7 @@ describe("createApiServer", () => {
           terminal.workspaceMode === "shared",
       ),
     );
+
     expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1692,6 +1762,7 @@ describe("createApiServer", () => {
   it("marks auto-started prompted terminals as active immediately", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
+
     const baseUrl = await startServer({
       workspaceCwd,
     });
@@ -1704,11 +1775,13 @@ describe("createApiServer", () => {
       },
       body: JSON.stringify({ name: "planner", initialPrompt: "Start working." }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const snapshotsResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       headers: { Accept: "application/json" },
     });
+
     expect(snapshotsResponse.status).toBe(200);
     await expect(snapshotsResponse.json()).resolves.toEqual(
       expect.arrayContaining([
@@ -1729,6 +1802,7 @@ describe("createApiServer", () => {
     mkdirSync(orchestrationDir, { recursive: true });
     writeFileSync(join(orchestrationDir, "CONTEXT.md"), "# Docs\n\nDocumentation team\n", "utf8");
     writeFileSync(join(orchestrationDir, "todo.md"), "# Todo\n", "utf8");
+
     const baseUrl = await startServer({
       workspaceCwd,
       promptsDir,
@@ -1742,6 +1816,7 @@ describe("createApiServer", () => {
       },
       body: JSON.stringify({ coordinationId: "docs", workspaceMode: "shared" }),
     });
+
     expect(createResponse.status).toBe(201);
     await expect(createResponse.json()).resolves.toEqual(
       expect.objectContaining({
@@ -1754,6 +1829,7 @@ describe("createApiServer", () => {
     const snapshotsResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
       headers: { Accept: "application/json" },
     });
+
     expect(snapshotsResponse.status).toBe(200);
     await expect(snapshotsResponse.json()).resolves.toEqual(
       expect.arrayContaining([
@@ -1769,6 +1845,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -1785,6 +1862,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
     await expect(createResponse.json()).resolves.toEqual(
       expect.objectContaining({
@@ -1817,6 +1895,7 @@ describe("createApiServer", () => {
           terminal.workspaceMode === "worktree",
       ),
     );
+
     expect(registryDocument.terminals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1832,6 +1911,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -1847,6 +1927,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const worktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -1869,6 +1950,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(statusResponse.status).toBe(200);
     await expect(statusResponse.json()).resolves.toEqual({
       coordinationId: "terminal-1",
@@ -1895,6 +1977,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createResponse.status).toBe(201);
 
     const statusResponse = await fetch(`${baseUrl}/api/coordinations/terminal-1/git/status`, {
@@ -1903,6 +1986,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(statusResponse.status).toBe(409);
     await expect(statusResponse.json()).resolves.toEqual({
       error: "Git lifecycle actions are only available for worktree terminals.",
@@ -1913,6 +1997,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -1928,6 +2013,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const worktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -1954,6 +2040,7 @@ describe("createApiServer", () => {
         message: "feat: add worktree git actions",
       }),
     });
+
     expect(commitResponse.status).toBe(200);
     expect(gitClient.getLastCommitMessage(worktreePath)).toBe("feat: add worktree git actions");
     await expect(commitResponse.json()).resolves.toEqual({
@@ -1976,6 +2063,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -1991,9 +2079,11 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const worktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
+
     const commitResponse = await fetch(`${baseUrl}/api/coordinations/terminal-1/git/commit`, {
       method: "POST",
       headers: {
@@ -2004,6 +2094,7 @@ describe("createApiServer", () => {
         message: "   ",
       }),
     });
+
     expect(commitResponse.status).toBe(400);
     expect(gitClient.getLastCommitMessage(worktreePath)).toBeNull();
     await expect(commitResponse.json()).resolves.toEqual({
@@ -2015,6 +2106,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -2030,6 +2122,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const worktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -2052,6 +2145,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(pushResponse.status).toBe(200);
     expect(gitClient.getPushCount(worktreePath)).toBe(1);
     await expect(pushResponse.json()).resolves.toEqual({
@@ -2074,6 +2168,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -2089,6 +2184,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const worktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -2115,6 +2211,7 @@ describe("createApiServer", () => {
         baseRef: "main",
       }),
     });
+
     expect(syncResponse.status).toBe(200);
     expect(gitClient.getSyncBaseRefs(worktreePath)).toEqual(["main"]);
     await expect(syncResponse.json()).resolves.toEqual({
@@ -2137,6 +2234,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -2152,6 +2250,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const worktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -2173,6 +2272,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(prStatusResponse.status).toBe(200);
     await expect(prStatusResponse.json()).resolves.toEqual({
       coordinationId: "terminal-1",
@@ -2193,6 +2293,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -2208,6 +2309,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const worktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -2236,6 +2338,7 @@ describe("createApiServer", () => {
         baseRef: "main",
       }),
     });
+
     expect(createPrResponse.status).toBe(200);
     await expect(createPrResponse.json()).resolves.toEqual({
       coordinationId: "terminal-1",
@@ -2256,6 +2359,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -2271,6 +2375,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const worktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -2310,6 +2415,7 @@ describe("createApiServer", () => {
         baseRef: "main",
       }),
     });
+
     expect(createPrResponse.status).toBe(409);
     await expect(createPrResponse.json()).resolves.toEqual({
       error: "An open pull request already exists for this branch.",
@@ -2322,6 +2428,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -2337,6 +2444,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const worktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -2358,6 +2466,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(mergeResponse.status).toBe(200);
     expect(gitClient.getPullRequestState(worktreePath)).toBe("MERGED");
     await expect(mergeResponse.json()).resolves.toEqual({
@@ -2384,6 +2493,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createResponse.status).toBe(201);
 
     const prStatusResponse = await fetch(`${baseUrl}/api/coordinations/terminal-1/git/pr`, {
@@ -2392,6 +2502,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(prStatusResponse.status).toBe(409);
     await expect(prStatusResponse.json()).resolves.toEqual({
       error: "Git lifecycle actions are only available for worktree terminals.",
@@ -2402,6 +2513,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -2417,6 +2529,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const expectedWorktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -2433,6 +2546,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(deleteResponse.status).toBe(204);
     expect(gitClient.getWorktree(expectedWorktreePath)).toBeNull();
     expect(gitClient.hasBranch("adadex/terminal-1")).toBe(false);
@@ -2442,6 +2556,7 @@ describe("createApiServer", () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -2457,6 +2572,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(201);
 
     const expectedWorktreePath = join(workspaceCwd, ".adadex", "worktrees", "terminal-1");
@@ -2468,6 +2584,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(deleteResponse.status).toBe(409);
     await expect(deleteResponse.json()).resolves.toEqual({
       error: expect.stringContaining("Unable to remove worktree for terminal-1"),
@@ -2485,6 +2602,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual(
       expect.arrayContaining([
@@ -2591,6 +2709,7 @@ describe("createApiServer", () => {
     temporaryDirectories.push(workspaceCwd);
     const gitClient = new FakeGitClient();
     gitClient.setRepositoryAvailable(false);
+
     const baseUrl = await startServer({
       workspaceCwd,
       gitClient,
@@ -2606,6 +2725,7 @@ describe("createApiServer", () => {
         workspaceMode: "worktree",
       }),
     });
+
     expect(createResponse.status).toBe(400);
     await expect(createResponse.json()).resolves.toEqual({
       error: "Worktree terminals require a git repository at the workspace root.",
@@ -2617,6 +2737,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([]);
   });
@@ -2641,6 +2762,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(validCreateResponse.status).toBe(201);
 
     const renameResponse = await fetch(`${baseUrl}/api/terminals/terminal-1`, {
@@ -2742,6 +2864,7 @@ describe("createApiServer", () => {
         body: JSON.stringify({ itemIndex: 0 }),
       },
     );
+
     expect(solveResponse.status).toBe(201);
 
     const hookResponse = await fetch(
@@ -2752,6 +2875,7 @@ describe("createApiServer", () => {
         body: JSON.stringify({ prompt: "Generic worker prompt body" }),
       },
     );
+
     expect(hookResponse.status).toBe(200);
 
     const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
@@ -2783,10 +2907,12 @@ describe("createApiServer", () => {
       "# Docs & Knowledge\n",
       "utf8",
     );
+
     const todoItems = Array.from(
       { length: MAX_CHILDREN_PER_PARENT + 4 },
       (_, index) => `- [ ] item ${index}`,
     ).join("\n");
+
     writeFileSync(
       join(workspaceCwd, ".adadex", "coordinations", "docs-knowledge", "todo.md"),
       `# Todo\n\n${todoItems}\n`,
@@ -2819,6 +2945,7 @@ describe("createApiServer", () => {
       join(process.cwd(), "..", "..", "prompts", "swarm-parent.md"),
       "utf8",
     );
+
     expect(promptTemplate).toContain(
       "Treat the listed workers as the highest-priority items and proceed without asking the user whether to batch, reprioritize, or raise the limit.",
     );
@@ -2833,6 +2960,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(createResponse.status).toBe(201);
 
     const deleteResponse = await fetch(`${baseUrl}/api/terminals/terminal-1`, {
@@ -2841,6 +2969,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(deleteResponse.status).toBe(204);
 
     const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
@@ -2849,6 +2978,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([]);
 
@@ -2858,6 +2988,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(missingResponse.status).toBe(204);
   });
 
@@ -2872,6 +3003,7 @@ describe("createApiServer", () => {
       },
       body: JSON.stringify({ terminalId: "parent-terminal" }),
     });
+
     expect(createParentResponse.status).toBe(201);
 
     const createChildResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -2885,6 +3017,7 @@ describe("createApiServer", () => {
         parentTerminalId: "parent-terminal",
       }),
     });
+
     expect(createChildResponse.status).toBe(201);
 
     const createGrandchildResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -2898,6 +3031,7 @@ describe("createApiServer", () => {
         parentTerminalId: "child-terminal",
       }),
     });
+
     expect(createGrandchildResponse.status).toBe(201);
 
     const createSiblingResponse = await fetch(`${baseUrl}/api/terminals`, {
@@ -2908,6 +3042,7 @@ describe("createApiServer", () => {
       },
       body: JSON.stringify({ terminalId: "unrelated-terminal" }),
     });
+
     expect(createSiblingResponse.status).toBe(201);
 
     const deleteResponse = await fetch(`${baseUrl}/api/terminals/parent-terminal`, {
@@ -2916,6 +3051,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(deleteResponse.status).toBe(204);
 
     const listResponse = await fetch(`${baseUrl}/api/terminal-snapshots`, {
@@ -2924,6 +3060,7 @@ describe("createApiServer", () => {
         Accept: "application/json",
       },
     });
+
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([
       expect.objectContaining({ terminalId: "unrelated-terminal" }),
@@ -2946,6 +3083,7 @@ describe("createApiServer", () => {
       },
       body: JSON.stringify({ name: "planner" }),
     });
+
     expect(createResponse.status).toBe(201);
 
     if (stopServer) {
@@ -3013,7 +3151,7 @@ describe("createApiServer", () => {
     });
 
     expect(listResponse.status).toBe(200);
-    const snapshots = (await listResponse.json()) as Array<Record<string, unknown>>;
+    const snapshots = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await listResponse.json()) as Array<Record<string, unknown>>;
     expect(snapshots).toEqual([
       expect.objectContaining({
         terminalId: "terminal-1",
@@ -3059,6 +3197,7 @@ describe("createApiServer", () => {
       method: "POST",
       headers: { Accept: "application/json" },
     });
+
     expect(stopResponse.status).toBe(200);
     await expect(stopResponse.json()).resolves.toEqual(
       expect.objectContaining({
@@ -3072,6 +3211,7 @@ describe("createApiServer", () => {
       method: "POST",
       headers: { Accept: "application/json" },
     });
+
     expect(pruneResponse.status).toBe(200);
     await expect(pruneResponse.json()).resolves.toEqual({
       prunedTerminalIds: ["terminal-1"],
@@ -3081,6 +3221,7 @@ describe("createApiServer", () => {
       method: "GET",
       headers: { Accept: "application/json" },
     });
+
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([]);
   });

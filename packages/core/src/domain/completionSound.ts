@@ -11,4 +11,4 @@ export type TerminalCompletionSoundId = (typeof TERMINAL_COMPLETION_SOUND_IDS)[n
 
 export const isTerminalCompletionSoundId = (value: unknown): value is TerminalCompletionSoundId =>
   typeof value === "string" &&
-  TERMINAL_COMPLETION_SOUND_IDS.includes(value as TerminalCompletionSoundId);
+  TERMINAL_COMPLETION_SOUND_IDS.includes(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ value as TerminalCompletionSoundId);

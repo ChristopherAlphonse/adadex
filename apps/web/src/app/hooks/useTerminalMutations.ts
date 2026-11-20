@@ -1,3 +1,4 @@
+import { isString } from "@adadex/core";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useRef, useState } from "react";
 
@@ -8,6 +9,11 @@ export type PendingDeleteTerminal = {
   coordinationName: string;
   workspaceMode: TerminalWorkspaceMode;
   intent: "close-terminal" | "delete-terminal" | "cleanup-worktree";
+};
+
+type CreateTerminalRequest = {
+  workspaceMode: TerminalWorkspaceMode;
+  coordinationId?: string;
 };
 
 type UseTerminalMutationsOptions = {
@@ -55,9 +61,11 @@ export const useTerminalMutations = ({
   const [terminalNameDraft, setTerminalNameDraft] = useState("");
   const [isCreatingTerminal, setIsCreatingTerminal] = useState(false);
   const [isDeletingTerminalId, setIsDeletingTerminalId] = useState<string | null>(null);
+
   const [pendingDeleteTerminal, setPendingDeleteTerminal] = useState<PendingDeleteTerminal | null>(
     null,
   );
+
   const cancelTerminalNameSubmitRef = useRef(false);
 
   const beginTerminalNameEdit = useCallback(
@@ -73,23 +81,28 @@ export const useTerminalMutations = ({
     async (terminalId: string, currentTerminalName: string) => {
       if (cancelTerminalNameSubmitRef.current) {
         cancelTerminalNameSubmitRef.current = false;
+
         return;
       }
 
       const trimmedName = terminalNameDraft.trim();
+
       if (trimmedName.length === 0) {
         setLoadError("Terminal name cannot be empty.");
+
         return;
       }
 
       if (trimmedName === currentTerminalName) {
         setEditingTerminalId(null);
+
         return;
       }
 
       try {
         setLoadError(null);
         const encodedTerminalId = encodeURIComponent(terminalId);
+
         const response = await fetch(`/api/terminals/${encodedTerminalId}`, {
           method: "PATCH",
           headers: {
@@ -118,6 +131,7 @@ export const useTerminalMutations = ({
       try {
         setIsCreatingTerminal(true);
         setLoadError(null);
+
         const response = await fetch("/api/terminals", {
           method: "POST",
           headers: {
@@ -134,30 +148,36 @@ export const useTerminalMutations = ({
           throw new Error(`Unable to create terminal (${response.status})`);
         }
 
-        const createdSnapshot = (await response.json()) as {
+        const createdSnapshot = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as {
           terminalId?: unknown;
           coordinationName?: unknown;
         };
+
         const nextColumns = await readColumns();
         setColumns(nextColumns);
 
         const createdTerminalId =
-          typeof createdSnapshot.terminalId === "string" ? createdSnapshot.terminalId : null;
+          isString(createdSnapshot.terminalId) ? createdSnapshot.terminalId : null;
+
         if (!createdTerminalId) {
           return undefined;
         }
 
         const createdEntry = nextColumns.find((entry) => entry.terminalId === createdTerminalId);
+
         const createdTerminalName =
           createdEntry?.coordinationName ??
-          (typeof createdSnapshot.coordinationName === "string"
+          (isString(createdSnapshot.coordinationName)
             ? createdSnapshot.coordinationName
             : createdTerminalId);
+
         setMinimizedTerminalIds((current) => current.filter((id) => id !== createdTerminalId));
         beginTerminalNameEdit(createdTerminalId, createdTerminalName);
+
         return createdTerminalId;
       } catch {
         setLoadError("Unable to create a new terminal.");
+
         return undefined;
       } finally {
         setIsCreatingTerminal(false);
@@ -192,6 +212,7 @@ export const useTerminalMutations = ({
         setLoadError(null);
         setIsDeletingTerminalId(terminalId);
         const encodedTerminalId = encodeURIComponent(terminalId);
+
         const response = await fetch(`/api/terminals/${encodedTerminalId}`, {
           method: "DELETE",
           headers: {
@@ -207,15 +228,18 @@ export const useTerminalMutations = ({
           setEditingTerminalId(null);
           setTerminalNameDraft("");
         }
+
         setMinimizedTerminalIds((current) =>
           current.filter((currentTerminalId) => currentTerminalId !== terminalId),
         );
 
         const nextColumns = await readColumns();
         setColumns(nextColumns);
+
         return true;
       } catch {
         setLoadError("Unable to delete terminal.");
+
         return false;
       } finally {
         setIsDeletingTerminalId(null);
@@ -230,6 +254,7 @@ export const useTerminalMutations = ({
     }
 
     const didClose = await closeTerminal(pendingDeleteTerminal.terminalId);
+
     if (didClose) {
       setPendingDeleteTerminal(null);
     }

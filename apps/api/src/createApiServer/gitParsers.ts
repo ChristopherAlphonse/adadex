@@ -1,15 +1,33 @@
+import { isObjectValue, isString, type ParsedRecord } from "@adadex/core";
+
+import type { JsonRequestPayload } from "./requestParsers";
+
+type CommitMessageParseResult = { message: string | null; error: string | null };
+
+type SyncBaseRefParseResult = { baseRef: string | null; error: string | null };
+
+type PullRequestInputParseResult = {
+  title: string | null;
+  body: string;
+  baseRef: string | null;
+  error: string | null;
+};
+
 export const parseOrchestrationCommitMessage = (
-  payload: unknown,
-): { message: string | null; error: string | null } => {
-  if (payload === null || payload === undefined || typeof payload !== "object") {
+  payload: JsonRequestPayload,
+): CommitMessageParseResult => {
+  if (payload === null || payload === undefined || !isObjectValue(payload)) {
     return {
       message: null,
       error: "Expected a JSON object body.",
     };
   }
 
-  const rawMessage = (payload as Record<string, unknown>).message;
-  if (typeof rawMessage !== "string") {
+  // SAFETY: parse boundary produced ParsedValue members; object or array keys read as ParsedValue.
+  const record = payload as ParsedRecord;
+  const rawMessage = record.message;
+
+  if (!isString(rawMessage)) {
     return {
       message: null,
       error: "Commit message must be a string.",
@@ -17,6 +35,7 @@ export const parseOrchestrationCommitMessage = (
   }
 
   const trimmed = rawMessage.trim();
+
   if (trimmed.length === 0) {
     return {
       message: null,
@@ -31,8 +50,8 @@ export const parseOrchestrationCommitMessage = (
 };
 
 export const parseOrchestrationSyncBaseRef = (
-  payload: unknown,
-): { baseRef: string | null; error: string | null } => {
+  payload: JsonRequestPayload,
+): SyncBaseRefParseResult => {
   if (payload === null || payload === undefined) {
     return {
       baseRef: null,
@@ -40,14 +59,17 @@ export const parseOrchestrationSyncBaseRef = (
     };
   }
 
-  if (typeof payload !== "object") {
+  if (!isObjectValue(payload)) {
     return {
       baseRef: null,
       error: "Expected a JSON object body.",
     };
   }
 
-  const rawBaseRef = (payload as Record<string, unknown>).baseRef;
+  // SAFETY: parse boundary produced ParsedValue members; object or array keys read as ParsedValue.
+  const record = payload as ParsedRecord;
+  const rawBaseRef = record.baseRef;
+
   if (rawBaseRef === undefined) {
     return {
       baseRef: null,
@@ -55,7 +77,7 @@ export const parseOrchestrationSyncBaseRef = (
     };
   }
 
-  if (typeof rawBaseRef !== "string") {
+  if (!isString(rawBaseRef)) {
     return {
       baseRef: null,
       error: "baseRef must be a string.",
@@ -63,6 +85,7 @@ export const parseOrchestrationSyncBaseRef = (
   }
 
   const trimmed = rawBaseRef.trim();
+
   if (trimmed.length === 0) {
     return {
       baseRef: null,
@@ -77,14 +100,9 @@ export const parseOrchestrationSyncBaseRef = (
 };
 
 export const parseOrchestrationPullRequestCreateInput = (
-  payload: unknown,
-): {
-  title: string | null;
-  body: string;
-  baseRef: string | null;
-  error: string | null;
-} => {
-  if (payload === null || payload === undefined || typeof payload !== "object") {
+  payload: JsonRequestPayload,
+): PullRequestInputParseResult => {
+  if (payload === null || payload === undefined || !isObjectValue(payload)) {
     return {
       title: null,
       body: "",
@@ -93,8 +111,10 @@ export const parseOrchestrationPullRequestCreateInput = (
     };
   }
 
-  const record = payload as Record<string, unknown>;
-  if (typeof record.title !== "string" || record.title.trim().length === 0) {
+  // SAFETY: parse boundary produced ParsedValue members; object or array keys read as ParsedValue.
+  const record = payload as ParsedRecord;
+
+  if (!isString(record.title) || record.title.trim().length === 0) {
     return {
       title: null,
       body: "",
@@ -103,7 +123,7 @@ export const parseOrchestrationPullRequestCreateInput = (
     };
   }
 
-  if (record.body !== undefined && typeof record.body !== "string") {
+  if (record.body !== undefined && !isString(record.body)) {
     return {
       title: null,
       body: "",
@@ -112,7 +132,7 @@ export const parseOrchestrationPullRequestCreateInput = (
     };
   }
 
-  if (record.baseRef !== undefined && typeof record.baseRef !== "string") {
+  if (record.baseRef !== undefined && !isString(record.baseRef)) {
     return {
       title: null,
       body: "",
@@ -121,7 +141,8 @@ export const parseOrchestrationPullRequestCreateInput = (
     };
   }
 
-  const normalizedBaseRef = typeof record.baseRef === "string" ? record.baseRef.trim() : "";
+  const normalizedBaseRef = isString(record.baseRef) ? record.baseRef.trim() : "";
+
   if (record.baseRef !== undefined && normalizedBaseRef.length === 0) {
     return {
       title: null,
@@ -133,7 +154,7 @@ export const parseOrchestrationPullRequestCreateInput = (
 
   return {
     title: record.title.trim(),
-    body: typeof record.body === "string" ? record.body : "",
+    body: isString(record.body) ? record.body : "",
     baseRef: normalizedBaseRef.length > 0 ? normalizedBaseRef : null,
     error: null,
   };

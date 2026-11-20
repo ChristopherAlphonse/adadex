@@ -17,11 +17,15 @@ const registry = createActionRegistry([
   ...FACTORY_ACTIONS,
   { id: "demo.ask", title: "Demo ask", touches: ["process"], class: "ask", parse: (i) => i },
 ]);
+
 const roleOf = (id: string) => {
   const r = PRESET_ROLES.find((x) => x.id === id);
+
   if (!r) throw new Error(`no role ${id}`);
+
   return r;
 };
+
 const mine = (over: Record<string, unknown> = {}) => ({
   id: "my-role",
   name: "Mine",
@@ -33,8 +37,10 @@ const mine = (over: Record<string, unknown> = {}) => ({
   limits: { maxActions: 10, maxSeconds: 60 },
   ...over,
 });
+
 const errorsOf = (input: unknown): readonly string[] => {
   const r = parseRole(input, registry);
+
   return r.ok ? [] : r.errors;
 };
 
@@ -49,6 +55,7 @@ describe("the preset roles", () => {
       for (const stage of def.stages.filter((s) => !s.terminal)) {
         const role = PRESET_ROLES.find((r) => r.id === stage.role);
         expect(role, `${def.id}/${stage.id} needs a role`).toBeDefined();
+
         for (const m of stage.moves)
           expect(role?.advanceTo, `${stage.role} at ${stage.id} -> ${m.to}`).toContain(m.to);
       }
@@ -63,6 +70,7 @@ describe("the preset roles", () => {
           ["Read", "Grep", "Glob", "Edit", "Write", "MultiEdit", "Bash"].includes(t),
         ),
       ).toBe(true);
+
       for (const d of r.writeDocs) expect(d).not.toMatch(/job\.json|audit\.log|checks\.md/);
     }
   });
@@ -115,6 +123,7 @@ describe("parseRole: a role cannot be a way around the rules", () => {
     for (const doc of ["checks.md", "round-1/checks.md", "audit.log", "job.json", "human.sha256"]) {
       expect(errorsOf(mine({ writeDocs: [doc] }))[0]).toContain("written only by the app");
     }
+
     expect(errorsOf(mine({ writeDocs: ["../outside.md"] }))[0]).toContain(
       "must stay inside the job folder",
     );
@@ -176,6 +185,7 @@ describe("authorizeForRole: a role narrows, never widens", () => {
       ...builder,
       actions: ["job.advance", "job.commit_local", "job.approve_spec", "job.unblock"],
     };
+
     for (const id of ["job.commit_local", "job.approve_spec", "job.unblock"]) {
       expect(authorizeForRole(registry, sneaky, id, { id: "j1" }, true).kind).toBe(
         "needs-human-click",
@@ -208,6 +218,7 @@ describe("authorizeForRole: a role narrows, never widens", () => {
 
 describe("policyForRole: writes are limited to what the role owns", () => {
   const JOB = "/state/jobs/j1";
+
   const write = (roleId: string, path: string) =>
     evaluateToolCall(
       policyForRole(BUILD_POLICY, roleOf(roleId), { jobDir: JOB }),
@@ -218,6 +229,7 @@ describe("policyForRole: writes are limited to what the role owns", () => {
   it("lets a builder write build.md and code, and nothing else in the job folder", () => {
     expect(write("builder", `${JOB}/build.md`)).toBe("allow");
     expect(write("builder", "/wt/src/app.ts")).toBe("allow");
+
     for (const other of [
       "spec.md",
       "uat.md",
@@ -252,9 +264,11 @@ describe("policyForRole: writes are limited to what the role owns", () => {
   it("does not relax what the base policy denies", () => {
     const wide = { ...roleOf("builder"), allowShell: ["git push*", "curl *"] };
     const policy = policyForRole(BUILD_POLICY, wide, { jobDir: JOB });
+
     const shell = (command: string) =>
       evaluateToolCall(policy, { tool_name: "Bash", tool_input: { command }, cwd: "/wt" }, (p) => p)
         .kind;
+
     expect(shell("git push origin main")).toBe("deny");
     expect(write("builder", "/wt/.github/workflows/ci.yml")).toBe("deny");
     expect(write("builder", "/wt/.env")).toBe("deny");
@@ -285,6 +299,7 @@ describe("runAgent with a role", () => {
   it("uses the role's decision instead of the plain registry", async () => {
     const role = roleOf("builder");
     const seen: string[] = [];
+
     const events = [
       {
         type: "action" as const,
@@ -301,6 +316,7 @@ describe("runAgent with a role", () => {
       { type: "action" as const, callId: "3", actionId: "job.run_gate", input: { id: "j1" } },
       { type: "done" as const, summary: "" },
     ];
+
     const result = await runAgent(
       {
         provider: {
@@ -317,6 +333,7 @@ describe("runAgent with a role", () => {
         executor: {
           execute: async (id) => {
             seen.push(id);
+
             return {};
           },
         },
@@ -325,6 +342,7 @@ describe("runAgent with a role", () => {
       },
       { goal: "g", contextFiles: [] },
     );
+
     expect(seen).toEqual(["job.advance"]);
     expect(result.calls.map((c) => c.outcome.status)).toEqual(["ok", "denied", "denied"]);
   });
@@ -336,6 +354,7 @@ describe("planTick", () => {
     stage,
     ...over,
   });
+
   const auto = { ...factoryBuildPreset, unattended: true };
   const cand = (job: WorkflowJob, stalls = 0) => ({ job, def: auto, stalls });
   const config = { concurrency: 2, stallLimit: 2 };
@@ -356,6 +375,7 @@ describe("planTick", () => {
       new Set(["d"]),
       config,
     );
+
     expect(plan.start).toEqual([]);
     expect(plan.skip.map((s) => `${s.jobId}: ${s.reason}`).sort()).toEqual([
       "a: held for a person",
@@ -371,6 +391,7 @@ describe("planTick", () => {
       new Set(),
       config,
     );
+
     expect(plan.start.map((s) => s.jobId)).toEqual(["b", "c"]);
     expect(plan.skip).toEqual([{ jobId: "a", reason: "waiting for a free slot" }]);
     expect(planTick([cand(at("a", "build"))], new Set(["x", "y"]), config).start).toEqual([]);
@@ -388,6 +409,7 @@ describe("planTick", () => {
       new Set(),
       config,
     );
+
     expect(plan.start).toEqual([]);
     expect(plan.skip).toEqual([
       { jobId: "a", reason: "workflow factory is not set to run unattended" },
@@ -399,6 +421,7 @@ describe("planTick", () => {
       ...auto,
       stages: auto.stages.map((s) => (s.id === "build" ? { ...s, role: undefined } : s)),
     };
+
     const plan = planTick([{ job: at("a", "build"), def, stalls: 0 }], new Set(), config);
     expect(plan.skip[0]?.reason).toContain("has no role");
   });

@@ -83,6 +83,7 @@ export const WorkspaceSetupCard = ({
         const isCreateCoordinationsStep = step.id === "create-coordinations";
         const buttonLabel = isCreateCoordinationsStep ? "Launch agent" : step.actionLabel;
         const isButtonDisabled = isCreateCoordinationsStep ? isLaunchingAgent : isLoading;
+
         const isButtonRunning = isCreateCoordinationsStep
           ? isLaunchingAgent
           : isRunningStepId === step.id;
@@ -108,6 +109,7 @@ export const WorkspaceSetupCard = ({
                 onClick={() => {
                   if (isCreateCoordinationsStep) {
                     onLaunchAgent();
+
                     return;
                   }
 

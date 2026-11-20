@@ -1,3 +1,4 @@
+import { isFunctionValue } from "@adadex/core";
 import { useCallback, useEffect, useRef } from "react";
 
 import {
@@ -16,12 +17,14 @@ const createCompletionAudio = (soundId: TerminalCompletionSoundId): HTMLAudioEle
   }
 
   const source = buildTerminalCompletionSoundDataUrl(soundId);
+
   if (!source) {
     return null;
   }
 
   const audio = new Audio(source);
   audio.preload = "auto";
+
   return audio;
 };
 
@@ -30,6 +33,7 @@ export const useTerminalCompletionNotification = (
   selectedSound: TerminalCompletionSoundId,
 ) => {
   const previousTerminalStatesRef = useRef(runtimeStateStore.getSnapshot());
+
   const audioCacheRef = useRef<Partial<Record<TerminalCompletionSoundId, HTMLAudioElement | null>>>(
     {},
   );
@@ -44,14 +48,17 @@ export const useTerminalCompletionNotification = (
     }
 
     const audio = audioCacheRef.current[soundId];
+
     if (!audio) {
       return;
     }
 
     audio.currentTime = 0;
+
     try {
       const playResult = audio.play();
-      if (typeof playResult?.catch === "function") {
+
+      if (isFunctionValue(playResult?.catch)) {
         void playResult.catch(() => {
           // Browsers can block untrusted audio playback; ignore and keep UI responsive.
         });
@@ -67,12 +74,14 @@ export const useTerminalCompletionNotification = (
     return runtimeStateStore.subscribe(() => {
       const previousTerminalStates = previousTerminalStatesRef.current;
       const nextTerminalStates = runtimeStateStore.getSnapshot();
+
       const shouldPlayCompletionSound = Object.entries(nextTerminalStates).some(
         ([terminalId, state]) =>
           previousTerminalStates[terminalId]?.state === "processing" && state.state === "idle",
       );
 
       previousTerminalStatesRef.current = nextTerminalStates;
+
       if (!shouldPlayCompletionSound) {
         return;
       }

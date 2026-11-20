@@ -12,13 +12,16 @@ type ColorThemeProviderProps = {
 
 export const ColorThemeProvider = ({ children }: ColorThemeProviderProps): React.ReactElement => {
   const value = useColorTheme();
+
   return <ColorThemeContext.Provider value={value}>{children}</ColorThemeContext.Provider>;
 };
 
 export const useColorThemeContext = (): ColorThemeContextValue => {
   const value = useContext(ColorThemeContext);
+
   if (value === null) {
     throw new Error("useColorThemeContext must be used within ColorThemeProvider");
   }
+
   return value;
 };

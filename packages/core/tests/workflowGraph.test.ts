@@ -48,6 +48,7 @@ describe("describeCondition / describeEffect", () => {
 describe("toGraph", () => {
   const graph = toGraph(factoryBuildPreset);
   const node = (id: string) => graph.nodes.find((n) => n.id === id);
+
   const edge = (from: string, to: string) =>
     graph.edges.find((e) => e.from === from && e.to === to);
 
@@ -97,10 +98,12 @@ describe("toGraph", () => {
 
   it("lays out the review preset too, and a stage no move reaches still gets a spot", () => {
     expect(toGraph(factoryReviewPreset).nodes.map((n) => n.layer)).toEqual([0, 1, 2, 3, 4, 5, 1]);
+
     const lonely = toGraph({
       ...factoryBuildPreset,
       stages: [...factoryBuildPreset.stages, { id: "island", hint: "x", moves: [] }],
     });
+
     const island = lonely.nodes.find((n) => n.id === "island");
     expect(island).toBeDefined();
     expect(island?.layer).toBeGreaterThan(0);

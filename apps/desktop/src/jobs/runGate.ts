@@ -55,6 +55,7 @@ const record = async (
     detail: result.gate + (result.reason ? ` (${result.reason})` : ""),
     data: { round: job.round, gate: result.gate, tree },
   });
+
   return result;
 };
 
@@ -65,19 +66,23 @@ const record = async (
 export const runGate = async (deps: GateDeps, jobId: string): Promise<GateResult> => {
   const job = await deps.store.load(jobId);
   const def = await findWorkflow(deps.workflows, job.workflowId);
+
   if (!hasGateMove(def, job.stage)) throw new Error(`${job.id} is ${job.stage}, which has no gate`);
 
   const config = await deps.config();
+
   if (config.checks.trim() === "") throw new Error("set `checks` in the project config");
   const cwd = deps.cwdOf(job);
   const tree = await deps.git.fingerprint(cwd);
 
   const changed = await deps.git.changedFiles(cwd, config.baseBranch);
   const own = new Set(findProtectedHits(changed, deps.ignore?.(cwd) ?? []));
+
   const hits = findProtectedHits(
     changed.filter((f) => !own.has(f)),
     [...PROTECTED_FLOOR, ...config.protectedPaths],
   );
+
   if (hits.length > 0) {
     return record(
       deps,
@@ -90,6 +95,7 @@ export const runGate = async (deps: GateDeps, jobId: string): Promise<GateResult
 
   const r = await deps.runner.run(config.checks, cwd, config.timeoutMs);
   const tail = `$ ${config.checks}\n${r.output}`;
+
   if (r.timedOut) {
     return record(
       deps,
@@ -99,5 +105,6 @@ export const runGate = async (deps: GateDeps, jobId: string): Promise<GateResult
       tail,
     );
   }
+
   return record(deps, job, { gate: r.code === 0 ? "PASS" : "FAIL" }, tree, tail);
 };

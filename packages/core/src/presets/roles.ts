@@ -1,6 +1,7 @@
 import type { RoleDefinition, RoleTool } from "../domain/role";
 
 const READ: RoleTool[] = ["Read", "Grep", "Glob"];
+
 const BUILD: RoleTool[] = [...READ, "Edit", "Write", "MultiEdit", "Bash"];
 
 const role = (

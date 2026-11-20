@@ -81,6 +81,7 @@ export const ConsoleChromeToolbar = ({
           const isHideIdle = action.id === "hide-idle";
           const active = isHideIdle && hideIdle;
           const Icon = action.icon;
+
           return (
             <button
               key={action.id}

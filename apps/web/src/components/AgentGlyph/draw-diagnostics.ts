@@ -36,6 +36,7 @@ export const drawDiagnostics = (
 
   if (variant === "debugger" || density === "detailed") {
     const activeDot = Math.abs(motion.scan) % Math.max(1, identity.dotCount);
+
     for (let i = 0; i < identity.dotCount; i++) {
       const x = (i - (identity.dotCount - 1) / 2) * unit * 0.24;
       const active = variant === "debugger" && Math.floor(activeDot) === i;

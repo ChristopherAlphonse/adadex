@@ -16,7 +16,9 @@ const withAlpha = (ctx: CanvasRenderingContext2D, alpha: number, draw: () => voi
 
 const getArmCount = (density: ResolvedGlyph["density"]): number => {
   if (density === "minimal") return 0;
+
   if (density === "detailed") return 4;
+
   return 2;
 };
 
@@ -30,8 +32,10 @@ export const drawAgentGlyph = (
 ) => {
   const width = MARK_UNITS * unit;
   const center = width / 2;
+
   const hasConnectorAccessory =
     resolved.accessory === "node-ring" || resolved.animation === "orbit";
+
   const armCount = hasConnectorAccessory ? getArmCount(resolved.density) : 0;
   const moodLift = resolved.mood === "happy" ? -unit * 0.22 : 0;
 
@@ -59,6 +63,7 @@ export const drawAgentGlyph = (
 
   const angleStart = Math.PI * 0.28;
   const angleEnd = Math.PI * 0.72;
+
   const spacing =
     resolved.variant === "opencode" ? 1.08 : resolved.variant === "security" ? 0.92 : 1;
 
@@ -72,6 +77,7 @@ export const drawAgentGlyph = (
     const endX = spread * unit * 3.4 + identity.nodeBias * unit * 0.35;
     const endY = unit * (2.0 + Math.sin(ratio * Math.PI) * 0.55 + identity.armBias * 0.45);
     const bend = side * (0.32 + ratio * 0.12 + identity.armBias * 0.35);
+
     const active =
       resolved.mood === "curious"
         ? i === Math.floor(armCount * 0.72)

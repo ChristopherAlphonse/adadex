@@ -7,6 +7,7 @@ export const buildTerminalList = async (
   reader: TerminalSnapshotReader,
 ): Promise<Awaited<ReturnType<typeof reader.listTerminalSnapshots>>> => {
   const snapshots = await reader.listTerminalSnapshots();
+
   return [...snapshots].sort((left, right) =>
     byCreatedAtAscending(left.createdAt, right.createdAt),
   );

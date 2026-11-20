@@ -38,6 +38,7 @@ export const writeTextFileAtomic = (
 
   ensureDir(dirname(targetPath));
   const tempPath = tempPathFor(targetPath, token);
+
   try {
     write(tempPath, contents);
     rename(tempPath, targetPath);
@@ -45,6 +46,7 @@ export const writeTextFileAtomic = (
     try {
       remove(tempPath);
     } catch {}
+
     throw error;
   }
 };
@@ -62,6 +64,7 @@ export const writeTextFileAtomicAsync = async (
 
   await ensureDir(dirname(targetPath));
   const tempPath = tempPathFor(targetPath, token);
+
   try {
     await write(tempPath, contents);
     await rename(tempPath, targetPath);
@@ -69,6 +72,7 @@ export const writeTextFileAtomicAsync = async (
     try {
       await remove(tempPath);
     } catch {}
+
     throw error;
   }
 };

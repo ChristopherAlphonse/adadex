@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld("adadex", {
   onEvent: (callback) => {
     const listener = (_event, payload) => callback(payload);
     ipcRenderer.on("adadex:event", listener);
+
     return () => ipcRenderer.removeListener("adadex:event", listener);
   },
 });

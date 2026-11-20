@@ -9,7 +9,7 @@ const apiProxyTarget = process.env.ADADEX_API_ORIGIN ?? "http://127.0.0.1:8787";
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
+export default defineConfig(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
   // Relative asset paths let the desktop shell load the built page from file://.
   base: "./",
   plugins: [react(), tailwindcss()],

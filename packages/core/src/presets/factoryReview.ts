@@ -6,12 +6,14 @@ const ready = (doc: string) => ({
   field: "STATUS",
   equals: "READY",
 });
+
 const blocked = {
   kind: "doc-field" as const,
   doc: "blocked.md",
   field: "STATUS",
   equals: "BLOCKED",
 };
+
 const park = { to: NEEDS_HUMAN, requires: [blocked] } as const;
 
 /** Read-only review of an existing branch. It never loops back to build. */

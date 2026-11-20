@@ -6,8 +6,11 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
 const workspaceRoot = join(root, "..", "..");
+
 const out = join(root, "dist");
+
 await mkdir(out, { recursive: true });
 
 execFileSync(
@@ -18,7 +21,9 @@ execFileSync(
     stdio: "inherit",
   },
 );
+
 await rm(join(out, "web"), { recursive: true, force: true });
+
 await cp(join(workspaceRoot, "apps/web/dist"), join(out, "web"), { recursive: true });
 
 await build({
@@ -40,5 +45,7 @@ const copies = [
   ["src/agents/mcp-bridge.mjs", "mcp-bridge.mjs"],
   ["src/agents/guard-hook.mjs", "guard-hook.mjs"],
 ];
+
 for (const [from, to] of copies) await copyFile(join(root, from), join(out, to));
+
 console.log("built dist/");

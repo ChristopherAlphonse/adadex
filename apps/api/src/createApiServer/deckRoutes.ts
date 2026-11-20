@@ -5,7 +5,7 @@ import {
   isTerminalAgentProvider,
   type TerminalAgentProvider,
   WORKSPACE_RUNTIME_DIR,
-} from "@adadex/core";
+, isBoolean, isNumber, isObjectValue, isString} from "@adadex/core";
 
 import {
   addTodoItem,
@@ -104,33 +104,37 @@ export const handleDeckOrchestrationsRoute: ApiRouteHandler = async (
   if (request.method === "GET") {
     const orchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
     writeJson(response, 200, orchestrations, corsOrigin);
+
     return true;
   }
 
   if (request.method === "POST") {
     const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
     if (!bodyReadResult.ok) return true;
 
     const body = bodyReadResult.payload as Record<string, unknown> | null;
-    const name = body && typeof body.name === "string" ? body.name : "";
-    const description = body && typeof body.description === "string" ? body.description : "";
-    const color = body && typeof body.color === "string" ? body.color : "#d4a017";
+    const name = body && isString(body.name) ? body.name : "";
+    const description = body && isString(body.description) ? body.description : "";
+    const color = body && isString(body.color) ? body.color : "#d4a017";
+
     const suggestedSkills =
       body && Array.isArray(body.suggestedSkills)
-        ? body.suggestedSkills.filter((skill): skill is string => typeof skill === "string")
+        ? body.suggestedSkills.filter((skill): skill is string => isString(skill))
         : [];
 
     const rawAppearance =
-      body && typeof body.mascot === "object" && body.mascot !== null
+      body && isObjectValue(body.mascot) && body.mascot !== null
         ? (body.mascot as Record<string, unknown>)
-        : body && typeof body.octopus === "object" && body.octopus !== null
+        : body && isObjectValue(body.octopus) && body.octopus !== null
           ? (body.octopus as Record<string, unknown>)
           : {};
+
     const mascot = {
-      animation: typeof rawAppearance.animation === "string" ? rawAppearance.animation : null,
-      expression: typeof rawAppearance.expression === "string" ? rawAppearance.expression : null,
-      accessory: typeof rawAppearance.accessory === "string" ? rawAppearance.accessory : null,
-      hairColor: typeof rawAppearance.hairColor === "string" ? rawAppearance.hairColor : null,
+      animation: isString(rawAppearance.animation) ? rawAppearance.animation : null,
+      expression: isString(rawAppearance.expression) ? rawAppearance.expression : null,
+      accessory: isString(rawAppearance.accessory) ? rawAppearance.accessory : null,
+      hairColor: isString(rawAppearance.hairColor) ? rawAppearance.hairColor : null,
     };
 
     const result = createDeckCoordination(
@@ -138,16 +142,20 @@ export const handleDeckOrchestrationsRoute: ApiRouteHandler = async (
       { name, description, color, mascot, suggestedSkills },
       projectStateDir,
     );
+
     if (!result.ok) {
       writeJson(response, 400, { error: result.error }, corsOrigin);
+
       return true;
     }
 
     writeJson(response, 201, result.coordination, corsOrigin);
+
     return true;
   }
 
   writeMethodNotAllowed(response, corsOrigin);
+
   return true;
 };
 
@@ -159,10 +167,12 @@ export const handleDeckSkillsRoute: ApiRouteHandler = async (
 
   if (request.method !== "GET") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 200, listDeckAvailableSkills(workspaceCwd), corsOrigin);
+
   return true;
 };
 
@@ -173,39 +183,53 @@ export const handleDeckOrchestrationItemRoute: ApiRouteHandler = async (
   { workspaceCwd, projectStateDir },
 ) => {
   const match = requestUrl.pathname.match(DECK_COORDINATION_ITEM_PATTERN);
+
   if (!match) return false;
 
   const coordinationId = decodeURIComponent(match[1] as string);
 
   if (request.method === "DELETE") {
     const result = deleteDeckCoordination(workspaceCwd, coordinationId, projectStateDir);
+
     if (!result.ok) {
       writeJson(response, 404, { error: result.error }, corsOrigin);
+
       return true;
     }
+
     writeNoContent(response, 204, corsOrigin);
+
     return true;
   }
 
   if (request.method === "PATCH") {
     const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
     if (!body.ok) return true;
 
     const payload = body.payload as Record<string, unknown> | null;
+
     if (!payload) {
       writeJson(response, 400, { error: "Request body is required" }, corsOrigin);
+
       return true;
     }
 
     const mascot: Record<string, string | undefined> = {};
-    if (typeof payload.color === "string") mascot.color = payload.color;
+
+    if (isString(payload.color)) mascot.color = payload.color;
     const rawMascot = payload.mascot;
-    if (rawMascot && typeof rawMascot === "object") {
+
+    if (rawMascot && isObjectValue(rawMascot)) {
       const m = rawMascot as Record<string, unknown>;
-      if (typeof m.animation === "string") mascot.animation = m.animation;
-      if (typeof m.expression === "string") mascot.expression = m.expression;
-      if (typeof m.accessory === "string") mascot.accessory = m.accessory;
-      if (typeof m.hairColor === "string") mascot.hairColor = m.hairColor;
+
+      if (isString(m.animation)) mascot.animation = m.animation;
+
+      if (isString(m.expression)) mascot.expression = m.expression;
+
+      if (isString(m.accessory)) mascot.accessory = m.accessory;
+
+      if (isString(m.hairColor)) mascot.hairColor = m.hairColor;
     }
 
     const updated = updateDeckCoordinationMascot(
@@ -214,16 +238,20 @@ export const handleDeckOrchestrationItemRoute: ApiRouteHandler = async (
       mascot,
       projectStateDir,
     );
+
     if (!updated) {
       writeJson(response, 404, { error: "Coordination not found" }, corsOrigin);
+
       return true;
     }
 
     writeJson(response, 200, updated, corsOrigin);
+
     return true;
   }
 
   writeMethodNotAllowed(response, corsOrigin);
+
   return true;
 };
 
@@ -234,9 +262,12 @@ export const handleDeckVaultFileRoute: ApiRouteHandler = async (
   { workspaceCwd },
 ) => {
   const match = requestUrl.pathname.match(DECK_VAULT_FILE_PATTERN);
+
   if (!match) return false;
+
   if (request.method !== "GET") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
@@ -244,12 +275,15 @@ export const handleDeckVaultFileRoute: ApiRouteHandler = async (
   const fileName = decodeURIComponent(match[2] as string);
 
   const content = readDeckVaultFile(workspaceCwd, coordinationId, fileName);
+
   if (content === null) {
     writeJson(response, 404, { error: "Vault file not found" }, corsOrigin);
+
     return true;
   }
 
   writeText(response, 200, content, "text/markdown; charset=utf-8", corsOrigin);
+
   return true;
 };
 
@@ -260,38 +294,48 @@ export const handleDeckOrchestrationSkillsRoute: ApiRouteHandler = async (
   { workspaceCwd, projectStateDir },
 ) => {
   const match = requestUrl.pathname.match(DECK_COORDINATION_SKILLS_PATTERN);
+
   if (!match) return false;
+
   if (request.method !== "PATCH") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!body.ok) return true;
 
   const payload = body.payload as Record<string, unknown> | null;
+
   const suggestedSkills = Array.isArray(payload?.suggestedSkills)
-    ? payload.suggestedSkills.filter((skill): skill is string => typeof skill === "string")
+    ? payload.suggestedSkills.filter((skill): skill is string => isString(skill))
     : null;
 
   if (suggestedSkills === null) {
     writeJson(response, 400, { error: "suggestedSkills (string[]) is required" }, corsOrigin);
+
     return true;
   }
 
   const coordinationId = decodeURIComponent(match[1] as string);
+
   const updated = updateDeckCoordinationSuggestedSkills(
     workspaceCwd,
     coordinationId,
     suggestedSkills,
     projectStateDir,
   );
+
   if (!updated) {
     writeJson(response, 404, { error: "Coordination not found" }, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 200, updated, corsOrigin);
+
   return true;
 };
 
@@ -306,32 +350,40 @@ export const handleDeckOrchestrationAgentRoute: ApiRouteHandler = async (
   { workspaceCwd, projectStateDir },
 ) => {
   const match = requestUrl.pathname.match(DECK_COORDINATION_AGENT_PATTERN);
+
   if (!match) return false;
+
   if (request.method !== "PATCH") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!body.ok) return true;
 
   const payload = body.payload as Record<string, unknown> | null;
+
   if (!payload) {
     writeJson(response, 400, { error: "Request body is required" }, corsOrigin);
+
     return true;
   }
 
   const coordinationId = decodeURIComponent(match[1] as string);
 
   const rawAgentProvider = payload.agentProvider;
+
   if (rawAgentProvider !== undefined && rawAgentProvider !== null) {
-    if (typeof rawAgentProvider !== "string" || !isTerminalAgentProvider(rawAgentProvider)) {
+    if (!isString(rawAgentProvider) || !isTerminalAgentProvider(rawAgentProvider)) {
       writeJson(
         response,
         400,
         { error: "agentProvider must be a valid agent provider" },
         corsOrigin,
       );
+
       return true;
     }
   }
@@ -340,7 +392,7 @@ export const handleDeckOrchestrationAgentRoute: ApiRouteHandler = async (
 
   if (rawAgentProvider === null) {
     agentUpdate.agentProvider = null;
-  } else if (typeof rawAgentProvider === "string" && isTerminalAgentProvider(rawAgentProvider)) {
+  } else if (isString(rawAgentProvider) && isTerminalAgentProvider(rawAgentProvider)) {
     agentUpdate.agentProvider = rawAgentProvider;
   }
 
@@ -353,10 +405,12 @@ export const handleDeckOrchestrationAgentRoute: ApiRouteHandler = async (
 
   if (!updated) {
     writeJson(response, 404, { error: "Coordination not found" }, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 200, updated, corsOrigin);
+
   return true;
 };
 
@@ -371,34 +425,43 @@ export const handleDeckTodoToggleRoute: ApiRouteHandler = async (
   { workspaceCwd },
 ) => {
   const match = requestUrl.pathname.match(DECK_TODO_TOGGLE_PATTERN);
+
   if (!match) return false;
+
   if (request.method !== "PATCH") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!body.ok) return true;
 
   const { itemIndex, done } = body.payload as { itemIndex: unknown; done: unknown };
-  if (typeof itemIndex !== "number" || typeof done !== "boolean") {
+
+  if (!isNumber(itemIndex) || !isBoolean(done)) {
     writeJson(
       response,
       400,
       { error: "itemIndex (number) and done (boolean) are required" },
       corsOrigin,
     );
+
     return true;
   }
 
   const coordinationId = decodeURIComponent(match[1] as string);
   const result = toggleTodoItem(workspaceCwd, coordinationId, itemIndex, done);
+
   if (!result) {
     writeJson(response, 404, { error: "Todo item not found" }, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 200, result, corsOrigin);
+
   return true;
 };
 
@@ -413,34 +476,43 @@ export const handleDeckTodoEditRoute: ApiRouteHandler = async (
   { workspaceCwd },
 ) => {
   const match = requestUrl.pathname.match(DECK_TODO_EDIT_PATTERN);
+
   if (!match) return false;
+
   if (request.method !== "PATCH") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!body.ok) return true;
 
   const { itemIndex, text } = body.payload as { itemIndex: unknown; text: unknown };
-  if (typeof itemIndex !== "number" || typeof text !== "string" || text.trim().length === 0) {
+
+  if (!isNumber(itemIndex) || !isString(text) || text.trim().length === 0) {
     writeJson(
       response,
       400,
       { error: "itemIndex (number) and text (non-empty string) are required" },
       corsOrigin,
     );
+
     return true;
   }
 
   const coordinationId = decodeURIComponent(match[1] as string);
   const result = editTodoItem(workspaceCwd, coordinationId, itemIndex, text.trim());
+
   if (!result) {
     writeJson(response, 404, { error: "Todo item not found" }, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 200, result, corsOrigin);
+
   return true;
 };
 
@@ -455,29 +527,38 @@ export const handleDeckTodoAddRoute: ApiRouteHandler = async (
   { workspaceCwd },
 ) => {
   const match = requestUrl.pathname.match(DECK_TODO_ADD_PATTERN);
+
   if (!match) return false;
+
   if (request.method !== "POST") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!body.ok) return true;
 
   const { text } = body.payload as { text: unknown };
-  if (typeof text !== "string" || text.trim().length === 0) {
+
+  if (!isString(text) || text.trim().length === 0) {
     writeJson(response, 400, { error: "text (non-empty string) is required" }, corsOrigin);
+
     return true;
   }
 
   const coordinationId = decodeURIComponent(match[1] as string);
   const result = addTodoItem(workspaceCwd, coordinationId, text.trim());
+
   if (!result) {
     writeJson(response, 404, { error: "Coordination todo.md not found" }, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 201, result, corsOrigin);
+
   return true;
 };
 
@@ -492,29 +573,38 @@ export const handleDeckTodoDeleteRoute: ApiRouteHandler = async (
   { workspaceCwd },
 ) => {
   const match = requestUrl.pathname.match(DECK_TODO_DELETE_PATTERN);
+
   if (!match) return false;
+
   if (request.method !== "POST") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!body.ok) return true;
 
   const { itemIndex } = body.payload as { itemIndex: unknown };
-  if (typeof itemIndex !== "number") {
+
+  if (!isNumber(itemIndex)) {
     writeJson(response, 400, { error: "itemIndex (number) is required" }, corsOrigin);
+
     return true;
   }
 
   const coordinationId = decodeURIComponent(match[1] as string);
   const result = deleteTodoItem(workspaceCwd, coordinationId, itemIndex);
+
   if (!result) {
     writeJson(response, 404, { error: "Todo item not found" }, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 200, result, corsOrigin);
+
   return true;
 };
 
@@ -529,50 +619,66 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
   { runtime, workspaceCwd, projectStateDir, promptsDir, getApiPort },
 ) => {
   const match = requestUrl.pathname.match(DECK_TODO_SOLVE_PATTERN);
+
   if (!match) return false;
+
   if (request.method !== "POST") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!bodyReadResult.ok) return true;
 
   const body = (bodyReadResult.payload ?? {}) as Record<string, unknown>;
   const itemIndex = body.itemIndex;
-  if (typeof itemIndex !== "number") {
+
+  if (!isNumber(itemIndex)) {
     writeJson(response, 400, { error: "itemIndex (number) is required" }, corsOrigin);
+
     return true;
   }
 
   const agentProviderResult = parseTerminalAgentProvider(body);
+
   if (agentProviderResult.error) {
     writeJson(response, 400, { error: agentProviderResult.error }, corsOrigin);
+
     return true;
   }
 
   const coordinationId = decodeURIComponent(match[1] as string);
   const todoContent = readDeckVaultFile(workspaceCwd, coordinationId, "todo.md");
+
   if (todoContent === null) {
     writeJson(response, 404, { error: "Coordination or todo.md not found." }, corsOrigin);
+
     return true;
   }
 
   const todoResult = parseTodoProgress(todoContent);
   const todoItem = todoResult.items[itemIndex] ?? null;
+
   if (!todoItem) {
     writeJson(response, 404, { error: "Todo item not found." }, corsOrigin);
+
     return true;
   }
+
   if (todoItem.done) {
     writeJson(response, 400, { error: "Todo item is already complete." }, corsOrigin);
+
     return true;
   }
 
   const terminalId = `${coordinationId}-todo-${itemIndex}`;
+
   const existingTerminal = runtime
     .listTerminalSnapshots()
     .find((terminal) => terminal.terminalId === terminalId);
+
   if (existingTerminal) {
     writeJson(
       response,
@@ -580,13 +686,16 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
       { error: "A solve agent is already active for this todo item.", terminalId },
       corsOrigin,
     );
+
     return true;
   }
 
   const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
+
   const deckEntry = deckOrchestrations.find(
     (orchestration) => orchestration.coordinationId === coordinationId,
   );
+
   const coordinationName = deckEntry?.displayName ?? coordinationId;
 
   try {
@@ -624,10 +733,12 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
       },
       corsOrigin,
     );
+
     return true;
   } catch (error) {
     if (error instanceof RuntimeInputError) {
       writeJson(response, 400, { error: error.message }, corsOrigin);
+
       return true;
     }
 
@@ -646,10 +757,12 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
   { runtime, workspaceCwd, projectStateDir, promptsDir, getApiPort },
 ) => {
   const match = requestUrl.pathname.match(DECK_COORDINATION_SWARM_PATTERN);
+
   if (!match) return false;
 
   if (request.method !== "POST") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
@@ -657,47 +770,60 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
 
   // Read and parse coordination todo.md.
   const todoContent = readDeckVaultFile(workspaceCwd, coordinationId, "todo.md");
+
   if (todoContent === null) {
     writeJson(response, 404, { error: "Coordination or todo.md not found." }, corsOrigin);
+
     return true;
   }
 
   const todoResult = parseTodoProgress(todoContent);
+
   const incompleteItems = todoResult.items
     .map((item, index) => ({ ...item, index }))
     .filter((item) => !item.done);
 
   if (incompleteItems.length === 0) {
     writeJson(response, 400, { error: "No incomplete todo items found." }, corsOrigin);
+
     return true;
   }
 
   // Parse optional request body for item filtering and agent provider.
   const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!bodyReadResult.ok) return true;
   const body = (bodyReadResult.payload ?? {}) as Record<string, unknown>;
 
   const agentProviderResult = parseTerminalAgentProvider(body);
+
   if (agentProviderResult.error) {
     writeJson(response, 400, { error: agentProviderResult.error }, corsOrigin);
+
     return true;
   }
 
   const workspaceModeResult = parseTerminalWorkspaceMode(body);
+
   if (workspaceModeResult.error) {
     writeJson(response, 400, { error: workspaceModeResult.error }, corsOrigin);
+
     return true;
   }
+
   const workerWorkspaceMode =
     body.workspaceMode === undefined ? "worktree" : workspaceModeResult.workspaceMode;
 
   // Filter to specific item indices if requested.
   let targetItems = incompleteItems;
+
   if (Array.isArray(body.todoItemIndices)) {
     const requestedIndices = new Set(
-      (body.todoItemIndices as unknown[]).filter((v): v is number => typeof v === "number"),
+      (body.todoItemIndices as unknown[]).filter((v): v is number => isNumber(v)),
     );
+
     targetItems = incompleteItems.filter((item) => requestedIndices.has(item.index));
+
     if (targetItems.length === 0) {
       writeJson(
         response,
@@ -705,6 +831,7 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
         { error: "None of the requested todo item indices are incomplete." },
         corsOrigin,
       );
+
       return true;
     }
   }
@@ -716,9 +843,11 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
 
   // Check for existing swarm terminals to prevent duplicates.
   const existingTerminals = runtime.listTerminalSnapshots();
+
   const existingSwarmIds = existingTerminals
     .filter((t) => t.terminalId.startsWith(`${coordinationId}-swarm-`))
     .map((t) => t.terminalId);
+
   if (existingSwarmIds.length > 0) {
     writeJson(
       response,
@@ -726,6 +855,7 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
       { error: "A swarm is already active for this coordination.", existingSwarmIds },
       corsOrigin,
     );
+
     return true;
   }
 
@@ -733,6 +863,7 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
   const coordinationWorktreeTerminal = existingTerminals.find(
     (t) => t.coordinationId === coordinationId && t.workspaceMode === "worktree",
   );
+
   const baseRef = coordinationWorktreeTerminal
     ? `${COORDINATION_WORKTREE_BRANCH_PREFIX}${coordinationId}`
     : "HEAD";
@@ -745,12 +876,14 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
   const apiPort = getApiPort();
   const needsParent = targetItems.length > 1;
   const parentTerminalId = needsParent ? `${coordinationId}-swarm-parent` : null;
+
   const coordinationContextPath = join(
     workspaceCwd,
     WORKSPACE_RUNTIME_DIR,
     COORDINATIONS_DIR_SEGMENT,
     coordinationId,
   );
+
   const workers = targetItems.map((item) => ({
     terminalId: `${coordinationId}-swarm-${item.index}`,
     todoIndex: item.index,
@@ -761,8 +894,10 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
     if (!needsParent) {
       const [item] = targetItems;
       const [worker] = workers;
+
       if (!item || !worker) {
         writeJson(response, 400, { error: "No incomplete todo items found." }, corsOrigin);
+
         return true;
       }
 
@@ -806,6 +941,7 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
       const workerSpawnCommands = targetItems
         .map((item) => {
           const workerTerminalId = `${coordinationId}-swarm-${item.index}`;
+
           const parentSection = [
             "## Communication",
             "",
@@ -848,9 +984,11 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
             "--prompt-template swarm-worker",
             `--prompt-variables ${shellSingleQuote(promptVariables)}`,
           ];
+
           if (workerWorkspaceMode === "worktree") {
             commandParts.splice(3, 0, `--worktree-id ${shellSingleQuote(workerTerminalId)}`);
           }
+
           const command = commandParts.join(" ");
 
           return `- \`${workerTerminalId}\`:\n  \`\`\`bash\n  ${command}\n  \`\`\``;
@@ -893,11 +1031,14 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
   } catch (error) {
     if (error instanceof RuntimeInputError) {
       writeJson(response, 400, { error: error.message }, corsOrigin);
+
       return true;
     }
+
     throw error;
   }
 
   writeJson(response, 201, { coordinationId, parentTerminalId, workers }, corsOrigin);
+
   return true;
 };

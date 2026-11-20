@@ -39,44 +39,56 @@ const text = (path: string): Promise<string | null> => readFile(path, "utf8").ca
 export const commitLocal = async (deps: CommitDeps, jobId: string): Promise<{ commit: string }> => {
   const job = await deps.store.load(jobId);
   const def = await findWorkflow(deps.workflows, job.workflowId);
+
   if (!hasCommitMove(def, job.stage))
     throw new Error(`${job.id} is at ${job.stage}, which does not commit`);
+
   if (job.commit !== null) throw new Error("already committed");
+
   if (job.worktree === undefined)
     throw new Error("no worktree: a commit is made only in the job's own worktree");
 
   const dir = deps.store.jobDir(job.id);
   const message = await text(join(dir, "commit.md"));
+
   if (message === null || message.trim() === "") throw new Error("commit.md missing or empty");
 
   const cwd = deps.cwdOf(job);
   const config = await deps.config();
   const gate = await attestedGate(deps.store, job);
+
   if (gate?.gate !== "PASS") throw new Error("no passing gate in this round");
+
   if (gate.tree !== (await deps.git.fingerprint(cwd))) {
     throw new Error("working tree changed since the gate passed, rerun the gate");
   }
 
   const head = await deps.git.head(cwd);
+
   if (head !== (await deps.git.mergeBase(cwd, config.baseBranch))) {
     throw new Error("commits on the job's branch that the app did not make");
   }
+
   const hits = findProtectedHits(await deps.git.changedFiles(cwd, config.baseBranch), [
     ...PROTECTED_FLOOR,
     ...config.protectedPaths,
   ]);
+
   if (hits.length > 0) throw new Error(`protected paths touched: ${hits.join(", ")}`);
 
   await deps.git.stageAll(cwd);
+
   const result = await deps.git.commit(
     cwd,
     join(dir, "commit.md"),
     deps.humanKey === undefined ? undefined : { [KEY_ENV]: deps.humanKey },
   );
+
   if (!result.ok) throw new Error(`git commit refused: ${result.output}`);
 
   const commit = await deps.git.head(cwd);
   await deps.store.save({ ...job, commit });
   await deps.store.audit({ actor: "human", action: "commit", jobId: job.id, detail: commit });
+
   return { commit };
 };

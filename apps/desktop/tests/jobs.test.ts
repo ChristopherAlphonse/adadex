@@ -12,17 +12,21 @@ import { readFacts } from "../src/jobs/readFacts";
 import { writeGate } from "./helpers/attest";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-jobs-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
 const workflows = { factory: factoryBuildPreset, "factory-review": factoryReviewPreset };
+
 const setup = () => {
   const store = createJobStore(root, () => new Date("2026-11-19T00:00:00.000Z"));
   const effects: string[] = [];
+
   const executor = createJobExecutor({
     store,
     workflows,
@@ -31,6 +35,7 @@ const setup = () => {
     },
     actor: () => "agent",
   });
+
   return { store, executor, effects };
 };
 

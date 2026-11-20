@@ -1,3 +1,4 @@
+import { isNumber, isString } from "@adadex/core";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -6,15 +7,20 @@ import type { GateConfig } from "../jobs/gatePorts";
 /** The project's `checks` command and gate limits, read from the machine's data folder, never from the repo an agent edits. */
 export const loadProjectChecks = async (path: string): Promise<Partial<GateConfig> | null> => {
   try {
+    // SAFETY: the file is untrusted JSON; every field is checked before it reaches the gate config.
     const raw = JSON.parse(await readFile(path, "utf8")) as Partial<GateConfig>;
-    return {
-      ...(typeof raw.checks === "string" ? { checks: raw.checks } : {}),
-      ...(typeof raw.timeoutMs === "number" ? { timeoutMs: raw.timeoutMs } : {}),
-      ...(typeof raw.baseBranch === "string" ? { baseBranch: raw.baseBranch } : {}),
-      ...(Array.isArray(raw.protectedPaths)
-        ? { protectedPaths: raw.protectedPaths.filter((p) => typeof p === "string") }
-        : {}),
-    };
+    const checks: Partial<GateConfig> = {};
+
+    if (isString(raw.checks)) checks.checks = raw.checks;
+
+    if (isNumber(raw.timeoutMs)) checks.timeoutMs = raw.timeoutMs;
+
+    if (isString(raw.baseBranch)) checks.baseBranch = raw.baseBranch;
+
+    if (Array.isArray(raw.protectedPaths))
+      checks.protectedPaths = raw.protectedPaths.filter((p) => isString(p));
+
+    return checks;
   } catch {
     return null;
   }
@@ -23,9 +29,12 @@ export const loadProjectChecks = async (path: string): Promise<Partial<GateConfi
 /** A command the native dialog can show in full: one line, no control characters. */
 export const checkCommandError = (command: string): string | null => {
   if (command.trim() === "") return "the checks command cannot be empty";
+
   if (command.length > 2000) return "the checks command must be 2000 characters or fewer";
+
   // oxlint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f]/.test(command)) return "the checks command must be one line";
+
   return null;
 };
 

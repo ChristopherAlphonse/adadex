@@ -29,6 +29,7 @@ describe("channel message persistence", () => {
     temporaryDirectories.push(directory);
     const path = join(directory, "state", "channel-messages.json");
     mkdirSync(dirname(path), { recursive: true });
+
     return path;
   };
 
@@ -36,11 +37,13 @@ describe("channel message persistence", () => {
     for (const directory of temporaryDirectories) {
       rmSync(directory, { recursive: true, force: true });
     }
+
     temporaryDirectories.length = 0;
   });
 
   it("round-trips queued and delivered messages grouped by recipient", () => {
     const path = storePath();
+
     const queues = new Map<string, ChannelMessage[]>([
       [
         "agent-2",
@@ -63,10 +66,11 @@ describe("channel message persistence", () => {
     expect(loaded.get("agent-2")).toEqual(queues.get("agent-2"));
     expect(loaded.get("agent-3")).toEqual(queues.get("agent-3"));
 
-    const document = JSON.parse(readFileSync(path, "utf8")) as {
+    const document = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(readFileSync(path, "utf8")) as {
       version: number;
       messages: ChannelMessage[];
     };
+
     expect(document.version).toBe(CHANNEL_MESSAGES_VERSION);
     expect(document.messages).toHaveLength(3);
   });

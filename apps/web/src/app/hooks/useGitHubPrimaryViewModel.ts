@@ -50,10 +50,12 @@ export const useGitHubPrimaryViewModel = ({
     () => buildGitHubCommitSeries(githubRepoSummary),
     [githubRepoSummary],
   );
+
   const githubCommitCount30d = useMemo(
     () => buildGitHubCommitCount(githubCommitSeries),
     [githubCommitSeries],
   );
+
   const sparklineSeries = useMemo<GitHubCommitSparkPoint[]>(
     () =>
       buildGitHubCommitSparkPoints(
@@ -63,10 +65,12 @@ export const useGitHubPrimaryViewModel = ({
       ),
     [githubCommitSeries],
   );
+
   const sparklinePoints = useMemo(
     () => buildGitHubSparkPolylinePoints(sparklineSeries),
     [sparklineSeries],
   );
+
   const githubOverviewGraphSeries = useMemo<GitHubCommitSparkPoint[]>(
     () =>
       buildGitHubCommitSparkPoints(
@@ -76,16 +80,20 @@ export const useGitHubPrimaryViewModel = ({
       ),
     [githubCommitSeries],
   );
+
   const githubOverviewGraphPolylinePoints = useMemo(
     () => buildGitHubSparkPolylinePoints(githubOverviewGraphSeries),
     [githubOverviewGraphSeries],
   );
+
   const hoveredGitHubOverviewPoint = useMemo(() => {
     if (hoveredGitHubOverviewPointIndex === null) {
       return null;
     }
+
     return githubOverviewGraphSeries[hoveredGitHubOverviewPointIndex] ?? null;
   }, [githubOverviewGraphSeries, hoveredGitHubOverviewPointIndex]);
+
   const githubOverviewHoverLabel = useMemo(() => {
     if (hoveredGitHubOverviewPoint) {
       return formatGitHubCommitHoverLabel(hoveredGitHubOverviewPoint);
@@ -93,6 +101,7 @@ export const useGitHubPrimaryViewModel = ({
 
     return "Hover points for date and commit count";
   }, [hoveredGitHubOverviewPoint]);
+
   const githubStatusPill = useMemo(
     () => buildGitHubStatusPill(githubRepoSummary),
     [githubRepoSummary],
@@ -102,6 +111,7 @@ export const useGitHubPrimaryViewModel = ({
     if (hoveredGitHubOverviewPointIndex === null) {
       return;
     }
+
     if (hoveredGitHubOverviewPointIndex >= githubOverviewGraphSeries.length) {
       setHoveredGitHubOverviewPointIndex(null);
     }
@@ -112,19 +122,23 @@ export const useGitHubPrimaryViewModel = ({
   ]);
 
   const githubRepoLabel = githubRepoSummary?.repo ?? "GitHub repository";
+
   const githubStarCountLabel =
     githubRepoSummary?.stargazerCount !== null && githubRepoSummary?.stargazerCount !== undefined
       ? Math.round(githubRepoSummary.stargazerCount).toLocaleString("en-US")
       : "--";
+
   const githubOpenIssuesLabel =
     githubRepoSummary?.openIssueCount !== null && githubRepoSummary?.openIssueCount !== undefined
       ? Math.round(githubRepoSummary.openIssueCount).toString()
       : "--";
+
   const githubOpenPrsLabel =
     githubRepoSummary?.openPullRequestCount !== null &&
     githubRepoSummary?.openPullRequestCount !== undefined
       ? Math.round(githubRepoSummary.openPullRequestCount).toString()
       : "--";
+
   const githubRecentCommits = (githubRepoSummary?.recentCommits ?? []).slice(0, 50);
 
   return {

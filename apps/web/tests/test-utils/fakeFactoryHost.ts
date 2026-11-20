@@ -16,7 +16,13 @@ export const createFakeFactoryHost = (overrides: Partial<FactoryHost> = {}): Fac
     setLoop: vi.fn(async () => undefined),
     getChecks: vi.fn(async () => null),
     setChecks: vi.fn(async () => undefined),
+    listRoles: vi.fn(async () => null),
+    saveRole: vi.fn(async () => undefined),
+    removeRole: vi.fn(async () => undefined),
+    listLogs: vi.fn(async () => null),
+    verifyAudit: vi.fn(async () => ({ ok: true as const, entries: 0 })),
     subscribe: vi.fn(() => () => undefined),
   };
+
   return Object.assign(host, overrides);
 };

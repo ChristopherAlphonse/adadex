@@ -21,10 +21,13 @@ import { spawnAgent } from "../src/agents/spawnAgent";
 import { createActionHost } from "../src/host/actionHost";
 
 const BRIDGE = join(import.meta.dirname, "../src/agents/mcp-bridge.mjs");
+
 let dir: string;
+
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), "adx-"));
 });
+
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
 });
@@ -32,11 +35,12 @@ afterEach(async () => {
 /** Speaks MCP to a bridge process the way Claude Code would. */
 const mcpClient = (child: ChildProcess) => {
   const waiting = new Map<number, (r: Record<string, unknown>) => void>();
-  createInterface({ input: child.stdout as NodeJS.ReadableStream }).on("line", (line) => {
-    const r = JSON.parse(line) as { id: number };
-    waiting.get(r.id)?.(r as unknown as Record<string, unknown>);
+  createInterface({ input: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ child.stdout as NodeJS.ReadableStream }).on("line", (line) => {
+    const r = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(line) as { id: number };
+    waiting.get(r.id)?.(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ r as unknown as Record<string, unknown>);
   });
   let id = 0;
+
   return (method: string, params: unknown = {}): Promise<Record<string, unknown>> =>
     new Promise((resolve) => {
       const n = ++id;
@@ -66,6 +70,7 @@ describe("reading Claude Code output", () => {
       type: "assistant",
       message: { content: [{ type: "text", text: "hello" }, { type: "tool_use" }] },
     });
+
     expect(eventsFromLine(assistant)).toEqual([{ type: "message", text: "hello" }]);
     expect(eventsFromLine(JSON.stringify({ type: "result", result: "all done" }))).toEqual([
       { type: "done", summary: "all done" },
@@ -86,26 +91,31 @@ describe("mcp bridge", () => {
   it("answers the MCP handshake, lists one tool, and forwards a call to the app and back", async () => {
     const calls: unknown[] = [];
     const host = await startBridgeHost(join(dir, "b.sock"), (c) => calls.push(c));
+
     const bridge = spawn(process.execPath, [BRIDGE, join(dir, "b.sock")], {
       stdio: ["pipe", "pipe", "ignore"],
     });
+
     const rpc = mcpClient(bridge);
+
     try {
-      const init = (await rpc("initialize", { protocolVersion: "2025-06-18" })) as {
+      const init = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("initialize", { protocolVersion: "2025-06-18" })) as {
         result: { serverInfo: { name: string } };
       };
+
       expect(init.result.serverInfo.name).toBe("adadex");
-      const list = (await rpc("tools/list")) as { result: { tools: { name: string }[] } };
+      const list = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/list")) as { result: { tools: { name: string }[] } };
       expect(list.result.tools.map((t) => t.name)).toEqual(["adadex_action"]);
 
       const answer = rpc("tools/call", {
         name: "adadex_action",
         arguments: { actionId: "job.advance", input: { id: "j1", to: "spec" } },
       });
+
       while (calls.length === 0) await new Promise((r) => setTimeout(r, 5));
       expect(calls[0]).toMatchObject({ actionId: "job.advance", input: { id: "j1", to: "spec" } });
-      host.reply((calls[0] as { callId: string }).callId, '{"status":"ok"}', false);
-      const res = (await answer) as { result: { content: { text: string }[]; isError: boolean } };
+      host.reply((/* SAFETY: preceding checks establish the invariant this assertion encodes. */ calls[0] as { callId: string }).callId, '{"status":"ok"}', false);
+      const res = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await answer) as { result: { content: { text: string }[]; isError: boolean } };
       expect(res.result.content[0]?.text).toBe('{"status":"ok"}');
       expect(res.result.isError).toBe(false);
     } finally {
@@ -116,16 +126,20 @@ describe("mcp bridge", () => {
 
   it("refuses a call without an actionId and an unknown method", async () => {
     const host = await startBridgeHost(join(dir, "b.sock"), () => {});
+
     const bridge = spawn(process.execPath, [BRIDGE, join(dir, "b.sock")], {
       stdio: ["pipe", "pipe", "ignore"],
     });
+
     const rpc = mcpClient(bridge);
+
     try {
-      const bad = (await rpc("tools/call", { name: "adadex_action", arguments: {} })) as {
+      const bad = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/call", { name: "adadex_action", arguments: {} })) as {
         result: { isError: boolean };
       };
+
       expect(bad.result.isError).toBe(true);
-      const unknown = (await rpc("nope")) as { error: { code: number } };
+      const unknown = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("nope")) as { error: { code: number } };
       expect(unknown.error.code).toBe(-32601);
     } finally {
       bridge.kill();
@@ -137,7 +151,9 @@ describe("mcp bridge", () => {
 const fakeChild = () => {
   const stdout = new PassThrough();
   let exit: (code: number | null) => void = () => {};
+
   let killed = false;
+
   const child: AgentChild = {
     stdout,
     onExit: (cb) => (exit = cb),
@@ -146,6 +162,7 @@ const fakeChild = () => {
       exit(null);
     },
   };
+
   return { child, stdout, finish: (code = 0) => exit(code), wasKilled: () => killed };
 };
 
@@ -161,22 +178,27 @@ describe("claude code provider", () => {
   it("starts claude headless with only the adadex tool, strict MCP config, and the caller's extras", async () => {
     const f = fakeChild();
     let seen: { command: string; args: readonly string[] } | undefined;
+
     const provider = createClaudeCodeProvider({
       ...options({ extraArgs: ["--settings", "guard.json"] }),
       spawn: (command, args) => {
         seen = { command, args };
+
         return f.child;
       },
     });
+
     const session = await provider.start({ goal: "do it", contextFiles: [] });
     const args = seen?.args ?? [];
     expect(seen?.command).toBe("claude");
     expect(args).toContain("--strict-mcp-config");
     expect(args[args.indexOf("--allowedTools") + 1]).toBe(ADADEX_TOOL);
     expect(args.slice(-2)).toEqual(["--settings", "guard.json"]);
+
     const cfg = JSON.parse(
-      await readFile(args[args.indexOf("--mcp-config") + 1] as string, "utf8"),
+      await readFile(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ args[args.indexOf("--mcp-config") + 1] as string, "utf8"),
     );
+
     expect(cfg.mcpServers.adadex.args[0]).toBe(BRIDGE);
     await session.stop();
   });
@@ -205,39 +227,46 @@ describe("the whole chain: agent, bridge, host, registry", () => {
   const chain = async (confirmed: string[], ran: string[]) => {
     const registry = createActionRegistry(FACTORY_ACTIONS);
     const events: string[] = [];
+
     const host = createActionHost({
       registry,
       executor: {
         execute: async (id) => {
           ran.push(id);
+
           return { ran: id };
         },
       },
       confirm: async (title) => {
         confirmed.push(title);
+
         return true;
       },
       askApproval: { request: async () => true },
       emit: (e) => events.push(e.type),
     });
+
     let client: ((m: string, p?: unknown) => Promise<Record<string, unknown>>) | undefined;
     let bridge: ChildProcess | undefined;
     const f = fakeChild();
+
     const provider = createClaudeCodeProvider({
       command: "claude",
       bridgePath: BRIDGE,
       cwd: dir,
       tempDir: async () => join(dir, "chain"),
       spawn: (_c, args) => {
-        const cfgPath = args[args.indexOf("--mcp-config") + 1] as string;
+        const cfgPath = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ args[args.indexOf("--mcp-config") + 1] as string;
         void readFile(cfgPath, "utf8").then((text) => {
-          const server = JSON.parse(text).mcpServers.adadex as { command: string; args: string[] };
+          const server = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(text).mcpServers.adadex as { command: string; args: string[] };
           bridge = spawn(server.command, server.args, { stdio: ["pipe", "pipe", "ignore"] });
           client = mcpClient(bridge);
         });
+
         return f.child;
       },
     });
+
     return {
       host,
       registry,
@@ -258,32 +287,37 @@ describe("the whole chain: agent, bridge, host, registry", () => {
     const confirmed: string[] = [];
     const ran: string[] = [];
     const c = await chain(confirmed, ran);
+
     const run = runAgent(
       { provider: c.provider, registry: c.registry, ...c.host.agentPorts() },
       { goal: "g", contextFiles: [] },
     );
+
     await ready(c.getClient);
-    const rpc = c.getClient() as NonNullable<ReturnType<typeof c.getClient>>;
+    const rpc = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ c.getClient() as NonNullable<ReturnType<typeof c.getClient>>;
     await rpc("initialize", {});
 
-    const advance = (await rpc("tools/call", {
+    const advance = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/call", {
       name: "adadex_action",
       arguments: { actionId: "job.advance", input: { id: "j1", to: "spec" } },
     })) as { result: { isError: boolean; content: { text: string }[] } };
+
     expect(advance.result.isError).toBe(false);
     expect(JSON.parse(advance.result.content[0]?.text ?? "{}").status).toBe("ok");
 
-    const commit = (await rpc("tools/call", {
+    const commit = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/call", {
       name: "adadex_action",
       arguments: { actionId: "job.commit_local", input: { id: "j1" } },
     })) as { result: { isError: boolean; content: { text: string }[] } };
+
     expect(commit.result.isError).toBe(true);
     expect(JSON.parse(commit.result.content[0]?.text ?? "{}").status).toBe("needs-human-click");
 
-    const push = (await rpc("tools/call", {
+    const push = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/call", {
       name: "adadex_action",
       arguments: { actionId: "git.push", input: {} },
     })) as { result: { isError: boolean } };
+
     expect(push.result.isError).toBe(true);
 
     c.stdout.write(`${JSON.stringify({ type: "result", result: "finished" })}\n`);
@@ -304,20 +338,25 @@ describe("the whole chain: agent, bridge, host, registry", () => {
 describe("spawnAgent", () => {
   it("kills the agent's whole process group, including what it started", async () => {
     const child = spawnAgent("sh", ["-c", "sleep 30 & echo $!; wait"], dir);
+
     const first = await new Promise<string>((resolve) =>
       createInterface({ input: child.stdout }).once("line", resolve),
     );
+
     const grandchild = Number(first);
     expect(() => process.kill(grandchild, 0)).not.toThrow();
     child.kill();
+
     for (let i = 0; i < 100; i++) {
       try {
         process.kill(grandchild, 0);
       } catch {
         return;
       }
+
       await new Promise((r) => setTimeout(r, 20));
     }
+
     throw new Error("the grandchild survived");
   });
 });

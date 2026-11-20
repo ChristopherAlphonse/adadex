@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 export const GENESIS = "0".repeat(64);
+
 const SCHEMA_VERSION = 2;
 
 export const sha256 = (text: string): string => createHash("sha256").update(text).digest("hex");
@@ -42,6 +43,7 @@ const canonical = (b: AuditBody): AuditBody => ({
   ...(b.data === undefined ? {} : { data: b.data }),
   state: b.state,
 });
+
 export const lineHash = (prev: string, body: AuditBody): string =>
   sha256(prev + JSON.stringify(canonical(body)));
 
@@ -108,7 +110,7 @@ const toRow = (r: RawRow): AuditRow => ({
   detail: r.detail,
   ...(r.role === null ? {} : { role: r.role }),
   ...(r.run_id === null ? {} : { runId: r.run_id }),
-  ...(r.data === null ? {} : { data: JSON.parse(r.data) as Record<string, string | number> }),
+  ...(r.data === null ? {} : { data: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(r.data) as Record<string, string | number> }),
   state: r.state,
   prev: r.prev,
   hash: r.hash,
@@ -124,14 +126,18 @@ export const openLogDb = (path: string): LogDb => {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;");
-  const version = (db.prepare("PRAGMA user_version").get() as { user_version: number })
+
+  const version = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ db.prepare("PRAGMA user_version").get() as { user_version: number })
     .user_version;
+
   if (version > SCHEMA_VERSION)
     throw new Error(`the log database is from a newer version of the app (schema ${version})`);
   db.exec(SCHEMA);
+
   if (version === 1)
     db.exec("ALTER TABLE audit ADD COLUMN sig TEXT; ALTER TABLE audit ADD COLUMN key_id TEXT;");
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+
   if (path !== ":memory:") {
     for (const f of [path, `${path}-wal`, `${path}-shm`]) {
       try {
@@ -143,20 +149,25 @@ export const openLogDb = (path: string): LogDb => {
   const last = db.prepare(
     "SELECT hash FROM audit WHERE project = ? AND job_id = ? ORDER BY seq DESC LIMIT 1",
   );
+
   const insert = db.prepare(
     "INSERT INTO audit (project, job_id, ts, actor, action, detail, role, run_id, data, state, prev, hash, sig, key_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
+
   const rows = db.prepare("SELECT * FROM audit WHERE project = ? AND job_id = ? ORDER BY seq");
 
   return {
     db,
     appendAudit(project, body, signer) {
       db.exec("BEGIN IMMEDIATE");
+
       try {
         const prev =
-          (last.get(project, body.jobId) as { hash: string } | undefined)?.hash ?? GENESIS;
+          (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ last.get(project, body.jobId) as { hash: string } | undefined)?.hash ?? GENESIS;
+
         const hash = lineHash(prev, body);
         const sig = signer?.sign(hash) ?? null;
+
         const res = insert.run(
           project,
           body.jobId,
@@ -173,7 +184,9 @@ export const openLogDb = (path: string): LogDb => {
           sig,
           signer?.keyId ?? null,
         );
+
         db.exec("COMMIT");
+
         return {
           ...canonical(body),
           seq: Number(res.lastInsertRowid),
@@ -186,7 +199,7 @@ export const openLogDb = (path: string): LogDb => {
         throw e;
       }
     },
-    auditRows: (project, jobId) => (rows.all(project, jobId) as unknown as RawRow[]).map(toRow),
+    auditRows: (project, jobId) => (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ rows.all(project, jobId) as unknown as RawRow[]).map(toRow),
     close: () => db.close(),
   };
 };

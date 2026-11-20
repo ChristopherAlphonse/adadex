@@ -12,9 +12,11 @@ import { createJobStore } from "../src/jobs/jobStore";
 import { nodeCheckRunner, nodeGit } from "../src/jobs/nodeGate";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-gate-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
@@ -36,8 +38,9 @@ const setup = async (
 ) => {
   const store = createJobStore(root);
   const job = await store.create(factoryBuildPreset, "j1", "t", 3);
-  await store.save({ ...job, stage: over.stage ?? "gate", round: 1 } as WorkflowJob);
+  await store.save(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { ...job, stage: over.stage ?? "gate", round: 1 } as WorkflowJob);
   const commands: string[] = [];
+
   const executor = createJobExecutor({
     store,
     workflows: { factory: factoryBuildPreset },
@@ -47,6 +50,7 @@ const setup = async (
       runner: {
         run: async (c) => {
           commands.push(c);
+
           return over.result ?? { code: 0, timedOut: false, output: "all good" };
         },
       },
@@ -62,8 +66,10 @@ const setup = async (
       cwdOf: () => root,
     },
   });
+
   return { store, executor, commands };
 };
+
 const checks = async (store: { jobDir: (id: string) => string }) =>
   readFile(join(store.jobDir("j1"), "round-1", "checks.md"), "utf8");
 
@@ -102,6 +108,7 @@ describe("job.run_gate", () => {
     const { store, executor, commands } = await setup({
       files: ["src/app.ts", ".github/workflows/ci.yml", ".env"],
     });
+
     expect(await executor.execute("job.run_gate", { id: "j1" })).toEqual({
       gate: "FAIL",
       reason: "protected paths touched: .github/workflows/ci.yml, .env",
@@ -115,6 +122,7 @@ describe("job.run_gate", () => {
       files: ["deploy/prod.yml"],
       config: { protectedPaths: ["deploy/**"] },
     });
+
     expect(await executor.execute("job.run_gate", { id: "j1" })).toMatchObject({ gate: "FAIL" });
   });
 
@@ -123,6 +131,7 @@ describe("job.run_gate", () => {
       result: { code: null, timedOut: true, output: "" },
       config: { timeoutMs: 2000 },
     });
+
     expect(await executor.execute("job.run_gate", { id: "j1" })).toEqual({
       gate: "FAIL",
       reason: "checks timed out after 2s",
@@ -178,6 +187,7 @@ describe("nodeGit", () => {
         cwd: root,
         env: { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" },
       });
+
     run("init", "-b", "main");
     run("config", "user.email", "t@example.invalid");
     run("config", "user.name", "t");

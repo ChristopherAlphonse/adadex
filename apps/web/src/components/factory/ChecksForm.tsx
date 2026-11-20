@@ -11,6 +11,7 @@ export const ChecksForm = ({
   onSave: (command: string) => void;
 }) => {
   const [draft, setDraft] = useState(saved);
+
   return (
     <form
       className="flex shrink-0 items-end gap-2"

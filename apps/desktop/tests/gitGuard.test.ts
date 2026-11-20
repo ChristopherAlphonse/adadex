@@ -11,9 +11,11 @@ import { createHumanKey, installGitGuard, KEY_ENV } from "../src/jobs/gitGuard";
 import { nodeGit } from "../src/jobs/nodeGate";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-hooks-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
@@ -24,11 +26,15 @@ const cleanEnv = () => {
     GIT_CONFIG_GLOBAL: "/dev/null",
     GIT_CONFIG_NOSYSTEM: "1",
   };
+
   delete env[KEY_ENV];
+
   return env;
 };
+
 const git = (cwd: string, args: string[], env: NodeJS.ProcessEnv = cleanEnv()) =>
   spawnSync("git", args, { cwd, env, encoding: "utf8" });
+
 const must = (cwd: string, ...args: string[]) =>
   execFileSync("git", args, { cwd, env: cleanEnv() }).toString().trim();
 
@@ -41,10 +47,12 @@ const setup = async (repoHook?: string) => {
   await writeFile(join(repo, "a.txt"), "1");
   must(repo, "add", "-A");
   must(repo, "commit", "-m", "init");
+
   if (repoHook !== undefined) {
     await writeFile(join(repo, ".git", "hooks", "pre-commit"), repoHook);
     await chmod(join(repo, ".git", "hooks", "pre-commit"), 0o755);
   }
+
   const wt = join(root, "wt");
   must(repo, "worktree", "add", "-b", "adadex/j1", wt);
   const key = createHumanKey();
@@ -60,6 +68,7 @@ const setup = async (repoHook?: string) => {
   const bare = join(root, "remote.git");
   must(root, "init", "--bare", bare);
   must(wt, "remote", "add", "origin", bare);
+
   return { repo, wt, key, hashFile };
 };
 
@@ -142,12 +151,14 @@ describe("protected locations", () => {
       "/home/me/.adadex/machine.json",
       "/home/me/.adadex/state",
     ]);
+
     const write = (p: string) =>
       evaluateToolCall(
         policy,
         { tool_name: "Write", tool_input: { file_path: p }, cwd: "/x" },
         (r) => r,
       ).kind;
+
     expect(write("/home/me/.adadex/machine.json")).toBe("deny");
     expect(write("/home/me/.adadex/state/hooks/pre-commit")).toBe("deny");
     expect(write("/home/me/project/src/app.ts")).toBe("allow");

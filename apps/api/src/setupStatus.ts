@@ -23,11 +23,13 @@ import { collectStartupPrerequisiteReport } from "./startupPrerequisites";
 
 export const initializeWorkspaceFiles = (workspaceCwd: string, projectStateDir: string) => {
   const projectName = loadProjectConfig(workspaceCwd)?.displayName;
+
   const projectConfig = ensureProjectScaffold(
     workspaceCwd,
     projectName,
     deriveProjectIdFromWorkspace(workspaceCwd),
   );
+
   registerProject(workspaceCwd, projectConfig.displayName);
   mkdirSync(join(projectStateDir, "state"), { recursive: true });
   migrateStateToGlobal(workspaceCwd, projectStateDir);
@@ -45,11 +47,13 @@ export const readWorkspaceSetupSnapshot = (
   const prerequisites = collectStartupPrerequisiteReport();
   const projectConfig = loadProjectConfig(workspaceCwd);
   const runtimeDir = join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
+
   const hasProjectScaffold =
     projectConfig !== null &&
     existsSync(join(runtimeDir, COORDINATIONS_DIR_SEGMENT)) &&
     existsSync(join(runtimeDir, "worktrees")) &&
     existsSync(join(projectStateDir, "state"));
+
   const hasGitignore = hasAdadexGitignoreEntry(workspaceCwd);
   const coordinations = readDeckCoordinations(workspaceCwd, projectStateDir);
   const coordinationCount = coordinations.length;

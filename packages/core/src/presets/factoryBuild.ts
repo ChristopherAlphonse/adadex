@@ -6,10 +6,12 @@ const field = (doc: string, equals: string | readonly string[]) => ({
   field: "STATUS",
   equals,
 });
+
 const rework: readonly Effect[] = [
   { kind: "bump-round" },
   { kind: "set-flag", name: "polished", value: false, whenStage: "build" },
 ];
+
 const parkOnly = { to: NEEDS_HUMAN } as const;
 
 /** The factory pipeline: shape, spec, build, gate, review, polish, prove, ship. */

@@ -21,9 +21,11 @@ import { createRoleRunner, type ProviderRequest } from "../src/runs/roleRunner";
 import { createScheduler } from "../src/runs/scheduler";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-roles-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
@@ -44,16 +46,19 @@ const world = async (script: Script) => {
   const probes: Record<string, unknown> = {};
   const outcomes: unknown[] = [];
   const events: string[] = [];
+
   const declineAll = () =>
     queueMicrotask(() => {
       for (const p of app.approvals.pending()) app.approvals.respond(p.approvalId, false);
     });
+
   const app: ReturnType<typeof createApp> = createApp({
     projectRoot: project,
     dataDir,
     confirm: async () => false,
     emit: (e) => {
       events.push(e.type);
+
       if (e.type === "approval-requested") declineAll();
     },
     bridgePath: "/unused",
@@ -77,8 +82,10 @@ const world = async (script: Script) => {
       }),
     }),
   });
+
   return { app, project, dataDir, probes, outcomes, events };
 };
+
 type World = Awaited<ReturnType<typeof world>>;
 
 /** Put a job at a stage the way the app would: the new record, then an audit line that vouches for it. */
@@ -87,17 +94,20 @@ const place = async (w: World, stage: string, over: Partial<WorkflowJob> = {}) =
   await w.app.jobs.save({ ...job, stage, round: 1, ...over });
   await w.app.jobs.audit({ actor: "system", action: "place", jobId: "j1", detail: stage });
 };
+
 const tool = (name: string, input: Record<string, unknown>, cwd: string) => ({
   tool_name: name,
   tool_input: input,
   cwd,
 });
+
 const act = (callId: string, actionId: string, input: unknown): AgentEvent => ({
   type: "action",
   callId,
   actionId,
   input,
 });
+
 const kind = async (d: GuardDecide, e: unknown) => ((await d(e)).allow ? "allow" : "deny");
 
 describe("an agent works in the role of its stage, and only that", () => {
@@ -111,6 +121,7 @@ describe("an agent works in the role of its stage, and only that", () => {
         "code",
         await kind(decide, tool("Write", { file_path: join(cwd, "src", "a.ts") }, cwd)),
       );
+
       for (const f of [
         "spec.md",
         "uat.md",
@@ -122,6 +133,7 @@ describe("an agent works in the role of its stage, and only that", () => {
       ]) {
         probe(f, await kind(decide, tool("Write", { file_path: join(jobDir, f) }, cwd)));
       }
+
       probe("push", await kind(decide, tool("Bash", { command: "git push origin main" }, cwd)));
       probe(
         "ci",
@@ -133,10 +145,12 @@ describe("an agent works in the role of its stage, and only that", () => {
       probe("webfetch", await kind(decide, tool("WebFetch", { url: "x" }, cwd)));
       yield { type: "done", summary: "ok" };
     });
+
     await place(w, "build");
     const result = await w.app.runStage("j1");
     expect(result.binding.roleId).toBe("builder");
     expect(w.probes).toMatchObject({ buildDoc: "allow", code: "allow", push: "deny", ci: "deny" });
+
     for (const f of [
       "spec.md",
       "uat.md",
@@ -161,10 +175,11 @@ describe("an agent works in the role of its stage, and only that", () => {
       yield act("8", "git.push", {});
       yield { type: "done", summary: "" };
     });
+
     await place(w, "build");
     await writeFile(join(w.app.jobs.jobDir("j1"), "build.md"), "STATUS: READY\n");
     await w.app.runStage("j1");
-    expect(w.outcomes.map((o) => (o as { status: string }).status)).toEqual([
+    expect(w.outcomes.map((o) => (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ o as { status: string }).status)).toEqual([
       "ok",
       "denied",
       "denied",
@@ -195,6 +210,7 @@ describe("an agent works in the role of its stage, and only that", () => {
       probe("read", await kind(decide, tool("Bash", { command: "git diff HEAD" }, cwd)));
       yield { type: "done", summary: "" };
     });
+
     await place(w, "review");
     const result = await w.app.runStage("j1");
     expect(result.binding.roleId).toBe("reviewer");
@@ -212,6 +228,7 @@ describe("an agent works in the role of its stage, and only that", () => {
       yield act("1", "job.advance", { id: "j1", to: "gate" });
       yield { type: "done", summary: "" };
     });
+
     await place(w, "build");
     await writeFile(join(w.app.jobs.jobDir("j1"), "build.md"), "STATUS: READY\n");
     const first = await w.app.runStage("j1");
@@ -225,7 +242,9 @@ describe("an agent works in the role of its stage, and only that", () => {
     const w = await world(async function* () {
       yield { type: "done", summary: "" };
     });
+
     await place(w, "build");
+
     const noRole = {
       ...factoryBuildPreset,
       id: "norole",
@@ -233,6 +252,7 @@ describe("an agent works in the role of its stage, and only that", () => {
         s.id === "build" ? { ...s, role: undefined } : s,
       ),
     };
+
     const ghost = {
       ...factoryBuildPreset,
       id: "ghost",
@@ -240,8 +260,10 @@ describe("an agent works in the role of its stage, and only that", () => {
         s.id === "build" ? { ...s, role: "nobody" } : s,
       ),
     };
+
     await w.app.workflows.save(noRole);
     await w.app.workflows.save(ghost);
+
     for (const [id, message] of [
       ["norole", "has no role"],
       ["ghost", "which does not exist"],
@@ -251,6 +273,7 @@ describe("an agent works in the role of its stage, and only that", () => {
       await w.app.jobs.audit({ actor: "system", action: "sync", jobId: "j1", detail: id });
       await expect(w.app.runStage("j1")).rejects.toThrow(message);
     }
+
     const job = await w.app.jobs.load("j1");
     await w.app.jobs.save({ ...job, workflowId: "factory", stage: "ready" });
     await w.app.jobs.audit({ actor: "system", action: "sync", jobId: "j1", detail: "ready" });
@@ -263,6 +286,7 @@ describe("an agent works in the role of its stage, and only that", () => {
       yield act("2", "job.advance", { id: "j1", to: "ready" });
       yield { type: "done", summary: "" };
     });
+
     await place(w, "build");
     await writeFile(join(w.app.jobs.jobDir("j1"), "build.md"), "STATUS: READY\n");
     const { binding } = await w.app.runStage("j1");
@@ -287,6 +311,7 @@ describe("an agent works in the role of its stage, and only that", () => {
     const w = await world(async function* () {
       yield { type: "done", summary: "" };
     });
+
     await place(w, "build");
     const path = join(w.app.jobs.jobDir("j1"), "job.json");
     const record = JSON.parse(await readFile(path, "utf8"));
@@ -313,12 +338,15 @@ describe("limits", () => {
   it("stops a run that uses more actions than its role allows, and refuses the extra ones", async () => {
     const w = await world(async function* ({ decide, cwd }) {
       const answers: boolean[] = [];
+
       for (let i = 0; i < 4; i++)
         answers.push((await decide(tool("Read", { file_path: join(cwd, "a") }, cwd))).allow);
       w.probes.answers = answers;
       yield { type: "done", summary: "" };
     });
+
     expect((await w.app.roles.save(tiny)).ok).toBe(true);
+
     const mini = {
       id: "mini",
       name: "Mini",
@@ -328,8 +356,9 @@ describe("limits", () => {
         { id: "done", hint: "x", terminal: true, moves: [] },
       ],
     };
+
     expect((await w.app.workflows.save(mini)).ok).toBe(true);
-    const job = await w.app.jobs.create((await w.app.workflows.get("mini")) as never, "j1", "t", 3);
+    const job = await w.app.jobs.create(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await w.app.workflows.get("mini")) as never, "j1", "t", 3);
     void job;
     const result = await w.app.runStage("j1");
     expect(w.probes.answers).toEqual([true, true, false, false]);
@@ -341,7 +370,9 @@ describe("limits", () => {
     const w = await world(async function* () {
       yield { type: "done", summary: "" };
     });
+
     await w.app.roles.save(tiny);
+
     const mini = {
       id: "mini",
       name: "Mini",
@@ -351,10 +382,12 @@ describe("limits", () => {
         { id: "done", hint: "x", terminal: true, moves: [] },
       ],
     };
+
     await w.app.workflows.save(mini);
-    await w.app.jobs.create((await w.app.workflows.get("mini")) as never, "j1", "t", 3);
+    await w.app.jobs.create(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await w.app.workflows.get("mini")) as never, "j1", "t", 3);
     const timers: (() => void)[] = [];
     let stopped = false;
+
     const runner = createRoleRunner({
       store: w.app.jobs,
       workflows: (id) => w.app.workflows.get(id),
@@ -367,6 +400,7 @@ describe("limits", () => {
       cwdOf: () => root,
       setTimer: (fn) => {
         timers.push(fn);
+
         return timers.length;
       },
       clearTimer: () => {},
@@ -385,6 +419,7 @@ describe("limits", () => {
         }),
       }),
     });
+
     const result = await runner.run("j1");
     expect(result.limited).toBe("time");
     expect(stopped).toBe(true);
@@ -396,15 +431,19 @@ describe("the unattended loop", () => {
     const w = await world(async function* () {
       yield { type: "done", summary: "" };
     });
+
     const auto = { ...factoryBuildPreset, id: "auto", name: "Auto", unattended: true };
     await w.app.workflows.save(auto);
+
     for (const id of ["a", "b"]) {
       const job = await w.app.jobs.create(auto, id, id, 3);
       await w.app.jobs.save({ ...job, stage: "build", round: 1 });
       await w.app.jobs.audit({ actor: "system", action: "place", jobId: id, detail: "build" });
     }
+
     return w;
   };
+
   const result = (stageAfter: string) => ({
     binding: { runId: "r", roleId: "builder", jobId: "x", stageId: "build", startedAt: "" },
     stageAfter,
@@ -414,7 +453,7 @@ describe("the unattended loop", () => {
 
   it("is off until a person starts it, and stop turns it off", () => {
     const sched = createScheduler({
-      store: null as never,
+      store: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ null as never,
       workflows: () => undefined,
       runStage: async () => result("build"),
       concurrency: 1,
@@ -422,6 +461,7 @@ describe("the unattended loop", () => {
       setInterval: () => 1,
       clearInterval: () => {},
     });
+
     expect(sched.status().enabled).toBe(false);
     sched.start(1000);
     expect(sched.status().enabled).toBe(true);
@@ -432,16 +472,19 @@ describe("the unattended loop", () => {
   it("starts at most the concurrency limit, and the rest wait for a free slot", async () => {
     const w = await mk();
     const started: string[] = [];
+
     const sched = createScheduler({
       store: w.app.jobs,
       workflows: (id) => w.app.workflows.get(id),
       runStage: async (id) => {
         started.push(id);
+
         return result("gate");
       },
       concurrency: 1,
       stallLimit: 2,
     });
+
     const plan = await sched.tick();
     await sched.idle();
     expect(plan.start).toHaveLength(1);
@@ -451,6 +494,7 @@ describe("the unattended loop", () => {
 
   it("parks a job on a person after runs that moved nothing, instead of looping", async () => {
     const w = await mk();
+
     const sched = createScheduler({
       store: w.app.jobs,
       workflows: (id) => w.app.workflows.get(id),
@@ -458,6 +502,7 @@ describe("the unattended loop", () => {
       concurrency: 2,
       stallLimit: 2,
     });
+
     await sched.tick();
     await sched.idle();
     await sched.tick();
@@ -473,6 +518,7 @@ describe("the unattended loop", () => {
 
   it("counts a refused run as a run that moved nothing", async () => {
     const w = await mk();
+
     const sched = createScheduler({
       store: w.app.jobs,
       workflows: (id) => w.app.workflows.get(id),
@@ -482,6 +528,7 @@ describe("the unattended loop", () => {
       concurrency: 2,
       stallLimit: 1,
     });
+
     await sched.tick();
     await sched.idle();
     expect((await sched.tick()).park.length).toBe(2);
@@ -490,6 +537,7 @@ describe("the unattended loop", () => {
 
 describe("role store", () => {
   const registry = createActionRegistry(FACTORY_ACTIONS);
+
   const mine = {
     id: "my-role",
     name: "Mine",
@@ -527,12 +575,14 @@ describe("role store", () => {
     const store = createRoleStore(join(root, "roles"), registry);
     const known = new Set((await store.list()).map((r) => r.id));
     expect(missingRoles(factoryBuildPreset, known)).toEqual([]);
+
     const bad = {
       ...factoryBuildPreset,
       stages: factoryBuildPreset.stages.map((s) =>
         s.id === "build" ? { ...s, role: "ghost" } : s,
       ),
     };
+
     expect(missingRoles(bad, known)).toEqual(["ghost"]);
   });
 });

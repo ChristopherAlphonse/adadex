@@ -100,6 +100,7 @@ export const ConversationsPrimaryView = ({
 
   useEffect(() => {
     onSidebarContent?.(sidebarContent);
+
     return () => onSidebarContent?.(null);
   });
 
@@ -121,6 +122,7 @@ export const ConversationsPrimaryView = ({
 
   useEffect(() => {
     onActionPanel?.(actionPanelContent);
+
     return () => onActionPanel?.(null);
   });
 

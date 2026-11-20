@@ -18,15 +18,20 @@ export type ExportVerdict =
 /** Check an export on its own: the chain, and every signature against the key in the export. */
 export const verifyAuditExport = (exp: AuditExport): ExportVerdict => {
   let prev = GENESIS;
+
   for (const [i, row] of exp.rows.entries()) {
     if (row.prev !== prev)
       return { ok: false, reason: `line ${i + 1} does not follow the line before it` };
+
     if (row.hash !== lineHash(prev, row)) return { ok: false, reason: `line ${i + 1} was changed` };
+
     if (row.sig === undefined || row.keyId !== exp.keyId)
       return { ok: false, reason: `line ${i + 1} is not signed by the exported key` };
+
     if (!verifySignature(exp.publicKey, row.hash, row.sig))
       return { ok: false, reason: `line ${i + 1} has a signature that does not verify` };
     prev = row.hash;
   }
+
   return { ok: true, entries: exp.rows.length };
 };

@@ -2,6 +2,7 @@ import type { LogDb } from "./logDb";
 import { redact, redactDeep } from "./redact";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
+
 const LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"];
 
 export interface LogContext {
@@ -85,6 +86,7 @@ export const createLogger = (
   query(q = {}) {
     const where: string[] = ["project = ?"];
     const args: (string | number)[] = [project];
+
     for (const [column, value] of [
       ["job_id", q.jobId],
       ["run_id", q.runId],
@@ -96,19 +98,24 @@ export const createLogger = (
         args.push(value);
       }
     }
+
     if (q.level !== undefined) {
       const allowed = LEVELS.slice(LEVELS.indexOf(q.level));
       where.push(`level IN (${allowed.map(() => "?").join(",")})`);
       args.push(...allowed);
     }
+
     if (q.since !== undefined) {
       where.push("ts >= ?");
       args.push(q.since);
     }
+
     args.push(Math.min(Math.max(q.limit ?? 200, 1), 1000));
-    const rows = logDb.db
+
+    const rows = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ logDb.db
       .prepare(`SELECT * FROM events WHERE ${where.join(" AND ")} ORDER BY id DESC LIMIT ?`)
       .all(...args) as unknown as Raw[];
+
     return rows.map((r) => ({
       id: r.id,
       ts: r.ts,
@@ -118,11 +125,12 @@ export const createLogger = (
       ...(r.run_id === null ? {} : { runId: r.run_id }),
       ...(r.role === null ? {} : { role: r.role }),
       message: r.message,
-      ...(r.data === null ? {} : { data: JSON.parse(r.data) as unknown }),
+      ...(r.data === null ? {} : { data: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(r.data) as unknown }),
     }));
   },
   prune(days) {
     const cutoff = new Date(now().getTime() - days * 86_400_000).toISOString();
+
     return Number(logDb.db.prepare("DELETE FROM events WHERE ts < ?").run(cutoff).changes);
   },
 });

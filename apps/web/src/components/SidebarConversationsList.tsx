@@ -4,16 +4,20 @@ import type { ConversationSearchHit, ConversationSessionSummary } from "../app/t
 
 const getSessionTitle = (session: ConversationSessionSummary): string => {
   const preview = session.firstUserTurnPreview;
+
   if (!preview) return session.sessionId;
   const words = preview.split(/\s+/).slice(0, 8);
   const title = words.join(" ");
+
   return title.length < preview.length ? `${title}...` : title;
 };
 
 const getSessionSortTimestamp = (session: ConversationSessionSummary): number => {
   const raw = session.lastEventAt ?? session.endedAt ?? session.startedAt;
+
   if (!raw) return 0;
   const parsed = Date.parse(raw);
+
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
@@ -66,8 +70,10 @@ export const SidebarConversationsList = ({
     }
 
     const trimmed = inputValue.trim();
+
     if (trimmed.length === 0) {
       onClearSearchRef.current();
+
       return;
     }
 
@@ -88,10 +94,12 @@ export const SidebarConversationsList = ({
     (e: React.FormEvent) => {
       e.preventDefault();
       const trimmed = inputValue.trim();
+
       if (trimmed.length > 0) {
         if (debounceRef.current) {
           clearTimeout(debounceRef.current);
         }
+
         onSearch(trimmed);
       }
     },

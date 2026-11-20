@@ -14,9 +14,11 @@ import { createFsSkillCatalog, frontMatterName } from "../src/skills/fsSkillCata
 import { createWorkflowStore } from "../src/workflows/workflowStore";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-storage-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
@@ -40,10 +42,12 @@ describe("fs skill catalog", () => {
     const b = join(root, "b");
     await skill(a, "swe", "---\nname: swe\n---\n");
     await skill(b, "acme-spec", "---\nname: acme-spec-writer\n---\n");
+
     const list = await createFsSkillCatalog([
       { name: "base", dir: a },
       { name: "acme", dir: b },
     ]).list();
+
     expect(list.map((s) => [s.name, s.source])).toEqual([
       ["swe", "base"],
       ["acme-spec-writer", "acme"],
@@ -55,10 +59,12 @@ describe("fs skill catalog", () => {
     const a = join(root, "a");
     await skill(a, "plain", "no front matter");
     await mkdir(join(a, "empty"), { recursive: true });
+
     const list = await createFsSkillCatalog([
       { name: "a", dir: a },
       { name: "gone", dir: join(root, "nope") },
     ]).list();
+
     expect(list.map((s) => s.name)).toEqual(["plain"]);
   });
 
@@ -67,10 +73,12 @@ describe("fs skill catalog", () => {
     const b = join(root, "b");
     await skill(a, "x", "---\nname: prd-mode\n---\n");
     await skill(b, "y", "---\nname: prd-mode\n---\n");
+
     const list = await createFsSkillCatalog([
       { name: "mine", dir: a },
       { name: "base", dir: b },
     ]).list();
+
     expect(list).toHaveLength(1);
     expect(list[0]?.source).toBe("mine");
   });
@@ -79,9 +87,11 @@ describe("fs skill catalog", () => {
     const dir = join(root, "ent");
     await skill(dir, "spec", "---\nname: acme-spec-writer\n---\n");
     const available = await createFsSkillCatalog([{ name: "acme", dir }]).list();
+
     const spec = resolveSkills(factoryBuildPreset, available, {
       "prd-mode": "acme-spec-writer",
     }).find((r) => r.stageId === "spec");
+
     expect(spec).toMatchObject({ via: "map", skill: { source: "acme" } });
   });
 });
@@ -163,10 +173,12 @@ describe("machine config", () => {
 
   it("saves and loads sources and the skill map", async () => {
     const path = join(root, "cfg", "machine.json");
+
     const input = {
       skillSources: [{ name: "acme", dir: "/skills/acme" }],
       skillMap: { "prd-mode": "acme-spec-writer" },
     };
+
     expect((await saveMachineConfig(path, input)).ok).toBe(true);
     expect(await loadMachineConfig(path)).toEqual(input);
   });
@@ -176,6 +188,7 @@ describe("machine config", () => {
       skillSources: [{ name: "a" }, { name: "x", dir: "/p" }, { name: "x", dir: "/q" }],
       skillMap: { k: "" },
     };
+
     const r = parseMachineConfig(bad);
     expect(r.ok === false && r.errors).toEqual([
       "skill source 1 needs a name and a dir",

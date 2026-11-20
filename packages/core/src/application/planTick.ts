@@ -41,12 +41,14 @@ export const planTick = (
   let free = Math.max(0, config.concurrency - running.size);
 
   const depth = (c: TickCandidate): number => c.def.stages.findIndex((s) => s.id === c.job.stage);
+
   const ordered = [...candidates].sort(
     (a, b) => depth(b) - depth(a) || a.job.id.localeCompare(b.job.id),
   );
 
   for (const { job, def, stalls } of ordered) {
     const stage = stageOf(def, job.stage);
+
     if (running.has(job.id)) skip.push({ jobId: job.id, reason: "already running" });
     else if (job.stage === NEEDS_HUMAN || stage?.terminal === true || !stage)
       skip.push({ jobId: job.id, reason: "held for a person" });
@@ -65,5 +67,6 @@ export const planTick = (
       free -= 1;
     }
   }
+
   return { start, park, skip };
 };

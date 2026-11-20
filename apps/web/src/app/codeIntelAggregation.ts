@@ -28,10 +28,12 @@ export type TreemapRect = {
 /** Build a flat list of files with edit counts, wrapped in a root node for the treemap layout. */
 export const buildTreemapTree = (events: CodeIntelEvent[], workspaceCwd: string): TreemapNode => {
   const counts = new Map<string, number>();
+
   for (const e of events) {
     const relative = e.file.startsWith(workspaceCwd)
       ? e.file.slice(workspaceCwd.length + 1)
       : e.file;
+
     counts.set(relative, (counts.get(relative) ?? 0) + 1);
   }
 
@@ -53,28 +55,35 @@ export const buildTreemapTree = (events: CodeIntelEvent[], workspaceCwd: string)
 /** Squarified treemap layout — returns flat array of positioned rectangles. */
 export const layoutTreemap = (root: TreemapNode, width: number, height: number): TreemapRect[] => {
   const rects: TreemapRect[] = [];
+
   if (root.value === 0 || root.children.length === 0) return rects;
 
   // Normalize values to areas
   const totalArea = width * height;
+
   const items = [...root.children]
     .sort((a, b) => b.value - a.value)
     .map((c) => ({ node: c, area: (c.value / root.value) * totalArea }));
 
   squarify(items, { x: 0, y: 0, w: width, h: height }, rects);
+
   return rects;
 };
 
 type LayoutItem = { node: TreemapNode; area: number };
+
 type Rect = { x: number; y: number; w: number; h: number };
 
 const squarify = (items: LayoutItem[], rect: Rect, out: TreemapRect[]) => {
   if (items.length === 0) return;
+
   if (items.length === 1) {
     const [item] = items;
+
     if (item) {
       pushRect(item, rect, out);
     }
+
     return;
   }
 
@@ -88,6 +97,7 @@ const squarify = (items: LayoutItem[], rect: Rect, out: TreemapRect[]) => {
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
+
     if (!item) continue;
     const nextArea = rowArea + item.area;
     const nextRow = [...row, item];
@@ -104,20 +114,24 @@ const squarify = (items: LayoutItem[], rect: Rect, out: TreemapRect[]) => {
 
       for (const r of row) {
         const cellLen = r.area / rowThickness;
+
         if (horizontal) {
           pushRect(r, { x, y: y + offset, w: rowThickness, h: cellLen }, out);
         } else {
           pushRect(r, { x: x + offset, y, w: cellLen, h: rowThickness }, out);
         }
+
         offset += cellLen;
       }
 
       const remaining = items.slice(i);
+
       if (horizontal) {
         squarify(remaining, { x: x + rowThickness, y, w: w - rowThickness, h }, out);
       } else {
         squarify(remaining, { x, y: y + rowThickness, w, h: h - rowThickness }, out);
       }
+
       return;
     }
   }
@@ -125,13 +139,16 @@ const squarify = (items: LayoutItem[], rect: Rect, out: TreemapRect[]) => {
   // Lay out final row
   const rowThickness = rowArea / shortSide;
   let offset = 0;
+
   for (const r of row) {
     const cellLen = r.area / rowThickness;
+
     if (horizontal) {
       pushRect(r, { x, y: y + offset, w: rowThickness, h: cellLen }, out);
     } else {
       pushRect(r, { x: x + offset, y, w: cellLen, h: rowThickness }, out);
     }
+
     offset += cellLen;
   }
 };
@@ -152,11 +169,14 @@ const pushRect = (item: LayoutItem, rect: Rect, out: TreemapRect[]) => {
 const worstRatio = (row: LayoutItem[], totalArea: number, shortSide: number): number => {
   const rowLen = totalArea / shortSide; // thickness of the row
   let worst = 0;
+
   for (const r of row) {
     const cellLen = r.area / rowLen;
     const aspect = rowLen > cellLen ? rowLen / cellLen : cellLen / rowLen;
+
     if (aspect > worst) worst = aspect;
   }
+
   return worst;
 };
 
@@ -208,13 +228,16 @@ export const buildCouplingData = (events: CodeIntelEvent[], workspaceCwd: string
 
   for (const files of sessionFiles.values()) {
     const fileList = [...files];
+
     for (let i = 0; i < fileList.length; i++) {
       for (let j = i + 1; j < fileList.length; j++) {
         const a = fileList[i];
         const b = fileList[j];
+
         if (!a || !b) continue;
         const key = pairKey(a, b);
         const existing = pairCounts.get(key);
+
         if (existing) {
           existing.count++;
         } else {
@@ -235,14 +258,19 @@ export const buildCouplingData = (events: CodeIntelEvent[], workspaceCwd: string
     .sort((a, b) => b.edits - a.edits);
 
   const pairs: CouplingPair[] = [...pairCounts.values()]
-    .map(({ fileA, fileB, count }) => ({
-      fileA,
-      fileB,
-      coSessions: count,
-      totalSessions: totalSessionCount,
-      strength: totalSessionCount > 0 ? count / totalSessionCount : 0,
-    }))
-    .filter((p) => p.coSessions >= 1)
+    .flatMap(({ fileA, fileB, count }) =>
+      count >= 1
+        ? [
+            {
+              fileA,
+              fileB,
+              coSessions: count,
+              totalSessions: totalSessionCount,
+              strength: totalSessionCount > 0 ? count / totalSessionCount : 0,
+            },
+          ]
+        : [],
+    )
     .sort((a, b) => b.coSessions - a.coSessions);
 
   return { files, pairs };
@@ -270,9 +298,11 @@ export const heatColor = (value: number, maxValue: number): string => {
   const t = segment - i;
   const a = MRI_STOPS[i];
   const b = MRI_STOPS[i + 1];
+
   if (!a || !b) return "rgb(10,10,46)";
   const r = Math.round(a[0] + t * (b[0] - a[0]));
   const g = Math.round(a[1] + t * (b[1] - a[1]));
   const bl = Math.round(a[2] + t * (b[2] - a[2]));
+
   return `rgb(${r},${g},${bl})`;
 };

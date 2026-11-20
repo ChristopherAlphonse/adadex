@@ -12,5 +12,6 @@ export const parkJob = async (
   const parked: WorkflowJob = { ...job, stage: NEEDS_HUMAN, parkedFrom: job.stage, note: reason };
   await store.save(parked);
   await store.audit({ actor: "system", action: "park", jobId: job.id, detail: reason });
+
   return parked;
 };

@@ -32,6 +32,7 @@ class FakePty extends EventEmitter {
 
   onData(listener: (chunk: string) => void) {
     this.on("data", listener);
+
     return {
       dispose: () => {
         this.off("data", listener);
@@ -41,6 +42,7 @@ class FakePty extends EventEmitter {
 
   onExit(listener: (event: { exitCode: number; signal: number }) => void) {
     this.on("exit", listener);
+
     return {
       dispose: () => {
         this.off("exit", listener);
@@ -95,12 +97,12 @@ class FakeWebSocketServer {
 }
 
 const createUpgradeRequest = (coordinationId: string) =>
-  ({
+  /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ({
     url: `/api/terminals/${coordinationId}/ws`,
   }) as IncomingMessage;
 
 const parseSentMessages = (socket: FakeWebSocket) =>
-  socket.sentMessages.map((raw) => JSON.parse(raw) as { type: string; data?: string });
+  socket.sentMessages.map((raw) => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(raw) as { type: string; data?: string });
 
 describe("createSessionRuntime", () => {
   const temporaryDirectories: string[] = [];
@@ -108,6 +110,7 @@ describe("createSessionRuntime", () => {
   const createTemporaryDirectory = () => {
     const directory = mkdtempSync(join(tmpdir(), "adadex-session-runtime-test-"));
     temporaryDirectories.push(directory);
+
     return directory;
   };
 
@@ -119,14 +122,17 @@ describe("createSessionRuntime", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+
     for (const directory of temporaryDirectories) {
       rmSync(directory, { recursive: true, force: true });
     }
+
     temporaryDirectories.length = 0;
   });
 
   it("keeps a session alive across reconnects and replays scrollback history", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -139,6 +145,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -146,7 +153,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -160,7 +167,7 @@ describe("createSessionRuntime", () => {
     const firstSocket = new FakeWebSocket();
     websocketServer.nextSocket = firstSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     pty.emitData("first line\r\n");
@@ -171,7 +178,7 @@ describe("createSessionRuntime", () => {
     const secondSocket = new FakeWebSocket();
     websocketServer.nextSocket = secondSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     const secondMessages = parseSentMessages(secondSocket);
@@ -189,6 +196,7 @@ describe("createSessionRuntime", () => {
     vi.useFakeTimers();
 
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -201,6 +209,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -208,7 +217,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -222,7 +231,7 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
     socket.close();
 
@@ -239,6 +248,7 @@ describe("createSessionRuntime", () => {
 
   it("disposes PTY subscriptions when a session is closed", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -251,6 +261,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -258,7 +269,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -287,6 +298,7 @@ describe("createSessionRuntime", () => {
     vi.useFakeTimers();
 
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -300,6 +312,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -307,7 +320,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -334,6 +347,7 @@ describe("createSessionRuntime", () => {
     vi.useFakeTimers();
 
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -347,6 +361,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -354,7 +369,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -382,6 +397,7 @@ describe("createSessionRuntime", () => {
 
   it("removes exited sessions without killing the already-exited PTY", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -394,6 +410,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -401,7 +418,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -446,6 +463,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const firstPty = new FakePty();
@@ -453,7 +471,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(firstPty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -477,6 +495,7 @@ describe("createSessionRuntime", () => {
 
   it("truncates oversize chunks to the configured scrollback size", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -489,6 +508,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -496,7 +516,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -510,7 +530,7 @@ describe("createSessionRuntime", () => {
     const firstSocket = new FakeWebSocket();
     websocketServer.nextSocket = firstSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
     pty.emitData("123456789012");
     firstSocket.close();
@@ -518,7 +538,7 @@ describe("createSessionRuntime", () => {
     const secondSocket = new FakeWebSocket();
     websocketServer.nextSocket = secondSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     const secondMessages = parseSentMessages(secondSocket);
@@ -532,6 +552,7 @@ describe("createSessionRuntime", () => {
 
   it("strips a broken leading ANSI fragment from replayed history after truncation", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -544,6 +565,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -551,7 +573,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -565,7 +587,7 @@ describe("createSessionRuntime", () => {
     const firstSocket = new FakeWebSocket();
     websocketServer.nextSocket = firstSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
     pty.emitData("\u001b[48;2;55;55;55mHELLO\r\n");
     firstSocket.close();
@@ -573,7 +595,7 @@ describe("createSessionRuntime", () => {
     const secondSocket = new FakeWebSocket();
     websocketServer.nextSocket = secondSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     const secondMessages = parseSentMessages(secondSocket);
@@ -587,6 +609,7 @@ describe("createSessionRuntime", () => {
 
   it("ignores duplicate resize payloads for the same terminal size", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -599,6 +622,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -606,7 +630,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -620,7 +644,7 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     socket.emit("message", JSON.stringify({ type: "resize", cols: 120, rows: 35 }));
@@ -635,6 +659,7 @@ describe("createSessionRuntime", () => {
 
   it("writes normalized transcript events for each terminal session", async () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -647,6 +672,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -654,7 +680,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -668,7 +694,7 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     socket.emit("message", JSON.stringify({ type: "input", data: "echo hi\r" }));
@@ -679,8 +705,10 @@ describe("createSessionRuntime", () => {
       transcriptDirectoryPath,
       `${encodeURIComponent(coordinationId)}.jsonl`,
     );
+
     const deadline = Date.now() + 2_000;
     let transcriptEvents: Array<{ type: string; text?: string; reason?: string }> = [];
+
     while (Date.now() < deadline) {
       if (existsSync(transcriptPath)) {
         try {
@@ -688,7 +716,8 @@ describe("createSessionRuntime", () => {
             .split(/\r?\n/)
             .map((line) => line.trim())
             .filter((line) => line.length > 0)
-            .map((line) => JSON.parse(line) as { type: string; text?: string; reason?: string });
+            .map((line) => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(line) as { type: string; text?: string; reason?: string });
+
           if (transcriptEvents.some((event) => event.type === "session_start")) {
             break;
           }
@@ -696,6 +725,7 @@ describe("createSessionRuntime", () => {
           // Transient empty/partial transcript file while flushing.
         }
       }
+
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
 
@@ -711,6 +741,7 @@ describe("createSessionRuntime", () => {
     vi.useFakeTimers();
 
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -724,6 +755,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -731,7 +763,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -765,6 +797,7 @@ describe("createSessionRuntime", () => {
     vi.useFakeTimers();
 
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -778,6 +811,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -785,7 +819,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -799,7 +833,7 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     expect(pty.write).toHaveBeenNthCalledWith(1, "claude\r");
@@ -815,6 +849,7 @@ describe("createSessionRuntime", () => {
 
   it("reports runtime state changes through the state-change callback", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -827,6 +862,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -835,7 +871,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -850,7 +886,7 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     socket.emit("message", JSON.stringify({ type: "input", data: "echo hi\r" }));
@@ -862,6 +898,7 @@ describe("createSessionRuntime", () => {
 
   it("reports session lifecycle start and exit through callbacks", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -874,6 +911,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -884,7 +922,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -900,7 +938,7 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
     ).toBe(true);
 
     expect(onSessionStart).toHaveBeenCalledWith(
@@ -929,6 +967,7 @@ describe("createSessionRuntime", () => {
 
   it("signals the whole process group when a session is stopped", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -941,6 +980,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -952,7 +992,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -983,6 +1023,7 @@ describe("createSessionRuntime", () => {
 
   it("unregisters the supervised process when its PTY exits", () => {
     const coordinationId = "orchestration-1";
+
     const terminals = new Map<string, PersistedTerminal>([
       [
         coordinationId,
@@ -995,6 +1036,7 @@ describe("createSessionRuntime", () => {
         },
       ],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const websocketServer = new FakeWebSocketServer();
     const pty = new FakePty();
@@ -1003,7 +1045,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),

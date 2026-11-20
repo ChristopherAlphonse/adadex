@@ -6,7 +6,9 @@ import type { Agent } from "./types";
 const memoryBarValue = (mem: string): number => {
   if (mem === "0 MB") return 0;
   const parsed = Number.parseFloat(mem);
+
   if (Number.isNaN(parsed)) return 18;
+
   return parsed > 1 ? 45 : 18;
 };
 

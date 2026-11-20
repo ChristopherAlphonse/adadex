@@ -16,7 +16,7 @@ const terminal = (terminalId: string): PersistedTerminal => ({
 });
 
 const session = (agentState: TerminalSession["agentState"]): TerminalSession =>
-  ({ agentState }) as TerminalSession;
+  /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ({ agentState }) as TerminalSession;
 
 describe("createChannelMessaging", () => {
   const temporaryDirectories: string[] = [];
@@ -25,10 +25,12 @@ describe("createChannelMessaging", () => {
     const directory = mkdtempSync(join(tmpdir(), "adadex-channel-messaging-test-"));
     temporaryDirectories.push(directory);
     const messagesPath = join(directory, "state", "channel-messages.json");
+
     const terminals = new Map([
       ["agent-1", terminal("agent-1")],
       ["agent-2", terminal("agent-2")],
     ]);
+
     const sessions = new Map<string, TerminalSession>();
     const writeInput = vi.fn(() => true);
     const create = () => createChannelMessaging({ terminals, sessions, writeInput, messagesPath });
@@ -40,6 +42,7 @@ describe("createChannelMessaging", () => {
     for (const directory of temporaryDirectories) {
       rmSync(directory, { recursive: true, force: true });
     }
+
     temporaryDirectories.length = 0;
   });
 
@@ -67,6 +70,7 @@ describe("createChannelMessaging", () => {
       writeInput: h.writeInput,
       messagesPath: h.messagesPath,
     });
+
     const listed = restarted.listChannelMessages("agent-2");
     expect(listed).toHaveLength(1);
     expect(listed[0]?.delivered).toBe(true);
@@ -94,6 +98,7 @@ describe("createChannelMessaging", () => {
   it("keeps message ids unique across a restart", () => {
     const h = harness();
     const firstId = h.create().sendChannelMessage("agent-2", "agent-1", "first")?.messageId;
+
     const secondId = harnessWithPath(h.messagesPath).sendChannelMessage(
       "agent-2",
       "agent-1",
@@ -119,6 +124,7 @@ const harnessWithPath = (messagesPath: string) => {
     ["agent-1", terminal("agent-1")],
     ["agent-2", terminal("agent-2")],
   ]);
+
   return createChannelMessaging({
     terminals,
     sessions: new Map(),

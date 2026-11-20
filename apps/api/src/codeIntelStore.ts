@@ -25,6 +25,7 @@ export const createCodeIntelStore = (projectStateDir: string): CodeIntelStore =>
 
     async readAll() {
       let raw: string;
+
       try {
         raw = await readFile(filePath, "utf-8");
       } catch {
@@ -32,14 +33,17 @@ export const createCodeIntelStore = (projectStateDir: string): CodeIntelStore =>
       }
 
       const events: CodeIntelEvent[] = [];
+
       for (const line of raw.split("\n")) {
         if (line.trim().length === 0) continue;
+
         try {
-          events.push(JSON.parse(line) as CodeIntelEvent);
+          events.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(line) as CodeIntelEvent);
         } catch {
           // skip malformed lines
         }
       }
+
       return events;
     },
   };

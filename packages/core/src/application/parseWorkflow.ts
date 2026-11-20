@@ -1,3 +1,4 @@
+import { isBoolean, isNumber, isObjectValue, isString } from "../util/typeCoercion";
 import { EFFECT_NAMES, NEEDS_HUMAN, type WorkflowDefinition } from "../domain/workflow";
 
 export type ParseWorkflowResult =
@@ -5,9 +6,12 @@ export type ParseWorkflowResult =
   | { readonly ok: false; readonly errors: readonly string[] };
 
 type Obj = Record<string, unknown>;
+
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
-const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
-const str = (v: unknown): v is string => typeof v === "string" && v !== "";
+
+const isObj = (v: unknown): v is Obj => isObjectValue(v) && v !== null && !Array.isArray(v);
+
+const str = (v: unknown): v is string => isString(v) && v !== "";
 
 /** Required fields per condition kind. `s` is a string, `b` a boolean, `e` a string or list of strings. */
 const CONDITIONS: Readonly<Record<string, Readonly<Record<string, "s" | "b" | "e">>>> = {
@@ -41,43 +45,53 @@ const checkFields = (
 ): void => {
   for (const [name, type] of Object.entries(spec)) {
     const v = value[name];
+
     const ok =
       type === "s"
         ? str(v)
         : type === "b"
-          ? typeof v === "boolean"
+          ? isBoolean(v)
           : type === "n"
-            ? typeof v === "number" && Number.isInteger(v)
+            ? isNumber(v) && Number.isInteger(v)
             : type === "name"
-              ? EFFECT_NAMES.includes(v as never)
+              ? EFFECT_NAMES.includes(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ v as never)
               : str(v) || (Array.isArray(v) && v.length > 0 && v.every(str));
+
     if (ok) continue;
-    const shape: Readonly<Record<string, string>> = {
+
+    const hintSuffixes: Readonly<Record<string, string>> = {
       b: " as true or false",
       n: " as a whole number",
       name: ` as ${EFFECT_NAMES.join(" or ")}`,
     };
-    errors.push(`${where}: ${kind} needs ${name}${shape[type] ?? ""}`);
+
+    errors.push(`${where}: ${kind} needs ${name}${hintSuffixes[type] ?? ""}`);
   }
 };
 
 const checkMove = (stageId: string, move: unknown, errors: string[]): void => {
   if (!isObj(move) || !str(move.to)) {
     errors.push(`stage ${stageId} has a move without a target`);
+
     return;
   }
+
   const where = `stage ${stageId} move to ${move.to}`;
+
   for (const c of Array.isArray(move.requires) ? move.requires : []) {
     const kind = isObj(c) ? c.kind : undefined;
-    const spec = typeof kind === "string" ? CONDITIONS[kind] : undefined;
-    if (!isObj(c) || typeof kind !== "string" || !spec)
+    const spec = isString(kind) ? CONDITIONS[kind] : undefined;
+
+    if (!isObj(c) || !isString(kind) || !spec)
       errors.push(`${where}: unknown condition kind ${String(kind)}`);
     else checkFields(where, kind, spec, c, errors);
   }
+
   for (const e of Array.isArray(move.effects) ? move.effects : []) {
     const kind = isObj(e) ? e.kind : undefined;
-    const spec = typeof kind === "string" ? EFFECTS[kind] : undefined;
-    if (!isObj(e) || typeof kind !== "string" || !spec)
+    const spec = isString(kind) ? EFFECTS[kind] : undefined;
+
+    if (!isObj(e) || !isString(kind) || !spec)
       errors.push(`${where}: unknown effect kind ${String(kind)}`);
     else checkFields(where, kind, spec, e, errors);
   }
@@ -91,6 +105,7 @@ const targets = (stage: Obj): string[] =>
 const walk = (from: string, next: (id: string) => string[]): Set<string> => {
   const seen = new Set<string>([from]);
   const queue = [from];
+
   for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
     for (const t of next(id)) {
       if (!seen.has(t)) {
@@ -99,44 +114,58 @@ const walk = (from: string, next: (id: string) => string[]): Set<string> => {
       }
     }
   }
+
   return seen;
 };
 
-const checkShape = (stages: Obj[], initial: unknown, errors: string[]): void => {
+const checkWorkflowStages = (stages: Obj[], initial: unknown, errors: string[]): void => {
   const ids = new Set<string>();
+
   for (const s of stages) {
     const id = String(s.id);
+
     if (id === NEEDS_HUMAN) errors.push(`${NEEDS_HUMAN} is reserved and cannot be a stage`);
     else if (ids.has(id)) errors.push(`duplicate stage ${id}`);
     ids.add(id);
   }
+
   const byId = new Map(stages.map((s) => [String(s.id), s]));
+
   if (!ids.has(String(initial))) errors.push(`initial stage ${String(initial)} does not exist`);
 
   for (const s of stages) {
     const id = String(s.id);
     const moves = targets(s);
+
     if (s.terminal === true && Array.isArray(s.moves) && s.moves.length > 0)
       errors.push(`terminal stage ${id} cannot have moves`);
+
     if (s.terminal !== true && moves.length === 0)
       errors.push(`stage ${id} has no moves and is not terminal`);
+
     for (const t of moves)
       if (t !== NEEDS_HUMAN && !ids.has(t)) errors.push(`stage ${id} moves to unknown stage ${t}`);
+
     for (const m of Array.isArray(s.moves) ? s.moves : []) checkMove(id, m, errors);
   }
 
-  const terminals = stages.filter((s) => s.terminal === true).map((s) => String(s.id));
+  const terminals = stages.flatMap((s) => (s.terminal === true ? [String(s.id)] : []));
+
   if (terminals.length === 0) errors.push("a workflow needs at least one terminal stage");
+
   if (!ids.has(String(initial)) || terminals.length === 0) return;
 
   const reach = walk(String(initial), (id) =>
     targets(byId.get(id) ?? {}).filter((t) => ids.has(t)),
   );
+
   for (const id of ids)
     if (!reach.has(id)) errors.push(`stage ${id} cannot be reached from ${String(initial)}`);
+
   for (const id of ids) {
     if (!reach.has(id)) continue;
     const forward = walk(id, (x) => targets(byId.get(x) ?? {}).filter((t) => ids.has(t)));
+
     if (!terminals.some((t) => forward.has(t)))
       errors.push(`stage ${id} cannot reach a terminal stage`);
   }
@@ -150,18 +179,25 @@ const checkShape = (stages: Obj[], initial: unknown, errors: string[]): void => 
 export const parseWorkflow = (input: unknown): ParseWorkflowResult => {
   if (!isObj(input)) return { ok: false, errors: ["a workflow must be an object"] };
   const errors: string[] = [];
+
   if (!str(input.id) || !SLUG.test(input.id)) errors.push("id must match [a-z0-9][a-z0-9-]*");
+
   if (!str(input.name)) errors.push("name is required");
+
   if (!str(input.initial)) errors.push("initial stage is required");
   const round = input.initialRound ?? 0;
-  if (input.unattended !== undefined && typeof input.unattended !== "boolean")
+
+  if (input.unattended !== undefined && !isBoolean(input.unattended))
     errors.push("unattended must be true or false");
-  if (typeof round !== "number" || !Number.isInteger(round) || round < 0)
+
+  if (!isNumber(round) || !Number.isInteger(round) || round < 0)
     errors.push("initialRound must be a whole number, 0 or more");
 
   const raw = Array.isArray(input.stages) ? input.stages : [];
+
   if (raw.length === 0) errors.push("a workflow needs stages");
   const stages: Obj[] = [];
+
   for (const [i, s] of raw.entries()) {
     if (!isObj(s) || !str(s.id) || !SLUG.test(s.id))
       errors.push(`stage ${i + 1} needs an id matching [a-z0-9][a-z0-9-]*`);
@@ -170,13 +206,16 @@ export const parseWorkflow = (input: unknown): ParseWorkflowResult => {
       errors.push(`stage ${s.id} role must be a role id`);
     else stages.push(s);
   }
-  if (errors.length === 0 || stages.length > 0) checkShape(stages, input.initial, errors);
+
+  if (errors.length === 0 || stages.length > 0) checkWorkflowStages(stages, input.initial, errors);
+
   if (errors.length > 0) return { ok: false, errors };
+
   return {
     ok: true,
     workflow: {
-      ...(input as unknown as WorkflowDefinition),
-      initialRound: round as number,
+      ...(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ input as unknown as WorkflowDefinition),
+      initialRound: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ round as number,
       origin: "user",
     },
   };

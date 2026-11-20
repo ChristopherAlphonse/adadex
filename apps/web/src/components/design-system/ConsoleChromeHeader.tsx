@@ -29,6 +29,7 @@ export const ConsoleChromeHeader = ({
       >
         {PRIMARY_NAV_ITEMS.map((item) => {
           const active = item.index === activePrimaryNav;
+
           return (
             <button
               key={item.index}

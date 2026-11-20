@@ -5,7 +5,7 @@ import {
   LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY,
   LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY,
   LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY,
-} from "@adadex/core";
+, isBoolean, isNumber, isObjectValue, isString} from "@adadex/core";
 
 import { writeTextFileAtomic, writeTextFileAtomicAsync } from "../atomicJsonFile";
 import { TERMINAL_REGISTRY_VERSION } from "./constants";
@@ -28,7 +28,7 @@ type TerminalRegistryState = {
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
+  value !== null && isObjectValue(value) && !Array.isArray(value);
 
 const isTerminalNameOrigin = (value: unknown): value is TerminalNameOrigin =>
   value === "generated" || value === "user" || value === "prompt";
@@ -58,68 +58,74 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
 
   const nextState: PersistedUiState = {};
 
-  if (typeof value.isAgentsSidebarVisible === "boolean") {
+  if (isBoolean(value.isAgentsSidebarVisible)) {
     nextState.isAgentsSidebarVisible = value.isAgentsSidebarVisible;
   }
 
-  if (typeof value.sidebarWidth === "number" && Number.isFinite(value.sidebarWidth)) {
+  if (isNumber(value.sidebarWidth) && Number.isFinite(value.sidebarWidth)) {
     nextState.sidebarWidth = value.sidebarWidth;
   }
 
-  if (typeof value.isActiveAgentsSectionExpanded === "boolean") {
+  if (isBoolean(value.isActiveAgentsSectionExpanded)) {
     nextState.isActiveAgentsSectionExpanded = value.isActiveAgentsSectionExpanded;
   }
 
-  if (typeof value.isRuntimeStatusStripVisible === "boolean") {
+  if (isBoolean(value.isRuntimeStatusStripVisible)) {
     nextState.isRuntimeStatusStripVisible = value.isRuntimeStatusStripVisible;
   }
 
   const completionSoundValue = value.terminalCompletionSound;
+
   if (isTerminalCompletionSoundId(completionSoundValue)) {
     nextState.terminalCompletionSound = completionSoundValue;
   }
 
   const minimizedIds = value.minimizedTerminalIds;
+
   if (Array.isArray(minimizedIds)) {
-    const ids = minimizedIds.filter((id): id is string => typeof id === "string");
+    const ids = minimizedIds.filter((id): id is string => isString(id));
     nextState.minimizedTerminalIds = [...new Set(ids)];
   }
 
   const widths = value.terminalWidths;
+
   if (isRecord(widths)) {
     const terminalWidths = Object.entries(widths).reduce<Record<string, number>>(
       (acc, [id, width]) => {
-        if (typeof width === "number" && Number.isFinite(width)) {
+        if (isNumber(width) && Number.isFinite(width)) {
           acc[id] = width;
         }
+
         return acc;
       },
       {},
     );
+
     nextState.terminalWidths = terminalWidths;
   }
 
   if (Array.isArray(value.canvasOpenTerminalIds)) {
     nextState.canvasOpenTerminalIds = value.canvasOpenTerminalIds.filter(
-      (id): id is string => typeof id === "string",
+      (id): id is string => isString(id),
     );
   }
 
   if (Array.isArray(value.canvasOpenCoordinationIds)) {
     nextState.canvasOpenCoordinationIds = value.canvasOpenCoordinationIds.filter(
-      (id): id is string => typeof id === "string",
+      (id): id is string => isString(id),
     );
   } else {
     const legacyCanvasOpen = value[LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY];
+
     if (Array.isArray(legacyCanvasOpen)) {
       nextState.canvasOpenCoordinationIds = legacyCanvasOpen.filter(
-        (id): id is string => typeof id === "string",
+        (id): id is string => isString(id),
       );
     }
   }
 
   if (
-    typeof value.canvasTerminalsPanelWidth === "number" &&
+    isNumber(value.canvasTerminalsPanelWidth) &&
     Number.isFinite(value.canvasTerminalsPanelWidth)
   ) {
     nextState.canvasTerminalsPanelWidth = value.canvasTerminalsPanelWidth;
@@ -133,6 +139,7 @@ export const pruneUiStateTerminalReferences = (
   terminals: Map<string, PersistedTerminal>,
 ): PersistedUiState => {
   const activeTerminalIds = new Set(terminals.keys());
+
   const nextState: PersistedUiState = {
     ...uiState,
   };
@@ -150,6 +157,7 @@ export const pruneUiStateTerminalReferences = (
       if (activeTerminalIds.has(id)) {
         acc[id] = width;
       }
+
       return acc;
     }, {});
   }
@@ -167,40 +175,46 @@ const migrateV2ToV3 = (
   registryPath: string,
 ): Map<string, PersistedTerminal> => {
   const rawList = record[LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY];
+
   if (!Array.isArray(rawList)) {
     throw new Error(`Invalid registry coordination list (${registryPath}).`);
   }
 
   const terminals = new Map<string, PersistedTerminal>();
+
   for (const item of rawList) {
-    if (item === null || typeof item !== "object") {
+    if (item === null || !isObjectValue(item)) {
       throw new Error(`Invalid registry coordination entry (${registryPath}).`);
     }
 
     const entry = item as Record<string, unknown>;
     const legacyCoordinationId = entry[LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY];
     const legacyCoordinationName = entry[LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY];
+
     const coordinationIdRaw =
-      typeof entry.coordinationId === "string"
+      isString(entry.coordinationId)
         ? entry.coordinationId
-        : typeof legacyCoordinationId === "string"
+        : isString(legacyCoordinationId)
           ? legacyCoordinationId
           : null;
+
     const coordinationNameRaw =
-      typeof entry.coordinationName === "string"
+      isString(entry.coordinationName)
         ? entry.coordinationName
-        : typeof legacyCoordinationName === "string"
+        : isString(legacyCoordinationName)
           ? legacyCoordinationName
           : null;
+
     const coordinationId = coordinationIdRaw;
     const coordinationName = coordinationNameRaw;
-    const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
+    const createdAt = isString(entry.createdAt) ? entry.createdAt : null;
 
     if (!coordinationId || !coordinationName || !createdAt) {
       throw new Error(`Incomplete registry coordination entry (${registryPath}).`);
     }
 
     const rawWorkspaceMode = entry.workspaceMode;
+
     const workspaceMode: CoordinationWorkspaceMode =
       rawWorkspaceMode === "worktree" || rawWorkspaceMode === "shared"
         ? rawWorkspaceMode
@@ -228,39 +242,45 @@ const parseV3Terminals = (
   registryPath: string,
 ): Map<string, PersistedTerminal> => {
   const rawTerminals = record.terminals;
+
   if (!Array.isArray(rawTerminals)) {
     throw new Error(`Invalid registry terminals array (${registryPath}).`);
   }
 
   const terminals = new Map<string, PersistedTerminal>();
+
   for (const item of rawTerminals) {
-    if (item === null || typeof item !== "object") {
+    if (item === null || !isObjectValue(item)) {
       throw new Error(`Invalid terminal entry in registry (${registryPath}).`);
     }
 
     const entry = item as Record<string, unknown>;
-    const terminalId = typeof entry.terminalId === "string" ? entry.terminalId : null;
+    const terminalId = isString(entry.terminalId) ? entry.terminalId : null;
     const legacyCoordinationId = entry[LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY];
     const legacyCoordinationName = entry[LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY];
+
     const coordinationId =
-      typeof entry.coordinationId === "string"
+      isString(entry.coordinationId)
         ? entry.coordinationId
-        : typeof legacyCoordinationId === "string"
+        : isString(legacyCoordinationId)
           ? legacyCoordinationId
           : null;
+
     const coordinationName =
-      typeof entry.coordinationName === "string"
+      isString(entry.coordinationName)
         ? entry.coordinationName
-        : typeof legacyCoordinationName === "string"
+        : isString(legacyCoordinationName)
           ? legacyCoordinationName
           : null;
-    const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
+
+    const createdAt = isString(entry.createdAt) ? entry.createdAt : null;
 
     if (!terminalId || !coordinationId || !coordinationName || !createdAt) {
       throw new Error(`Incomplete terminal entry in registry (${registryPath}).`);
     }
 
     const rawWorkspaceMode = entry.workspaceMode;
+
     const workspaceMode: CoordinationWorkspaceMode =
       rawWorkspaceMode === "worktree" || rawWorkspaceMode === "shared"
         ? rawWorkspaceMode
@@ -280,45 +300,61 @@ const parseV3Terminals = (
       createdAt,
       workspaceMode,
     };
-    if (typeof entry.worktreeId === "string") terminal.worktreeId = entry.worktreeId;
-    if (typeof entry.parentTerminalId === "string")
+
+    if (isString(entry.worktreeId)) terminal.worktreeId = entry.worktreeId;
+
+    if (isString(entry.parentTerminalId))
       terminal.parentTerminalId = entry.parentTerminalId;
+
     if (isTerminalAgentProvider(entry.agentProvider)) terminal.agentProvider = entry.agentProvider;
-    if (typeof entry.initialPrompt === "string") terminal.initialPrompt = entry.initialPrompt;
-    if (typeof entry.initialInputDraft === "string") {
+
+    if (isString(entry.initialPrompt)) terminal.initialPrompt = entry.initialPrompt;
+
+    if (isString(entry.initialInputDraft)) {
       terminal.initialInputDraft = entry.initialInputDraft;
     }
-    if (typeof entry.autoRenamePromptContext === "string") {
+
+    if (isString(entry.autoRenamePromptContext)) {
       terminal.autoRenamePromptContext = entry.autoRenamePromptContext;
     }
-    if (typeof entry.lastActiveAt === "string") terminal.lastActiveAt = entry.lastActiveAt;
+
+    if (isString(entry.lastActiveAt)) terminal.lastActiveAt = entry.lastActiveAt;
+
     if (isTerminalLifecycleState(entry.lifecycleState)) {
       terminal.lifecycleState = entry.lifecycleState;
     }
-    if (typeof entry.lifecycleReason === "string") {
+
+    if (isString(entry.lifecycleReason)) {
       terminal.lifecycleReason = entry.lifecycleReason;
     }
-    if (typeof entry.lifecycleUpdatedAt === "string") {
+
+    if (isString(entry.lifecycleUpdatedAt)) {
       terminal.lifecycleUpdatedAt = entry.lifecycleUpdatedAt;
     }
+
     if (
-      typeof entry.processId === "number" &&
+      isNumber(entry.processId) &&
       Number.isInteger(entry.processId) &&
       entry.processId > 0
     ) {
       terminal.processId = entry.processId;
     }
-    if (typeof entry.startedAt === "string") terminal.startedAt = entry.startedAt;
-    if (typeof entry.endedAt === "string") terminal.endedAt = entry.endedAt;
-    if (typeof entry.exitCode === "number" && Number.isFinite(entry.exitCode)) {
+
+    if (isString(entry.startedAt)) terminal.startedAt = entry.startedAt;
+
+    if (isString(entry.endedAt)) terminal.endedAt = entry.endedAt;
+
+    if (isNumber(entry.exitCode) && Number.isFinite(entry.exitCode)) {
       terminal.exitCode = entry.exitCode;
     }
+
     if (
-      (typeof entry.exitSignal === "number" && Number.isFinite(entry.exitSignal)) ||
-      typeof entry.exitSignal === "string"
+      (isNumber(entry.exitSignal) && Number.isFinite(entry.exitSignal)) ||
+      isString(entry.exitSignal)
     ) {
       terminal.exitSignal = entry.exitSignal;
     }
+
     terminals.set(terminalId, terminal);
   }
 
@@ -333,13 +369,14 @@ const parseRegistryDocument = (
   uiState: PersistedUiState;
 } => {
   let parsed: unknown;
+
   try {
     parsed = JSON.parse(raw);
   } catch (error) {
     throw new Error(`Invalid terminal registry JSON (${registryPath}): ${toErrorMessage(error)}`);
   }
 
-  if (parsed === null || typeof parsed !== "object") {
+  if (parsed === null || !isObjectValue(parsed)) {
     throw new Error(`Invalid terminal registry shape (${registryPath}).`);
   }
 
@@ -370,6 +407,7 @@ export const loadTerminalRegistry = (registryPath: string) => {
   }
 
   const raw = readFileSync(registryPath, "utf8");
+
   return parseRegistryDocument(raw, registryPath);
 };
 
@@ -424,6 +462,7 @@ export const createTerminalRegistryPersistence = (registryPath: string) => {
       }
     })().finally(() => {
       writeLoopPromise = null;
+
       if (pendingSerialized !== null) {
         void runWriteLoop();
       }
@@ -447,6 +486,7 @@ export const createTerminalRegistryPersistence = (registryPath: string) => {
   return {
     schedulePersist(state: TerminalRegistryState) {
       const serialized = serializeTerminalRegistry(state);
+
       if (
         serialized === pendingSerialized ||
         (pendingSerialized === null &&

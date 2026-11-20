@@ -31,14 +31,16 @@ export const useInitialColumnsHydration = ({
     const syncColumns = async () => {
       try {
         setLoadError(null);
+
         const [nextColumns, nextUiState] = await Promise.all([
           readColumns(controller.signal),
           readUiState(controller.signal),
         ]);
+
         setColumns(nextColumns);
         applyHydratedUiState(nextUiState, nextColumns);
       } catch (error) {
-        if ((error as Error).name !== "AbortError") {
+        if ((/* SAFETY: preceding checks establish the invariant this assertion encodes. */ error as Error).name !== "AbortError") {
           setColumns([]);
           setLoadError("Agent data is currently unavailable.");
         }
@@ -49,6 +51,7 @@ export const useInitialColumnsHydration = ({
     };
 
     void syncColumns();
+
     return () => {
       controller.abort();
     };

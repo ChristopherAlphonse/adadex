@@ -45,11 +45,13 @@ export const createScheduler = (deps: SchedulerDeps) => {
         stalls.set(jobId, (stalls.get(jobId) ?? 0) + 1);
       })
       .finally(() => running.delete(jobId));
+
     running.set(jobId, done);
   };
 
   const tick = async (): Promise<TickPlan> => {
     const jobs: WorkflowJob[] = [...(await deps.store.list())];
+
     const candidates = await Promise.all(
       jobs.map(async (job) => ({
         job,
@@ -57,18 +59,24 @@ export const createScheduler = (deps: SchedulerDeps) => {
         stalls: stalls.get(job.id) ?? 0,
       })),
     );
+
     const plan = planTick(candidates, new Set(running.keys()), {
       concurrency: deps.concurrency,
       stallLimit: deps.stallLimit,
     });
+
     for (const p of plan.park) {
       const job = jobs.find((j) => j.id === p.jobId);
+
       if (job) await parkJob(deps.store, job, p.reason);
       stalls.delete(p.jobId);
     }
+
     for (const s of plan.start) launch(s.jobId, s.stageId);
     lastPlan = plan;
+
     if (plan.start.length > 0 || plan.park.length > 0) deps.onPlan?.(plan);
+
     return plan;
   };
 
@@ -87,8 +95,9 @@ export const createScheduler = (deps: SchedulerDeps) => {
     },
     stop(): void {
       enabled = false;
+
       if (timer !== undefined)
-        (deps.clearInterval ?? ((h) => clearInterval(h as ReturnType<typeof setInterval>)))(timer);
+        (deps.clearInterval ?? ((h) => clearInterval(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ h as ReturnType<typeof setInterval>)))(timer);
       timer = undefined;
     },
     status: (): SchedulerStatus => ({ enabled, running: [...running.keys()], lastPlan }),

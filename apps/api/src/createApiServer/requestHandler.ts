@@ -1,3 +1,4 @@
+import { isNumber, isObjectValue } from "@adadex/core";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -59,19 +60,19 @@ import {
 } from "./terminalRoutes";
 import { handleGithubSummaryRoute, handleUsageHeatmapRoute } from "./usageRoutes";
 
-const MIME_TYPES: Record<string, string> = {
-  ".html": "text/html",
-  ".js": "application/javascript",
-  ".css": "text/css",
-  ".json": "application/json",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".ico": "image/x-icon",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".ttf": "font/ttf",
-  ".otf": "font/otf",
-};
+const MIME_TYPES = new Map<string, string>([
+  [".html", "text/html"],
+  [".js", "application/javascript"],
+  [".css", "text/css"],
+  [".json", "application/json"],
+  [".svg", "image/svg+xml"],
+  [".png", "image/png"],
+  [".ico", "image/x-icon"],
+  [".woff", "font/woff"],
+  [".woff2", "font/woff2"],
+  [".ttf", "font/ttf"],
+  [".otf", "font/otf"],
+]);
 
 type CreateApiRequestHandlerOptions = {
   runtime: TerminalRuntime;
@@ -138,9 +139,11 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
 
 const extractRoutePrefix = (pathname: string): string | null => {
   const segments = pathname.split("/");
+
   if (segments.length < 3 || segments[1] !== "api") {
     return null;
   }
+
   return segments[2] ?? null;
 };
 
@@ -160,18 +163,21 @@ const serveStaticFile = async (
   try {
     const content = await readFile(filePath);
     const ext = extname(filePath);
-    const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
+    const contentType = MIME_TYPES.get(ext) ?? "application/octet-stream";
     response.writeHead(200, { "Content-Type": contentType });
     response.end(content);
+
     return true;
   } catch (error) {
-    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    const code = isObjectValue(error) && error && "code" in error ? String(error.code) : "";
+
     if (code !== "ENOENT") {
       console.error(
         `[API] Static file error: ${filePath}`,
         error instanceof Error ? error.message : error,
       );
     }
+
     return false;
   }
 };
@@ -209,8 +215,9 @@ export const createApiRequestHandler = ({
     const startTime = Date.now();
     let statusCode = 0;
     const originalWriteHead = response.writeHead.bind(response);
-    response.writeHead = ((...args: Parameters<typeof response.writeHead>) => {
-      statusCode = typeof args[0] === "number" ? args[0] : 0;
+    response.writeHead = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ((...args: Parameters<typeof response.writeHead>) => {
+      statusCode = isNumber(args[0]) ? args[0] : 0;
+
       return originalWriteHead(...args);
     }) as typeof response.writeHead;
 
@@ -221,12 +228,14 @@ export const createApiRequestHandler = ({
     if (!isAllowedHostHeader(hostHeader, allowRemoteAccess)) {
       writeJson(response, 403, { error: "Host not allowed." }, null);
       logRequest(request.method ?? "?", request.url ?? "/", 403, startTime);
+
       return;
     }
 
     if (!isAllowedOriginHeader(originHeader, allowRemoteAccess)) {
       writeJson(response, 403, { error: "Origin not allowed." }, null);
       logRequest(request.method ?? "?", request.url ?? "/", 403, startTime);
+
       return;
     }
 
@@ -236,6 +245,7 @@ export const createApiRequestHandler = ({
       if (request.method === "OPTIONS") {
         writeNoContent(response, 204, corsOrigin);
         logRequest(request.method ?? "OPTIONS", requestUrl.pathname, statusCode, startTime);
+
         return;
       }
 
@@ -248,10 +258,12 @@ export const createApiRequestHandler = ({
 
       const prefix = extractRoutePrefix(requestUrl.pathname);
       const handlers = prefix !== null ? API_ROUTE_MAP.get(prefix) : undefined;
+
       if (handlers) {
         for (const handleRoute of handlers) {
           if (await handleRoute(routeContext, routeDependencies)) {
             logRequest(request.method ?? "?", requestUrl.pathname, statusCode, startTime);
+
             return;
           }
         }
@@ -262,8 +274,10 @@ export const createApiRequestHandler = ({
         const served =
           (await serveStaticFile(response, resolvedWebDistDir, requestUrl.pathname)) ||
           (await serveStaticFile(response, resolvedWebDistDir, "/"));
+
         if (served) {
           logRequest(request.method, requestUrl.pathname, 200, startTime);
+
           return;
         }
       }

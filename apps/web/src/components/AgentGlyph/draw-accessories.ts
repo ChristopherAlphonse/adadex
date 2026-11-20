@@ -41,6 +41,7 @@ export const drawAccessory = (
       ctx.stroke();
       break;
     }
+
     case "badge": {
       ctx.globalAlpha = 0.8;
       const bx = unit * 1.45;
@@ -54,6 +55,7 @@ export const drawAccessory = (
       ctx.fill();
       break;
     }
+
     case "visor":
       ctx.globalAlpha = 0.65;
       ctx.beginPath();
@@ -88,6 +90,7 @@ export const drawAccessory = (
           );
         });
       }
+
       break;
     case "shield":
       ctx.globalAlpha = 0.75;
@@ -104,5 +107,6 @@ export const drawAccessory = (
     default:
       break;
   }
+
   ctx.restore();
 };

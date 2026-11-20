@@ -1,3 +1,4 @@
+import { isString } from "@adadex/core";
 import { useCallback, useMemo, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
@@ -13,8 +14,9 @@ type DeleteAllTerminalsDialogProps = {
 
 const readDeleteFailureMessage = async (response: Response, fallback: string) => {
   try {
-    const payload = (await response.json()) as { error?: unknown };
-    if (typeof payload.error === "string" && payload.error.trim().length > 0) {
+    const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as { error?: unknown };
+
+    if (isString(payload.error) && payload.error.trim().length > 0) {
       return payload.error;
     }
   } catch {
@@ -63,6 +65,7 @@ export const DeleteAllTerminalsDialog = ({
           method: "DELETE",
           headers: { Accept: "application/json" },
         });
+
         if (!response.ok) {
           failures.push(
             `${terminal.coordinationName || terminal.label || terminal.terminalId}: ${await readDeleteFailureMessage(
@@ -78,6 +81,7 @@ export const DeleteAllTerminalsDialog = ({
           }`,
         );
       }
+
       done += 1;
       setProgress({ done, total: totalTargetCount });
     }
@@ -88,6 +92,7 @@ export const DeleteAllTerminalsDialog = ({
           method: "DELETE",
           headers: { Accept: "application/json" },
         });
+
         if (!response.ok) {
           failures.push(
             `Conversation ${sessionId}: ${await readDeleteFailureMessage(
@@ -101,6 +106,7 @@ export const DeleteAllTerminalsDialog = ({
           `Conversation ${sessionId}: ${error instanceof Error ? error.message : "Delete failed."}`,
         );
       }
+
       done += 1;
       setProgress({ done, total: totalTargetCount });
     }

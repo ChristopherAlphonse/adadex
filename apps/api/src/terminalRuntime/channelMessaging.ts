@@ -16,16 +16,19 @@ export const createChannelMessaging = (deps: {
 
   const deliverChannelMessages = (terminalId: string): number => {
     const queue = channelQueues.get(terminalId);
+
     if (!queue || queue.length === 0) {
       return 0;
     }
 
     const session = sessions.get(terminalId);
+
     if (!session) {
       return 0;
     }
 
     const undelivered = queue.filter((m) => !m.delivered);
+
     if (undelivered.length === 0) {
       return 0;
     }
@@ -34,6 +37,7 @@ export const createChannelMessaging = (deps: {
     const lines = undelivered.map(
       (m) => `[Channel message from ${m.fromTerminalId}]: ${m.content}`,
     );
+
     const prompt = `${lines.join("\n")}\r`;
 
     logVerbose(`[Channel] Delivering ${undelivered.length} message(s) to ${terminalId}`);
@@ -44,6 +48,7 @@ export const createChannelMessaging = (deps: {
 
     writeInput(terminalId, prompt);
     persist();
+
     return undelivered.length;
   };
 
@@ -77,6 +82,7 @@ export const createChannelMessaging = (deps: {
 
       // If the target session is idle, deliver immediately.
       const targetSession = sessions.get(toTerminalId);
+
       if (targetSession && targetSession.agentState === "idle") {
         deliverChannelMessages(toTerminalId);
       }

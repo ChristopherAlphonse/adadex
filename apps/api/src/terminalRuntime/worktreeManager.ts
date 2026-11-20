@@ -33,6 +33,7 @@ const findTerminalForWorktree = (
       return terminal;
     }
   }
+
   return undefined;
 };
 
@@ -43,11 +44,13 @@ export const createWorktreeManager = ({
 }: CreateWorktreeManagerOptions) => {
   const getOrchestrationWorktreePath = (coordinationId: string) =>
     join(workspaceCwd, COORDINATION_WORKTREE_RELATIVE_PATH, coordinationId);
+
   const getOrchestrationBranchName = (coordinationId: string) =>
     `${COORDINATION_WORKTREE_BRANCH_PREFIX}${coordinationId}`;
 
   const getOrchestrationWorkspaceCwd = (worktreeIdentifier: string) => {
     const terminal = findTerminalForWorktree(terminals, worktreeIdentifier);
+
     if (!terminal) {
       throw new Error(`No terminal found for worktree: ${worktreeIdentifier}`);
     }
@@ -61,6 +64,7 @@ export const createWorktreeManager = ({
 
   const assertWorktreeCreationSupported = () => {
     gitClient.assertAvailable();
+
     if (!gitClient.isRepository(workspaceCwd)) {
       throw new RuntimeInputError(
         "Worktree terminals require a git repository at the workspace root.",
@@ -71,6 +75,7 @@ export const createWorktreeManager = ({
   const createOrchestrationWorktree = (coordinationId: string, baseRef = "HEAD") => {
     assertWorktreeCreationSupported();
     const worktreePath = getOrchestrationWorktreePath(coordinationId);
+
     if (existsSync(worktreePath)) {
       throw new RuntimeInputError(`Worktree path already exists: ${worktreePath}`);
     }
@@ -108,6 +113,7 @@ export const createWorktreeManager = ({
         if (bestEffort) {
           return;
         }
+
         throw new RuntimeInputError(
           `Unable to remove worktree for ${coordinationId}: ${toErrorMessage(error)}`,
         );
@@ -123,6 +129,7 @@ export const createWorktreeManager = ({
       if (bestEffort) {
         return;
       }
+
       throw new RuntimeInputError(
         `Unable to remove branch for ${coordinationId}: ${toErrorMessage(error)}`,
       );

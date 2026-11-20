@@ -1,3 +1,4 @@
+import { isString } from "@adadex/core";
 import { FileText, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -53,7 +54,13 @@ type TerminalServerMessage =
   | TerminalRenameMessage
   | TerminalActivityMessage;
 
-const readTerminalThemeColors = (): { background: string; foreground: string; cursor: string } => {
+type TerminalThemeColors = {
+  background: string;
+  foreground: string;
+  cursor: string;
+};
+
+const readTerminalThemeColors = (): TerminalThemeColors => {
   const shell = document.querySelector(".design-console");
   const source = shell ?? document.documentElement;
   const computed = window.getComputedStyle(source);
@@ -96,6 +103,7 @@ export const Terminal = ({
   const [isPromptBannerDismissed, setIsPromptBannerDismissed] = useState(false);
   const [isPromptPickerOpen, setIsPromptPickerOpen] = useState(false);
   const promptPickerBtnRef = useRef<HTMLButtonElement | null>(null);
+
   const terminalRef = useRef<{
     write: (value: string, callback?: () => void) => void;
     scrollLines: (lineCount: number) => void;
@@ -106,6 +114,7 @@ export const Terminal = ({
     cols: number;
     rows: number;
   } | null>(null);
+
   const fitAddonRef = useRef<{ fit: () => void } | null>(null);
   const requestResizeSyncRef = useRef<() => void>(() => {});
   const onTerminalActivityRef = useRef(onTerminalActivity);
@@ -122,6 +131,7 @@ export const Terminal = ({
 
   const handlePromptPickerSelect = useCallback((content: string) => {
     const ws = socketRef.current;
+
     if (ws && ws.readyState === 1) {
       ws.send(JSON.stringify({ type: "input", data: content }));
     }
@@ -132,8 +142,11 @@ export const Terminal = ({
     let reconnectTimer: number | null = null;
     let socket: WebSocket | null = null;
     let requestResizeSync = () => {};
+
     requestResizeSyncRef.current = () => {};
+
     let cleanupTerminal = () => {};
+
     let activeTerminal: {
       write: (value: string, callback?: () => void) => void;
       scrollLines: (lineCount: number) => void;
@@ -143,6 +156,7 @@ export const Terminal = ({
       refresh?: (start: number, end: number) => void;
       rows: number;
     } | null = null;
+
     let pendingHistoryData: string | null = null;
     const pendingOutputChunks: string[] = [];
 
@@ -155,6 +169,7 @@ export const Terminal = ({
         if (isCancelled || socket !== nextSocket) {
           return;
         }
+
         socketRef.current = nextSocket;
         setConnectionState("connected");
         requestResizeSync();
@@ -164,6 +179,7 @@ export const Terminal = ({
         if (isCancelled || socket !== nextSocket) {
           return;
         }
+
         socketRef.current = null;
         setConnectionState("closed");
         reconnectTimer = window.setTimeout(() => {
@@ -175,6 +191,7 @@ export const Terminal = ({
         if (isCancelled || socket !== nextSocket) {
           return;
         }
+
         setConnectionState("error");
       });
 
@@ -183,52 +200,65 @@ export const Terminal = ({
           return;
         }
 
-        if (typeof event.data !== "string") {
+        if (!isString(event.data)) {
           return;
         }
 
         try {
-          const payload = JSON.parse(event.data) as TerminalServerMessage;
-          if (payload.type === "history" && typeof payload.data === "string") {
+          const payload =
+            /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(
+              event.data,
+            ) as TerminalServerMessage;
+
+          if (payload.type === "history" && isString(payload.data)) {
             if (activeTerminal) {
               const viewport =
                 containerRef.current?.querySelector<HTMLElement>(".xterm-viewport") ?? null;
+
               replayTerminalHistory(activeTerminal, payload.data, viewport);
+
               return;
             }
 
             pendingHistoryData = payload.data;
             pendingOutputChunks.length = 0;
+
             return;
           }
 
-          if (payload.type === "output" && typeof payload.data === "string") {
+          if (payload.type === "output" && isString(payload.data)) {
             if (activeTerminal) {
               activeTerminal.write(payload.data);
+
               return;
             }
 
             pendingOutputChunks.push(payload.data);
+
             return;
           }
 
           if (payload.type === "state" && isAgentRuntimeState(payload.state)) {
             setAgentRuntimeState(payload.state);
+
             return;
           }
 
-          if (payload.type === "rename" && typeof payload.coordinationName === "string") {
+          if (payload.type === "rename" && isString(payload.coordinationName)) {
             onTerminalRenamedRef.current?.(terminalId, payload.coordinationName);
+
             return;
           }
 
           if (payload.type === "activity") {
             onTerminalActivityRef.current?.(terminalId);
+
             return;
           }
         } catch {
           if (activeTerminal) {
             activeTerminal.write(event.data);
+
             return;
           }
 
@@ -242,9 +272,11 @@ export const Terminal = ({
     if (import.meta.env.MODE === "test") {
       return () => {
         isCancelled = true;
+
         if (reconnectTimer !== null) {
           window.clearTimeout(reconnectTimer);
         }
+
         socket?.close();
       };
     }
@@ -267,9 +299,11 @@ export const Terminal = ({
         const rootFontSize = Number.parseFloat(
           window.getComputedStyle(document.documentElement).fontSize,
         );
+
         const terminalFontSize = Number.isFinite(rootFontSize)
           ? Math.max(13, Math.round(rootFontSize * 0.82))
           : 13;
+
         const terminalColors = readTerminalThemeColors();
 
         const terminal = new Terminal({
@@ -286,6 +320,7 @@ export const Terminal = ({
             cursorAccent: terminalColors.background,
           },
         });
+
         const fitAddon = new FitAddon();
         terminal.loadAddon(fitAddon);
         terminal.open(containerRef.current);
@@ -300,27 +335,34 @@ export const Terminal = ({
         } catch {
           // Non-critical: terminal works without unicode11, just with less accurate character widths
         }
+
         activeTerminal = terminal;
 
         if (pendingHistoryData !== null) {
           replayTerminalHistory(terminal, pendingHistoryData, null);
           pendingHistoryData = null;
         }
+
         if (pendingOutputChunks.length > 0) {
           for (const chunk of pendingOutputChunks) {
             terminal.write(chunk);
           }
+
           pendingOutputChunks.length = 0;
         }
 
         const wheelListenerTarget = containerRef.current;
+
         const viewportWheelTarget =
           wheelListenerTarget.querySelector<HTMLElement>(".xterm-viewport") ?? wheelListenerTarget;
+
         const onPointerDown = () => {
           terminal.focus();
         };
+
         const onWheel = (event: WheelEvent) => {
           const lines = wheelDeltaToScrollLines(event.deltaY, event.deltaMode);
+
           if (lines === 0) {
             return;
           }
@@ -329,6 +371,7 @@ export const Terminal = ({
           event.stopPropagation();
           terminal.scrollLines(lines);
         };
+
         wheelListenerTarget.addEventListener("pointerdown", onPointerDown, {
           capture: true,
         });
@@ -364,11 +407,13 @@ export const Terminal = ({
           if (resizeDebounceTimer !== null) {
             window.clearTimeout(resizeDebounceTimer);
           }
+
           resizeDebounceTimer = window.setTimeout(() => {
             resizeDebounceTimer = null;
             sendResize();
           }, 60);
         };
+
         requestResizeSync = scheduleResizeSync;
         requestResizeSyncRef.current = scheduleResizeSync;
 
@@ -386,6 +431,7 @@ export const Terminal = ({
         });
 
         let observer: ResizeObserver | null = null;
+
         if ("ResizeObserver" in window) {
           observer = new ResizeObserver(() => {
             fitAddon.fit();
@@ -400,9 +446,11 @@ export const Terminal = ({
         cleanupTerminal = () => {
           wheelListenerTarget.removeEventListener("pointerdown", onPointerDown, true);
           viewportWheelTarget.removeEventListener("wheel", onWheel);
+
           if (resizeDebounceTimer !== null) {
             window.clearTimeout(resizeDebounceTimer);
           }
+
           observer?.disconnect();
           onDataDisposable.dispose();
           terminal.dispose();
@@ -417,11 +465,15 @@ export const Terminal = ({
 
     return () => {
       isCancelled = true;
+
       if (reconnectTimer !== null) {
         window.clearTimeout(reconnectTimer);
       }
+
       requestResizeSync = () => {};
+
       requestResizeSyncRef.current = () => {};
+
       cleanupTerminal();
       socket?.close();
     };
@@ -434,6 +486,7 @@ export const Terminal = ({
 
     const activeTerminal = terminalRef.current;
     const fitAddon = fitAddonRef.current;
+
     if (!activeTerminal || !fitAddon) {
       return;
     }
@@ -468,9 +521,11 @@ export const Terminal = ({
               className="terminal-prompt-banner-inject"
               onClick={() => {
                 const ws = socketRef.current;
+
                 if (ws && ws.readyState === 1) {
                   ws.send(JSON.stringify({ type: "input", data: initialPrompt }));
                 }
+
                 setIsPromptBannerDismissed(true);
               }}
               title={initialPrompt}

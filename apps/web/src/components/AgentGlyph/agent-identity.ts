@@ -15,6 +15,7 @@ const hashSeed = (seed: string | number | undefined): number => {
 const seededValue = (hash: number, salt: number, min: number, max: number): number => {
   const x = Math.sin(hash + salt * 999) * 10000;
   const normalized = x - Math.floor(x);
+
   return min + normalized * (max - min);
 };
 
@@ -23,6 +24,7 @@ export const resolveIdentity = (
   variant: AgentGlyphVariant,
 ): Identity => {
   const hash = hashSeed(identitySeed ?? variant);
+
   return {
     hash,
     armBias: seededValue(hash, 1, -0.18, 0.18),

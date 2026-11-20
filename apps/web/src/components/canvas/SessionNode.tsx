@@ -3,10 +3,15 @@ import { useMemo } from "react";
 import type { GraphNode } from "../../app/canvas/types";
 
 const LINE_MAX = 24;
+
 const PILL_HEIGHT = 16;
+
 const PILL_RX = 8;
+
 const PILL_CHAR_WIDTH = 5.5;
+
 const PILL_PADDING = 14;
+
 const PILL_MAX_CHARS = 14;
 
 const splitLabel = (label: string): [string] | [string, string] => {
@@ -14,17 +19,22 @@ const splitLabel = (label: string): [string] | [string, string] => {
   // Try to break at a space near the midpoint
   const mid = Math.floor(label.length / 2);
   let best = -1;
+
   for (let i = 0; i < label.length; i++) {
     if (label[i] === " " && (best === -1 || Math.abs(i - mid) < Math.abs(best - mid))) {
       best = i;
     }
   }
+
   if (best > 0 && best < label.length - 1) {
     const line1 = label.slice(0, best);
     let line2 = label.slice(best + 1);
+
     if (line2.length > LINE_MAX) line2 = `${line2.slice(0, LINE_MAX - 1)}…`;
+
     return [line1.length > LINE_MAX ? `${line1.slice(0, LINE_MAX - 1)}…` : line1, line2];
   }
+
   return [
     `${label.slice(0, LINE_MAX - 1)}…`,
     label.slice(LINE_MAX - 1, LINE_MAX * 2 - 2) + (label.length > LINE_MAX * 2 - 2 ? "…" : ""),
@@ -33,6 +43,7 @@ const splitLabel = (label: string): [string] | [string, string] => {
 
 const truncateToolName = (name: string): string => {
   if (name.length <= PILL_MAX_CHARS) return name;
+
   return `${name.slice(0, PILL_MAX_CHARS - 1)}…`;
 };
 
@@ -46,11 +57,14 @@ type SessionNodeProps = {
 export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: SessionNodeProps) => {
   const isActive = node.type === "active-session" && node.hasUserPrompt !== false;
   const isLive = isActive && node.agentState === "live";
+
   const isWaiting =
     node.agentRuntimeState === "waiting_for_permission" ||
     node.agentRuntimeState === "waiting_for_user";
+
   const isLifecycleAttention =
     node.agentState === "stale" || node.agentState === "exited" || node.agentState === "stopped";
+
   const color = isActive ? node.color : "#9ca3af";
   const isWorktree = node.workspaceMode === "worktree" && !node.parentTerminalId;
   const isSwarmWorker = !!node.parentTerminalId;
@@ -60,18 +74,23 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
     if (node.agentRuntimeState === "waiting_for_permission") {
       return node.waitingToolName ? truncateToolName(node.waitingToolName) : "PERMISSION";
     }
+
     if (node.agentRuntimeState === "waiting_for_user") {
       return "WAITING";
     }
+
     if (node.agentState === "stale") {
       return "STALE";
     }
+
     if (node.agentState === "exited") {
       return "EXITED";
     }
+
     if (node.agentState === "stopped") {
       return "STOPPED";
     }
+
     return "";
   }, [node.agentRuntimeState, node.agentState, node.waitingToolName]);
 

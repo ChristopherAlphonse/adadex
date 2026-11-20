@@ -9,6 +9,7 @@ export type TerminalRuntimeStateInfo = {
 };
 
 type Listener = () => void;
+
 type TerminalRuntimeStateMap = Record<string, TerminalRuntimeStateInfo>;
 
 const areRuntimeStatesEqual = (
@@ -49,9 +50,11 @@ const sanitizeRuntimeState = (
 const buildRuntimeStateMap = (terminals: TerminalView): TerminalRuntimeStateMap =>
   terminals.reduce<TerminalRuntimeStateMap>((acc, terminal) => {
     const state = getTerminalRuntimeStateInfo(terminal);
+
     if (state) {
       acc[terminal.terminalId] = state;
     }
+
     return acc;
   }, {});
 
@@ -71,6 +74,7 @@ export const getTerminalRuntimeStateInfo = (
 
 export const stripTerminalRuntimeState = (terminal: TerminalView[number]): TerminalView[number] => {
   const { agentRuntimeState: _agentRuntimeState, ...structuralTerminal } = terminal;
+
   return structuralTerminal;
 };
 
@@ -84,11 +88,14 @@ export const createTerminalRuntimeStateStore = () => {
 
   const notifyListeners = (terminalIds: Iterable<string>) => {
     const listeners = new Set(globalListeners);
+
     for (const terminalId of terminalIds) {
       const terminalListeners = listenersByTerminalId.get(terminalId);
+
       if (!terminalListeners) {
         continue;
       }
+
       for (const listener of terminalListeners) {
         listeners.add(listener);
       }
@@ -102,18 +109,21 @@ export const createTerminalRuntimeStateStore = () => {
   const subscribe = (listener: Listener, terminalIds?: Iterable<string>) => {
     if (!terminalIds) {
       globalListeners.add(listener);
+
       return () => {
         globalListeners.delete(listener);
       };
     }
 
     const trackedIds = [...terminalIds];
+
     if (trackedIds.length === 0) {
       return () => {};
     }
 
     for (const terminalId of trackedIds) {
       const listeners = listenersByTerminalId.get(terminalId);
+
       if (listeners) {
         listeners.add(listener);
         continue;
@@ -125,11 +135,13 @@ export const createTerminalRuntimeStateStore = () => {
     return () => {
       for (const terminalId of trackedIds) {
         const listeners = listenersByTerminalId.get(terminalId);
+
         if (!listeners) {
           continue;
         }
 
         listeners.delete(listener);
+
         if (listeners.size === 0) {
           listenersByTerminalId.delete(terminalId);
         }
@@ -141,12 +153,15 @@ export const createTerminalRuntimeStateStore = () => {
 
   const getRuntimeStates = (terminalIds: Iterable<string>) => {
     const next = new Map<string, TerminalRuntimeStateInfo>();
+
     for (const terminalId of terminalIds) {
       const state = stateByTerminalId[terminalId];
+
       if (state) {
         next.set(terminalId, state);
       }
     }
+
     return next;
   };
 
@@ -188,6 +203,7 @@ export const createTerminalRuntimeStateStore = () => {
 
     setRuntimeState(terminalId: string, state: TerminalRuntimeStateInfo | undefined) {
       const nextState = sanitizeRuntimeState(state);
+
       if (areRuntimeStatesEqual(stateByTerminalId[terminalId], nextState)) {
         return;
       }
@@ -209,6 +225,7 @@ export const createTerminalRuntimeStateStore = () => {
       const nextEntries = Object.entries(stateByTerminalId).filter(([terminalId]) =>
         activeTerminalIds.has(terminalId),
       );
+
       if (nextEntries.length === Object.keys(stateByTerminalId).length) {
         return;
       }
@@ -216,6 +233,7 @@ export const createTerminalRuntimeStateStore = () => {
       const removedTerminalIds = Object.keys(stateByTerminalId).filter(
         (terminalId) => !activeTerminalIds.has(terminalId),
       );
+
       stateByTerminalId = Object.fromEntries(nextEntries);
       notifyListeners(removedTerminalIds);
     },
@@ -245,12 +263,14 @@ export const useTerminalRuntimeStates = (
   useEffect(() => {
     setRuntimeStates((current) => {
       const next = runtimeStateStore.getRuntimeStates(terminalIds);
+
       return areRuntimeStateMapsEqual(current, next) ? current : next;
     });
 
     return runtimeStateStore.subscribe(() => {
       setRuntimeStates((current) => {
         const next = runtimeStateStore.getRuntimeStates(terminalIds);
+
         return areRuntimeStateMapsEqual(current, next) ? current : next;
       });
     }, terminalIds);

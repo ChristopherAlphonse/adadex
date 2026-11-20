@@ -4,6 +4,7 @@ export const formatTimestamp = (value: string | null) => {
   }
 
   const parsed = Date.parse(value);
+
   if (!Number.isFinite(parsed)) {
     return value;
   }

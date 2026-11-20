@@ -1,9 +1,9 @@
-import type { FactoryJob, FactoryWorkflow } from "../../runtime/factoryHost";
+import type { FactoryActionInput, FactoryJob, FactoryWorkflow } from "../../runtime/factoryHost";
 
 export interface FactoryAction {
   readonly id: string;
   readonly label: string;
-  readonly input: Readonly<Record<string, unknown>>;
+  readonly input: FactoryActionInput;
   readonly isHuman: boolean;
 }
 
@@ -25,6 +25,7 @@ export interface FactoryBoard {
 
 const stageTitle = (workflow: FactoryWorkflow | undefined, stageId: string): string => {
   const stage = workflow?.stages.find((candidate) => candidate.id === stageId);
+
   return stage?.title ?? stageId;
 };
 
@@ -38,9 +39,11 @@ const actionsForJob = (
   if (job.parkedFrom !== undefined) {
     actions.push({ id: "job.unblock", label: "Unblock", input: jobInput, isHuman: true });
   }
+
   if (job.stage === "spec") {
     actions.push({ id: "job.approve_spec", label: "Approve spec", input: jobInput, isHuman: true });
   }
+
   if (job.stage === "ship") {
     actions.push({
       id: "job.commit_local",
@@ -51,6 +54,7 @@ const actionsForJob = (
   }
 
   const stage = workflow?.stages.find((candidate) => candidate.id === job.stage);
+
   for (const move of stage?.moves ?? []) {
     actions.push({
       id: "job.advance",
@@ -63,6 +67,7 @@ const actionsForJob = (
   if (job.stage === "gate" || job.stage === "polish") {
     actions.push({ id: "job.run_gate", label: "Run checks", input: jobInput, isHuman: false });
   }
+
   if (job.worktree === undefined) {
     actions.push({
       id: "job.open_worktree",
@@ -93,16 +98,20 @@ export const buildFactoryBoard = (
   }
 
   const jobsByStage = new Map<string, FactoryBoardJob[]>();
+
   for (const job of jobs) {
     if (!titles.has(job.stage)) {
       titles.set(job.stage, job.stage);
       stageIds.push(job.stage);
     }
+
     const list = jobsByStage.get(job.stage);
+
     const entry: FactoryBoardJob = {
       job,
       actions: actionsForJob(job, workflowById.get(job.workflowId)),
     };
+
     if (list === undefined) {
       jobsByStage.set(job.stage, [entry]);
     } else {
@@ -121,10 +130,14 @@ export const buildFactoryBoard = (
 
 export const formatElapsed = (startedAt: string, nowMs: number = Date.now()): string => {
   const startedMs = new Date(startedAt).getTime();
+
   if (!Number.isFinite(startedMs) || nowMs < startedMs) return "unknown";
   const totalSeconds = Math.floor((nowMs - startedMs) / 1000);
+
   if (totalSeconds < 60) return `${totalSeconds}s`;
   const minutes = Math.floor(totalSeconds / 60);
+
   if (minutes < 60) return `${minutes}m ${totalSeconds % 60}s`;
+
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 };

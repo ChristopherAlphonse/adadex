@@ -43,6 +43,7 @@ describe("createProcessSupervisor", () => {
       makeRecord(),
       makeRecord({ processId: 4200, processGroupId: 4200, sessionId: "terminal-2" }),
     ]);
+
     const supervisor = createProcessSupervisor(deps);
 
     supervisor.killAll();
@@ -58,6 +59,7 @@ describe("createProcessSupervisor", () => {
         throw new Error("ESRCH");
       }
     });
+
     const deps = makeDeps(
       [
         makeRecord(),
@@ -65,6 +67,7 @@ describe("createProcessSupervisor", () => {
       ],
       { signalGroup },
     );
+
     const supervisor = createProcessSupervisor(deps);
 
     supervisor.killAll();
@@ -87,6 +90,7 @@ describe("createProcessSupervisor", () => {
     const deps = makeDeps([makeRecord()], {
       readStartedAt: vi.fn(() => "2026-11-19T11:30:00.000Z"),
     });
+
     const supervisor = createProcessSupervisor(deps);
 
     const result = supervisor.reapOrphansOnLaunch();
@@ -139,6 +143,7 @@ describe("createProcessSupervisor", () => {
       makeRecord(),
       makeRecord({ processId: 4200, processGroupId: 4200, sessionId: "terminal-2" }),
     ]);
+
     const supervisor = createProcessSupervisor(deps);
 
     supervisor.unregister("terminal-1");
@@ -156,6 +161,7 @@ describe("process registry files", () => {
   const createTemporaryDirectory = () => {
     const directory = mkdtempSync(join(tmpdir(), "adadex-process-registry-test-"));
     directories.push(directory);
+
     return directory;
   };
 
@@ -163,6 +169,7 @@ describe("process registry files", () => {
     for (const directory of directories) {
       rmSync(directory, { recursive: true, force: true });
     }
+
     directories.length = 0;
   });
 

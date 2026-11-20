@@ -12,9 +12,11 @@ import { resolveReal } from "../src/host/toolGuard";
 import { KEY_ENV } from "../src/jobs/gitGuard";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-app-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
@@ -25,11 +27,15 @@ const env = (): NodeJS.ProcessEnv => {
     GIT_CONFIG_GLOBAL: "/dev/null",
     GIT_CONFIG_NOSYSTEM: "1",
   };
+
   delete e[KEY_ENV];
+
   return e;
 };
+
 const git = (cwd: string, ...args: string[]) =>
   execFileSync("git", args, { cwd, env: env() }).toString().trim();
+
 const gitTry = (cwd: string, ...args: string[]) =>
   spawnSync("git", args, { cwd, env: env(), encoding: "utf8" });
 
@@ -85,19 +91,23 @@ const boot = async (checks = "true") => {
   await writeFile(join(dataDir, "project.json"), JSON.stringify({ checks, baseBranch: "main" }));
   const confirmed: string[] = [];
   const events: HostEvent[] = [];
+
   const app = createApp({
     projectRoot: project,
     dataDir,
     confirm: async (title) => {
       confirmed.push(title);
+
       return true;
     },
     emit: (e) => events.push(e),
     bridgePath: "/unused",
     hookPath: "/unused",
   });
+
   return { app, project, dataDir, confirmed, events };
 };
+
 const run = (app: Awaited<ReturnType<typeof boot>>["app"], actionId: string, input: unknown) =>
   app.api.handle({ kind: "action.run", actionId, input });
 
@@ -138,10 +148,12 @@ describe("the app, end to end, with real git", () => {
     expect((await run(app, "job.advance", { id: "j1", to: "ship" })).ok).toBe(true);
 
     await writeFile(join(jobDir, "commit.md"), "feat: add a file\n");
-    const committed = (await run(app, "job.commit_local", { id: "j1" })) as {
+
+    const committed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await run(app, "job.commit_local", { id: "j1" })) as {
       ok: true;
       data: { commit: string };
     };
+
     expect(committed.ok).toBe(true);
     expect(confirmed).toEqual(["Commit locally"]);
     expect(git(wt, "rev-parse", "HEAD")).toBe(committed.data.commit);
@@ -174,12 +186,14 @@ describe("the app, end to end, with real git", () => {
 
   it("an agent cannot write the config the gate reads its command from, or the app's state", async () => {
     const { app, dataDir, project } = await boot();
+
     const write = (file_path: string) =>
       evaluateToolCall(
         app.policy,
         { tool_name: "Write", tool_input: { file_path }, cwd: project },
         (p) => resolveReal(project, p),
       ).kind;
+
     expect(write(join(dataDir, "project.json"))).toBe("deny");
     expect(write(join(dataDir, "guard", "hooks", "j1", "pre-commit"))).toBe("deny");
     expect(write(join(project, ".adadex", "factory", "jobs", "j1", "job.json"))).toBe("deny");

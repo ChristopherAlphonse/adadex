@@ -14,9 +14,11 @@ import { GENESIS, lineHash, openLogDb } from "../src/logs/logDb";
 import { createFileSigner, type KeyProtector, verifySignature } from "../src/logs/signer";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-signing-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
@@ -32,7 +34,7 @@ describe("the signing key", () => {
     expect(verifySignature(a.publicKey, "hellp", a.sign("hello"))).toBe(false);
     expect(
       verifySignature(
-        generateKeyPairSync("ed25519").publicKey.export({ type: "spki", format: "pem" }) as string,
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ generateKeyPairSync("ed25519").publicKey.export({ type: "spki", format: "pem" }) as string,
         "hello",
         a.sign("hello"),
       ),
@@ -45,6 +47,7 @@ describe("the signing key", () => {
       protect: (b) => Buffer.from(b.map((x) => x ^ 0x5a)),
       unprotect: (b) => Buffer.from(b.map((x) => x ^ 0x5a)),
     };
+
     const a = createFileSigner(join(root, "keys"), xor);
     expect((await readFile(join(root, "keys", "audit-signing.key"))).toString()).not.toContain(
       "PRIVATE KEY",
@@ -60,6 +63,7 @@ const setup = async () => {
   const logDb = openLogDb(path);
   const signer = createFileSigner(join(root, "keys"));
   const anchors = createFileAnchors(join(root, "anchors", "a.log"));
+
   const store = createJobStore(join(root, "state"), () => new Date("2026-11-19T00:00:00.000Z"), {
     db: logDb,
     project: "p",
@@ -67,12 +71,16 @@ const setup = async () => {
     anchors,
     user: "alice",
   });
+
   await store.create(factoryBuildPreset, "j1", "t", 3);
+
   const attacker = () => {
     const db = new DatabaseSync(path);
     db.exec("DROP TRIGGER audit_no_update; DROP TRIGGER audit_no_delete;");
+
     return db;
   };
+
   return { store, logDb, signer, anchors, attacker };
 };
 
@@ -92,6 +100,7 @@ describe("signed audit lines", () => {
     const db = attacker();
     const rows = logDb.auditRows("p", "j1");
     let prev = GENESIS;
+
     for (const r of rows) {
       const detail = r.seq === 2 ? "rewritten" : r.detail;
       const hash = lineHash(prev, { ...r, detail });
@@ -103,6 +112,7 @@ describe("signed audit lines", () => {
       );
       prev = hash;
     }
+
     const result = await store.verify("j1");
     expect(result.ok).toBe(false);
     expect(result.ok === false && result.reason).toContain("signature that does not verify");
@@ -164,6 +174,7 @@ describe("offline verification by an auditor", () => {
       ...exported,
       rows: exported.rows.map((r, i) => (i === 1 ? { ...r, detail: "different" } : r)),
     };
+
     expect(verifyAuditExport(edited).ok).toBe(false);
 
     const other = createFileSigner(join(root, "other-keys"));
@@ -201,7 +212,7 @@ describe("opening an older database", () => {
     const logDb = openLogDb(path);
     expect(logDb.auditRows("p", "j1")).toHaveLength(1);
     expect(
-      (logDb.db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version,
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ logDb.db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version,
     ).toBe(2);
     logDb.appendAudit(
       "p",

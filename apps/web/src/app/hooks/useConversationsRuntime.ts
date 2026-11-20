@@ -1,3 +1,4 @@
+import { asRecord, asString, type ParsedValue } from "@adadex/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -54,8 +55,34 @@ type UseConversationsRuntimeResult = {
   navigateToSearchHit: (hit: ConversationSearchHit) => void;
 };
 
-const buildErrorMessage = (fallback: string, error: unknown) =>
-  error instanceof Error && error.message.length > 0 ? error.message : fallback;
+const buildErrorMessage = (fallback: string, cause: unknown) =>
+  cause instanceof Error && cause.message.length > 0 ? cause.message : fallback;
+
+const normalizeConversationSearchHit = (value: ParsedValue): ConversationSearchHit | null => {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  const sessionId = asString(record.sessionId);
+  const turnId = asString(record.turnId);
+  const role = record.role;
+  const snippet = asString(record.snippet);
+  const turnStartedAt = asString(record.turnStartedAt);
+
+  if (
+    !sessionId ||
+    !turnId ||
+    (role !== "user" && role !== "assistant") ||
+    snippet === null ||
+    !turnStartedAt
+  ) {
+    return null;
+  }
+
+  return { sessionId, turnId, role, snippet, turnStartedAt };
+};
 
 const buildExportFilename = (sessionId: string, format: ConversationExportFormat) =>
   `${sessionId}.${format === "json" ? "json" : "md"}`;
@@ -83,6 +110,7 @@ export const useConversationsRuntime = ({
     }
 
     setIsLoadingSessions(true);
+
     try {
       const response = await fetch(buildConversationsUrl(), {
         method: "GET",
@@ -95,12 +123,14 @@ export const useConversationsRuntime = ({
         throw new Error(`Unable to read conversations (${response.status})`);
       }
 
-      const payload = (await response.json()) as unknown;
+      const payload: ParsedValue = await response.json();
+
       const normalized = Array.isArray(payload)
         ? payload
             .map((entry) => normalizeConversationSessionSummary(entry))
             .filter((entry): entry is ConversationSessionSummary => entry !== null)
         : [];
+
       setSessions(normalized);
       setSelectedSessionId((current) => {
         if (current && normalized.some((session) => session.sessionId === current)) {
@@ -123,6 +153,7 @@ export const useConversationsRuntime = ({
     }
 
     setIsClearing(true);
+
     try {
       const response = await fetch(buildConversationsUrl(), {
         method: "DELETE",
@@ -160,18 +191,23 @@ export const useConversationsRuntime = ({
 
         setSessions((current) => {
           const remaining = current.filter((s) => s.sessionId !== sessionId);
+
           if (selectedSessionId === sessionId) {
             const getTimestamp = (s: ConversationSessionSummary) => {
               const raw = s.lastEventAt ?? s.endedAt ?? s.startedAt;
+
               return raw ? Date.parse(raw) || 0 : 0;
             };
+
             const sorted = [...remaining].sort((a, b) => getTimestamp(b) - getTimestamp(a));
             const nextId = sorted[0]?.sessionId ?? null;
             setSelectedSessionId(nextId);
+
             if (!nextId) {
               setSelectedSession(null);
             }
           }
+
           return remaining;
         });
         setErrorMessage(null);
@@ -196,6 +232,7 @@ export const useConversationsRuntime = ({
       }
 
       setIsExporting(true);
+
       try {
         const response = await fetch(buildConversationExportUrl(sessionId, format), {
           method: "GET",
@@ -209,9 +246,10 @@ export const useConversationsRuntime = ({
         }
 
         if (format === "json") {
-          const payload = (await response.json()) as unknown;
+          const payload: ParsedValue = await response.json();
           const normalized = normalizeConversationSessionDetail(payload);
           const json = `${JSON.stringify(normalized ?? payload, null, 2)}\n`;
+
           return {
             filename: buildExportFilename(sessionId, "json"),
             contentType: "application/json",
@@ -220,6 +258,7 @@ export const useConversationsRuntime = ({
         }
 
         const markdown = await response.text();
+
         return {
           filename: buildExportFilename(sessionId, "md"),
           contentType: "text/markdown",
@@ -227,6 +266,7 @@ export const useConversationsRuntime = ({
         };
       } catch (error) {
         setErrorMessage(buildErrorMessage("Unable to export conversation.", error));
+
         return null;
       } finally {
         setIsExporting(false);
@@ -247,10 +287,12 @@ export const useConversationsRuntime = ({
       if (trimmed.length === 0) {
         setSearchHits([]);
         setHighlightedTurnId(null);
+
         return;
       }
 
       setIsSearching(true);
+
       try {
         const response = await fetch(buildConversationSearchUrl(trimmed), {
           method: "GET",
@@ -261,8 +303,13 @@ export const useConversationsRuntime = ({
           throw new Error(`Search failed (${response.status})`);
         }
 
-        const payload = (await response.json()) as { hits?: unknown[] };
-        const hits = Array.isArray(payload.hits) ? (payload.hits as ConversationSearchHit[]) : [];
+        const payload = asRecord(await response.json());
+        const rawHits = payload?.hits;
+        const hits = Array.isArray(rawHits)
+          ? rawHits
+              .map((hit) => normalizeConversationSearchHit(hit))
+              .filter((hit): hit is ConversationSearchHit => hit !== null)
+          : [];
         setSearchHits(hits);
         setHighlightedTurnId(null);
       } catch (error) {
@@ -299,6 +346,7 @@ export const useConversationsRuntime = ({
       setSearchHits([]);
       setHighlightedTurnId(null);
       setErrorMessage(null);
+
       return;
     }
 
@@ -308,6 +356,7 @@ export const useConversationsRuntime = ({
   useEffect(() => {
     if (!enabled || !selectedSessionId) {
       setSelectedSession(null);
+
       return;
     }
 
@@ -329,6 +378,7 @@ export const useConversationsRuntime = ({
         }
 
         const payload = normalizeConversationSessionDetail(await response.json());
+
         if (!payload) {
           throw new Error("Conversation response is invalid.");
         }

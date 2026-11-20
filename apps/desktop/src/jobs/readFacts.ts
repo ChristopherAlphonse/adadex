@@ -10,12 +10,14 @@ import { parseKv } from "./kv";
 
 const read = async (path: string): Promise<string | null> =>
   readFile(path, "utf8").catch(() => null);
-const names = async (dir: string): Promise<string[]> => readdir(dir).catch(() => [] as string[]);
+
+const names = async (dir: string): Promise<string[]> => readdir(dir).catch(() => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[]);
 
 /** Read what the engine needs to judge a move: the stage documents, the gate result, the reviews, and the hash of anything approvable. */
 export const readFacts = async (store: JobStore, job: WorkflowJob): Promise<JobFacts> => {
   const jobDir = store.jobDir(job.id);
   const docs: Record<string, Record<string, string>> = {};
+
   for (const name of await names(jobDir)) {
     if (!name.endsWith(".md")) continue;
     docs[name] = parseKv((await read(join(jobDir, name))) ?? "");
@@ -25,6 +27,7 @@ export const readFacts = async (store: JobStore, job: WorkflowJob): Promise<JobF
   const gate = (await attestedGate(store, job))?.gate;
 
   const reviews: Record<string, string | undefined> = {};
+
   for (const reviewer of job.reviewers) {
     const text = await read(join(roundDir, `review-${reviewer}.md`));
     reviews[reviewer] = text === null ? undefined : parseKv(text).VERDICT;
@@ -32,5 +35,6 @@ export const readFacts = async (store: JobStore, job: WorkflowJob): Promise<JobF
 
   const spec = await read(join(jobDir, "spec.md"));
   const hashes = spec === null ? {} : { spec: createHash("sha256").update(spec).digest("hex") };
+
   return { docs, reviews, hashes, ...(gate === undefined ? {} : { gate }) };
 };

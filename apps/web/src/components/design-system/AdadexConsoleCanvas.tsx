@@ -43,6 +43,7 @@ export const AdadexConsoleCanvas = ({
       const isLead = a.id === lead.id;
       const isSel = a.id === selectedId;
       const token = statusToken(a.status);
+
       return (
         <button
           key={a.id}

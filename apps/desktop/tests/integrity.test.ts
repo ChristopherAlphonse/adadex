@@ -13,9 +13,11 @@ import { openLogDb } from "../src/logs/logDb";
 import { writeGate } from "./helpers/attest";
 
 let root: string;
+
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "adadex-integrity-"));
 });
+
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
@@ -23,16 +25,21 @@ afterEach(async () => {
 const setup = async () => {
   const path = join(root, "logs", "adadex.db");
   const logDb = openLogDb(path);
+
   const store = createJobStore(join(root, "state"), () => new Date("2026-11-19T00:00:00.000Z"), {
     db: logDb,
     project: "p",
   });
+
   const job = await store.create(factoryBuildPreset, "j1", "t", 3);
+
   const attacker = () => {
     const db = new DatabaseSync(path);
     db.exec("DROP TRIGGER audit_no_update; DROP TRIGGER audit_no_delete;");
+
     return db;
   };
+
   return { store, job, logDb, path, attacker };
 };
 
@@ -143,10 +150,12 @@ describe("tamper-evident audit log in the local database", () => {
     const { store, path, logDb } = await setup();
     await store.audit({ actor: "agent", action: "note", jobId: "j1", detail: "before" });
     logDb.close();
+
     const reopened = createJobStore(join(root, "state"), undefined, {
       db: openLogDb(path),
       project: "p",
     });
+
     await reopened.audit({ actor: "agent", action: "note", jobId: "j1", detail: "after" });
     expect(await reopened.verify("j1")).toEqual({ ok: true, entries: 3 });
   });
@@ -157,6 +166,7 @@ describe("a gate result the audit log does not vouch for counts for nothing", ()
     const saved = { ...job, stage: "gate", round: 1 };
     await store.save(saved);
     await store.audit({ actor: "system", action: "sync", jobId: "j1", detail: "" });
+
     return saved;
   };
 
@@ -199,12 +209,14 @@ describe("a gate result the audit log does not vouch for counts for nothing", ()
   it("so a forged gate cannot move a job forward", async () => {
     const { store, job } = await setup();
     await gateAt(store, job);
+
     const executor = createJobExecutor({
       store,
       workflows: { factory: factoryBuildPreset },
       runEffect: async () => {},
       actor: () => "agent",
     });
+
     await mkdir(join(store.jobDir("j1"), "round-1"), { recursive: true });
     await writeFile(join(store.jobDir("j1"), "round-1", "checks.md"), "GATE: PASS\nTREE: forged\n");
     await expect(executor.execute("job.advance", { id: "j1", to: "review" })).rejects.toThrow(

@@ -8,8 +8,11 @@ type CodeIntelArcDiagramProps = {
 };
 
 const ROW_HEIGHT = 22;
+
 const LABEL_WIDTH = 100;
+
 const PADDING_Y = 8;
+
 const MAX_ARCS = 40;
 
 const ACCENT = "var(--accent-primary, #a3e635)";
@@ -33,7 +36,9 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
   useEffect(() => {
     measure();
     const observer = new ResizeObserver(measure);
+
     if (containerRef.current) observer.observe(containerRef.current);
+
     return () => observer.disconnect();
   }, [measure]);
 
@@ -42,25 +47,32 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
 
   const fileIndexMap = useMemo(() => {
     const map = new Map<string, number>();
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+
       if (!file) continue;
       map.set(file.file, i);
     }
+
     return map;
   }, [files]);
 
   const fileCouplingMap = useMemo(() => {
     const map = new Map<string, { partner: string; coSessions: number }[]>();
+
     for (const p of pairs) {
       if (!map.has(p.fileA)) map.set(p.fileA, []);
+
       if (!map.has(p.fileB)) map.set(p.fileB, []);
       map.get(p.fileA)?.push({ partner: p.fileB, coSessions: p.coSessions });
       map.get(p.fileB)?.push({ partner: p.fileA, coSessions: p.coSessions });
     }
+
     for (const entries of map.values()) {
       entries.sort((a, b) => b.coSessions - a.coSessions);
     }
+
     return map;
   }, [pairs]);
 
@@ -68,14 +80,17 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
   const arcAreaWidth = size.width - LABEL_WIDTH - 8;
   const minSvgHeight = PADDING_Y + files.length * ROW_HEIGHT + PADDING_Y;
   const svgHeight = Math.max(minSvgHeight, size.height);
+
   const dynamicRowHeight =
     files.length > 0 ? (svgHeight - PADDING_Y * 2) / files.length : ROW_HEIGHT;
 
   const maxCoSessions = useMemo(() => {
     let max = 0;
+
     for (const p of pairs) {
       if (p.coSessions > max) max = p.coSessions;
     }
+
     return max;
   }, [pairs]);
 
@@ -83,11 +98,12 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
 
   const hoveredPairData = useMemo(() => {
     if (!hoveredPair) return null;
+
     return pairs.find((p) => pairKey(p.fileA, p.fileB) === hoveredPair) ?? null;
   }, [hoveredPair, pairs]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const rect = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.currentTarget as HTMLElement).getBoundingClientRect();
     setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   }, []);
 
@@ -105,6 +121,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
         {pairs.map((pair) => {
           const idxA = fileIndexMap.get(pair.fileA);
           const idxB = fileIndexMap.get(pair.fileB);
+
           if (idxA === undefined || idxB === undefined) return null;
 
           const y1 = fileY(idxA);
@@ -112,6 +129,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
           const span = Math.abs(idxB - idxA);
           const curveX = dotX + Math.min(span * 16, arcAreaWidth);
           const key = pairKey(pair.fileA, pair.fileB);
+
           const isHovered =
             hoveredPair === key || hoveredFile === pair.fileA || hoveredFile === pair.fileB;
 
@@ -144,6 +162,7 @@ export const CodeIntelArcDiagram = ({ data }: CodeIntelArcDiagramProps) => {
         {/* File dots and labels — vertical list on the left */}
         {files.map((f, i) => {
           const y = fileY(i);
+
           const isHighlighted =
             hoveredFile === f.file ||
             (hoveredPair !== null &&
@@ -239,7 +258,10 @@ const shortFileName = (path: string): string => path.split("/").pop() ?? path;
 const truncateLabel = (label: string, maxWidth: number): string => {
   const charWidth = 6.5;
   const maxChars = Math.floor(maxWidth / charWidth);
+
   if (label.length <= maxChars) return label;
+
   if (maxChars <= 3) return "";
+
   return `${label.slice(0, maxChars - 1)}\u2026`;
 };

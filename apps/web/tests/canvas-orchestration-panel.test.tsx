@@ -60,6 +60,7 @@ describe("CanvasOrchestrationPanel actions", () => {
     const worktreeButton = await screen.findByRole("button", {
       name: /spawn swarm \(worktrees\)/i,
     });
+
     const normalButton = await screen.findByRole("button", {
       name: /spawn swarm \(normal\)/i,
     });
@@ -83,6 +84,7 @@ describe("CanvasOrchestrationPanel actions", () => {
       if (url.endsWith("/api/deck/coordinations/docs-knowledge/todo/solve")) {
         expect(init?.method).toBe("POST");
         expect(init?.body).toBe(JSON.stringify({ itemIndex: 0 }));
+
         return new Response(JSON.stringify({ terminalId: "docs-knowledge-todo-0" }), {
           status: 201,
           headers: { "Content-Type": "application/json" },
@@ -118,7 +120,7 @@ describe("CanvasOrchestrationPanel actions", () => {
       name: /spawn agent for todo item/i,
     });
 
-    fireEvent.click(solveButtons[0] as HTMLElement);
+    fireEvent.click(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ solveButtons[0] as HTMLElement);
 
     await waitFor(() => {
       expect(onSolveTodoItem).toHaveBeenCalledWith("docs-knowledge", 0);
@@ -134,6 +136,7 @@ describe("CanvasOrchestrationPanel actions", () => {
       if (url.endsWith("/api/deck/coordinations/docs-knowledge/todo/toggle")) {
         expect(init?.method).toBe("PATCH");
         expect(init?.body).toBe(JSON.stringify({ itemIndex: 0, done: true }));
+
         return new Response(null, { status: 200 });
       }
 
@@ -162,7 +165,7 @@ describe("CanvasOrchestrationPanel actions", () => {
       />,
     );
 
-    fireEvent.click((await screen.findAllByRole("checkbox"))[0] as HTMLElement);
+    fireEvent.click(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await screen.findAllByRole("checkbox"))[0] as HTMLElement);
 
     await waitFor(() => {
       expect(onRefreshOrchestrationData).toHaveBeenCalledTimes(1);

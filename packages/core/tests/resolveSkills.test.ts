@@ -30,9 +30,11 @@ describe("resolveSkills", () => {
 
   it("lets a machine map a workflow's skill name to its own skill", () => {
     const acme = skill("acme-spec-writer", "acme-enterprise");
+
     const r = resolveSkills(factoryBuildPreset, [acme, skill("prd-mode")], {
       "prd-mode": "acme-spec-writer",
     });
+
     const spec = r.find((x) => x.stageId === "spec");
     expect(spec).toMatchObject({
       via: "map",
@@ -44,6 +46,7 @@ describe("resolveSkills", () => {
     const r = resolveSkills(factoryBuildPreset, [skill("prd-mode")], {
       "prd-mode": "acme-spec-writer",
     });
+
     expect(r.find((x) => x.stageId === "spec")?.skill).toBeNull();
   });
 

@@ -20,6 +20,7 @@ export interface ApprovalBroker {
 export const createApprovalBroker = (onRequested: (p: PendingApproval) => void): ApprovalBroker => {
   const waiting = new Map<string, { info: PendingApproval; resolve: (ok: boolean) => void }>();
   let counter = 0;
+
   return {
     gate: {
       request: (actionId, reason) =>
@@ -33,9 +34,11 @@ export const createApprovalBroker = (onRequested: (p: PendingApproval) => void):
     pending: () => [...waiting.values()].map((w) => w.info),
     respond(approvalId, approved) {
       const entry = waiting.get(approvalId);
+
       if (!entry) return false;
       waiting.delete(approvalId);
       entry.resolve(approved);
+
       return true;
     },
     declineAll() {

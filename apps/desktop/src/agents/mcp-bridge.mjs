@@ -4,7 +4,9 @@ import net from "node:net";
 import readline from "node:readline";
 
 const socket = net.connect(process.argv[2]);
+
 const pending = new Map();
+
 let nextCall = 0;
 
 readline.createInterface({ input: socket }).on("line", (line) => {
@@ -32,7 +34,9 @@ const TOOL = {
 };
 
 const send = (message) => process.stdout.write(`${JSON.stringify(message)}\n`);
+
 const ok = (id, result) => send({ jsonrpc: "2.0", id, result });
+
 const fail = (id, code, message) => send({ jsonrpc: "2.0", id, error: { code, message } });
 
 const callApp = (actionId, input) =>
@@ -50,31 +54,44 @@ const handle = async (msg) => {
       serverInfo: { name: "adadex", version: "0.0.0" },
     });
   }
+
   if (msg.method === "tools/list") return ok(msg.id, { tools: [TOOL] });
+
   if (msg.method === "tools/call") {
     const args = msg.params?.arguments ?? {};
-    if (msg.params?.name !== TOOL.name || typeof args.actionId !== "string") {
+
+    if (
+      msg.params?.name !== TOOL.name ||
+      Object.prototype.toString.call(args.actionId) !== "[object String]"
+    ) {
       return ok(msg.id, { content: [{ type: "text", text: "expected actionId" }], isError: true });
     }
+
     const reply = await callApp(args.actionId, args.input ?? {});
+
     return ok(msg.id, {
       content: [{ type: "text", text: reply.text }],
       isError: reply.isError === true,
     });
   }
+
   if (msg.id !== undefined) return fail(msg.id, -32601, `unknown method ${msg.method}`);
+
   return undefined;
 };
 
 readline.createInterface({ input: process.stdin }).on("line", (line) => {
   let msg;
+
   try {
     msg = JSON.parse(line);
   } catch {
     return;
   }
+
   handle(msg).catch((e) => msg.id !== undefined && fail(msg.id, -32603, String(e?.message ?? e)));
 });
 
 socket.on("close", () => process.exit(0));
+
 socket.on("error", () => process.exit(1));

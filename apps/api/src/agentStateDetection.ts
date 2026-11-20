@@ -1,3 +1,4 @@
+import { isNumber } from "@adadex/core";
 import type { AgentRuntimeState } from "@adadex/core";
 
 export type { AgentRuntimeState };
@@ -5,12 +6,17 @@ export type { AgentRuntimeState };
 const PROCESSING_PATTERN = /esc to interrupt/i;
 
 const DEFAULT_MAX_BUFFER_LENGTH = 256;
+
 const DEFAULT_IDLE_AFTER_MS = 1_600;
 
 const ESCAPE_CODE = 27;
+
 const BEL_CODE = 7;
+
 const CSI_MARKER = 91;
+
 const OSC_MARKER = 93;
+
 const ST_MARKER = 92;
 
 const stripAnsiAndControlSequences = (value: string) => {
@@ -18,37 +24,48 @@ const stripAnsiAndControlSequences = (value: string) => {
 
   for (let index = 0; index < value.length; index += 1) {
     const code = value.charCodeAt(index);
+
     if (code !== ESCAPE_CODE) {
       cleaned += value[index] ?? "";
       continue;
     }
 
     const marker = value.charCodeAt(index + 1);
+
     if (marker === CSI_MARKER) {
       index += 2;
+
       while (index < value.length) {
         const csiCode = value.charCodeAt(index);
+
         if (csiCode >= 64 && csiCode <= 126) {
           break;
         }
+
         index += 1;
       }
+
       continue;
     }
 
     if (marker === OSC_MARKER) {
       index += 2;
+
       while (index < value.length) {
         const oscCode = value.charCodeAt(index);
+
         if (oscCode === BEL_CODE) {
           break;
         }
+
         if (oscCode === ESCAPE_CODE && value.charCodeAt(index + 1) === ST_MARKER) {
           index += 1;
           break;
         }
+
         index += 1;
       }
+
       continue;
     }
 
@@ -69,13 +86,14 @@ const findLastRelevantMatchIndex = (text: string, pattern: RegExp, chunkStartInd
   let latest = -1;
 
   for (const match of text.matchAll(matcher)) {
-    if (typeof match.index !== "number") {
+    if (!isNumber(match.index)) {
       continue;
     }
 
     const matchStartIndex = match.index;
     const matchEndIndex = matchStartIndex + match[0].length;
     const touchesNewChunk = matchEndIndex > chunkStartIndex;
+
     if (!touchesNewChunk) {
       continue;
     }
@@ -104,6 +122,7 @@ export class AgentStateTracker {
     this.state = initialState;
     this.maxBufferLength = Math.max(256, Math.floor(maxBufferLength));
     this.idleAfterMs = Math.max(250, Math.floor(idleAfterMs));
+
     if (this.state === "processing") {
       this.idleDeadlineAt = Date.now() + this.idleAfterMs;
     }
@@ -115,11 +134,13 @@ export class AgentStateTracker {
 
   private enterProcessing(now: number): AgentRuntimeState | null {
     this.idleDeadlineAt = now + this.idleAfterMs;
+
     if (this.state === "processing") {
       return null;
     }
 
     this.state = "processing";
+
     return "processing";
   }
 
@@ -128,11 +149,13 @@ export class AgentStateTracker {
       if (nextState === "processing") {
         this.idleDeadlineAt = now + this.idleAfterMs;
       }
+
       return false;
     }
 
     this.state = nextState;
     this.idleDeadlineAt = nextState === "processing" ? now + this.idleAfterMs : null;
+
     return true;
   }
 
@@ -146,6 +169,7 @@ export class AgentStateTracker {
     }
 
     const normalized = normalizeOutput(chunk);
+
     if (!normalized) {
       return null;
     }
@@ -176,6 +200,7 @@ export class AgentStateTracker {
 
     this.state = "idle";
     this.idleDeadlineAt = null;
+
     return "idle";
   }
 }

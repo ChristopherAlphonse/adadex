@@ -20,10 +20,12 @@ export const resolveSkills = (
   skillMap: Readonly<Record<string, string>>,
 ): readonly ResolvedSkill[] => {
   const byName = new Map(available.map((s) => [s.name, s]));
+
   return def.stages.flatMap((stage) =>
     (stage.skills ?? []).map((ref): ResolvedSkill => {
       const mapped = skillMap[ref.name];
       const wanted = mapped ?? ref.name;
+
       return {
         stageId: stage.id,
         ref,

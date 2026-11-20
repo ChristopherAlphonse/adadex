@@ -40,5 +40,6 @@ export const makeWorktree = async (
     hash: o.hash,
     branchPrefix: o.branchPrefix,
   });
+
   return { worktree, branch };
 };

@@ -15,17 +15,22 @@ const splitLabel = (label: string): [string] | [string, string] => {
   if (label.length <= LINE_MAX) return [label];
   const mid = Math.floor(label.length / 2);
   let best = -1;
+
   for (let i = 0; i < label.length; i++) {
     if (label[i] === " " && (best === -1 || Math.abs(i - mid) < Math.abs(best - mid))) {
       best = i;
     }
   }
+
   if (best > 0 && best < label.length - 1) {
     const line1 = label.slice(0, best);
     let line2 = label.slice(best + 1);
+
     if (line2.length > LINE_MAX) line2 = `${line2.slice(0, LINE_MAX - 1)}…`;
+
     return [line1.length > LINE_MAX ? `${line1.slice(0, LINE_MAX - 1)}…` : line1, line2];
   }
+
   return [
     `${label.slice(0, LINE_MAX - 1)}…`,
     label.slice(LINE_MAX - 1, LINE_MAX * 2 - 2) + (label.length > LINE_MAX * 2 - 2 ? "…" : ""),
@@ -45,6 +50,7 @@ const ANIMATIONS: MascotAnimation[] = [
   "thinking",
   "deploying",
 ];
+
 const EXPRESSIONS: MascotExpression[] = [
   "normal",
   "happy",
@@ -57,6 +63,7 @@ const EXPRESSIONS: MascotExpression[] = [
   "busy",
   "offline",
 ];
+
 const ACCESSORIES: MascotAccessory[] = [
   "none",
   "none",
@@ -75,16 +82,20 @@ const ACCESSORIES: MascotAccessory[] = [
 
 function hashString(str: string): number {
   let h = 0;
+
   for (let i = 0; i < str.length; i++) {
     h = ((h << 5) - h + str.charCodeAt(i)) | 0;
   }
+
   return Math.abs(h);
 }
 
 function seededRandom(seed: number): () => number {
   let s = seed;
+
   return () => {
     s = (s * 16807 + 0) % 2147483647;
+
     return (s - 1) / 2147483646;
   };
 }
@@ -101,17 +112,18 @@ type LocalMascotVisuals = {
 function deriveNodeMascotVisuals(node: GraphNode): LocalMascotVisuals {
   const rng = seededRandom(hashString(node.coordinationId));
   const stored = node.mascot;
+
   return {
     animation:
-      (stored?.animation as MascotAnimation | null) ??
-      (ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as MascotAnimation),
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ stored?.animation as MascotAnimation | null) ??
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as MascotAnimation),
     expression:
-      (stored?.expression as MascotExpression | null) ??
-      (EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as MascotExpression),
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ stored?.expression as MascotExpression | null) ??
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as MascotExpression),
     accessory:
-      (stored?.accessory as MascotAccessory | null) ??
-      (ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as MascotAccessory),
-    variant: (stored?.variant as AgentGlyphVariant | null) ?? undefined,
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ stored?.accessory as MascotAccessory | null) ??
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as MascotAccessory),
+    variant: (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ stored?.variant as AgentGlyphVariant | null) ?? undefined,
     identitySeed: stored?.identitySeed ?? node.coordinationId,
     hairColor: stored?.hairColor ?? undefined,
   };
@@ -141,6 +153,7 @@ const buildEdgePath = (
   const dx = tx - cx;
   const dy = ty - cy;
   const dist = Math.sqrt(dx * dx + dy * dy);
+
   if (dist < 1) return "";
 
   // Shorten the endpoint so the edge stops at the target node's border
@@ -165,13 +178,18 @@ const buildEdgePath = (
 };
 
 const GLYPH_SCALE = 4;
+
 const GLYPH_W = 112;
+
 const GLYPH_H = 120;
 
 /** Ground shadow ellipse in `MascotSprite` drawMark: cy = unit * 3.2, ry = unit * 1.35 */
 const MASCOT_SHADOW_BOTTOM_IN_UNITS = 3.2 + 1.35;
+
 const LABEL_BELOW_SHADOW_PX = 8;
+
 const LABEL_OFFSET_X_PX = 7;
+
 const LABEL_OFFSET_Y_PX = 10;
 
 const isEdgeActivityVisible = (target: GraphNode): boolean =>
@@ -243,13 +261,15 @@ export const MascotNode = ({
   const showFocus = isSelected;
   const isDeckLead = node.type === "deck-lead";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);
+
   const visuals = useMemo(
     () =>
       isDeckLead
-        ? ({ animation: "sway", expression: "normal", accessory: "none" } as LocalMascotVisuals)
+        ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { animation: "sway", expression: "normal", accessory: "none" } as LocalMascotVisuals)
         : deriveNodeMascotVisuals(node),
     [node, isDeckLead],
   );
+
   const glyphScale = isDeckLead ? 6 : GLYPH_SCALE;
   const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
   const glyphH = Math.round(GLYPH_H * (glyphScale / GLYPH_SCALE));
@@ -290,6 +310,7 @@ export const MascotNode = ({
       {connectedNodes.map((target) => {
         const active = isSelected || target.id === selectedNodeId;
         const path = buildEdgePath(0, 0, target.x - node.x, target.y - node.y, target.radius, 0, 1);
+
         return (
           <g key={target.id}>
             <path

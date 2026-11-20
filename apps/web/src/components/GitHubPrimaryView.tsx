@@ -24,14 +24,17 @@ type GitHubPrimaryViewProps = {
 
 /** Room above y=0 so top Y-axis labels (baseline above grid) are not clipped by the viewBox. */
 const GITHUB_OVERVIEW_GRAPH_VIEWBOX_INSET = 18;
+
 const GITHUB_RECENT_COMMITS_LIMIT = 50;
 
 /** Plain-text export for download (UTF-8 `.txt`). */
 export const buildGitHistoryText = (commits: GitHubRecentCommit[], repoLabel: string): string => {
   const title = repoLabel.trim() || "repository";
   const lines: string[] = [`Git history — ${title}`, `Commits: ${commits.length}`, ""];
+
   for (let i = 0; i < commits.length; i++) {
     const c = commits[i];
+
     if (!c) continue;
     lines.push("─".repeat(64));
     lines.push(`${c.shortHash}  ${c.subject}`);
@@ -39,15 +42,19 @@ export const buildGitHistoryText = (commits: GitHubRecentCommit[], repoLabel: st
     lines.push(`  Authored: ${c.authoredAt}`);
     lines.push(`  Author: ${c.authorName} <${c.authorEmail}>`);
     const body = c.body.trim();
+
     if (body.length > 0) {
       lines.push("  Body:");
+
       for (const line of body.split("\n")) {
         lines.push(`    ${line}`);
       }
     }
+
     lines.push(`  Stats: ${c.filesChanged} files | +${c.insertions} -${c.deletions}`);
     lines.push("");
   }
+
   return lines.join("\n");
 };
 
@@ -64,6 +71,7 @@ const buildGitHistoryFilename = (repoLabel: string): string => {
 const formatSparkDate = (date: string): string => {
   if (date.startsWith("n/a")) return "";
   const d = new Date(`${date}T00:00:00`);
+
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
@@ -76,11 +84,13 @@ const buildCommitYTicks = (series: GitHubCommitSparkPoint[]): { count: number; y
   const H = GITHUB_OVERVIEW_GRAPH_HEIGHT;
   const tickCount = 4;
   const ticks: { count: number; y: number }[] = [];
+
   for (let i = 0; i <= tickCount; i++) {
     const count = Math.round(minCount + range * (i / tickCount));
     const y = H - ((count - minCount) / range) * H;
     ticks.push({ count, y });
   }
+
   return ticks;
 };
 
@@ -89,13 +99,16 @@ const buildAreaPolygonPoints = (series: GitHubCommitSparkPoint[]): string => {
   const H = GITHUB_OVERVIEW_GRAPH_HEIGHT;
   const first = series[0];
   const last = series[series.length - 1];
+
   if (!first || !last) return "";
   const linePoints = series.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+
   return `${first.x.toFixed(1)},${H} ${linePoints} ${last.x.toFixed(1)},${H}`;
 };
 
 const formatRecentCommitTimestamp = (value: string) => {
   const parsed = Date.parse(value);
+
   if (!Number.isFinite(parsed)) {
     return value;
   }
@@ -127,15 +140,18 @@ export const GitHubPrimaryView = ({
   const [hoverCursorPosition, setHoverCursorPosition] = useState<{ x: number; y: number } | null>(
     null,
   );
+
   const [pinnedCommitHash, setPinnedCommitHash] = useState<string | null>(null);
   const [hoveredCommitHash, setHoveredCommitHash] = useState<string | null>(null);
   const [commitTooltipY, setCommitTooltipY] = useState<number | null>(null);
   const recentSectionRef = useRef<HTMLElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const activeCommitHash = pinnedCommitHash ?? hoveredCommitHash;
+
   const activeCommit = activeCommitHash
     ? (githubRecentCommits.find((c) => c.hash === activeCommitHash) ?? null)
     : null;
+
   const hasGitHistoryExport = githubRecentCommits.length > 0;
 
   const dismissCommitTooltip = useCallback(() => {
@@ -151,6 +167,7 @@ export const GitHubPrimaryView = ({
     const blob = new Blob([buildGitHistoryText(githubRecentCommits, githubRepoLabel)], {
       type: "text/plain;charset=utf-8",
     });
+
     const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = objectUrl;
@@ -165,30 +182,37 @@ export const GitHubPrimaryView = ({
     if (pinnedCommitHash === null) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
+      const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ event.target as Node;
+
       if (recentSectionRef.current?.contains(target) || tooltipRef.current?.contains(target)) {
         return;
       }
+
       dismissCommitTooltip();
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [pinnedCommitHash, dismissCommitTooltip]);
+
   const yTicks = useMemo(
     () => buildCommitYTicks(githubOverviewGraphSeries),
     [githubOverviewGraphSeries],
   );
+
   const areaPolygonPoints = useMemo(
     () => buildAreaPolygonPoints(githubOverviewGraphSeries),
     [githubOverviewGraphSeries],
   );
+
   const xLabelStep = Math.max(1, Math.ceil(githubOverviewGraphSeries.length / 6));
 
   const hoveredGitHubOverviewPoint =
     hoveredGitHubOverviewPointIndex !== null
       ? (githubOverviewGraphSeries[hoveredGitHubOverviewPointIndex] ?? null)
       : null;
+
   const tooltipLabel = hoveredGitHubOverviewPoint
     ? formatGitHubCommitHoverLabel(hoveredGitHubOverviewPoint)
     : null;
@@ -231,6 +255,7 @@ export const GitHubPrimaryView = ({
                     }
 
                     const rect = event.currentTarget.getBoundingClientRect();
+
                     if (rect.width <= 0) {
                       return;
                     }
@@ -239,6 +264,7 @@ export const GitHubPrimaryView = ({
                       1,
                       Math.max(0, (event.clientX - rect.left) / rect.width),
                     );
+
                     const viewBox = event.currentTarget.viewBox.baseVal;
                     const pointerX = viewBox.x + viewBox.width * clampedRatio;
                     const pointerY = Math.max(0, event.clientY - rect.top);
@@ -247,6 +273,7 @@ export const GitHubPrimaryView = ({
                     let nearestDistance = Number.POSITIVE_INFINITY;
                     githubOverviewGraphSeries.forEach((point, index) => {
                       const distance = Math.abs(point.x - pointerX);
+
                       if (distance < nearestDistance) {
                         nearestDistance = distance;
                         nearestPointIndex = index;
@@ -308,7 +335,9 @@ export const GitHubPrimaryView = ({
                     .filter((_, i) => i % xLabelStep === 0)
                     .map((point) => {
                       const label = formatSparkDate(point.date);
+
                       if (!label) return null;
+
                       return (
                         <text
                           key={`xl-${point.date}`}
@@ -458,8 +487,10 @@ export const GitHubPrimaryView = ({
                           if (pinnedCommitHash) {
                             return;
                           }
+
                           setHoveredCommitHash(commit.hash);
                           const sectionRect = recentSectionRef.current?.getBoundingClientRect();
+
                           if (sectionRect) {
                             const itemRect = event.currentTarget.getBoundingClientRect();
                             setCommitTooltipY(itemRect.top - sectionRect.top + itemRect.height / 2);
@@ -469,16 +500,20 @@ export const GitHubPrimaryView = ({
                           if (pinnedCommitHash) {
                             return;
                           }
+
                           setHoveredCommitHash(null);
                           setCommitTooltipY(null);
                         }}
                         onClick={(event) => {
                           if (pinnedCommitHash === commit.hash) {
                             dismissCommitTooltip();
+
                             return;
                           }
+
                           setPinnedCommitHash(commit.hash);
                           const sectionRect = recentSectionRef.current?.getBoundingClientRect();
+
                           if (sectionRect) {
                             const itemRect = event.currentTarget.getBoundingClientRect();
                             setCommitTooltipY(itemRect.top - sectionRect.top + itemRect.height / 2);

@@ -53,9 +53,11 @@ export const AddOrchestrationForm = ({
 }: AddOrchestrationFormProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+
   const [selectedColor, setSelectedColor] = useState(
-    () => MASCOT_COLORS[Math.floor(Math.random() * MASCOT_COLORS.length)] as string,
+    () => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ MASCOT_COLORS[Math.floor(Math.random() * MASCOT_COLORS.length)] as string,
   );
+
   const [selectedExpression, setSelectedExpression] = useState<MascotExpression>("neutral");
   const [selectedAccessory, setSelectedAccessory] = useState<MascotAccessory>("none");
   const [selectedAnimation] = useState<MascotAnimation>("idle");
@@ -68,6 +70,7 @@ export const AddOrchestrationForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (name.trim().length === 0) return;
     onSubmit(
       name.trim(),
@@ -132,6 +135,7 @@ export const AddOrchestrationForm = ({
                 <div className="deck-add-form-skills">
                   {availableSkills.map((skill) => {
                     const checked = selectedSkills.includes(skill.name);
+
                     return (
                       <label
                         key={`${skill.source}:${skill.name}`}

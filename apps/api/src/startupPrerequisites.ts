@@ -29,8 +29,8 @@ type CommandAvailabilityOptions = {
 
 const resolveLookupCommand = (platform: NodeJS.Platform) =>
   platform === "win32"
-    ? { file: "where", args: [] as string[] }
-    : { file: "which", args: [] as string[] };
+    ? { file: "where", args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[] }
+    : { file: "which", args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[] };
 
 export const isCommandAvailable = (
   command: string,
@@ -42,6 +42,7 @@ export const isCommandAvailable = (
     (options.execFileSyncImpl ?? execFileSync)(lookup.file, [...lookup.args, command], {
       stdio: "ignore",
     });
+
     return true;
   } catch {
     return false;

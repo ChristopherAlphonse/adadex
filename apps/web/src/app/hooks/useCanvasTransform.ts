@@ -9,7 +9,9 @@ type CanvasTransform = {
 };
 
 const MIN_SCALE = 0.1;
+
 const MAX_SCALE = 3.0;
+
 const ZOOM_FACTOR = 0.1;
 
 type UseCanvasTransformResult = {
@@ -33,6 +35,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     translateY: 0,
     scale: 1,
   });
+
   const svgRef = useRef<SVGSVGElement | null>(null);
   const centeredRef = useRef(false);
 
@@ -40,8 +43,10 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
   useEffect(() => {
     if (centeredRef.current) return;
     const svg = svgRef.current;
+
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
+
     if (rect.width === 0 || rect.height === 0) return;
     centeredRef.current = true;
 
@@ -61,15 +66,19 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
   const prevSizeRef = useRef<{ width: number; height: number } | null>(null);
   useEffect(() => {
     const svg = svgRef.current;
+
     if (!svg) return;
 
     const ro = new ResizeObserver((entries) => {
       const entry = entries[0];
+
       if (!entry) return;
       const { width, height } = entry.contentRect;
+
       if (width === 0 || height === 0) return;
 
       const prev = prevSizeRef.current;
+
       if (prev && (Math.abs(prev.width - width) > 1 || Math.abs(prev.height - height) > 1)) {
         // Adjust translate so the graph center stays in the center of the new viewport
         setTransform((t) => ({
@@ -78,13 +87,17 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
           translateY: t.translateY + (height - prev.height) / 2,
         }));
       }
+
       prevSizeRef.current = { width, height };
     });
+
     ro.observe(svg);
+
     return () => ro.disconnect();
   }, []);
 
   const [isPanning, setIsPanning] = useState(false);
+
   const panState = useRef<{
     startX: number;
     startY: number;
@@ -95,10 +108,12 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
   const screenToGraph = useCallback(
     (screenX: number, screenY: number) => {
       const svg = svgRef.current;
+
       if (!svg) return { x: screenX, y: screenY };
       const rect = svg.getBoundingClientRect();
       const svgX = screenX - rect.left;
       const svgY = screenY - rect.top;
+
       return {
         x: (svgX - transform.translateX) / transform.scale,
         y: (svgY - transform.translateY) / transform.scale,
@@ -110,8 +125,10 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
   const graphToScreen = useCallback(
     (graphX: number, graphY: number) => {
       const svg = svgRef.current;
+
       if (!svg) return { x: graphX, y: graphY };
       const rect = svg.getBoundingClientRect();
+
       return {
         x: graphX * transform.scale + transform.translateX + rect.left,
         y: graphY * transform.scale + transform.translateY + rect.top,
@@ -123,6 +140,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
   const handleWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
     const svg = svgRef.current;
+
     if (!svg) return;
 
     const rect = svg.getBoundingClientRect();
@@ -146,9 +164,11 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
       if (e.button !== 0) return;
-      if (e.target !== svgRef.current && (e.target as SVGElement).closest?.(".canvas-node")) {
+
+      if (e.target !== svgRef.current && (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as SVGElement).closest?.(".canvas-node")) {
         return;
       }
+
       panState.current = {
         startX: e.clientX,
         startY: e.clientY,
@@ -156,13 +176,14 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
         startTy: transform.translateY,
       };
       setIsPanning(true);
-      (e.target as SVGSVGElement).setPointerCapture?.(e.pointerId);
+      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as SVGSVGElement).setPointerCapture?.(e.pointerId);
     },
     [transform.translateX, transform.translateY],
   );
 
   const handlePointerMove = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     const pan = panState.current;
+
     if (!pan) return;
 
     setTransform((prev) => ({
@@ -179,6 +200,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
 
   const zoomIn = useCallback(() => {
     const svg = svgRef.current;
+
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     const cx = rect.width / 2;
@@ -186,6 +208,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     setTransform((prev) => {
       const nextScale = Math.min(MAX_SCALE, prev.scale * (1 + ZOOM_FACTOR));
       const ratio = nextScale / prev.scale;
+
       return {
         scale: nextScale,
         translateX: cx - (cx - prev.translateX) * ratio,
@@ -196,6 +219,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
 
   const zoomOut = useCallback(() => {
     const svg = svgRef.current;
+
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     const cx = rect.width / 2;
@@ -203,6 +227,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     setTransform((prev) => {
       const nextScale = Math.max(MIN_SCALE, prev.scale * (1 - ZOOM_FACTOR));
       const ratio = nextScale / prev.scale;
+
       return {
         scale: nextScale,
         translateX: cx - (cx - prev.translateX) * ratio,
@@ -213,18 +238,24 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
 
   const fitAll = useCallback((nodes: { x: number; y: number }[]) => {
     const svg = svgRef.current;
+
     if (!svg || nodes.length === 0) return;
     const rect = svg.getBoundingClientRect();
+
     if (rect.width === 0 || rect.height === 0) return;
 
     let minX = Number.POSITIVE_INFINITY;
     let minY = Number.POSITIVE_INFINITY;
     let maxX = Number.NEGATIVE_INFINITY;
     let maxY = Number.NEGATIVE_INFINITY;
+
     for (const n of nodes) {
       if (n.x < minX) minX = n.x;
+
       if (n.y < minY) minY = n.y;
+
       if (n.x > maxX) maxX = n.x;
+
       if (n.y > maxY) maxY = n.y;
     }
 

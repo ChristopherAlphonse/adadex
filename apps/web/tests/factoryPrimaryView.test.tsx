@@ -101,6 +101,62 @@ describe("Factory primary view", () => {
     expect(screen.queryByLabelText(/Checks command/)).toBeNull();
   });
 
+  it("copies a preset role into the editor under a new id, saves it, and removes only user roles", async () => {
+    const preset = { id: "builder", name: "Builder", origin: "preset" as const };
+    const mine = { id: "mine", name: "Mine", origin: "user" as const };
+
+    const host = createFakeFactoryHost({
+      listRoles: vi.fn(async () => [
+        { ...preset, definition: { ...preset, actions: ["job.advance"] } },
+        { ...mine, definition: mine },
+      ]),
+    });
+
+    render(<FactoryPrimaryView host={host} />);
+    fireEvent.click(await screen.findByLabelText("Copy role Builder"));
+    fireEvent.click(screen.getByRole("button", { name: "Save role" }));
+    await waitFor(() => expect(host.saveRole).toHaveBeenCalled());
+    expect(host.saveRole).toHaveBeenCalledWith({
+      id: "builder-copy",
+      name: "Builder (copy)",
+      origin: "user",
+      actions: ["job.advance"],
+    });
+
+    expect(screen.queryByLabelText("Remove role Builder")).toBeNull();
+    fireEvent.click(screen.getByLabelText("Remove role Mine"));
+    expect(host.removeRole).toHaveBeenCalledWith("mine");
+
+    fireEvent.change(screen.getByLabelText(/Role JSON/), { target: { value: "{ nope" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save role" }));
+    expect(await screen.findByText("The role is not valid JSON.")).toBeInTheDocument();
+    expect(host.saveRole).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows recent log events and a job's audit chain result", async () => {
+    const host = createFakeFactoryHost({
+      listJobs: vi.fn(async () => [job]),
+      listWorkflows: vi.fn(async () => [workflow]),
+      listLogs: vi.fn(async () => [
+        {
+          id: 1,
+          ts: "2026-11-19T12:00:00.000Z",
+          level: "warn",
+          source: "approval",
+          message: "declined a-1",
+          jobId: "demo",
+        },
+      ]),
+      verifyAudit: vi.fn(async () => ({ ok: false as const, reason: "line 2 was changed" })),
+    });
+
+    render(<FactoryPrimaryView host={host} />);
+    expect(await screen.findByText(/declined a-1/)).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Check audit chain for Demo job"));
+    expect(await screen.findByText("Audit chain broken: line 2 was changed")).toBeInTheDocument();
+    expect(host.verifyAudit).toHaveBeenCalledWith("demo");
+  });
+
   it("shows the unattended loop toggle only when the host has a loop", async () => {
     const host = createFakeFactoryHost({ getLoop: vi.fn(async () => false) });
 
@@ -132,6 +188,7 @@ describe("Factory primary view", () => {
 
   it("keeps a refused action's reason on screen after the host event that follows it", async () => {
     let notify: () => void = () => undefined;
+
     const host = createFakeFactoryHost({
       listJobs: vi.fn(async () => [job]),
       listWorkflows: vi.fn(async () => [workflow]),
@@ -141,6 +198,7 @@ describe("Factory primary view", () => {
       }),
       subscribe: vi.fn((onChange: () => void) => {
         notify = onChange;
+
         return () => undefined;
       }),
     });

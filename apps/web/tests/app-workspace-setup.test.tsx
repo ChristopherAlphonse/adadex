@@ -180,6 +180,7 @@ describe("App workspace setup", () => {
               : step,
           ),
         });
+
         return currentSetup;
       },
     });
@@ -193,8 +194,9 @@ describe("App workspace setup", () => {
       const gitignoreStep = screen
         .getByText("Ignore local planning files")
         .closest(".workspace-setup-step");
+
       expect(gitignoreStep).not.toBeNull();
-      expect(within(gitignoreStep as HTMLElement).getByText("Done")).toBeInTheDocument();
+      expect(within(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ gitignoreStep as HTMLElement).getByText("Done")).toBeInTheDocument();
     });
   });
 
@@ -203,6 +205,7 @@ describe("App workspace setup", () => {
       shouldShowSetupCard: false,
       steps: buildSetupSnapshot().steps.map((step) => ({ ...step, complete: true })),
     });
+
     mockAppRequests(() => currentSetup);
 
     render(<App />);

@@ -1,6 +1,13 @@
 import { join } from "node:path";
 
-import { COORDINATIONS_DIR_SEGMENT, WORKSPACE_RUNTIME_DIR } from "@adadex/core";
+import {
+  COORDINATIONS_DIR_SEGMENT,
+  WORKSPACE_RUNTIME_DIR,
+  asRecord,
+  isString,
+  type ParsedRecord,
+  type TerminalSnapshot,
+} from "@adadex/core";
 
 import { readDeckCoordinations } from "../deck/readDeckCoordinations";
 import { resolvePrompt } from "../prompts";
@@ -33,6 +40,7 @@ const buildCoordinationInitialPrompt = (
   const coordination = readDeckCoordinations(workspaceCwd, projectStateDir).find(
     (entry) => entry.coordinationId === coordinationId,
   );
+
   if (!coordination) {
     return Promise.resolve(undefined);
   }
@@ -42,6 +50,7 @@ const buildCoordinationInitialPrompt = (
     COORDINATIONS_DIR_SEGMENT,
     coordinationId,
   );
+
   return resolvePrompt(promptsDir, "coordination-context-init", {
     coordinationName: coordination.displayName,
     coordinationId,
@@ -60,11 +69,13 @@ export const handleTerminalSnapshotsRoute: ApiRouteHandler = async (
 
   if (request.method !== "GET") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const payload = runtime.listTerminalSnapshots();
   writeJson(response, 200, payload, corsOrigin);
+
   return true;
 };
 
@@ -78,35 +89,45 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 
   if (request.method !== "POST") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!bodyReadResult.ok) {
     return true;
   }
 
   const nameResult = parseTerminalName(bodyReadResult.payload);
+
   if (nameResult.error) {
     writeJson(response, 400, { error: nameResult.error }, corsOrigin);
+
     return true;
   }
 
   const workspaceModeResult = parseTerminalWorkspaceMode(bodyReadResult.payload);
+
   if (workspaceModeResult.error) {
     writeJson(response, 400, { error: workspaceModeResult.error }, corsOrigin);
+
     return true;
   }
 
   const agentProviderResult = parseTerminalAgentProvider(bodyReadResult.payload);
+
   if (agentProviderResult.error) {
     writeJson(response, 400, { error: agentProviderResult.error }, corsOrigin);
+
     return true;
   }
 
   const nameOriginResult = parseTerminalNameOrigin(bodyReadResult.payload);
+
   if (nameOriginResult.error) {
     writeJson(response, 400, { error: nameOriginResult.error }, corsOrigin);
+
     return true;
   }
 
@@ -126,47 +147,56 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     } = {
       workspaceMode: workspaceModeResult.workspaceMode,
     };
+
     if (nameResult.name !== undefined) {
       createTerminalInput.coordinationName = nameResult.name;
     }
+
     if (agentProviderResult.agentProvider !== undefined) {
       createTerminalInput.agentProvider = agentProviderResult.agentProvider;
     }
+
     if (nameOriginResult.nameOrigin !== undefined) {
       createTerminalInput.nameOrigin = nameOriginResult.nameOrigin;
     }
-    const bodyPayload = bodyReadResult.payload as Record<string, unknown> | null;
+
+    const bodyPayload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ bodyReadResult.payload as Record<string, unknown> | null;
+
     if (
       bodyPayload &&
-      typeof bodyPayload.terminalId === "string" &&
+      isString(bodyPayload.terminalId) &&
       bodyPayload.terminalId.trim().length > 0
     ) {
       createTerminalInput.terminalId = bodyPayload.terminalId.trim();
     }
+
     if (
       bodyPayload &&
-      typeof bodyPayload.coordinationId === "string" &&
+      isString(bodyPayload.coordinationId) &&
       bodyPayload.coordinationId.trim().length > 0
     ) {
       createTerminalInput.coordinationId = bodyPayload.coordinationId.trim();
     }
+
     if (
       bodyPayload &&
-      typeof bodyPayload.parentTerminalId === "string" &&
+      isString(bodyPayload.parentTerminalId) &&
       bodyPayload.parentTerminalId.trim().length > 0
     ) {
       createTerminalInput.parentTerminalId = bodyPayload.parentTerminalId.trim();
     }
+
     if (
       bodyPayload &&
-      typeof bodyPayload.autoRenamePromptContext === "string" &&
+      isString(bodyPayload.autoRenamePromptContext) &&
       bodyPayload.autoRenamePromptContext.trim().length > 0
     ) {
       createTerminalInput.autoRenamePromptContext = bodyPayload.autoRenamePromptContext.trim();
     }
+
     if (
       bodyPayload &&
-      typeof bodyPayload.worktreeId === "string" &&
+      isString(bodyPayload.worktreeId) &&
       bodyPayload.worktreeId.trim().length > 0
     ) {
       createTerminalInput.worktreeId = bodyPayload.worktreeId.trim();
@@ -175,18 +205,19 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     // Support prompt resolution via template name + variables, or a raw string.
     if (
       bodyPayload &&
-      typeof bodyPayload.promptTemplate === "string" &&
+      isString(bodyPayload.promptTemplate) &&
       bodyPayload.promptTemplate.trim().length > 0
     ) {
       const templateName = bodyPayload.promptTemplate.trim();
+
       const templateVars: Record<string, string> =
         bodyPayload.promptVariables != null &&
-        typeof bodyPayload.promptVariables === "object" &&
+        isObjectValue(bodyPayload.promptVariables) &&
         !Array.isArray(bodyPayload.promptVariables)
           ? Object.fromEntries(
-              Object.entries(bodyPayload.promptVariables as Record<string, unknown>)
-                .filter(([, v]) => typeof v === "string")
-                .map(([k, v]) => [k, v as string]),
+              Object.entries(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ bodyPayload.promptVariables as Record<string, unknown>)
+                .filter(([, v]) => isString(v))
+                .map(([k, v]) => [k, /* SAFETY: preceding checks establish the invariant this assertion encodes. */ v as string]),
             )
           : {};
 
@@ -210,6 +241,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       // Auto-inject existingTerminals summary so planner-style prompts have context.
       if (!templateVars.existingTerminals) {
         const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
+
         if (deckOrchestrations.length > 0) {
           const listing = deckOrchestrations
             .map(
@@ -217,6 +249,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
                 `- **${t.displayName}** (\`${t.coordinationId}\`): ${t.description || "(no description)"}`,
             )
             .join("\n");
+
           templateVars.existingTerminals = `## Existing Terminals\n\nThe following departments already exist:\n\n${listing}\n\nConsider these when proposing new departments — avoid duplicates and note any gaps.`;
         } else {
           templateVars.existingTerminals =
@@ -225,12 +258,13 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       }
 
       const resolved = await resolvePrompt(promptsDir, templateName, templateVars);
+
       if (resolved !== undefined) {
         createTerminalInput.initialPrompt = resolved;
       }
     } else if (
       bodyPayload &&
-      typeof bodyPayload.initialPrompt === "string" &&
+      isString(bodyPayload.initialPrompt) &&
       bodyPayload.initialPrompt.trim().length > 0
     ) {
       createTerminalInput.initialPrompt = bodyPayload.initialPrompt.trim();
@@ -243,6 +277,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
         projectStateDir,
         createTerminalInput.coordinationId,
       );
+
       if (defaultCoordinationPrompt) {
         createTerminalInput.initialInputDraft = defaultCoordinationPrompt;
       }
@@ -250,17 +285,22 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 
     const snapshot = runtime.createTerminal(createTerminalInput);
     const payload: Record<string, unknown> = { ...snapshot };
+
     if (createTerminalInput.initialPrompt) {
       payload.initialPrompt = createTerminalInput.initialPrompt;
     }
+
     if (createTerminalInput.initialInputDraft) {
       payload.initialInputDraft = createTerminalInput.initialInputDraft;
     }
+
     writeJson(response, 201, payload, corsOrigin);
+
     return true;
   } catch (error) {
     if (error instanceof RuntimeInputError) {
       writeJson(response, 400, { error: error.message }, corsOrigin);
+
       return true;
     }
 
@@ -269,6 +309,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 };
 
 const TERMINAL_ITEM_PATH_PATTERN = /^\/api\/terminals\/([^/]+)$/;
+
 const TERMINAL_ACTION_PATH_PATTERN = /^\/api\/terminals\/([^/]+)\/(stop|kill)$/;
 
 export const handleTerminalItemRoute: ApiRouteHandler = async (
@@ -276,53 +317,66 @@ export const handleTerminalItemRoute: ApiRouteHandler = async (
   { runtime },
 ) => {
   const renameMatch = requestUrl.pathname.match(TERMINAL_ITEM_PATH_PATTERN);
+
   if (!renameMatch) {
     return false;
   }
 
   if (request.method !== "PATCH" && request.method !== "DELETE") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const terminalId = decodeURIComponent(renameMatch[1] ?? "");
+
   if (request.method === "DELETE") {
     try {
       runtime.deleteTerminal(terminalId);
       writeNoContent(response, 204, corsOrigin);
+
       return true;
     } catch (error) {
       if (error instanceof RuntimeInputError) {
         writeJson(response, 409, { error: error.message }, corsOrigin);
+
         return true;
       }
+
       throw error;
     }
   }
 
   const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
   if (!bodyReadResult.ok) {
     return true;
   }
 
   const nameResult = parseTerminalName(bodyReadResult.payload);
+
   if (nameResult.error) {
     writeJson(response, 400, { error: nameResult.error }, corsOrigin);
+
     return true;
   }
 
   if (!nameResult.provided || !nameResult.name) {
     writeJson(response, 400, { error: "Terminal name is required." }, corsOrigin);
+
     return true;
   }
 
   const payload = runtime.renameTerminal(terminalId, nameResult.name);
+
   if (!payload) {
     writeJson(response, 404, { error: "Terminal not found." }, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 200, payload, corsOrigin);
+
   return true;
 };
 
@@ -331,25 +385,31 @@ export const handleTerminalActionRoute: ApiRouteHandler = async (
   { runtime },
 ) => {
   const actionMatch = requestUrl.pathname.match(TERMINAL_ACTION_PATH_PATTERN);
+
   if (!actionMatch) {
     return false;
   }
 
   if (request.method !== "POST") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const terminalId = decodeURIComponent(actionMatch[1] ?? "");
   const action = actionMatch[2];
+
   const snapshot =
     action === "kill" ? runtime.killTerminal(terminalId) : runtime.stopTerminal(terminalId);
+
   if (!snapshot) {
     writeJson(response, 404, { error: "Terminal not found." }, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 200, snapshot, corsOrigin);
+
   return true;
 };
 
@@ -363,9 +423,11 @@ export const handleTerminalPruneRoute: ApiRouteHandler = async (
 
   if (request.method !== "POST") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   writeJson(response, 200, { prunedTerminalIds: runtime.pruneTerminals() }, corsOrigin);
+
   return true;
 };

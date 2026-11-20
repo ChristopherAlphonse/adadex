@@ -1,9 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+import type { ParsedValue } from "@adadex/core";
+
 import type { CodeIntelStore } from "../codeIntelStore";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import type { UsageChartResponse } from "../usageHeatmapScanner";
-import { RequestBodyTooLargeError, readJsonBody } from "./requestParsers";
+import { RequestBodyTooLargeError, readJsonBody, type JsonRequestPayload } from "./requestParsers";
 import { withCors } from "./security";
 
 export type TerminalRuntime = ReturnType<typeof import("../terminalRuntime").createTerminalRuntime>;
@@ -28,7 +30,11 @@ export type RouteHandlerContext = {
   corsOrigin: string | null;
 };
 
-type JsonBodyReadResult = { ok: true; payload: unknown } | { ok: false };
+/** Values JSON.stringify can serialize at the HTTP response boundary. */
+export type JsonResponsePayload = ParsedValue | object | undefined;
+
+type JsonBodyReadResult = { ok: true; payload: JsonRequestPayload } | { ok: false };
+
 export type ApiRouteHandler = (
   context: RouteHandlerContext,
   dependencies: RouteHandlerDependencies,
@@ -37,7 +43,7 @@ export type ApiRouteHandler = (
 export const writeJson = (
   response: ServerResponse,
   status: number,
-  payload: unknown,
+  payload: JsonResponsePayload,
   corsOrigin: string | null,
 ) => {
   response.writeHead(status, withCors({ "Content-Type": "application/json" }, corsOrigin));
@@ -75,14 +81,17 @@ export const readJsonBodyOrWriteError = async (
 ): Promise<JsonBodyReadResult> => {
   try {
     const payload = await readJsonBody(request);
+
     return { ok: true, payload };
   } catch (error) {
     if (error instanceof RequestBodyTooLargeError) {
       writeJson(response, 413, { error: "Request body too large." }, corsOrigin);
+
       return { ok: false };
     }
 
     writeJson(response, 400, { error: "Invalid JSON body." }, corsOrigin);
+
     return { ok: false };
   }
 };

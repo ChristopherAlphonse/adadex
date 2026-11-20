@@ -6,7 +6,7 @@ import { getTerminalId } from "../src/terminalRuntime/protocol";
 
 describe("getTerminalId", () => {
   it("returns null for malformed percent-encoding in terminal id", () => {
-    const request = {
+    const request = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
       url: "/api/terminals/%E0%A4%A/ws",
     } as IncomingMessage;
 

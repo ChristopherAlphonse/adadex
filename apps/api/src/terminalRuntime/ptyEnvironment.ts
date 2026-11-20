@@ -1,3 +1,4 @@
+import { isString } from "@adadex/core";
 import { chmodSync, existsSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -6,17 +7,21 @@ const require = createRequire(import.meta.url);
 
 export const createShellEnvironment = (options?: { adadexSessionId?: string }) => {
   const env: Record<string, string> = {};
+
   for (const [key, value] of Object.entries(process.env)) {
-    if (typeof value === "string") {
+    if (isString(value)) {
       env[key] = value;
     }
   }
+
   env.TERM = "xterm-256color";
   env.COLORTERM = "truecolor";
   const sessionId = options?.adadexSessionId;
+
   if (sessionId) {
     env.ADADEX_SESSION_ID = sessionId;
   }
+
   return env;
 };
 
@@ -28,6 +33,7 @@ export const ensureNodePtySpawnHelperExecutable = () => {
   try {
     const packageJsonPath = require.resolve("node-pty/package.json");
     const packageDir = dirname(packageJsonPath);
+
     const helperCandidates = [
       join(packageDir, "build", "Release", "spawn-helper"),
       join(packageDir, "prebuilds", `${process.platform}-${process.arch}`, "spawn-helper"),
@@ -39,6 +45,7 @@ export const ensureNodePtySpawnHelperExecutable = () => {
       }
 
       const currentMode = statSync(helperPath).mode;
+
       if ((currentMode & 0o111) !== 0) {
         continue;
       }

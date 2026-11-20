@@ -36,6 +36,7 @@ export const createProcessRegistry = (
 
   const trim = (): void => {
     const ended = [...entries.values()].filter((e) => e.ended !== undefined);
+
     for (const e of ended.slice(0, Math.max(0, ended.length - KEEP_ENDED)))
       entries.delete(e.info.processId);
   };
@@ -48,13 +49,16 @@ export const createProcessRegistry = (
   return {
     register(label, kill) {
       const processId = newId();
+
       const entry: Entry = {
         info: { processId, label, startedAt: now().toISOString() },
         kill,
         ended: undefined,
       };
+
       entries.set(processId, entry);
       onEvent("start", entry.info);
+
       return {
         processId,
         done: () => {
@@ -69,7 +73,9 @@ export const createProcessRegistry = (
     },
     async kill(processId) {
       const entry = entries.get(processId);
+
       if (!entry) throw new Error("no such process");
+
       if (entry.ended !== undefined) throw new Error("that process has already ended");
       onEvent("kill", entry.info);
       entry.kill();

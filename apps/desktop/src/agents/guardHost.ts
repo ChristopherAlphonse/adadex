@@ -1,3 +1,4 @@
+import { isParsedRecord, type ParsedRecord, type ParsedValue } from "@adadex/core";
 import { mkdir, rm } from "node:fs/promises";
 import { createServer, type Socket } from "node:net";
 import { dirname } from "node:path";
@@ -6,10 +7,24 @@ import { createInterface } from "node:readline";
 export type GuardAnswer =
   | { readonly allow: true }
   | { readonly allow: false; readonly reason: string };
-export type GuardDecide = (event: unknown) => Promise<GuardAnswer>;
+
+/** A tool call from the external hook. Fields stay unparsed until the policy reads them. */
+export type GuardEvent = ParsedRecord;
+
+export type GuardDecide = (event: GuardEvent) => Promise<GuardAnswer>;
 
 export interface GuardHost {
   close(): Promise<void>;
+}
+
+/** Shape of the hook settings written into a Claude Code settings file. */
+export interface GuardSettings {
+  hooks: {
+    PreToolUse: {
+      matcher: string;
+      hooks: { type: string; command: string; timeout: number }[];
+    }[];
+  };
 }
 
 /** Answers the hook script's questions on a local socket. A decision that throws is a "no". */
@@ -20,24 +35,32 @@ export const startGuardHost = async (
   await mkdir(dirname(socketPath), { recursive: true });
   await rm(socketPath, { force: true });
   const sockets = new Set<Socket>();
+
   const server = createServer((socket) => {
     sockets.add(socket);
     socket.on("close", () => sockets.delete(socket));
     socket.on("error", () => socket.destroy());
     createInterface({ input: socket }).on("line", async (line) => {
       let answer: GuardAnswer;
+
       try {
-        answer = await decide((JSON.parse(line) as { event: unknown }).event);
+        const payload: ParsedValue = JSON.parse(line);
+        const envelope = isParsedRecord(payload) ? payload : {};
+        const candidate = envelope.event;
+        answer = await decide(isParsedRecord(candidate) ? candidate : {});
       } catch {
         answer = { allow: false, reason: "the policy could not decide" };
       }
+
       socket.write(`${JSON.stringify(answer)}\n`);
     });
   });
+
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(socketPath, () => resolve());
   });
+
   return {
     async close() {
       for (const s of sockets) s.destroy();
@@ -52,7 +75,7 @@ export const guardSettings = (
   hookPath: string,
   socketPath: string,
   timeoutSeconds: number,
-): object => ({
+): GuardSettings => ({
   hooks: {
     PreToolUse: [
       {

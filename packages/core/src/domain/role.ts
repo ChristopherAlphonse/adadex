@@ -1,5 +1,6 @@
 /** The tools an agent may be given. Network tools are not on this list, so a role can never be granted one. */
 export const ROLE_TOOLS = ["Read", "Grep", "Glob", "Edit", "Write", "MultiEdit", "Bash"] as const;
+
 export type RoleTool = (typeof ROLE_TOOLS)[number];
 
 export interface RoleLimits {

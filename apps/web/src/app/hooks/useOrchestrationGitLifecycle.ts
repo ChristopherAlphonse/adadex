@@ -1,3 +1,4 @@
+import { isBoolean, isNumber, isObjectValue, isString } from "@adadex/core";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -43,8 +44,9 @@ type UseOrchestrationGitLifecycleResult = {
 
 const parseGitError = async (response: Response, fallback: string) => {
   try {
-    const payload = (await response.json()) as { error?: unknown };
-    if (typeof payload.error === "string" && payload.error.trim().length > 0) {
+    const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as { error?: unknown };
+
+    if (isString(payload.error) && payload.error.trim().length > 0) {
       return payload.error.trim();
     }
   } catch {
@@ -55,29 +57,30 @@ const parseGitError = async (response: Response, fallback: string) => {
 };
 
 const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSnapshot | null => {
-  if (payload === null || payload === undefined || typeof payload !== "object") {
+  if (payload === null || payload === undefined || !isObjectValue(payload)) {
     return null;
   }
 
-  const record = payload as Record<string, unknown>;
+  const record = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ payload as Record<string, unknown>;
+
   if (
-    typeof record.coordinationId !== "string" ||
+    !isString(record.coordinationId) ||
     (record.workspaceMode !== "shared" && record.workspaceMode !== "worktree") ||
-    typeof record.branchName !== "string" ||
+    !isString(record.branchName) ||
     (record.headCommit !== null &&
       record.headCommit !== undefined &&
-      typeof record.headCommit !== "string") ||
+      !isString(record.headCommit)) ||
     (record.worktreePath !== null &&
       record.worktreePath !== undefined &&
-      typeof record.worktreePath !== "string") ||
-    (record.upstreamBranchName !== null && typeof record.upstreamBranchName !== "string") ||
-    typeof record.isDirty !== "boolean" ||
-    typeof record.aheadCount !== "number" ||
-    typeof record.behindCount !== "number" ||
-    typeof record.hasConflicts !== "boolean" ||
+      !isString(record.worktreePath)) ||
+    (record.upstreamBranchName !== null && !isString(record.upstreamBranchName)) ||
+    !isBoolean(record.isDirty) ||
+    !isNumber(record.aheadCount) ||
+    !isNumber(record.behindCount) ||
+    !isBoolean(record.hasConflicts) ||
     !Array.isArray(record.changedFiles) ||
-    !record.changedFiles.every((file) => typeof file === "string") ||
-    (record.defaultBaseBranchName !== null && typeof record.defaultBaseBranchName !== "string")
+    !record.changedFiles.every((file) => isString(file)) ||
+    (record.defaultBaseBranchName !== null && !isString(record.defaultBaseBranchName))
   ) {
     return null;
   }
@@ -86,14 +89,14 @@ const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSna
     coordinationId: record.coordinationId,
     workspaceMode: record.workspaceMode,
     branchName: record.branchName,
-    headCommit: typeof record.headCommit === "string" ? record.headCommit : null,
-    worktreePath: typeof record.worktreePath === "string" ? record.worktreePath : null,
+    headCommit: isString(record.headCommit) ? record.headCommit : null,
+    worktreePath: isString(record.worktreePath) ? record.worktreePath : null,
     upstreamBranchName: record.upstreamBranchName,
     isDirty: record.isDirty,
     aheadCount: record.aheadCount,
     behindCount: record.behindCount,
-    insertedLineCount: typeof record.insertedLineCount === "number" ? record.insertedLineCount : 0,
-    deletedLineCount: typeof record.deletedLineCount === "number" ? record.deletedLineCount : 0,
+    insertedLineCount: isNumber(record.insertedLineCount) ? record.insertedLineCount : 0,
+    deletedLineCount: isNumber(record.deletedLineCount) ? record.deletedLineCount : 0,
     hasConflicts: record.hasConflicts,
     changedFiles: [...record.changedFiles],
     defaultBaseBranchName: record.defaultBaseBranchName,
@@ -103,29 +106,30 @@ const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSna
 const parseOrchestrationPullRequest = (
   payload: unknown,
 ): CoordinationPullRequestSnapshot | null => {
-  if (payload === null || payload === undefined || typeof payload !== "object") {
+  if (payload === null || payload === undefined || !isObjectValue(payload)) {
     return null;
   }
 
-  const record = payload as Record<string, unknown>;
+  const record = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ payload as Record<string, unknown>;
+
   if (
-    typeof record.coordinationId !== "string" ||
+    !isString(record.coordinationId) ||
     (record.workspaceMode !== "shared" && record.workspaceMode !== "worktree") ||
     (record.status !== "none" &&
       record.status !== "open" &&
       record.status !== "merged" &&
       record.status !== "closed") ||
-    (record.number !== null && typeof record.number !== "number") ||
-    (record.url !== null && typeof record.url !== "string") ||
-    (record.title !== null && typeof record.title !== "string") ||
-    (record.baseRef !== null && typeof record.baseRef !== "string") ||
-    (record.headRef !== null && typeof record.headRef !== "string") ||
-    (record.isDraft !== null && typeof record.isDraft !== "boolean") ||
+    (record.number !== null && !isNumber(record.number)) ||
+    (record.url !== null && !isString(record.url)) ||
+    (record.title !== null && !isString(record.title)) ||
+    (record.baseRef !== null && !isString(record.baseRef)) ||
+    (record.headRef !== null && !isString(record.headRef)) ||
+    (record.isDraft !== null && !isBoolean(record.isDraft)) ||
     (record.mergeable !== null &&
       record.mergeable !== "MERGEABLE" &&
       record.mergeable !== "CONFLICTING" &&
       record.mergeable !== "UNKNOWN") ||
-    (record.mergeStateStatus !== null && typeof record.mergeStateStatus !== "string")
+    (record.mergeStateStatus !== null && !isString(record.mergeStateStatus))
   ) {
     return null;
   }
@@ -151,21 +155,27 @@ export const useOrchestrationGitLifecycle = ({
   const [gitStatusByOrchestrationId, setGitStatusByOrchestrationId] = useState<
     Record<string, CoordinationGitStatusSnapshot>
   >({});
+
   const [gitStatusLoadingByOrchestrationId, setGitStatusLoadingByOrchestrationId] = useState<
     Record<string, boolean>
   >({});
+
   const [gitStatusAttemptedOrchestrationIds, setGitStatusAttemptedOrchestrationIds] = useState<
     Record<string, boolean>
   >({});
+
   const [pullRequestByOrchestrationId, setPullRequestByOrchestrationId] = useState<
     Record<string, CoordinationPullRequestSnapshot>
   >({});
+
   const [pullRequestLoadingByOrchestrationId, setPullRequestLoadingByOrchestrationId] = useState<
     Record<string, boolean>
   >({});
+
   const [pullRequestAttemptedOrchestrationIds, setPullRequestAttemptedOrchestrationIds] = useState<
     Record<string, boolean>
   >({});
+
   const [openGitOrchestrationId, setOpenGitOrchestrationId] = useState<string | null>(null);
   const [gitCommitMessageDraft, setGitCommitMessageDraft] = useState("");
   const [gitDialogError, setGitDialogError] = useState<string | null>(null);
@@ -184,15 +194,18 @@ export const useOrchestrationGitLifecycle = ({
           Accept: "application/json",
         },
       });
+
       if (!response.ok) {
         const errorMessage = await parseGitError(
           response,
           `Unable to fetch git status (${response.status}).`,
         );
+
         throw new Error(errorMessage);
       }
 
       const payload = parseOrchestrationGitStatus(await response.json());
+
       if (!payload) {
         throw new Error("Unable to parse git status response.");
       }
@@ -201,6 +214,7 @@ export const useOrchestrationGitLifecycle = ({
         ...current,
         [coordinationId]: payload,
       }));
+
       return payload;
     } finally {
       setGitStatusLoadingByOrchestrationId((current) => ({
@@ -223,15 +237,18 @@ export const useOrchestrationGitLifecycle = ({
           Accept: "application/json",
         },
       });
+
       if (!response.ok) {
         const errorMessage = await parseGitError(
           response,
           `Unable to fetch pull request status (${response.status}).`,
         );
+
         throw new Error(errorMessage);
       }
 
       const payload = parseOrchestrationPullRequest(await response.json());
+
       if (!payload) {
         throw new Error("Unable to parse pull request response.");
       }
@@ -240,6 +257,7 @@ export const useOrchestrationGitLifecycle = ({
         ...current,
         [coordinationId]: payload,
       }));
+
       return payload;
     } finally {
       setPullRequestLoadingByOrchestrationId((current) => ({
@@ -301,6 +319,7 @@ export const useOrchestrationGitLifecycle = ({
         ),
       ),
     );
+
     if (openGitOrchestrationId && !activeOrchestrationIds.has(openGitOrchestrationId)) {
       setOpenGitOrchestrationId(null);
       setGitDialogError(null);
@@ -389,6 +408,7 @@ export const useOrchestrationGitLifecycle = ({
 
       setIsGitDialogMutating(true);
       setGitDialogError(null);
+
       try {
         const response = await fetch(endpoint, {
           method: "POST",
@@ -404,10 +424,12 @@ export const useOrchestrationGitLifecycle = ({
             response,
             `Unable to ${action} (${response.status}).`,
           );
+
           throw new Error(errorMessage);
         }
 
         const payload = parseOrchestrationGitStatus(await response.json());
+
         if (!payload) {
           throw new Error("Unable to parse git lifecycle response.");
         }
@@ -416,11 +438,13 @@ export const useOrchestrationGitLifecycle = ({
           ...current,
           [openGitOrchestrationId]: payload,
         }));
+
         return payload;
       } catch (error) {
         setGitDialogError(
           error instanceof Error ? error.message : `Unable to ${action} orchestration worktree.`,
         );
+
         return null;
       } finally {
         setIsGitDialogMutating(false);
@@ -439,6 +463,7 @@ export const useOrchestrationGitLifecycle = ({
 
       setIsGitDialogMutating(true);
       setGitDialogError(null);
+
       try {
         const response = await fetch(endpoint, {
           method: "POST",
@@ -454,10 +479,12 @@ export const useOrchestrationGitLifecycle = ({
             response,
             `Unable to merge pull request (${response.status}).`,
           );
+
           throw new Error(errorMessage);
         }
 
         const payload = parseOrchestrationPullRequest(await response.json());
+
         if (!payload) {
           throw new Error("Unable to parse pull request response.");
         }
@@ -477,8 +504,10 @@ export const useOrchestrationGitLifecycle = ({
 
   const commitOrchestrationChanges = useCallback(async () => {
     const message = gitCommitMessageDraft.trim();
+
     if (message.length === 0) {
       setGitDialogError("Commit message cannot be empty.");
+
       return;
     }
 
@@ -488,6 +517,7 @@ export const useOrchestrationGitLifecycle = ({
       },
       body: JSON.stringify({ message }),
     });
+
     if (committed) {
       setGitCommitMessageDraft("");
     }
@@ -495,8 +525,10 @@ export const useOrchestrationGitLifecycle = ({
 
   const commitAndPushOrchestrationBranch = useCallback(async () => {
     const message = gitCommitMessageDraft.trim();
+
     if (message.length === 0) {
       setGitDialogError("Commit message cannot be empty.");
+
       return;
     }
 
@@ -506,9 +538,11 @@ export const useOrchestrationGitLifecycle = ({
       },
       body: JSON.stringify({ message }),
     });
+
     if (!committed) {
       return;
     }
+
     setGitCommitMessageDraft("");
     await runGitMutation("push");
   }, [gitCommitMessageDraft, runGitMutation]);
@@ -529,10 +563,12 @@ export const useOrchestrationGitLifecycle = ({
     openGitOrchestrationId !== null
       ? (gitStatusByOrchestrationId[openGitOrchestrationId] ?? null)
       : null;
+
   const openGitOrchestrationPullRequest =
     openGitOrchestrationId !== null
       ? (pullRequestByOrchestrationId[openGitOrchestrationId] ?? null)
       : null;
+
   const isGitDialogLoading =
     openGitOrchestrationId !== null
       ? (gitStatusLoadingByOrchestrationId[openGitOrchestrationId] ?? false) ||

@@ -1,3 +1,4 @@
+import { isObjectValue, isString, type ParsedRecord } from "@adadex/core";
 import type { ApiRouteHandler } from "./routeHelpers";
 import { readJsonBodyOrWriteError, writeJson, writeMethodNotAllowed } from "./routeHelpers";
 
@@ -11,23 +12,29 @@ export const handleCodeIntelEventsRoute: ApiRouteHandler = async (
 
   if (request.method === "POST") {
     const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
     if (!body.ok) return true;
 
-    const payload = body.payload as Record<string, unknown> | null;
-    const toolName = payload && typeof payload.tool_name === "string" ? payload.tool_name : "";
+    // SAFETY: readJsonBody parsed the body into ParsedValue members, including nested values.
+    const payload = body.payload as ParsedRecord | null;
+    const toolName = payload && isString(payload.tool_name) ? payload.tool_name : "";
+
     const toolInput =
-      payload && typeof payload.tool_input === "object" && payload.tool_input !== null
-        ? (payload.tool_input as Record<string, unknown>)
+      payload && isObjectValue(payload.tool_input) && payload.tool_input !== null
+        ? // SAFETY: an object-valued ParsedValue member is a parsed record at runtime.
+          (payload.tool_input as ParsedRecord)
         : {};
-    const filePath = typeof toolInput.file_path === "string" ? toolInput.file_path : "";
+
+    const filePath = isString(toolInput.file_path) ? toolInput.file_path : "";
 
     if (filePath.length === 0) {
       writeJson(response, 200, { ok: true, skipped: true }, corsOrigin);
+
       return true;
     }
 
     const sessionId =
-      payload && typeof payload.session_id === "string" && payload.session_id.length > 0
+      payload && isString(payload.session_id) && payload.session_id.length > 0
         ? payload.session_id
         : "unknown";
 
@@ -39,15 +46,18 @@ export const handleCodeIntelEventsRoute: ApiRouteHandler = async (
     });
 
     writeJson(response, 200, { ok: true }, corsOrigin);
+
     return true;
   }
 
   if (request.method === "GET") {
     const events = await codeIntelStore.readAll();
     writeJson(response, 200, { events }, corsOrigin);
+
     return true;
   }
 
   writeMethodNotAllowed(response, corsOrigin);
+
   return true;
 };

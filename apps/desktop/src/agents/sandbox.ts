@@ -48,6 +48,7 @@ export const defaultWritable = (home: string = homedir()): readonly string[] => 
 const quote = (path: string): string => {
   if (/["\n\r\0]/.test(path))
     throw new Error(`a path with a quote or a newline cannot go in a sandbox profile: ${path}`);
+
   return `"${path.replaceAll("\\", "\\\\")}"`;
 };
 
@@ -57,6 +58,7 @@ const quotePattern = (pattern: string): string => {
     throw new Error(
       `a pattern with a quote or a newline cannot go in a sandbox profile: ${pattern}`,
     );
+
   return `"${pattern}"`;
 };
 
@@ -88,6 +90,7 @@ export const sandboxSpawn =
 export const gitDirOf = (worktree: string): string | undefined => {
   try {
     const m = /^gitdir:\s*(.+)$/m.exec(readFileSync(join(worktree, ".git"), "utf8"));
+
     return m?.[1]?.trim();
   } catch {
     return undefined;

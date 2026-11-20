@@ -25,6 +25,7 @@ export class MockWebSocket {
 
   emit(type: string, data?: unknown) {
     const event = { data };
+
     for (const listener of this.listeners.get(type) ?? []) {
       listener(event);
     }

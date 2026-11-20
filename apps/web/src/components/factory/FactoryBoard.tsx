@@ -1,4 +1,5 @@
 import type { FactoryAction, FactoryBoardColumn } from "../../app/factory/board";
+import type { FactoryAuditCheck } from "../../runtime/factoryHost";
 import { FactoryJobCard } from "./FactoryJobCard";
 
 type FactoryBoardProps = {
@@ -6,9 +7,16 @@ type FactoryBoardProps = {
   placedJobs: number;
   pendingKey: string | null;
   onAction: (key: string, action: FactoryAction) => void;
+  onVerify: (jobId: string) => Promise<FactoryAuditCheck>;
 };
 
-export const FactoryBoard = ({ columns, placedJobs, pendingKey, onAction }: FactoryBoardProps) => {
+export const FactoryBoard = ({
+  columns,
+  placedJobs,
+  pendingKey,
+  onAction,
+  onVerify,
+}: FactoryBoardProps) => {
   return (
     <section aria-label="Factory board" className="flex min-h-0 flex-1 flex-col">
       <div className="mb-3 flex items-baseline gap-2">
@@ -38,6 +46,7 @@ export const FactoryBoard = ({ columns, placedJobs, pendingKey, onAction }: Fact
                     entry={entry}
                     pendingKey={pendingKey}
                     onAction={onAction}
+                    onVerify={onVerify}
                   />
                 ))}
               </div>

@@ -10,6 +10,7 @@ const rules: PolicyRules = {
   noWrite: ["**/.env", "**/.planning/factory/**", "/repo/.github/**"],
   writeOnly: [],
 };
+
 const same = (raw: string) => raw;
 
 describe("evaluateShell", () => {
@@ -101,6 +102,7 @@ describe("evaluateWrite", () => {
 describe("findProtectedHits", () => {
   it("flags CI, hook, env and owner files and leaves ordinary code alone", async () => {
     const { findProtectedHits, PROTECTED_FLOOR } = await import("../src/index");
+
     const files = [
       ".github/workflows/ci.yml",
       "src/app.ts",
@@ -111,6 +113,7 @@ describe("findProtectedHits", () => {
       "CODEOWNERS",
       "pkg/CODEOWNERS",
     ];
+
     expect(findProtectedHits(files, PROTECTED_FLOOR)).toEqual([
       ".github/workflows/ci.yml",
       ".env",

@@ -65,6 +65,7 @@ describe("factory board view model", () => {
 
   it("offers spec approval, unblock and gate actions where they belong", () => {
     const spec = buildFactoryBoard([job({ stage: "spec" })], [workflow]).columns[0]?.jobs[0];
+
     const parked = buildFactoryBoard(
       [job({ stage: "gate", parkedFrom: "build" })],
       [workflow],

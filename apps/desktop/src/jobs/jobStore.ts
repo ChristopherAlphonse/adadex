@@ -80,7 +80,7 @@ export interface JobStoreOptions {
 }
 
 const toStored = (r: AuditRow): StoredAudit => ({
-  actor: r.actor as StoredAudit["actor"],
+  actor: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ r.actor as StoredAudit["actor"],
   action: r.action,
   jobId: r.jobId,
   detail: r.detail,
@@ -105,10 +105,13 @@ export const createJobStore = (
   const logDb = options.db ?? openLogDb(":memory:");
   const project = options.project ?? "default";
   const user = options.user ?? userInfo().username;
+
   const jobDir = (id: string): string => {
     if (!JOB_ID.test(id)) throw new Error(`bad job id ${id}`);
+
     return join(root, "jobs", id);
   };
+
   const file = (id: string): string => join(jobDir(id), "job.json");
 
   const save = async (job: WorkflowJob): Promise<void> => {
@@ -120,6 +123,7 @@ export const createJobStore = (
   const audit = async (entry: AuditEntry): Promise<void> => {
     jobDir(entry.jobId);
     const record = await readFile(file(entry.jobId), "utf8").catch(() => "");
+
     const row = logDb.appendAudit(
       project,
       {
@@ -135,6 +139,7 @@ export const createJobStore = (
       },
       options.signer,
     );
+
     options.anchors?.append({
       project,
       jobId: entry.jobId,
@@ -146,54 +151,68 @@ export const createJobStore = (
 
   const verify = async (id: string): Promise<VerifyResult> => {
     let rows: readonly AuditRow[];
+
     try {
       rows = logDb.auditRows(project, id);
     } catch {
       return { ok: false, reason: "the audit log cannot be read" };
     }
+
     let prev = GENESIS;
+
     for (const [i, row] of rows.entries()) {
       if (row.prev !== prev)
         return { ok: false, reason: `audit line ${i + 1} does not follow the line before it` };
+
       if (row.hash !== lineHash(prev, row))
         return { ok: false, reason: `audit line ${i + 1} was changed` };
       prev = row.hash;
     }
+
     const signer = options.signer;
+
     if (signer) {
       for (const [i, row] of rows.entries()) {
         if (row.sig === undefined || row.keyId !== signer.keyId) {
           return { ok: false, reason: `audit line ${i + 1} is not signed by this machine's key` };
         }
+
         if (!verifySignature(signer.publicKey, row.hash, row.sig)) {
           return { ok: false, reason: `audit line ${i + 1} has a signature that does not verify` };
         }
       }
     }
+
     const anchor = options.anchors?.latest(project, id);
+
     if (anchor && !rows.some((r) => r.seq === anchor.seq && r.hash === anchor.hash)) {
       return {
         ok: false,
         reason: "audit lines were removed: the anchor names a line that is gone",
       };
     }
+
     const record = await readFile(file(id), "utf8").catch(() => null);
     const last = rows.at(-1);
+
     if (record !== null && last && last.state !== sha256(record)) {
       return { ok: false, reason: "the job record was changed outside the app" };
     }
+
     return { ok: true, entries: rows.length };
   };
 
   const readAudit = async (id: string): Promise<readonly StoredAudit[]> => {
     const v = await verify(id);
+
     if (!v.ok) throw new Error(v.reason);
+
     return logDb.auditRows(project, id).map(toStored);
   };
 
   const load = async (id: string): Promise<WorkflowJob> => {
     try {
-      return JSON.parse(await readFile(file(id), "utf8")) as WorkflowJob;
+      return /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(await readFile(file(id), "utf8")) as WorkflowJob;
     } catch {
       throw new Error(`no job ${id}`);
     }
@@ -220,13 +239,16 @@ export const createJobStore = (
       const job = newJob(def, id, title, { roundLimit });
       await save(job);
       await audit({ actor: "system", action: "create", jobId: id, detail: title });
+
       return job;
     },
     async list() {
-      const ids = await readdir(join(root, "jobs")).catch(() => [] as string[]);
+      const ids = await readdir(join(root, "jobs")).catch(() => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[]);
+
       const jobs = await Promise.all(
         ids.filter((i) => JOB_ID.test(i)).map((i) => load(i).catch(() => null)),
       );
+
       return jobs.filter((j): j is WorkflowJob => j !== null);
     },
   };

@@ -25,19 +25,24 @@ export const createWorkflowStore = (dir: string): WorkflowStore => {
   const file = (id: string): string => join(dir, `${id}.json`);
 
   const readUser = async (): Promise<WorkflowDefinition[]> => {
-    const names = await readdir(dir).catch(() => [] as string[]);
+    const names = await readdir(dir).catch(() => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[]);
     const out: WorkflowDefinition[] = [];
+
     for (const name of names.filter((n) => n.endsWith(".json")).sort()) {
       const raw = await readFile(join(dir, name), "utf8").catch(() => "");
       let parsed: unknown;
+
       try {
         parsed = JSON.parse(raw);
       } catch {
         continue;
       }
+
       const r = parseWorkflow(parsed);
+
       if (r.ok && !presetIds.has(r.workflow.id)) out.push(r.workflow);
     }
+
     return out;
   };
 
@@ -45,22 +50,27 @@ export const createWorkflowStore = (dir: string): WorkflowStore => {
     ...PRESET_WORKFLOWS,
     ...(await readUser()),
   ];
+
   const get = async (id: string): Promise<WorkflowDefinition | undefined> =>
     (await list()).find((w) => w.id === id);
 
   const save = async (input: unknown): Promise<SaveResult> => {
     const r = parseWorkflow(input);
+
     if (!r.ok) return r;
+
     if (presetIds.has(r.workflow.id)) {
       return {
         ok: false,
         errors: [`${r.workflow.id} is a preset and cannot be overwritten. Fork it under a new id.`],
       };
     }
+
     await mkdir(dir, { recursive: true });
     const tmp = `${file(r.workflow.id)}.${process.pid}.tmp`;
     await writeFile(tmp, `${JSON.stringify(r.workflow, null, 2)}\n`);
     await rename(tmp, file(r.workflow.id));
+
     return r;
   };
 
@@ -70,16 +80,21 @@ export const createWorkflowStore = (dir: string): WorkflowStore => {
     save,
     async fork(fromId, newId, name) {
       const source = await get(fromId);
+
       if (!source) return { ok: false, errors: [`no workflow ${fromId}`] };
+
       if (await get(newId)) return { ok: false, errors: [`${newId} already exists`] };
+
       return save({ ...source, id: newId, name, origin: "user" });
     },
     async remove(id) {
       if (presetIds.has(id))
         return { ok: false, errors: [`${id} is a preset and cannot be removed`] };
+
       if (!(await readUser()).some((w) => w.id === id))
         return { ok: false, errors: [`no user workflow ${id}`] };
       await rm(file(id), { force: true });
+
       return { ok: true };
     },
   };

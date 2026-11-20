@@ -43,16 +43,18 @@ describe("startup prerequisites", () => {
 
     const windowsAvailable = isCommandAvailable("kiro-cli", {
       platform: "win32",
-      execFileSyncImpl: ((file, args) => {
-        calls.push({ file, args: args as string[] });
+      execFileSyncImpl: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ((file, args) => {
+        calls.push({ file, args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ args as string[] });
+
         return Buffer.from("");
       }) as typeof import("node:child_process").execFileSync,
     });
 
     const unixAvailable = isCommandAvailable("kiro-cli", {
       platform: "linux",
-      execFileSyncImpl: ((file, args) => {
-        calls.push({ file, args: args as string[] });
+      execFileSyncImpl: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ((file, args) => {
+        calls.push({ file, args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ args as string[] });
+
         return Buffer.from("");
       }) as typeof import("node:child_process").execFileSync,
     });

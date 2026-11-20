@@ -1,20 +1,39 @@
+import { isString } from "@adadex/core";
+import { useState } from "react";
+
 import { cn } from "@/lib/utils";
 
 import type { FactoryAction, FactoryBoardJob } from "../../app/factory/board";
+import type { FactoryAuditCheck } from "../../runtime/factoryHost";
 
 type FactoryJobCardProps = {
   entry: FactoryBoardJob;
   pendingKey: string | null;
   onAction: (key: string, action: FactoryAction) => void;
+  onVerify: (jobId: string) => Promise<FactoryAuditCheck>;
 };
+
+const describeCheck = (check: FactoryAuditCheck): string =>
+  check.ok
+    ? `Audit chain intact (${check.entries} entries)`
+    : `Audit chain broken: ${check.reason}`;
 
 const actionKey = (jobId: string, action: FactoryAction): string => {
   const target = action.input.to;
-  return typeof target === "string" ? `${jobId}:${action.id}:${target}` : `${jobId}:${action.id}`;
+
+  return isString(target) ? `${jobId}:${action.id}:${target}` : `${jobId}:${action.id}`;
 };
 
-export const FactoryJobCard = ({ entry, pendingKey, onAction }: FactoryJobCardProps) => {
+export const FactoryJobCard = ({ entry, pendingKey, onAction, onVerify }: FactoryJobCardProps) => {
   const { job, actions } = entry;
+  const [check, setCheck] = useState<FactoryAuditCheck | null>(null);
+
+  const verify = () => {
+    onVerify(job.id).then(setCheck, (cause: unknown) =>
+      setCheck({ ok: false, reason: cause instanceof Error ? cause.message : "check failed" }),
+    );
+  };
+
   return (
     <article
       aria-label={`Job ${job.title}`}
@@ -40,6 +59,7 @@ export const FactoryJobCard = ({ entry, pendingKey, onAction }: FactoryJobCardPr
       <div className="mt-3 flex flex-wrap gap-1.5">
         {actions.map((action) => {
           const key = actionKey(job.id, action);
+
           return (
             <button
               key={key}
@@ -58,7 +78,26 @@ export const FactoryJobCard = ({ entry, pendingKey, onAction }: FactoryJobCardPr
             </button>
           );
         })}
+        <button
+          type="button"
+          aria-label={`Check audit chain for ${job.title}`}
+          onClick={verify}
+          className="rounded border border-border bg-background px-2 py-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+        >
+          Check audit
+        </button>
       </div>
+      {check !== null && (
+        <p
+          role="status"
+          className={cn(
+            "mt-2 text-[12px]",
+            check.ok ? "text-muted-foreground" : "text-destructive",
+          )}
+        >
+          {describeCheck(check)}
+        </p>
+      )}
     </article>
   );
 };

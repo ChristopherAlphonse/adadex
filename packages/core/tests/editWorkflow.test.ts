@@ -23,6 +23,7 @@ import { factoryBuildPreset } from "../src/presets";
 
 const ok = (r: EditResult): WorkflowDefinition => {
   if (!r.ok) throw new Error(r.error);
+
   return r.workflow;
 };
 
@@ -50,10 +51,12 @@ describe("building a workflow from nothing, one edit at a time", () => {
     const parsed = parseWorkflow(JSON.parse(JSON.stringify(w)));
     expect(parsed.ok).toBe(true);
     const job = newJob(w, "j1", "t", { roundLimit: 3 });
+
     const moved = advanceJob(w, job, "review", {
       docs: { "draft.md": { STATUS: "READY" } },
       reviews: {},
     });
+
     expect(moved.ok && moved.job.stage).toBe("review");
   });
 });

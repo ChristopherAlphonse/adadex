@@ -15,6 +15,7 @@ export const AdadexConsoleToolbar = ({
         const isToggle = t.label === "Hide Idle";
         const active = isToggle && hideIdle;
         const Icon = t.icon;
+
         return (
           <button
             key={t.label}

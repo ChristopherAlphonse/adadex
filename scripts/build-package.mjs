@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+
 const distDir = join(packageRoot, "dist");
 
 const copyDirectory = (sourcePath, destinationPath) => {
@@ -18,6 +19,7 @@ const copyDirectory = (sourcePath, destinationPath) => {
 mkdirSync(distDir, { recursive: true });
 
 copyDirectory(join(packageRoot, "prompts"), join(distDir, "prompts"));
+
 copyDirectory(join(packageRoot, "apps", "web", "dist"), join(distDir, "web"));
 
 chmodSync(join(packageRoot, "bin", "adadex"), 0o755);

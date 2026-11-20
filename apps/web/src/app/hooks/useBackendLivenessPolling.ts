@@ -18,6 +18,7 @@ export const useBackendLivenessPolling = (): BackendLivenessStatus => {
       }
 
       isInFlight = true;
+
       try {
         const response = await fetch(buildTerminalSnapshotsUrl(), {
           method: "GET",
@@ -39,6 +40,7 @@ export const useBackendLivenessPolling = (): BackendLivenessStatus => {
     };
 
     void refreshLiveness();
+
     const timerId = window.setInterval(() => {
       void refreshLiveness();
     }, BACKEND_LIVENESS_SCAN_INTERVAL_MS);

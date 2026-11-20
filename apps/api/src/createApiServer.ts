@@ -2,7 +2,7 @@ import { cpSync, existsSync as fsExistsSync, mkdirSync, readdirSync } from "node
 import { createServer } from "node:http";
 import { join } from "node:path";
 
-import { WORKSPACE_RUNTIME_DIR } from "@adadex/core";
+import { WORKSPACE_RUNTIME_DIR , isObjectValue} from "@adadex/core";
 
 import { createCodeIntelStore } from "./codeIntelStore";
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
@@ -28,6 +28,7 @@ export const createApiServer = ({
   const resolvedStateDir = projectStateDir ?? join(resolvedWorkspaceCwd, WORKSPACE_RUNTIME_DIR);
   let resolvedApiBaseUrl = apiBaseUrl ?? "http://127.0.0.1:8787";
   const getApiBaseUrl = () => resolvedApiBaseUrl;
+
   const getApiPort = () => {
     try {
       return String(new URL(resolvedApiBaseUrl).port || 80);
@@ -35,14 +36,17 @@ export const createApiServer = ({
       return "8787";
     }
   };
+
   const resolvedUserPromptsDir = join(resolvedStateDir, "prompts");
   const resolvedCorePromptsDir = join(resolvedStateDir, "prompts", "core");
 
   // Sync builtin prompts into the project state dir on every start so prompt
   // changes in the repo take effect without requiring manual cache cleanup.
   const sourceDir = promptsDir ?? join(resolvedWorkspaceCwd, "prompts");
+
   if (fsExistsSync(sourceDir)) {
     mkdirSync(resolvedCorePromptsDir, { recursive: true });
+
     for (const file of readdirSync(sourceDir)) {
       if (file.endsWith(".md")) {
         cpSync(join(sourceDir, file), join(resolvedCorePromptsDir, file));
@@ -55,6 +59,7 @@ export const createApiServer = ({
   // Keep the mirrored state copy as a fallback for packaged/runtime setups
   // where the source prompts directory is unavailable.
   const resolvedPromptsDir = fsExistsSync(sourceDir) ? sourceDir : resolvedCorePromptsDir;
+
   const readGithubRepoSummaryWithDefault =
     readGithubRepoSummary ??
     (() =>
@@ -67,11 +72,13 @@ export const createApiServer = ({
     projectStateDir: resolvedStateDir,
     getApiBaseUrl,
   };
+
   if (gitClient) {
     runtimeOptions.gitClient = gitClient;
   }
 
   const runtime = createTerminalRuntime(runtimeOptions);
+
   const scanUsageHeatmapWithDefault =
     scanUsageHeatmap ??
     ((scope: "all" | "project") => scanUsageHeatmapDefault(scope, resolvedWorkspaceCwd));
@@ -112,7 +119,7 @@ export const createApiServer = ({
       });
 
       const address = server.address();
-      const resolvedPort = typeof address === "object" && address ? address.port : port;
+      const resolvedPort = isObjectValue(address) && address ? address.port : port;
       resolvedApiBaseUrl = `http://${host}:${resolvedPort}`;
 
       return { host, port: resolvedPort };
@@ -123,8 +130,10 @@ export const createApiServer = ({
         server.close((error) => {
           if (error) {
             rejectStop(error);
+
             return;
           }
+
           resolveStop();
         });
         server.closeAllConnections();

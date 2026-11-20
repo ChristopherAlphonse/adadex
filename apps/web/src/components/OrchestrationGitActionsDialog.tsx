@@ -60,6 +60,7 @@ export const OrchestrationGitActionsDialog = ({
   const commitDisabledReason =
     globalDisabledReason ??
     (gitCommitMessage.trim().length === 0 ? "Commit blocked: enter a commit message." : null);
+
   const commitAndPushDisabledReason = commitDisabledReason;
 
   const pushDisabledReason =
@@ -73,10 +74,12 @@ export const OrchestrationGitActionsDialog = ({
     (gitStatus?.isDirty ? "Sync blocked: worktree has uncommitted changes." : null);
 
   const hasOpenPullRequest = gitPullRequest?.status === "open";
+
   const canMergePullRequest =
     hasOpenPullRequest &&
     gitPullRequest?.isDraft !== true &&
     gitPullRequest?.mergeable !== "CONFLICTING";
+
   const mergePullRequestDisabledReason =
     globalDisabledReason ??
     (!hasOpenPullRequest
@@ -100,8 +103,10 @@ export const OrchestrationGitActionsDialog = ({
           if (isCommitMenuOpen) {
             event.preventDefault();
             setIsCommitMenuOpen(false);
+
             return;
           }
+
           if (!isMutating) {
             event.preventDefault();
             onClose();
@@ -298,6 +303,7 @@ export const OrchestrationGitActionsDialog = ({
                 if (!gitPullRequest?.url) {
                   return;
                 }
+
                 globalThis.open?.(gitPullRequest.url, "_blank", "noopener,noreferrer");
               }}
               size="dense"

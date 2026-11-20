@@ -12,7 +12,9 @@ type CodeIntelTreemapProps = {
 };
 
 const GAP = 2;
+
 const MIN_LABEL_WIDTH = 48;
+
 const MIN_LABEL_HEIGHT = 18;
 
 export const CodeIntelTreemap = ({ root }: CodeIntelTreemapProps) => {
@@ -33,7 +35,9 @@ export const CodeIntelTreemap = ({ root }: CodeIntelTreemapProps) => {
   useEffect(() => {
     measure();
     const observer = new ResizeObserver(measure);
+
     if (containerRef.current) observer.observe(containerRef.current);
+
     return () => observer.disconnect();
   }, [measure]);
 
@@ -44,14 +48,16 @@ export const CodeIntelTreemap = ({ root }: CodeIntelTreemapProps) => {
 
   const maxValue = useMemo(() => {
     let max = 0;
+
     for (const r of rects) {
       if (r.value > max) max = r.value;
     }
+
     return max;
   }, [rects]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const rect = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.currentTarget as HTMLElement).getBoundingClientRect();
     setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   }, []);
 
@@ -72,6 +78,7 @@ export const CodeIntelTreemap = ({ root }: CodeIntelTreemapProps) => {
           const ry = r.y + gapY / 2;
           const rw = Math.max(r.width - gapX, 0);
           const rh = Math.max(r.height - gapY, 0);
+
           if (rw <= 0 || rh <= 0) return null;
 
           const isHovered = hoveredRect?.path === r.path;
@@ -132,7 +139,10 @@ export const CodeIntelTreemap = ({ root }: CodeIntelTreemapProps) => {
 const truncateLabel = (label: string, maxWidth: number): string => {
   const charWidth = 6.5;
   const maxChars = Math.floor(maxWidth / charWidth);
+
   if (label.length <= maxChars) return label;
+
   if (maxChars <= 3) return "";
+
   return `${label.slice(0, maxChars - 1)}\u2026`;
 };

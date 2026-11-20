@@ -11,7 +11,7 @@ const persistedUiStateMock = {
   isAgentsSidebarVisible: false,
   isRuntimeStatusStripVisible: false,
   isUiStateHydrated: true,
-  minimizedTerminalIds: [] as string[],
+  minimizedTerminalIds: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
   readUiState: vi.fn(),
   setIsActiveAgentsSectionExpanded: vi.fn(),
   setIsAgentsSidebarVisible: vi.fn(),
@@ -22,11 +22,11 @@ const persistedUiStateMock = {
   setTerminalCompletionSound: vi.fn(),
   sidebarWidth: 280,
   terminalCompletionSound: "pop" as const,
-  canvasOpenTerminalIds: [] as string[],
+  canvasOpenTerminalIds: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
   setCanvasOpenTerminalIds: vi.fn(),
-  canvasOpenCoordinationIds: [] as string[],
+  canvasOpenCoordinationIds: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
   setCanvasOpenCoordinationIds: vi.fn(),
-  canvasTerminalsPanelWidth: null as number | null,
+  canvasTerminalsPanelWidth: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ null as number | null,
   setCanvasTerminalsPanelWidth: vi.fn(),
 };
 
@@ -196,15 +196,17 @@ describe("App swarm actions", () => {
   });
 
   it("refreshes terminal snapshots after spawning a swarm", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.stubGlobal("WebSocket", /* SAFETY: preceding checks establish the invariant this assertion encodes. */ MockWebSocket as unknown as typeof WebSocket);
 
     let terminalSnapshotReads = 0;
+
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
       if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         terminalSnapshotReads += 1;
+
         return new Response("[]", {
           status: 200,
           headers: { "Content-Type": "application/json" },

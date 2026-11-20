@@ -13,6 +13,7 @@
     "**/dist/**",
     "**/coverage/**",
     ".adadex/**",
+    "tools/oxlint/anti-slop/**",
     "apps/web/src/styles/**",
     "**/tailwind.css",
     "**/tailwind-components.css",

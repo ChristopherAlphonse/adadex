@@ -15,7 +15,7 @@ import type {
   DeckCoordinationSummary,
   DeckMascotAppearance,
   TerminalAgentProvider,
-} from "@adadex/core";
+, isObjectValue, isString} from "@adadex/core";
 import {
   COORDINATIONS_DIR_SEGMENT,
   isTerminalAgentProvider,
@@ -50,35 +50,42 @@ type DeckStateDocument = {
 
 const readDeckState = (projectStateDir: string): DeckStateDocument => {
   const filePath = join(projectStateDir, "state", "deck.json");
+
   try {
     const raw = JSON.parse(readFileSync(filePath, "utf-8")) as Record<string, unknown>;
-    if (raw && typeof raw === "object") {
+
+    if (raw && isObjectValue(raw)) {
       const coordinations: Record<string, DeckCoordinationState> = {};
       const fromNew = raw.coordinations;
       const fromLegacy = raw[LEGACY_DECK_STATE_MAP_KEY];
-      if (fromNew && typeof fromNew === "object" && fromNew !== null) {
+
+      if (fromNew && isObjectValue(fromNew) && fromNew !== null) {
         for (const [key, val] of Object.entries(fromNew)) {
           coordinations[key] = parseCoordinationState(val);
         }
       }
-      if (fromLegacy && typeof fromLegacy === "object" && fromLegacy !== null) {
+
+      if (fromLegacy && isObjectValue(fromLegacy) && fromLegacy !== null) {
         for (const [key, val] of Object.entries(fromLegacy)) {
           if (!coordinations[key]) {
             coordinations[key] = parseCoordinationState(val);
           }
         }
       }
+
       return { coordinations };
     }
   } catch {
     // missing or corrupt — return empty
   }
+
   return { coordinations: {} };
 };
 
 const writeDeckState = (projectStateDir: string, state: DeckStateDocument): void => {
   const filePath = join(projectStateDir, "state", "deck.json");
   const dir = join(projectStateDir, "state");
+
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   writeFileSync(filePath, `${JSON.stringify(state, null, 2)}\n`);
 };
@@ -91,13 +98,14 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
     scope: { paths: [], tags: [] },
   };
 
-  if (raw === null || typeof raw !== "object") return defaults;
+  if (raw === null || !isObjectValue(raw)) return defaults;
   const rec = raw as Record<string, unknown>;
 
   const color =
-    typeof rec.color === "string" && rec.color.trim().length > 0 ? rec.color.trim() : null;
+    isString(rec.color) && rec.color.trim().length > 0 ? rec.color.trim() : null;
+
   const status =
-    typeof rec.status === "string" && VALID_STATUSES.has(rec.status)
+    isString(rec.status) && VALID_STATUSES.has(rec.status)
       ? (rec.status as DeckCoordinationStatus)
       : "idle";
 
@@ -107,33 +115,41 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
     accessory: null,
     hairColor: null,
   };
+
   const appearanceRaw =
-    rec.mascot !== null && typeof rec.mascot === "object"
+    rec.mascot !== null && isObjectValue(rec.mascot)
       ? (rec.mascot as Record<string, unknown>)
-      : rec.octopus !== null && typeof rec.octopus === "object"
+      : rec.octopus !== null && isObjectValue(rec.octopus)
         ? (rec.octopus as Record<string, unknown>)
         : null;
+
   if (appearanceRaw !== null) {
-    if (typeof appearanceRaw.animation === "string") mascot.animation = appearanceRaw.animation;
-    if (typeof appearanceRaw.expression === "string") mascot.expression = appearanceRaw.expression;
-    if (typeof appearanceRaw.accessory === "string") mascot.accessory = appearanceRaw.accessory;
-    if (typeof appearanceRaw.hairColor === "string") mascot.hairColor = appearanceRaw.hairColor;
+    if (isString(appearanceRaw.animation)) mascot.animation = appearanceRaw.animation;
+
+    if (isString(appearanceRaw.expression)) mascot.expression = appearanceRaw.expression;
+
+    if (isString(appearanceRaw.accessory)) mascot.accessory = appearanceRaw.accessory;
+
+    if (isString(appearanceRaw.hairColor)) mascot.hairColor = appearanceRaw.hairColor;
   }
 
   const scope = { paths: [] as string[], tags: [] as string[] };
-  if (rec.scope !== null && typeof rec.scope === "object") {
+
+  if (rec.scope !== null && isObjectValue(rec.scope)) {
     const s = rec.scope as Record<string, unknown>;
+
     if (Array.isArray(s.paths)) {
-      scope.paths = s.paths.filter((p): p is string => typeof p === "string");
+      scope.paths = s.paths.filter((p): p is string => isString(p));
     }
+
     if (Array.isArray(s.tags)) {
-      scope.tags = s.tags.filter((t): t is string => typeof t === "string");
+      scope.tags = s.tags.filter((t): t is string => isString(t));
     }
   }
 
   const result: DeckCoordinationState = { color, status, mascot, scope };
 
-  if (typeof rec.agentProvider === "string" && isTerminalAgentProvider(rec.agentProvider)) {
+  if (isString(rec.agentProvider) && isTerminalAgentProvider(rec.agentProvider)) {
     result.agentProvider = rec.agentProvider;
   }
 
@@ -151,13 +167,17 @@ const parseContextMd = (
 
   for (const line of lines) {
     const trimmed = line.trim();
+
     if (!displayName) {
       const h1Match = trimmed.match(/^#\s+(.+)/);
+
       if (h1Match) {
         displayName = (h1Match[1] as string).trim();
       }
+
       continue;
     }
+
     // First non-empty line after the H1 is the description
     if (trimmed.length > 0) {
       description = trimmed;
@@ -166,6 +186,7 @@ const parseContextMd = (
   }
 
   if (!displayName) return null;
+
   return { displayName, description, suggestedSkills: parseSuggestedSkillsFromContext(content) };
 };
 
@@ -204,9 +225,11 @@ export const readDeckCoordinations = (
   projectStateDir?: string,
 ): DeckCoordinationSummary[] => {
   const coordinationsRoot = join(workspaceCwd, COORDINATIONS_DIR);
+
   if (!existsSync(coordinationsRoot)) return [];
 
   let entries: string[];
+
   try {
     entries = readdirSync(coordinationsRoot);
   } catch {
@@ -218,16 +241,20 @@ export const readDeckCoordinations = (
 
   for (const entry of entries) {
     const entryPath = join(coordinationsRoot, entry);
+
     if (!statSync(entryPath).isDirectory()) continue;
 
     // A coordination folder must have CONTEXT.md
     const contextMdPath = join(entryPath, "CONTEXT.md");
+
     if (!existsSync(contextMdPath)) continue;
 
     let agentInfo: { displayName: string; description: string; suggestedSkills: string[] };
+
     try {
       const content = readFileSync(contextMdPath, "utf-8");
       const parsed = parseContextMd(content);
+
       if (!parsed) continue;
       agentInfo = parsed;
     } catch {
@@ -239,12 +266,15 @@ export const readDeckCoordinations = (
 
     // List markdown files in the coordination folder (excluding CONTEXT.md itself)
     let vaultFiles: string[] = [];
+
     try {
       vaultFiles = readdirSync(entryPath)
         .filter((f) => f.endsWith(".md") && f !== "CONTEXT.md")
         .sort((a, b) => {
           if (a === "todo.md") return -1;
+
           if (b === "todo.md") return 1;
+
           return a.localeCompare(b);
         });
     } catch {
@@ -256,6 +286,7 @@ export const readDeckCoordinations = (
     let todoDone = 0;
     let todoItems: { text: string; done: boolean }[] = [];
     const todoPath = join(entryPath, "todo.md");
+
     if (existsSync(todoPath)) {
       try {
         const todoContent = readFileSync(todoPath, "utf-8");
@@ -297,6 +328,7 @@ export const readDeckVaultFile = (
 ): string | null => {
   // Prevent path traversal
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
+
   if (fileName.includes("..") || fileName.includes("/")) return null;
 
   const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, fileName);
@@ -322,9 +354,11 @@ export const toggleTodoItem = (
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
+
   if (!existsSync(filePath)) return null;
 
   let content: string;
+
   try {
     content = readFileSync(filePath, "utf-8");
   } catch {
@@ -337,6 +371,7 @@ export const toggleTodoItem = (
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed = (lines[i] as string).trim();
+
     if (/^- \[[ xX]\]\s+/.test(trimmed)) {
       if (todoIndex === itemIndex) {
         lines[i] = done
@@ -345,6 +380,7 @@ export const toggleTodoItem = (
         toggled = true;
         break;
       }
+
       todoIndex++;
     }
   }
@@ -352,6 +388,7 @@ export const toggleTodoItem = (
   if (!toggled) return null;
 
   const updated = lines.join("\n");
+
   try {
     writeFileSync(filePath, updated, "utf-8");
   } catch {
@@ -373,9 +410,11 @@ export const editTodoItem = (
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
+
   if (!existsSync(filePath)) return null;
 
   let content: string;
+
   try {
     content = readFileSync(filePath, "utf-8");
   } catch {
@@ -389,6 +428,7 @@ export const editTodoItem = (
   for (let i = 0; i < lines.length; i++) {
     const trimmed = (lines[i] as string).trim();
     const match = trimmed.match(/^(- \[[ xX]\])\s+(.+)/);
+
     if (match) {
       if (todoIndex === itemIndex) {
         const indent = (lines[i] as string).match(/^(\s*)/)?.[1] ?? "";
@@ -396,6 +436,7 @@ export const editTodoItem = (
         edited = true;
         break;
       }
+
       todoIndex++;
     }
   }
@@ -403,6 +444,7 @@ export const editTodoItem = (
   if (!edited) return null;
 
   const updated = lines.join("\n");
+
   try {
     writeFileSync(filePath, updated, "utf-8");
   } catch {
@@ -423,9 +465,11 @@ export const addTodoItem = (
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
+
   if (!existsSync(filePath)) return null;
 
   let content: string;
+
   try {
     content = readFileSync(filePath, "utf-8");
   } catch {
@@ -455,9 +499,11 @@ export const deleteTodoItem = (
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
+
   if (!existsSync(filePath)) return null;
 
   let content: string;
+
   try {
     content = readFileSync(filePath, "utf-8");
   } catch {
@@ -470,12 +516,14 @@ export const deleteTodoItem = (
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed = (lines[i] as string).trim();
+
     if (/^- \[[ xX]\]\s+/.test(trimmed)) {
       if (todoIndex === itemIndex) {
         lines.splice(i, 1);
         deleted = true;
         break;
       }
+
       todoIndex++;
     }
   }
@@ -483,6 +531,7 @@ export const deleteTodoItem = (
   if (!deleted) return null;
 
   const updated = lines.join("\n");
+
   try {
     writeFileSync(filePath, updated, "utf-8");
   } catch {
@@ -513,14 +562,17 @@ export const createDeckCoordination = (
 ): CreateDeckCoordinationResult => {
   const stateDir = projectStateDir ?? join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
   const name = input.name.trim();
+
   if (name.length === 0) {
     return { ok: false, error: "Name is required" };
   }
+
   if (name.includes("..") || name.includes("/")) {
     return { ok: false, error: "Name contains invalid characters" };
   }
 
   const coordinationDir = join(workspaceCwd, COORDINATIONS_DIR, name);
+
   if (existsSync(coordinationDir)) {
     return { ok: false, error: "A coordination with this name already exists" };
   }
@@ -530,9 +582,11 @@ export const createDeckCoordination = (
 
   const description = input.description.trim();
   const baseContextMd = description.length > 0 ? `# ${name}\n\n${description}\n` : `# ${name}\n`;
+
   const suggestedSkills = [...new Set((input.suggestedSkills ?? []).map((skill) => skill.trim()))]
     .filter((skill) => skill.length > 0)
     .sort((a, b) => a.localeCompare(b));
+
   const contextMd = applySuggestedSkillsToContext(baseContextMd, suggestedSkills);
   writeFileSync(join(coordinationDir, "CONTEXT.md"), contextMd);
   writeFileSync(join(coordinationDir, "todo.md"), "# Todo\n");
@@ -580,6 +634,7 @@ export const updateDeckCoordinationAgent = (
   const stateDir = projectStateDir ?? join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
   const deckState = readDeckState(stateDir);
   const entry = deckState.coordinations[coordinationId];
+
   if (!entry) return null;
 
   if (agent.agentProvider !== undefined) {
@@ -591,6 +646,7 @@ export const updateDeckCoordinationAgent = (
   }
 
   writeDeckState(stateDir, deckState);
+
   return (
     readDeckCoordinations(workspaceCwd, projectStateDir).find(
       (c) => c.coordinationId === coordinationId,
@@ -607,6 +663,7 @@ export const updateDeckCoordinationSuggestedSkills = (
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   const contextPath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "CONTEXT.md");
+
   if (!existsSync(contextPath)) return null;
 
   try {
@@ -641,12 +698,17 @@ export const updateDeckCoordinationMascot = (
   const stateDir = projectStateDir ?? join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
   const deckState = readDeckState(stateDir);
   const entry = deckState.coordinations[coordinationId];
+
   if (!entry) return null;
 
   if (mascot.color !== undefined) entry.color = mascot.color || null;
+
   if (mascot.animation !== undefined) entry.mascot.animation = mascot.animation || null;
+
   if (mascot.expression !== undefined) entry.mascot.expression = mascot.expression || null;
+
   if (mascot.accessory !== undefined) entry.mascot.accessory = mascot.accessory || null;
+
   if (mascot.hairColor !== undefined) entry.mascot.hairColor = mascot.hairColor || null;
 
   writeDeckState(stateDir, deckState);
@@ -666,11 +728,13 @@ export const deleteDeckCoordination = (
   projectStateDir?: string,
 ): { ok: true } | { ok: false; error: string } => {
   const stateDir = projectStateDir ?? join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
+
   if (coordinationId.includes("..") || coordinationId.includes("/")) {
     return { ok: false, error: "Invalid coordination ID" };
   }
 
   const coordinationDir = join(workspaceCwd, COORDINATIONS_DIR, coordinationId);
+
   if (!existsSync(coordinationDir)) {
     return { ok: false, error: "Coordination not found" };
   }

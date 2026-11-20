@@ -73,6 +73,7 @@ export const drawBody = (
 
   ctx.fillStyle = palette.accent;
   ctx.globalAlpha = mood === "offline" ? 0.28 : 0.48;
+
   for (const dx of [-unit * 0.6, unit * 0.6]) {
     ctx.beginPath();
     ctx.arc(dx, mantleBottom - unit * 0.2, unit * 0.07, 0, Math.PI * 2);

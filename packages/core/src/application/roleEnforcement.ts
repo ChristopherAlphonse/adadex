@@ -1,5 +1,7 @@
+import { asRecord, isString } from "../util/typeCoercion";
 import type { ActionContext, AuthorizeResult } from "../domain/action";
 import type { PolicyRules } from "../domain/policy";
+import type { ActionInput } from "../ports/ActionPorts";
 import type { RoleDefinition } from "../domain/role";
 import { type ActionRegistry, authorize } from "./actionRegistry";
 
@@ -14,23 +16,25 @@ export const authorizeForRole = (
   registry: ActionRegistry,
   role: RoleDefinition,
   actionId: string,
-  rawInput: unknown,
+  rawInput: ActionInput,
   approved: boolean,
 ): AuthorizeResult => {
   if (!role.actions.includes(actionId)) return deny(`role ${role.id} may not run ${actionId}`);
 
   const preApproved = approved || (role.autoApprove?.includes(actionId) ?? false);
-  const ctx: ActionContext = {
-    caller: "agent",
-    ...(preApproved ? { approvedActionId: actionId } : {}),
-  };
+  const ctx: ActionContext = preApproved
+    ? { caller: "agent", approvedActionId: actionId }
+    : { caller: "agent" };
+
   const decision = authorize(registry, actionId, rawInput, ctx);
 
   if (decision.kind === "run" && actionId === "job.advance") {
-    const to = (decision.input as { to?: unknown }).to;
-    if (typeof to !== "string" || !role.advanceTo.includes(to))
+    const to = asRecord(decision.input)?.to;
+
+    if (!isString(to) || !role.advanceTo.includes(to))
       return deny(`role ${role.id} may not move a job to ${String(to)}`);
   }
+
   return decision;
 };
 
@@ -49,6 +53,7 @@ export const policyForRole = (
   scope: RoleScope,
 ): PolicyRules => {
   const dir = scope.jobDir.replace(/\/+$/, "");
+
   return {
     allow: [...base.allow, ...(role.allowShell ?? [])],
     deny: base.deny,

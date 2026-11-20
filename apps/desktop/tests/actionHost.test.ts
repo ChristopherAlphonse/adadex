@@ -14,22 +14,27 @@ const setup = (opts: { confirm?: boolean; approve?: boolean } = {}) => {
   const ran: { id: string; input: unknown }[] = [];
   const events: HostEvent[] = [];
   const confirmed: string[] = [];
+
   const executor: ActionExecutor = {
     execute: async (id, input) => {
       ran.push({ id, input });
+
       return { ok: id };
     },
   };
+
   const host = createActionHost({
     registry: createActionRegistry(FACTORY_ACTIONS),
     executor,
     confirm: async (title) => {
       confirmed.push(title);
+
       return opts.confirm ?? true;
     },
     askApproval: { request: async () => opts.approve ?? true },
     emit: (e) => events.push(e),
   });
+
   return { host, ran, events, confirmed };
 };
 
@@ -75,6 +80,7 @@ describe("fromUi", () => {
       askApproval: { request: async () => true },
       emit: () => {},
     });
+
     expect(await host.fromUi("job.advance", { id: "j1", to: "build" })).toEqual({
       status: "error",
       message: "refused: spec.md missing",
@@ -85,6 +91,7 @@ describe("fromUi", () => {
 describe("agent calls through the host", () => {
   const provider = (events: AgentEvent[]): AgentProvider => {
     const responses: unknown[] = [];
+
     return {
       id: "fake",
       start: async () => ({
@@ -98,6 +105,7 @@ describe("agent calls through the host", () => {
       }),
     };
   };
+
   const call = (callId: string, actionId: string, input: unknown): AgentEvent => ({
     type: "action",
     callId,

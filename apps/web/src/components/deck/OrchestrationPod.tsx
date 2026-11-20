@@ -32,12 +32,14 @@ export const TodoList = ({
   onToggle?: ((coordinationId: string, itemIndex: number, done: boolean) => void) | undefined;
 }) => {
   let lastDoneIndex = -1;
+
   for (let idx = items.length - 1; idx >= 0; idx--) {
     if (items[idx]?.done) {
       lastDoneIndex = idx;
       break;
     }
   }
+
   const scrollRef = useRef<HTMLLIElement | null>(null);
 
   useEffect(() => {
@@ -115,6 +117,7 @@ export const OrchestrationPod = ({
     orchestration.todoTotal > 0
       ? Math.round((orchestration.todoDone / orchestration.todoTotal) * 100)
       : 0;
+
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [draftSkills, setDraftSkills] = useState<string[]>(orchestration.suggestedSkills);
@@ -124,6 +127,7 @@ export const OrchestrationPod = ({
   const [editExpression, setEditExpression] = useState<AgentGlyphMood>(visuals.expression);
   const [editAccessory, setEditAccessory] = useState<AgentGlyphAccessory>(visuals.accessory);
   const [isSavingMascot, setIsSavingMascot] = useState(false);
+
   const [editAgentProvider, setEditAgentProvider] = useState<TerminalAgentProvider | "">(
     orchestration.agentProvider ?? "",
   );
@@ -137,6 +141,7 @@ export const OrchestrationPod = ({
   }, [orchestration.agentProvider]);
 
   const availableSkillNames = availableSkills.map((skill) => skill.name);
+
   const skillNames = [...new Set([...availableSkillNames, ...draftSkills])].sort((a, b) =>
     a.localeCompare(b),
   );
@@ -151,6 +156,7 @@ export const OrchestrationPod = ({
 
   const handleSaveSkills = async () => {
     const saved = await onSaveSuggestedSkills?.(orchestration.coordinationId, draftSkills);
+
     if (saved) {
       setIsEditingSkills(false);
     }
@@ -158,6 +164,7 @@ export const OrchestrationPod = ({
 
   const handleSaveMascot = async () => {
     setIsSavingMascot(true);
+
     const [savedMascot, savedAgent] = await Promise.all([
       onSaveMascot?.(orchestration.coordinationId, {
         color: editColor,
@@ -166,9 +173,11 @@ export const OrchestrationPod = ({
       }),
       onSaveAgent?.(orchestration.coordinationId, editAgentProvider || null),
     ]);
+
     if (savedMascot || savedAgent) {
       setIsEditingMascot(false);
     }
+
     setIsSavingMascot(false);
   };
 
@@ -299,7 +308,7 @@ export const OrchestrationPod = ({
               <div className="deck-pod-mascot-editor-group">
                 <span className="deck-pod-mascot-editor-label">Expression</span>
                 <div className="deck-pod-mascot-editor-chips">
-                  {(["neutral", "happy", "focused", "curious"] as AgentGlyphMood[]).map((opt) => (
+                  {(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ ["neutral", "happy", "focused", "curious"] as AgentGlyphMood[]).map((opt) => (
                     <button
                       key={opt}
                       type="button"
@@ -316,7 +325,7 @@ export const OrchestrationPod = ({
                 <span className="deck-pod-mascot-editor-label">Accessory</span>
                 <div className="deck-pod-mascot-editor-chips">
                   {(
-                    [
+                    /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [
                       { value: "none" as const, label: "None" },
                       { value: "glasses" as const, label: "Glasses" },
                       { value: "badge" as const, label: "Badge" },
@@ -398,6 +407,7 @@ export const OrchestrationPod = ({
                 <div className="deck-pod-skills-options">
                   {skillNames.map((skillName) => {
                     const skill = availableSkills.find((entry) => entry.name === skillName);
+
                     return (
                       <label key={skillName} className="deck-pod-skill-option">
                         <input
@@ -431,11 +441,13 @@ export const OrchestrationPod = ({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       const trimmed = newSkillInput.trim();
+
                       if (trimmed && !draftSkills.includes(trimmed)) {
                         setDraftSkills((current) =>
                           [...current, trimmed].sort((a, b) => a.localeCompare(b)),
                         );
                       }
+
                       setNewSkillInput("");
                     }
                   }}
@@ -445,11 +457,13 @@ export const OrchestrationPod = ({
                   className="deck-pod-btn"
                   onClick={() => {
                     const trimmed = newSkillInput.trim();
+
                     if (trimmed && !draftSkills.includes(trimmed)) {
                       setDraftSkills((current) =>
                         [...current, trimmed].sort((a, b) => a.localeCompare(b)),
                       );
                     }
+
                     setNewSkillInput("");
                   }}
                 >

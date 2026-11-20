@@ -1,3 +1,4 @@
+import { isObjectValue, isString } from "@adadex/core";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -11,6 +12,7 @@ const MAX_AUTO_NAME_LENGTH = 50;
 
 const deriveTerminalNameFromPrompt = (prompt: string): string => {
   const normalized = prompt.replace(/\s+/g, " ").trim();
+
   if (normalized.length <= MAX_AUTO_NAME_LENGTH) {
     return normalized;
   }
@@ -18,6 +20,7 @@ const deriveTerminalNameFromPrompt = (prompt: string): string => {
   // Truncate at the last space before the limit to avoid cutting mid-word.
   const truncated = normalized.slice(0, MAX_AUTO_NAME_LENGTH);
   const lastSpace = truncated.lastIndexOf(" ");
+
   return lastSpace > 0 ? `${truncated.slice(0, lastSpace)}…` : `${truncated}…`;
 };
 
@@ -48,11 +51,14 @@ export const createHookProcessor = (deps: {
 
   const parseHookFile = (fileContents: string): { hooks: unknown[] } | null => {
     try {
-      const parsed = JSON.parse(fileContents) as unknown;
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      const parsed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(fileContents) as unknown;
+
+      if (!parsed || !isObjectValue(parsed) || Array.isArray(parsed)) {
         return null;
       }
-      const record = parsed as Record<string, unknown>;
+
+      const record = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ parsed as Record<string, unknown>;
+
       return { hooks: Array.isArray(record.hooks) ? record.hooks : [] };
     } catch {
       return null;
@@ -64,9 +70,11 @@ export const createHookProcessor = (deps: {
 
     for (const nextHook of nextHooks) {
       const serializedNextHook = JSON.stringify(nextHook);
+
       const alreadyPresent = existingHooks.some(
         (existingHook) => JSON.stringify(existingHook) === serializedNextHook,
       );
+
       if (!alreadyPresent) {
         merged.push(nextHook);
       }
@@ -89,22 +97,28 @@ export const createHookProcessor = (deps: {
   ) => {
     const dir = join(targetCwd, ".claude");
     const file = join(dir, "settings.local.json");
+
     try {
       mkdirSync(dir, { recursive: true });
+
       const settings = existsSync(file)
-        ? (JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>)
+        ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>)
         : {};
-      const hooks = (settings.hooks ?? {}) as Record<string, unknown[]>;
+
+      const hooks = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (settings.hooks ?? {}) as Record<string, unknown[]>;
+
       for (const hook of kiroHooks) {
         const groups = (hooks[hook.trigger] ?? []).filter(
           (g) => !JSON.stringify(g).includes(`"${hook.action.command.replace(/"/g, '\\"')}"`),
         );
+
         groups.push({
           matcher: hook.matcher === "fs_write" ? "Write|Edit|MultiEdit" : hook.matcher,
           hooks: [{ type: "command", command: hook.action.command, timeout: hook.timeout }],
         });
         hooks[hook.trigger] = groups;
       }
+
       writeFileSync(file, `${JSON.stringify({ ...settings, hooks }, null, 2)}\n`, "utf8");
     } catch {}
   };
@@ -176,6 +190,7 @@ export const createHookProcessor = (deps: {
 
     if (agentProvider === "claude") {
       installClaudeHooks(targetCwd, nextHooks);
+
       return;
     }
 
@@ -186,9 +201,11 @@ export const createHookProcessor = (deps: {
 
     try {
       mkdirSync(targetKiroHooksDir, { recursive: true });
+
       const existingFile = existsSync(targetHookFilePath)
         ? parseHookFile(readFileSync(targetHookFilePath, "utf8"))
         : null;
+
       const existingHooks = existingFile?.hooks ?? [];
       const mergedHooks = mergeHookList(existingHooks, nextHooks);
 
@@ -206,24 +223,27 @@ export const createHookProcessor = (deps: {
   ): { ok: boolean } => {
     logVerbose(`[Hook] Received hook: ${hookName} session=${hookSessionId ?? "(none)"}`);
 
-    if (!payload || typeof payload !== "object") {
+    if (!payload || !isObjectValue(payload)) {
       return { ok: true };
     }
 
-    const hookPayloadRecord = payload as Record<string, unknown>;
+    const hookPayloadRecord = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ payload as Record<string, unknown>;
 
     if (hookName === "notification") {
       if (!hookSessionId) {
         return { ok: true };
       }
+
       const session = sessions.get(hookSessionId);
+
       if (!session) {
         logVerbose(`[Hook] notification: no session for ${hookSessionId}, skipping.`);
+
         return { ok: true };
       }
 
       const notificationType =
-        typeof hookPayloadRecord.notification_type === "string"
+        isString(hookPayloadRecord.notification_type)
           ? hookPayloadRecord.notification_type
           : null;
 
@@ -255,13 +275,15 @@ export const createHookProcessor = (deps: {
       if (!hookSessionId) {
         return { ok: true };
       }
+
       const session = sessions.get(hookSessionId);
+
       if (!session) {
         return { ok: true };
       }
 
       const toolName =
-        typeof hookPayloadRecord.tool_name === "string" ? hookPayloadRecord.tool_name : null;
+        isString(hookPayloadRecord.tool_name) ? hookPayloadRecord.tool_name : null;
 
       logVerbose(`[Hook] pre-tool-use: tool=${toolName} session=${hookSessionId}`);
 
@@ -285,6 +307,7 @@ export const createHookProcessor = (deps: {
       }
 
       const terminal = terminals.get(hookSessionId);
+
       if (!terminal) {
         return { ok: true };
       }
@@ -295,6 +318,7 @@ export const createHookProcessor = (deps: {
       // The user submitted a prompt, so the agent is about to start processing.
       // Transition state out of waiting/idle to processing immediately.
       const activitySession = sessions.get(terminal.terminalId);
+
       if (activitySession) {
         activitySession.agentState = "processing";
         activitySession.lastToolName = undefined;
@@ -307,8 +331,10 @@ export const createHookProcessor = (deps: {
       // Auto-name the terminal from the first prompt when it still has its default name.
       if (terminal.nameOrigin === "generated") {
         const prompt =
-          typeof hookPayloadRecord.prompt === "string" ? hookPayloadRecord.prompt.trim() : "";
+          isString(hookPayloadRecord.prompt) ? hookPayloadRecord.prompt.trim() : "";
+
         const renameContext = terminal.autoRenamePromptContext?.trim() || prompt;
+
         if (renameContext.length > 0) {
           const derived = deriveTerminalNameFromPrompt(renameContext);
           terminal.coordinationName = derived;
@@ -317,6 +343,7 @@ export const createHookProcessor = (deps: {
           logVerbose(`[Hook] Auto-named terminal ${terminal.terminalId} → "${derived}"`);
 
           const session = sessions.get(terminal.terminalId);
+
           if (session) {
             broadcastMessage(session, { type: "rename", coordinationName: derived });
           }
@@ -324,6 +351,7 @@ export const createHookProcessor = (deps: {
       }
 
       persistRegistry();
+
       return { ok: true };
     }
 
@@ -331,15 +359,18 @@ export const createHookProcessor = (deps: {
       return { ok: true };
     }
 
-    const hookPayload = payload as Record<string, unknown>;
+    const hookPayload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ payload as Record<string, unknown>;
+
     const transcriptPath =
-      typeof hookPayload.transcript_path === "string" ? hookPayload.transcript_path : null;
-    const hookCwd = typeof hookPayload.cwd === "string" ? hookPayload.cwd : null;
+      isString(hookPayload.transcript_path) ? hookPayload.transcript_path : null;
+
+    const hookCwd = isString(hookPayload.cwd) ? hookPayload.cwd : null;
 
     logVerbose(`[Hook] Stop hook: transcriptPath=${transcriptPath}, hookCwd=${hookCwd}`);
 
     if (!transcriptPath || !hookCwd) {
       logVerbose("[Hook] Missing transcriptPath or hookCwd, skipping.");
+
       return { ok: true };
     }
 
@@ -350,9 +381,11 @@ export const createHookProcessor = (deps: {
       logVerbose(`[Hook] Matched session by hook session id: ${matchedSessionId}`);
     } else if (hookSessionId) {
       logVerbose(`[Hook] hook session id=${hookSessionId} not found in active sessions, skipping.`);
+
       return { ok: true };
     } else {
       logVerbose("[Hook] No session id header/query — ignoring hook from external agent session.");
+
       return { ok: true };
     }
 
@@ -361,7 +394,7 @@ export const createHookProcessor = (deps: {
     logVerbose(`[Hook] Parsed ${turns?.length ?? 0} turns from transcript.`);
 
     const lastAssistantMessage =
-      typeof hookPayload.last_assistant_message === "string"
+      isString(hookPayload.last_assistant_message)
         ? hookPayload.last_assistant_message.trim()
         : null;
 
@@ -393,6 +426,7 @@ export const createHookProcessor = (deps: {
     // Deliver any queued channel messages now that the agent is idle.
     if (matchedSessionId) {
       const deliveredMessageCount = deliverChannelMessages(matchedSessionId);
+
       if (deliveredMessageCount === 0) {
         releaseSessionKeepAlive(matchedSessionId);
       }

@@ -1,3 +1,4 @@
+import { isString } from "../util/typeCoercion";
 import {
   type Condition,
   type Effect,
@@ -14,22 +15,26 @@ export type AdvanceResult =
   | { readonly ok: false; readonly reason: string };
 
 const refuse = (reason: string): AdvanceResult => ({ ok: false, reason });
+
 const equalsList = (equals: string | readonly string[]): readonly string[] =>
-  typeof equals === "string" ? [equals] : equals;
+  isString(equals) ? [equals] : equals;
 
 /** Returns the reason a condition fails, or null when it holds. */
 const failure = (c: Condition, job: WorkflowJob, facts: JobFacts): string | null => {
   const say = (fallback: string): string => c.message ?? fallback;
+
   switch (c.kind) {
     case "doc-exists":
       return c.doc in facts.docs ? null : say(`${c.doc} missing`);
     case "doc-field": {
       const value = facts.docs[c.doc]?.[c.field];
       const accepted = equalsList(c.equals);
+
       return value !== undefined && accepted.includes(value)
         ? null
         : say(`${c.doc} needs ${c.field}: ${accepted.join(" or ")}`);
     }
+
     case "doc-field-number":
       return /^\d+$/.test(facts.docs[c.doc]?.[c.field] ?? "")
         ? null
@@ -40,12 +45,16 @@ const failure = (c: Condition, job: WorkflowJob, facts: JobFacts): string | null
       return facts.gate === c.equals ? null : say(`the gate must be ${c.equals}`);
     case "reviews-complete": {
       const missing = job.reviewers.filter((r) => !facts.reviews[r]);
+
       return missing.length === 0 ? null : say(`missing reviews: ${missing.join(", ")}`);
     }
+
     case "reviews-clean": {
       const open = job.reviewers.filter((r) => facts.reviews[r] === "CHANGES");
+
       return open.length === 0 ? null : say(`open CHANGES from: ${open.join(", ")}`);
     }
+
     case "reviews-have-changes":
       return job.reviewers.some((r) => facts.reviews[r] === "CHANGES")
         ? null
@@ -77,12 +86,14 @@ const applyEffect = (state: Applied, effect: Effect): Applied => {
       return { ...state, job: { ...state.job, round: effect.value } };
     case "bump-round": {
       const round = state.job.round + 1;
+
       return {
         ...state,
         job: { ...state.job, round },
         to: round > state.job.roundLimit ? NEEDS_HUMAN : state.to,
       };
     }
+
     case "set-flag":
       return effect.whenStage !== undefined && effect.whenStage !== state.to
         ? state
@@ -106,23 +117,27 @@ export const advanceJob = (
   facts: JobFacts,
 ): AdvanceResult => {
   const stage = stageOf(def, job.stage);
+
   if (job.stage === NEEDS_HUMAN || stage?.terminal === true) {
     return refuse(`${job.id} is ${job.stage}, only the user can move it`);
   }
+
   const move = stage?.moves.find((m) => m.to === to);
+
   if (!move) return refuse(`${job.stage} -> ${to} is not a legal move`);
 
   for (const condition of move.requires ?? []) {
     const reason = failure(condition, job, facts);
+
     if (reason !== null) return refuse(reason);
   }
 
+  /* SAFETY: the seed has the job, the target stage and no effects, which is exactly the Applied shape. */
   const applied = (move.effects ?? []).reduce(applyEffect, { job, to, emitted: [] } as Applied);
-  const next: WorkflowJob = {
-    ...applied.job,
-    stage: applied.to,
-    ...(applied.to === NEEDS_HUMAN ? { parkedFrom: job.stage } : {}),
-  };
+  let next = { ...applied.job, stage: applied.to };
+
+  if (applied.to === NEEDS_HUMAN) next = { ...next, parkedFrom: job.stage };
+
   return { ok: true, job: next, effects: applied.emitted };
 };
 

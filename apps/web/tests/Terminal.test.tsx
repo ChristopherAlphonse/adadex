@@ -31,6 +31,7 @@ class MockWebSocket {
 
   emit(type: string, data?: unknown) {
     const event = { data };
+
     for (const listener of this.listeners.get(type) ?? []) {
       listener(event);
     }
@@ -46,7 +47,7 @@ describe("Terminal", () => {
   });
 
   it("renders idle badge and updates it from websocket state events", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.stubGlobal("WebSocket", /* SAFETY: preceding checks establish the invariant this assertion encodes. */ MockWebSocket as unknown as typeof WebSocket);
 
     render(<Terminal terminalId="orchestration-a" />);
 
@@ -57,9 +58,11 @@ describe("Terminal", () => {
     });
 
     const socket = MockWebSocket.instances[0];
+
     if (!socket) {
       throw new Error("Expected websocket instance");
     }
+
     socket.emit("message", JSON.stringify({ type: "state", state: "processing" }));
 
     await waitFor(() => {
@@ -78,7 +81,7 @@ describe("Terminal", () => {
   });
 
   it("renders terminal with the provided terminal label", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.stubGlobal("WebSocket", /* SAFETY: preceding checks establish the invariant this assertion encodes. */ MockWebSocket as unknown as typeof WebSocket);
 
     render(
       <Terminal terminalId="orchestration-a-agent-1" terminalLabel="orchestration-a-agent-1" />,

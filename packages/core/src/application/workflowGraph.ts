@@ -1,3 +1,4 @@
+import { isString } from "../util/typeCoercion";
 import {
   type Condition,
   type Effect,
@@ -7,7 +8,7 @@ import {
 } from "../domain/workflow";
 
 const list = (v: string | readonly string[]): string =>
-  typeof v === "string" ? v : v.join(" or ");
+  isString(v) ? v : v.join(" or ");
 
 /** A condition in plain words, for the side panel and the edge labels. */
 export const describeCondition = (c: Condition): string => {
@@ -79,6 +80,7 @@ export interface WorkflowGraph {
 }
 
 const GAP_X = 220;
+
 const GAP_Y = 120;
 
 /**
@@ -90,8 +92,10 @@ export const toGraph = (def: WorkflowDefinition): WorkflowGraph => {
   const ids = new Set(def.stages.map((s) => s.id));
   const layer = new Map<string, number>([[def.initial, 0]]);
   const queue = [def.initial];
+
   for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
     const from = layer.get(id) ?? 0;
+
     for (const m of def.stages.find((s) => s.id === id)?.moves ?? []) {
       if (ids.has(m.to) && !layer.has(m.to)) {
         layer.set(m.to, from + 1);
@@ -99,14 +103,18 @@ export const toGraph = (def: WorkflowDefinition): WorkflowGraph => {
       }
     }
   }
+
   const last = Math.max(0, ...layer.values());
+
   for (const s of def.stages) if (!layer.has(s.id)) layer.set(s.id, last + 1);
 
   const rowsUsed = new Map<number, number>();
+
   const nodes = def.stages.map((s): GraphNode => {
     const l = layer.get(s.id) ?? 0;
     const row = rowsUsed.get(l) ?? 0;
     rowsUsed.set(l, row + 1);
+
     return {
       id: s.id,
       hint: s.hint,
@@ -130,5 +138,6 @@ export const toGraph = (def: WorkflowDefinition): WorkflowGraph => {
         effects: (m.effects ?? []).map(describeEffect),
       })),
   );
+
   return { nodes, edges };
 };

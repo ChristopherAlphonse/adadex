@@ -14,6 +14,7 @@ const registry = createActionRegistry([
 const scripted = (events: AgentEvent[]) => {
   const responses: { callId: string; outcome: unknown }[] = [];
   let stopped = false;
+
   const session: AgentSession = {
     events: async function* () {
       for (const e of events) yield e;
@@ -25,29 +26,37 @@ const scripted = (events: AgentEvent[]) => {
       stopped = true;
     },
   };
+
   const provider: AgentProvider = { id: "fake", start: async () => session };
+
   return { provider, responses, wasStopped: () => stopped };
 };
 
 const executor = (calls: { id: string; input: unknown }[], fail = false): ActionExecutor => ({
   execute: async (id, input) => {
     calls.push({ id, input });
+
     if (fail) throw new Error("boom");
+
     return { done: id };
   },
 });
+
 const gate = (answer: boolean, asked: string[] = []): ApprovalGate => ({
   request: async (id) => {
     asked.push(id);
+
     return answer;
   },
 });
+
 const act = (callId: string, actionId: string, input: unknown): AgentEvent => ({
   type: "action",
   callId,
   actionId,
   input,
 });
+
 const request = { goal: "ship it", contextFiles: ["CONTEXT.md"] };
 
 describe("runAgent", () => {
@@ -56,11 +65,14 @@ describe("runAgent", () => {
       act("c1", "job.advance", { id: "j1", to: "spec" }),
       { type: "done", summary: "ok" },
     ]);
+
     const calls: { id: string; input: unknown }[] = [];
+
     const out = await runAgent(
       { provider: s.provider, registry, executor: executor(calls), approvals: gate(true) },
       request,
     );
+
     expect(calls).toEqual([{ id: "job.advance", input: { id: "j1", to: "spec" } }]);
     expect(s.responses[0]).toEqual({
       callId: "c1",
@@ -97,6 +109,7 @@ describe("runAgent", () => {
       act("c1", "job.commit_local", { id: "j1" }),
       { type: "done", summary: "" },
     ]);
+
     const calls: { id: string; input: unknown }[] = [];
     const asked: string[] = [];
     await runAgent(
@@ -113,6 +126,7 @@ describe("runAgent", () => {
       act("c1", "job.commit_local", { id: "j1" }),
       { type: "done", summary: "" },
     ]);
+
     const seen: string[] = [];
     await runAgent(
       {
@@ -143,10 +157,12 @@ describe("runAgent", () => {
       act("c1", "job.run_gate", { id: "j1" }),
       { type: "done", summary: "after" },
     ]);
+
     const out = await runAgent(
       { provider: s.provider, registry, executor: executor([], true), approvals: gate(true) },
       request,
     );
+
     expect(s.responses[0]?.outcome).toEqual({ status: "error", message: "boom" });
     expect(out.summary).toBe("after");
   });
@@ -157,10 +173,12 @@ describe("runAgent", () => {
       act("c2", "git.push", {}),
       { type: "done", summary: "" },
     ]);
+
     const out = await runAgent(
       { provider: s.provider, registry, executor: executor([]), approvals: gate(true) },
       request,
     );
+
     expect(out.calls.map((c) => [c.actionId, c.outcome.status])).toEqual([
       ["job.advance", "ok"],
       ["git.push", "denied"],
@@ -169,10 +187,12 @@ describe("runAgent", () => {
 
   it("stops the session when the events end without a done", async () => {
     const s = scripted([act("c1", "job.advance", { id: "j1", to: "spec" })]);
+
     const out = await runAgent(
       { provider: s.provider, registry, executor: executor([]), approvals: gate(true) },
       request,
     );
+
     expect(s.wasStopped()).toBe(true);
     expect(out.summary).toBe("");
   });
