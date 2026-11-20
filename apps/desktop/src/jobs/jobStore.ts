@@ -1,7 +1,8 @@
-import { createHash } from "node:crypto";
-import { appendFile, mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { newJob, type WorkflowDefinition, type WorkflowJob } from "@adadex/core";
+import { type AuditRow, GENESIS, type LogDb, lineHash, openLogDb, sha256 } from "../logs/logDb";
+import { redact } from "../logs/redact";
 
 const JOB_ID = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -30,9 +31,7 @@ export type VerifyResult =
   | { readonly ok: true; readonly entries: number }
   | { readonly ok: false; readonly reason: string };
 
-export const GENESIS = "0".repeat(64);
-const sha = (text: string): string => createHash("sha256").update(text).digest("hex");
-const lineHash = (prev: string, body: object): string => sha(prev + JSON.stringify(body));
+export { GENESIS };
 
 export interface JobStore {
   readonly jobDir: (id: string) => string;
@@ -59,8 +58,38 @@ const exists = async (path: string): Promise<boolean> =>
     () => false,
   );
 
-/** Jobs live under `<root>/jobs/<id>/job.json`, written through a temp file so a crash never leaves half a file. */
-export const createJobStore = (root: string, now: () => Date = () => new Date()): JobStore => {
+export interface JobStoreOptions {
+  /** The machine's log database. Without one, a private in-memory database is used (tests). */
+  readonly db?: LogDb;
+  /** Keeps two projects' jobs apart in one database. */
+  readonly project?: string;
+}
+
+const toStored = (r: AuditRow): StoredAudit => ({
+  actor: r.actor as StoredAudit["actor"],
+  action: r.action,
+  jobId: r.jobId,
+  detail: r.detail,
+  ...(r.role === undefined ? {} : { role: r.role }),
+  ...(r.runId === undefined ? {} : { runId: r.runId }),
+  ...(r.data === undefined ? {} : { data: r.data }),
+  ts: r.ts,
+  state: r.state,
+  prev: r.prev,
+  hash: r.hash,
+});
+
+/**
+ * Jobs live under `<root>/jobs/<id>/job.json`, written through a temp file so a crash never leaves half a file.
+ * The audit chain lives in the machine's SQLite log database, not in a file an agent could reach.
+ */
+export const createJobStore = (
+  root: string,
+  now: () => Date = () => new Date(),
+  options: JobStoreOptions = {},
+): JobStore => {
+  const logDb = options.db ?? openLogDb(":memory:");
+  const project = options.project ?? "default";
   const jobDir = (id: string): string => {
     if (!JOB_ID.test(id)) throw new Error(`bad job id ${id}`);
     return join(root, "jobs", id);
@@ -73,63 +102,49 @@ export const createJobStore = (root: string, now: () => Date = () => new Date())
     await rename(tmp, file(job.id));
   };
 
-  const chains = new Map<string, Promise<unknown>>();
-  const readLines = async (id: string): Promise<StoredAudit[]> => {
-    const text = await readFile(join(jobDir(id), "audit.log"), "utf8").catch(() => "");
-    return text
-      .split("\n")
-      .filter((l) => l !== "")
-      .map((l) => JSON.parse(l) as StoredAudit);
-  };
-
-  const audit = (entry: AuditEntry): Promise<void> => {
-    // One writer per job at a time, so two calls cannot both extend the same line.
-    const run = (chains.get(entry.jobId) ?? Promise.resolve()).then(async () => {
-      await mkdir(jobDir(entry.jobId), { recursive: true });
-      const lines = await readLines(entry.jobId).catch(() => [] as StoredAudit[]);
-      const prev = lines.at(-1)?.hash ?? GENESIS;
-      const record = await readFile(file(entry.jobId), "utf8").catch(() => "");
-      const body = { ts: now().toISOString(), ...entry, state: sha(record) };
-      await appendFile(
-        join(jobDir(entry.jobId), "audit.log"),
-        `${JSON.stringify({ ...body, prev, hash: lineHash(prev, body) })}\n`,
-      );
+  const audit = async (entry: AuditEntry): Promise<void> => {
+    jobDir(entry.jobId);
+    const record = await readFile(file(entry.jobId), "utf8").catch(() => "");
+    logDb.appendAudit(project, {
+      ts: now().toISOString(),
+      actor: entry.actor,
+      action: entry.action,
+      jobId: entry.jobId,
+      detail: redact(entry.detail),
+      role: entry.role,
+      runId: entry.runId,
+      data: entry.data,
+      state: sha256(record),
     });
-    chains.set(
-      entry.jobId,
-      run.catch(() => undefined),
-    );
-    return run;
   };
 
   const verify = async (id: string): Promise<VerifyResult> => {
-    let lines: StoredAudit[];
+    let rows: readonly AuditRow[];
     try {
-      lines = await readLines(id);
+      rows = logDb.auditRows(project, id);
     } catch {
       return { ok: false, reason: "the audit log cannot be read" };
     }
     let prev = GENESIS;
-    for (const [i, line] of lines.entries()) {
-      const { prev: p, hash, ...body } = line;
-      if (p !== prev)
+    for (const [i, row] of rows.entries()) {
+      if (row.prev !== prev)
         return { ok: false, reason: `audit line ${i + 1} does not follow the line before it` };
-      if (hash !== lineHash(prev, body))
+      if (row.hash !== lineHash(prev, row))
         return { ok: false, reason: `audit line ${i + 1} was changed` };
-      prev = hash;
+      prev = row.hash;
     }
     const record = await readFile(file(id), "utf8").catch(() => null);
-    const last = lines.at(-1);
-    if (record !== null && last && last.state !== sha(record)) {
+    const last = rows.at(-1);
+    if (record !== null && last && last.state !== sha256(record)) {
       return { ok: false, reason: "the job record was changed outside the app" };
     }
-    return { ok: true, entries: lines.length };
+    return { ok: true, entries: rows.length };
   };
 
   const readAudit = async (id: string): Promise<readonly StoredAudit[]> => {
     const v = await verify(id);
     if (!v.ok) throw new Error(v.reason);
-    return readLines(id);
+    return logDb.auditRows(project, id).map(toStored);
   };
 
   const load = async (id: string): Promise<WorkflowJob> => {

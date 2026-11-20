@@ -19,6 +19,7 @@ import type { ApprovalBroker } from "../ipc/approvalBroker";
 import type { JobStore } from "../jobs/jobStore";
 import { parkJob } from "../jobs/parkJob";
 import { findWorkflow, type WorkflowLookup } from "../jobs/workflowLookup";
+import type { Logger } from "../logs/logger";
 
 export interface ProviderRequest {
   /** What to show in the process list, such as "Builder on j1". */
@@ -41,6 +42,7 @@ export interface RoleRunnerDeps {
   readonly protectedLocations: readonly string[];
   readonly makeProvider: (request: ProviderRequest) => AgentProvider;
   readonly cwdOf: (job: WorkflowJob) => string;
+  readonly logger?: Logger;
   readonly newRunId?: () => string;
   readonly now?: () => Date;
   readonly setTimer?: (fn: () => void, ms: number) => unknown;
@@ -72,6 +74,9 @@ export const createRoleRunner = (deps: RoleRunnerDeps) => {
 
       const intact = await deps.store.verify(jobId);
       if (!intact.ok) {
+        deps.logger?.log("error", "integrity", `integrity check failed: ${intact.reason}`, {
+          jobId,
+        });
         await parkJob(deps.store, job, `integrity check failed: ${intact.reason}`);
         throw new Error(`integrity check failed: ${intact.reason}`);
       }
@@ -102,6 +107,8 @@ export const createRoleRunner = (deps: RoleRunnerDeps) => {
         deps.protectedLocations.map((l) => resolveReal("/", l)),
       );
       const who = { role: role.id, runId: binding.runId } as const;
+      const ctx = { jobId: job.id, runId: binding.runId, role: role.id };
+      deps.logger?.log("info", "run", `run started: ${role.id} at ${stage.id}`, ctx);
       await deps.store.audit({
         actor: "system",
         action: "run-start",
@@ -115,6 +122,7 @@ export const createRoleRunner = (deps: RoleRunnerDeps) => {
       let current: AgentSession | undefined;
       const stop = async (why: "actions" | "time"): Promise<void> => {
         limited ??= why;
+        deps.logger?.log("warn", "run", `run stopped: ${why} budget used`, ctx);
         await deps.store.audit({
           actor: "system",
           action: "limit",
@@ -125,7 +133,9 @@ export const createRoleRunner = (deps: RoleRunnerDeps) => {
         await current?.stop();
       };
 
-      const inner = createToolGuard(policy, deps.approvals.gate);
+      const inner = createToolGuard(policy, deps.approvals.gate, (line) =>
+        deps.logger?.log("warn", "guard", line, ctx),
+      );
       const decide: GuardDecide = async (event) => {
         calls += 1;
         if (calls > role.limits.maxActions) {
@@ -185,6 +195,7 @@ export const createRoleRunner = (deps: RoleRunnerDeps) => {
       }
 
       const after = await deps.store.load(job.id);
+      deps.logger?.log("info", "run", `run ended: ${stage.id} -> ${after.stage}`, ctx);
       await deps.store.audit({
         actor: "system",
         action: "run-end",

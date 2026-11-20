@@ -2,6 +2,7 @@ import { resolveSkills } from "@adadex/core";
 import { type MachineConfig, saveMachineConfig } from "../config/machineConfig";
 import type { ActionHost, NativeConfirm } from "../host/actionHost";
 import type { JobStore } from "../jobs/jobStore";
+import type { Logger } from "../logs/logger";
 import type { RoleStore } from "../roles/roleStore";
 import type { Scheduler } from "../runs/scheduler";
 import { createFsSkillCatalog } from "../skills/fsSkillCatalog";
@@ -17,6 +18,7 @@ export interface HostApiDeps {
   /** Absent until Electron wires a process supervisor; the panels then render empty. */
   readonly processes?: ProcessPort;
   readonly roles?: RoleStore;
+  readonly logs?: Logger;
   /** The unattended loop. Turning it on asks `confirm` first. */
   readonly scheduler?: Scheduler;
   readonly confirm?: NativeConfirm;
@@ -85,6 +87,13 @@ export const createHostApi = (deps: HostApiDeps): HostApi => ({
           if (deps.processes === undefined) return fail("process control is not available");
           await deps.processes.kill(req.processId);
           return ok(null);
+        case "logs.query": {
+          if (!deps.logs) return fail("logs are not available");
+          const { kind: _kind, ...query } = req;
+          return ok(deps.logs.query(query));
+        }
+        case "audit.verify":
+          return ok(await deps.jobs.verify(req.jobId));
         case "roles.list":
           return deps.roles ? ok(await deps.roles.list()) : fail("roles are not available");
         case "roles.save": {

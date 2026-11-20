@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { evaluateToolCall } from "@adadex/core";
@@ -154,7 +154,7 @@ describe("the app, end to end, with real git", () => {
     expect((await run(app, "job.advance", { id: "j1", to: "ready" })).ok).toBe(true);
     expect((await app.jobs.load("j1")).stage).toBe("ready");
     expect((await stat(join(dataDir, "guard", "human.sha256"))).mode & 0o777).toBe(0o600);
-    expect(await readFile(join(jobDir, "audit.log"), "utf8")).toContain('"action":"commit"');
+    expect((await app.jobs.readAudit("j1")).map((l) => l.action)).toContain("commit");
   });
 
   it("a failing check keeps the job at the gate, and a commit is refused after the tree changes", async () => {

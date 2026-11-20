@@ -20,7 +20,7 @@ export const ConsoleChromeHeader = ({
       <div className="flex items-center gap-3">
         <span className="text-[17px] font-semibold tracking-[0.12em] text-foreground">ADADEX</span>
         <span className="text-muted-foreground/40">/</span>
-        <span className="px-2 py-1 text-[15px] font-medium text-foreground">kiro</span>
+        <span className="px-2 py-1 text-[15px] font-medium text-foreground">agents</span>
       </div>
 
       <nav

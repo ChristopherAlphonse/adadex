@@ -9,7 +9,10 @@ export type StartupPrerequisiteIssue = {
   guidance: string;
 };
 
-export type StartupPrerequisiteAvailability = Record<"kiro" | "git" | "gh" | "curl", boolean>;
+export type StartupPrerequisiteAvailability = Record<
+  "kiro" | "claude" | "opencode" | "git" | "gh" | "curl",
+  boolean
+>;
 
 export type StartupPrerequisiteReport = {
   availability: StartupPrerequisiteAvailability;
@@ -50,6 +53,8 @@ export const collectStartupPrerequisiteReport = (
 ): StartupPrerequisiteReport => {
   const availability: StartupPrerequisiteAvailability = {
     kiro: isAvailable("kiro-cli"),
+    claude: isAvailable("claude"),
+    opencode: isAvailable("opencode"),
     git: isAvailable("git"),
     gh: isAvailable("gh"),
     curl: isAvailable("curl"),
@@ -58,13 +63,13 @@ export const collectStartupPrerequisiteReport = (
   const errors: StartupPrerequisiteIssue[] = [];
   const warnings: StartupPrerequisiteIssue[] = [];
 
-  if (!availability.kiro) {
+  if (!availability.kiro && !availability.claude && !availability.opencode) {
     warnings.push({
       command: "kiro-cli",
       severity: "warning",
-      summary: "`kiro-cli` is not installed.",
+      summary: "No agent CLI found (`kiro-cli`, `claude`, or `opencode`).",
       guidance:
-        "Install Kiro CLI (curl -fsSL https://cli.kiro.dev/install | bash) to use it as the agent provider.",
+        "Install at least one agent CLI: Claude Code, OpenCode, or Kiro CLI (curl -fsSL https://cli.kiro.dev/install | bash).",
     });
   }
 

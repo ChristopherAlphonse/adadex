@@ -8,6 +8,8 @@ export const DEFAULT_AGENT_PROVIDER = "kiro" as const;
 
 export const TERMINAL_BOOTSTRAP_COMMANDS: Record<string, string> = {
   kiro: "kiro-cli",
+  claude: "claude",
+  opencode: "opencode",
 };
 
 export const TERMINAL_SESSION_IDLE_GRACE_MS = 5 * 60 * 1000;

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -29,6 +30,8 @@ import { createJobExecutor } from "../jobs/jobActions";
 import { createJobStore, type JobStore } from "../jobs/jobStore";
 import { makeWorktree } from "../jobs/makeWorktree";
 import { nodeCheckRunner, nodeGit } from "../jobs/nodeGate";
+import { type LogDb, openLogDb } from "../logs/logDb";
+import { createLogger, type Logger } from "../logs/logger";
 import { createRoleStore, type RoleStore } from "../roles/roleStore";
 import { createProcessRegistry } from "../runs/processRegistry";
 import { createRoleRunner, type ProviderRequest, type RunResult } from "../runs/roleRunner";
@@ -53,6 +56,8 @@ export interface AppOptions {
   /** Most agents at once, and how many runs that move nothing before a job is parked. */
   readonly concurrency?: number;
   readonly stallLimit?: number;
+  /** Operational events older than this are deleted at start. The audit chain is never pruned. */
+  readonly logRetentionDays?: number;
 }
 
 export interface App {
@@ -63,6 +68,9 @@ export interface App {
   readonly approvals: ApprovalBroker;
   readonly policy: PolicyRules;
   readonly roles: RoleStore;
+  /** The machine's local log database: the audit chain and the operational events. */
+  readonly logs: Logger;
+  readonly logDb: LogDb;
   /** The unattended loop. Off until a person starts it. */
   readonly scheduler: Scheduler;
   /**
@@ -72,6 +80,8 @@ export interface App {
   runStage(jobId: string): Promise<RunResult>;
   /** Stop every running agent and decline anything waiting, so quitting leaves nothing running. */
   shutdown(): Promise<void>;
+  /** Close the log database. Call once, after `shutdown`, when nothing more will be written. */
+  close(): void;
 }
 
 const DEFAULT_CHECKS: GateConfig = {
@@ -92,7 +102,11 @@ export const createApp = (options: AppOptions): App => {
   const prefix = options.branchPrefix ?? "adadex/";
   const humanKey = createHumanKey();
   const sessions = new Set<AgentSession>();
-  const processes = createProcessRegistry();
+  const processes = createProcessRegistry(undefined, undefined, (event, info) =>
+    logs.log(event === "kill" ? "warn" : "info", "process", `${event}: ${info.label}`, {
+      data: { processId: info.processId },
+    }),
+  );
   // The project's checks show up in the process list too, and can be stopped from there.
   const checkRunner: CheckRunner = {
     run: (command, cwd, timeoutMs, onStart) => {
@@ -106,7 +120,12 @@ export const createApp = (options: AppOptions): App => {
     },
   };
 
-  const jobs = createJobStore(stateDir);
+  const logDb = openLogDb(join(options.dataDir, "logs", "adadex.db"));
+  const project = createHash("sha256").update(options.projectRoot).digest("hex").slice(0, 16);
+  const logs = createLogger(logDb, project);
+  logs.prune(options.logRetentionDays ?? 90);
+  logs.log("info", "app", "app started");
+  const jobs = createJobStore(stateDir, undefined, { db: logDb, project });
   const workflows = createWorkflowStore(join(options.dataDir, "workflows"));
   const gateConfig = async (): Promise<GateConfig> => {
     const raw = (await loadProjectChecks(join(options.dataDir, "project.json"))) ?? {};
@@ -115,9 +134,35 @@ export const createApp = (options: AppOptions): App => {
   const cwdOf = (job: WorkflowJob): string => job.worktree ?? options.projectRoot;
   const registry = createActionRegistry(FACTORY_ACTIONS);
 
-  const approvals = createApprovalBroker((p) =>
-    options.emit({ type: "approval-requested", actionId: p.actionId, reason: p.reason }),
+  const emit = (event: HostEvent): void => {
+    if (event.type === "ran") {
+      logs.log(
+        event.outcome.status === "ok" ? "info" : "warn",
+        "action",
+        `${event.caller} ran ${event.actionId}: ${event.outcome.status}`,
+      );
+    } else if (event.type === "needs-click") {
+      logs.log("info", "action", `${event.actionId} needs a human click`);
+    } else {
+      logs.log("info", "approval", `approval requested for ${event.actionId}: ${event.reason}`);
+    }
+    options.emit(event);
+  };
+  const broker = createApprovalBroker((p) =>
+    emit({ type: "approval-requested", actionId: p.actionId, reason: p.reason }),
   );
+  const approvals: ApprovalBroker = {
+    ...broker,
+    respond: (approvalId, approved) => {
+      const found = broker.respond(approvalId, approved);
+      logs.log(
+        found ? "info" : "warn",
+        "approval",
+        `${approved ? "approved" : "declined"} ${approvalId}${found ? "" : " (not waiting)"}`,
+      );
+      return found;
+    },
+  };
 
   const executor = createJobExecutor({
     store: jobs,
@@ -156,7 +201,7 @@ export const createApp = (options: AppOptions): App => {
     executor,
     confirm: options.confirm,
     askApproval: approvals.gate,
-    emit: options.emit,
+    emit,
   });
 
   const policy = withProtectedLocations(BUILD_POLICY, [resolveReal("/", options.dataDir)]);
@@ -194,6 +239,7 @@ export const createApp = (options: AppOptions): App => {
     };
   };
   const runner = createRoleRunner({
+    logger: logs,
     store: jobs,
     workflows: (id) => workflows.get(id),
     roles,
@@ -211,6 +257,10 @@ export const createApp = (options: AppOptions): App => {
     runStage: (jobId) => runner.run(jobId),
     concurrency: options.concurrency ?? 1,
     stallLimit: options.stallLimit ?? 2,
+    onPlan: (plan) =>
+      logs.log("info", "scheduler", `started ${plan.start.length}, parked ${plan.park.length}`, {
+        data: { start: plan.start, park: plan.park },
+      }),
   });
   const api = createHostApi({
     workflows,
@@ -219,6 +269,7 @@ export const createApp = (options: AppOptions): App => {
     approvals,
     processes,
     roles,
+    logs,
     scheduler,
     confirm: options.confirm,
     loadConfig: () => loadMachineConfig(configPath),
@@ -234,13 +285,19 @@ export const createApp = (options: AppOptions): App => {
     approvals,
     policy,
     roles,
+    logs,
+    logDb,
     scheduler,
     runStage: (jobId) => runner.run(jobId),
     async shutdown() {
       scheduler.stop();
       processes.killAll();
+      logs.log("info", "app", "app stopping");
       approvals.declineAll();
       await Promise.all([...sessions].map((s) => s.stop()));
+    },
+    close() {
+      logDb.close();
     },
   };
 };

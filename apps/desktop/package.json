@@ -17,5 +17,8 @@
     "electron": "45.2.3",
     "esbuild": "0.28.2"
   },
-  "main": "dist/main.mjs"
+  "main": "dist/main.mjs",
+  "engines": {
+    "node": ">=22.13.0"
+  }
 }

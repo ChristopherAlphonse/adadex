@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { factoryBuildPreset, type WorkflowJob } from "@adadex/core";
@@ -87,9 +87,9 @@ describe("job.commit_local: every refusal", () => {
     expect(await commit(executor)).toEqual({ commit: "newcommit" });
     expect(f.calls).toEqual(["add", "commit"]);
     expect((await store.load("j1")).commit).toBe("newcommit");
-    expect(await readFile(join(store.jobDir("j1"), "audit.log"), "utf8")).toContain(
-      '"actor":"human","action":"commit"',
-    );
+    expect(
+      (await store.readAudit("j1")).some((l) => l.actor === "human" && l.action === "commit"),
+    ).toBe(true);
   });
 
   it("refuses a second commit", async () => {

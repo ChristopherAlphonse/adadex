@@ -1,11 +1,13 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { factoryBuildPreset, type WorkflowJob } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { attestedGate } from "../src/jobs/attestedGate";
 import { createJobExecutor } from "../src/jobs/jobActions";
 import { createJobStore, GENESIS } from "../src/jobs/jobStore";
+import { openLogDb } from "../src/logs/logDb";
 import { writeGate } from "./helpers/attest";
 
 let root: string;
@@ -17,15 +19,25 @@ afterEach(async () => {
 });
 
 const setup = async () => {
-  const store = createJobStore(root, () => new Date("2026-11-19T00:00:00.000Z"));
+  const path = join(root, "logs", "adadex.db");
+  const logDb = openLogDb(path);
+  const store = createJobStore(join(root, "state"), () => new Date("2026-11-19T00:00:00.000Z"), {
+    db: logDb,
+    project: "p",
+  });
   const job = await store.create(factoryBuildPreset, "j1", "t", 3);
-  return { store, job, log: join(store.jobDir("j1"), "audit.log") };
+  /** What someone with the file and a sqlite client could do: open it themselves, and remove the guard rails first. */
+  const attacker = () => {
+    const db = new DatabaseSync(path);
+    db.exec("DROP TRIGGER audit_no_update; DROP TRIGGER audit_no_delete;");
+    return db;
+  };
+  return { store, job, logDb, path, attacker };
 };
-const lines = async (path: string) => (await readFile(path, "utf8")).split("\n").filter(Boolean);
 
-describe("tamper-evident audit log", () => {
+describe("tamper-evident audit log in the local database", () => {
   it("chains every line to the one before it, starting from a fixed beginning", async () => {
-    const { store, log } = await setup();
+    const { store, logDb } = await setup();
     await store.audit({
       actor: "agent",
       action: "advance",
@@ -35,40 +47,56 @@ describe("tamper-evident audit log", () => {
       runId: "r1",
     });
     await store.audit({ actor: "human", action: "approve-spec", jobId: "j1", detail: "abc" });
-    const parsed = (await lines(log)).map((l) => JSON.parse(l));
-    expect(parsed[0].prev).toBe(GENESIS);
-    expect(parsed[1].prev).toBe(parsed[0].hash);
-    expect(parsed[2].prev).toBe(parsed[1].hash);
-    expect(parsed[1]).toMatchObject({ role: "shaper", runId: "r1" });
+    const rows = logDb.auditRows("p", "j1");
+    expect(rows[0]?.prev).toBe(GENESIS);
+    expect(rows[1]?.prev).toBe(rows[0]?.hash);
+    expect(rows[2]?.prev).toBe(rows[1]?.hash);
+    expect(rows[1]).toMatchObject({ role: "shaper", runId: "r1" });
     expect(await store.verify("j1")).toEqual({ ok: true, entries: 3 });
   });
 
-  it("detects an edited line, a deleted line, a reordered pair and a forged extra line", async () => {
-    for (const tamper of [
-      (l: string[]) => [l[0] ?? "", (l[1] ?? "").replace("advance", "approve"), l[2] ?? ""],
-      (l: string[]) => [l[0] ?? "", l[2] ?? ""],
-      (l: string[]) => [l[0] ?? "", l[2] ?? "", l[1] ?? ""],
-      (l: string[]) => [
-        ...l,
-        JSON.stringify({
-          ts: "x",
-          actor: "human",
-          action: "commit",
-          jobId: "j1",
-          detail: "sha",
-          state: "x",
-          prev: GENESIS,
-          hash: "f".repeat(64),
-        }),
-      ],
-    ]) {
-      const { store, log } = await setup();
-      await store.audit({ actor: "agent", action: "advance", jobId: "j1", detail: "a" });
-      await store.audit({ actor: "agent", action: "advance", jobId: "j1", detail: "b" });
-      await writeFile(log, `${tamper(await lines(log)).join("\n")}\n`);
-      expect((await store.verify("j1")).ok).toBe(false);
-      await rm(join(root, "jobs"), { recursive: true, force: true });
-    }
+  it("refuses to change or delete a line, even for a plain sql statement", async () => {
+    const { store, logDb } = await setup();
+    await store.audit({ actor: "agent", action: "advance", jobId: "j1", detail: "a" });
+    expect(() => logDb.db.exec("UPDATE audit SET actor = 'human'")).toThrow("append-only");
+    expect(() => logDb.db.exec("DELETE FROM audit")).toThrow("append-only");
+  });
+
+  it("detects an edited line, a deleted line, and a forged extra line, even when the guard rails were removed", async () => {
+    const edited = await setup();
+    await edited.store.audit({ actor: "agent", action: "advance", jobId: "j1", detail: "a" });
+    edited.attacker().exec("UPDATE audit SET actor = 'human' WHERE seq = 2");
+    expect((await edited.store.verify("j1")).ok).toBe(false);
+    await rm(join(root, "logs"), { recursive: true, force: true });
+    await rm(join(root, "state"), { recursive: true, force: true });
+
+    const deleted = await setup();
+    await deleted.store.audit({ actor: "agent", action: "advance", jobId: "j1", detail: "a" });
+    await deleted.store.audit({ actor: "agent", action: "advance", jobId: "j1", detail: "b" });
+    deleted.attacker().exec("DELETE FROM audit WHERE seq = 2");
+    expect((await deleted.store.verify("j1")).ok).toBe(false);
+    await rm(join(root, "logs"), { recursive: true, force: true });
+    await rm(join(root, "state"), { recursive: true, force: true });
+
+    const forged = await setup();
+    const tail = forged.logDb.auditRows("p", "j1").at(-1)?.hash ?? "";
+    forged
+      .attacker()
+      .exec(
+        `INSERT INTO audit (project, job_id, ts, actor, action, detail, state, prev, hash) VALUES ('p','j1','x','human','commit','sha','x','${tail}','${"f".repeat(64)}')`,
+      );
+    expect((await forged.store.verify("j1")).ok).toBe(false);
+  });
+
+  it("refuses to fork a chain: two lines cannot both follow the same line", async () => {
+    const { logDb } = await setup();
+    const first = logDb.auditRows("p", "j1")[0];
+    expect(() =>
+      logDb.db.exec(
+        `INSERT INTO audit (project, job_id, ts, actor, action, detail, state, prev, hash) VALUES ('p','j1','x','human','commit','sha','x','${GENESIS}','${"e".repeat(64)}')`,
+      ),
+    ).toThrow("UNIQUE");
+    expect(first?.prev).toBe(GENESIS);
   });
 
   it("detects a job record that was edited outside the app", async () => {
@@ -100,10 +128,26 @@ describe("tamper-evident audit log", () => {
     expect(await store.verify("j1")).toEqual({ ok: true, entries: 26 });
   });
 
-  it("refuses to read an audit log whose chain is broken", async () => {
-    const { store, log } = await setup();
-    await writeFile(log, "not json\n");
-    await expect(store.readAudit("j1")).rejects.toThrow();
+  it("keeps two jobs, and two projects, apart in one database", async () => {
+    const { logDb } = await setup();
+    const other = createJobStore(join(root, "other"), undefined, { db: logDb, project: "q" });
+    await other.create(factoryBuildPreset, "j1", "t", 3);
+    await other.audit({ actor: "agent", action: "note", jobId: "j1", detail: "x" });
+    expect(logDb.auditRows("p", "j1")).toHaveLength(1);
+    expect(logDb.auditRows("q", "j1")).toHaveLength(2);
+    expect((await other.verify("j1")).ok).toBe(true);
+  });
+
+  it("keeps the chain across a restart, because it is on disk", async () => {
+    const { store, path, logDb } = await setup();
+    await store.audit({ actor: "agent", action: "note", jobId: "j1", detail: "before" });
+    logDb.close();
+    const reopened = createJobStore(join(root, "state"), undefined, {
+      db: openLogDb(path),
+      project: "p",
+    });
+    await reopened.audit({ actor: "agent", action: "note", jobId: "j1", detail: "after" });
+    expect(await reopened.verify("j1")).toEqual({ ok: true, entries: 3 });
   });
 });
 
@@ -144,10 +188,10 @@ describe("a gate result the audit log does not vouch for counts for nothing", ()
   });
 
   it("ignores everything once the audit chain is broken", async () => {
-    const { store, job, log } = await setup();
+    const { store, job, attacker } = await setup();
     const saved = await gateAt(store, job);
     await writeGate(store, "j1", 1, "PASS", "tree-1");
-    await writeFile(log, `${(await lines(log)).slice(1).join("\n")}\n`);
+    attacker().exec("DELETE FROM audit WHERE seq = 1");
     expect(await attestedGate(store, saved)).toBeNull();
   });
 

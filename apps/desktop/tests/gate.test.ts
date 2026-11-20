@@ -140,9 +140,7 @@ describe("job.run_gate", () => {
   it("audits every gate run", async () => {
     const { store, executor } = await setup();
     await executor.execute("job.run_gate", { id: "j1" });
-    expect(await readFile(join(store.jobDir("j1"), "audit.log"), "utf8")).toContain(
-      '"action":"gate"',
-    );
+    expect((await store.readAudit("j1")).map((l) => l.action)).toContain("gate");
   });
 });
 

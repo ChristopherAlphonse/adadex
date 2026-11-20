@@ -9,7 +9,11 @@ export const AGENT_PROVIDER_STORAGE_KEY = "adadex.agentProvider";
 export const AGENT_PROVIDER_OPTIONS: ReadonlyArray<{
   value: TerminalAgentProvider;
   label: string;
-}> = [{ value: "kiro", label: "kiro" }];
+}> = [
+  { value: "kiro", label: "kiro" },
+  { value: "claude", label: "claude" },
+  { value: "opencode", label: "opencode" },
+];
 
 export const readAgentProviderPreference = (): TerminalAgentProvider => {
   if (typeof window === "undefined") {

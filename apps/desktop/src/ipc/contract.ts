@@ -29,6 +29,15 @@ export type HostRequest =
   | { readonly kind: "roles.save"; readonly role: unknown }
   | { readonly kind: "roles.remove"; readonly id: string }
   | { readonly kind: "scheduler.status" }
+  | {
+      readonly kind: "logs.query";
+      readonly jobId?: string;
+      readonly runId?: string;
+      readonly role?: string;
+      readonly level?: "debug" | "info" | "warn" | "error";
+      readonly limit?: number;
+    }
+  | { readonly kind: "audit.verify"; readonly jobId: string }
   | { readonly kind: "scheduler.set"; readonly enabled: boolean }
   | { readonly kind: "config.get" }
   | { readonly kind: "config.set"; readonly config: unknown };
@@ -68,6 +77,7 @@ const STRING_FIELDS: Readonly<Record<string, readonly string[]>> = {
   "process.kill": ["processId"],
   "skills.resolve": ["workflowId"],
   "roles.remove": ["id"],
+  "audit.verify": ["jobId"],
 };
 const NO_FIELDS = new Set([
   "workflows.list",
@@ -97,6 +107,32 @@ export const parseRequest = (raw: unknown): ParsedRequest => {
       return "config" in raw
         ? { ok: true, request: { kind, config: raw.config } }
         : { ok: false, error: "config.set needs config" };
+    case "logs.query": {
+      const q: Record<string, unknown> = { kind };
+      for (const f of ["jobId", "runId", "role"] as const) {
+        if (raw[f] === undefined) continue;
+        if (!text(raw[f])) return { ok: false, error: `logs.query ${f} must be text` };
+        q[f] = raw[f];
+      }
+      if (raw.level !== undefined) {
+        if (!["debug", "info", "warn", "error"].includes(raw.level as string))
+          return { ok: false, error: "logs.query level must be debug, info, warn or error" };
+        q.level = raw.level;
+      }
+      if (raw.limit !== undefined) {
+        if (
+          typeof raw.limit !== "number" ||
+          !Number.isInteger(raw.limit) ||
+          raw.limit < 1 ||
+          raw.limit > 1000
+        )
+          return { ok: false, error: "logs.query limit must be a whole number from 1 to 1000" };
+        q.limit = raw.limit;
+      }
+      return { ok: true, request: q as unknown as HostRequest };
+    }
+    case "audit.verify":
+      return { ok: true, request: raw as unknown as HostRequest };
     case "roles.save":
       return "role" in raw
         ? { ok: true, request: { kind, role: raw.role } }

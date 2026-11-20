@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { factoryBuildPreset, factoryReviewPreset } from "@adadex/core";
@@ -53,7 +53,7 @@ describe("job store", () => {
   it("writes an audit line for every create", async () => {
     const { store } = setup();
     await store.create(factoryBuildPreset, "j1", "Add login", 3);
-    const line = JSON.parse((await readFile(join(store.jobDir("j1"), "audit.log"), "utf8")).trim());
+    const line = (await store.readAudit("j1"))[0];
     expect(line).toMatchObject({
       actor: "system",
       action: "create",
@@ -89,9 +89,7 @@ describe("job actions on disk", () => {
       "shape.md needs STATUS: READY",
     );
     expect((await store.load("j1")).stage).toBe("shape");
-    expect(await readFile(join(store.jobDir("j1"), "audit.log"), "utf8")).toContain(
-      "advance-refused",
-    );
+    expect((await store.readAudit("j1")).map((l) => l.action)).toContain("advance-refused");
   });
 
   it("walks shape -> spec -> build, with the spec approval bound to its hash", async () => {

@@ -39,9 +39,22 @@ A role can only **narrow** what the registry would allow. It cannot relax a deny
 
 The agent that builds cannot write the review verdicts, the gate result or the commit. The gate result is written by the app. The commit is made by a person's click, in the job's own worktree, of exactly the files the gate checked.
 
+## Logs: one local SQLite database
+
+Everything the app logs goes into one SQLite file on the machine: `<data folder>/logs/adadex.db`. It uses Node's built-in SQLite, so there is no extra dependency (Node 22.13 or newer; Electron 45 ships Node 24).
+
+- **Two tables, two jobs.** `audit` is the per-job chain of what was done and by whom. `events` is the operational log: guard decisions, approvals asked and answered, processes started, stopped and killed, run start, end and limit stops, the loop's decisions, integrity failures, app start and stop. The UI reads events through `logs.query` (filter by job, run, role, source, level, time) and checks a job's chain through `audit.verify`.
+- **Owner only.** The file is mode 0600 in a folder of mode 0700. It sits in the data folder, which no agent may write.
+- **Durable.** Write-ahead logging with full sync, so a crash does not lose a line. Appends run in a transaction, so two writers cannot extend the same line.
+- **Append-only audit.** The table has triggers that refuse any update or delete, and a unique rule that refuses a second line after the same line, so a chain cannot be forked.
+- **Redacted before writing.** Keys, tokens, bearer headers, cloud access keys, private key blocks and `password=`-style values are replaced with `[redacted]` in messages, details and data.
+- **Retention.** Events older than 90 days are deleted at start (configurable). The audit chain is never pruned.
+- **Projects are kept apart** in one database by a hash of the project folder.
+- **A logging failure never stops work.**
+
 ## Integrity
 
-- **Tamper-evident audit log.** Every line carries the hash of the line before it and the hash of the job record at that moment. An edited, deleted, reordered or forged line breaks the chain. A job record changed outside the app is detected too.
+- **Tamper-evident audit log.** Every line carries the hash of the line before it and the hash of the job record at that moment. An edited, deleted, reordered or forged line breaks the chain, even if someone with the database file removes the triggers first. A job record changed outside the app is detected too.
 - **A gate result counts only if the audit log vouches for it.** `checks.md` is believed only when the app's own audit line for the same round says the same verdict and tree. A file an agent wrote, or a verdict edited from FAIL to PASS, counts as "gate not run".
 - **Check before every run.** The role runner verifies the chain before it starts an agent. A broken chain stops the run and parks the job on a person with the reason.
 - **Every call is attributed.** Each agent call, run start, run end and limit stop is logged with the role and run id.
@@ -62,7 +75,8 @@ The agent that builds cannot write the review verdicts, the gate result or the c
 
 ## Not covered. Read this before an enterprise review.
 
-1. **The audit log is tamper-evident, not tamper-proof.** Someone with write access to the whole folder can rewrite the entire chain consistently. There is no signing key and no external anchor, such as a remote log. Add one before relying on the log as evidence.
+1. **The audit log is tamper-evident, not tamper-proof.** Someone who can write the database file can rewrite a whole job's chain consistently, and removing the newest lines of a chain is caught only when the job record no longer matches the last line that is left. There is no signing key and no external anchor, such as a remote log. Add one before relying on the log as evidence.
+1a. **An agent can read the database.** The data folder is protected from writes, not reads, and the base policy allows `cat`. An agent can therefore read logs, which are redacted but may still hold project details. Blocking reads reliably needs an operating-system sandbox, because a shell command can name a file in many ways.
 2. **No user identity.** A human action is recorded as "human". The app does not record which person, and there is no sign-in, single sign-on or per-person approval rule. Needed for any multi-person use.
 3. **An allowed program can do what an allowed command cannot.** `npm test` or a build tool runs project code, which can write files by itself. This was a known gap in factory too. The tool policy does not see inside a program. An operating-system sandbox would be the defense in depth.
 4. **Sub-agents.** Whether Claude Code's tool hook also runs for a sub-agent's tool calls was not tested.

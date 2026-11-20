@@ -125,6 +125,7 @@ const boot = async (): Promise<void> => {
     clearTimeout(watchdog);
     quitting = true;
     await core.shutdown();
+    core.close();
     app.exit(0);
     return;
   }
@@ -144,7 +145,10 @@ app.on("before-quit", (event) => {
   if (quitting || !core) return;
   event.preventDefault();
   quitting = true;
-  void core.shutdown().finally(() => app.quit());
+  void core.shutdown().finally(() => {
+    core?.close();
+    app.quit();
+  });
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

@@ -29,6 +29,7 @@ const KEEP_ENDED = 20;
 export const createProcessRegistry = (
   now: () => Date = () => new Date(),
   newId: () => string = randomUUID,
+  onEvent: (event: "start" | "end" | "kill", info: HostProcess) => void = () => {},
 ): ProcessRegistry => {
   const entries = new Map<string, Entry>();
 
@@ -52,9 +53,11 @@ export const createProcessRegistry = (
         ended: undefined,
       };
       entries.set(processId, entry);
+      onEvent("start", entry.info);
       return {
         processId,
         done: () => {
+          if (entry.ended === undefined) onEvent("end", view(entry));
           entry.ended ??= now().toISOString();
           trim();
         },
@@ -67,6 +70,7 @@ export const createProcessRegistry = (
       const entry = entries.get(processId);
       if (!entry) throw new Error("no such process");
       if (entry.ended !== undefined) throw new Error("that process has already ended");
+      onEvent("kill", entry.info);
       entry.kill();
     },
     killAll() {

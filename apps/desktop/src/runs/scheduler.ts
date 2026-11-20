@@ -10,6 +10,8 @@ export interface SchedulerDeps {
   readonly runStage: (jobId: string) => Promise<RunResult>;
   readonly concurrency: number;
   readonly stallLimit: number;
+  /** Called with each plan that starts or parks something, for the log. */
+  readonly onPlan?: (plan: TickPlan) => void;
   readonly setInterval?: (fn: () => void, ms: number) => unknown;
   readonly clearInterval?: (handle: unknown) => void;
 }
@@ -66,6 +68,7 @@ export const createScheduler = (deps: SchedulerDeps) => {
     }
     for (const s of plan.start) launch(s.jobId, s.stageId);
     lastPlan = plan;
+    if (plan.start.length > 0 || plan.park.length > 0) deps.onPlan?.(plan);
     return plan;
   };
 
