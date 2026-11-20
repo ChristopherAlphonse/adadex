@@ -4,7 +4,7 @@ export const TERMINAL_REGISTRY_RELATIVE_PATH = ".adadex/state/coordinations.json
 export const TERMINAL_TRANSCRIPT_RELATIVE_PATH = ".adadex/state/transcripts";
 export const COORDINATION_WORKTREE_RELATIVE_PATH = ".adadex/worktrees";
 export const COORDINATION_WORKTREE_BRANCH_PREFIX = "adadex/";
-export const DEFAULT_AGENT_PROVIDER = "kiro" as const;
+export const DEFAULT_AGENT_PROVIDER = "claude" as const;
 
 export const TERMINAL_BOOTSTRAP_COMMANDS: Record<string, string> = {
   kiro: "kiro-cli",

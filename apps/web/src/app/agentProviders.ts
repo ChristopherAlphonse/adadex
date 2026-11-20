@@ -17,14 +17,14 @@ export const AGENT_PROVIDER_OPTIONS: ReadonlyArray<{
 
 export const readAgentProviderPreference = (): TerminalAgentProvider => {
   if (typeof window === "undefined") {
-    return "kiro";
+    return "claude";
   }
 
   try {
     const stored = window.localStorage.getItem(AGENT_PROVIDER_STORAGE_KEY);
-    return isTerminalAgentProvider(stored) ? stored : "kiro";
+    return isTerminalAgentProvider(stored) ? stored : "claude";
   } catch {
-    return "kiro";
+    return "claude";
   }
 };
 
