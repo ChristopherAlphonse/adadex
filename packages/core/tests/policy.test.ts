@@ -97,3 +97,27 @@ describe("evaluateWrite", () => {
     expect(evaluateWrite(r, "/repo/sub/a.lock").kind).toBe("allow");
   });
 });
+
+describe("findProtectedHits", () => {
+  it("flags CI, hook, env and owner files and leaves ordinary code alone", async () => {
+    const { findProtectedHits, PROTECTED_FLOOR } = await import("../src/index");
+    const files = [
+      ".github/workflows/ci.yml",
+      "src/app.ts",
+      ".env",
+      "apps/web/.env.local",
+      ".husky/pre-commit",
+      "docs/readme.md",
+      "CODEOWNERS",
+      "pkg/CODEOWNERS",
+    ];
+    expect(findProtectedHits(files, PROTECTED_FLOOR)).toEqual([
+      ".github/workflows/ci.yml",
+      ".env",
+      "apps/web/.env.local",
+      ".husky/pre-commit",
+      "CODEOWNERS",
+      "pkg/CODEOWNERS",
+    ]);
+  });
+});

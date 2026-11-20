@@ -41,6 +41,12 @@ const FD_DUP = /\d*>&\d+-?/g;
 const SPLIT = /&&|\|\||[;|&\n`(){}]|\$\(/;
 const REDIRECT = /(?:>>?)\s*("[^"]*"|'[^']*'|[^\s;&|<>()]+)/g;
 
+/** The changed files that match any protected pattern (`**` crosses folders, `*` does not cross a slash). */
+export const findProtectedHits = (
+  files: readonly string[],
+  patterns: readonly string[],
+): readonly string[] => files.filter((f) => anyMatch(patterns, f, pathGlob));
+
 export const evaluateWrite = (rules: PolicyRules, absolutePath: string): PolicyDecision => {
   if (anyMatch(rules.noWrite, absolutePath, pathGlob)) return deny(`writing ${absolutePath}`);
   if (rules.writeOnly.length > 0 && !anyMatch(rules.writeOnly, absolutePath, pathGlob)) {

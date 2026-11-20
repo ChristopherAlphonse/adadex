@@ -8,6 +8,7 @@ import {
 } from "@adadex/core";
 import type { JobStore } from "./jobStore";
 import { readFacts } from "./readFacts";
+import { type GateDeps, runGate } from "./runGate";
 
 export interface JobActionDeps {
   readonly store: JobStore;
@@ -15,6 +16,8 @@ export interface JobActionDeps {
   /** Runs a named effect from a move, such as creating the worktree. Unknown names are ignored. */
   readonly runEffect: (name: string, job: WorkflowJob) => Promise<void>;
   readonly actor: (actionId: string) => "human" | "agent";
+  /** Needed for `job.run_gate`. Leave it out and that action reports it has no executor. */
+  readonly gate?: Omit<GateDeps, "store" | "workflows" | "actor">;
 }
 
 const definitionOf = (deps: JobActionDeps, job: WorkflowJob): WorkflowDefinition => {
@@ -32,6 +35,11 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
     const { store } = deps;
     const job = await store.load(field(input, "id"));
     const actor = deps.actor(actionId);
+
+    if (actionId === "job.run_gate") {
+      if (!deps.gate) throw new Error("no executor for job.run_gate");
+      return runGate({ ...deps.gate, store, workflows: deps.workflows, actor }, job.id);
+    }
 
     if (actionId === "job.advance") {
       const def = definitionOf(deps, job);
