@@ -1,7 +1,9 @@
 import { resolveSkills } from "@adadex/core";
 import { type MachineConfig, saveMachineConfig } from "../config/machineConfig";
-import type { ActionHost } from "../host/actionHost";
+import type { ActionHost, NativeConfirm } from "../host/actionHost";
 import type { JobStore } from "../jobs/jobStore";
+import type { RoleStore } from "../roles/roleStore";
+import type { Scheduler } from "../runs/scheduler";
 import { createFsSkillCatalog } from "../skills/fsSkillCatalog";
 import type { WorkflowStore } from "../workflows/workflowStore";
 import type { ApprovalBroker } from "./approvalBroker";
@@ -14,6 +16,12 @@ export interface HostApiDeps {
   readonly approvals: ApprovalBroker;
   /** Absent until Electron wires a process supervisor; the panels then render empty. */
   readonly processes?: ProcessPort;
+  readonly roles?: RoleStore;
+  /** The unattended loop. Turning it on asks `confirm` first. */
+  readonly scheduler?: Scheduler;
+  readonly confirm?: NativeConfirm;
+  /** How often the loop looks for work once on. */
+  readonly loopIntervalMs?: number;
   readonly loadConfig: () => Promise<MachineConfig>;
   readonly configPath: string;
   readonly roundLimit: number;
@@ -77,6 +85,37 @@ export const createHostApi = (deps: HostApiDeps): HostApi => ({
           if (deps.processes === undefined) return fail("process control is not available");
           await deps.processes.kill(req.processId);
           return ok(null);
+        case "roles.list":
+          return deps.roles ? ok(await deps.roles.list()) : fail("roles are not available");
+        case "roles.save": {
+          if (!deps.roles) return fail("roles are not available");
+          const r = await deps.roles.save(req.role);
+          return r.ok ? ok(r.role) : fail(...r.errors);
+        }
+        case "roles.remove": {
+          if (!deps.roles) return fail("roles are not available");
+          const r = await deps.roles.remove(req.id);
+          return r.ok ? ok(null) : fail(...r.errors);
+        }
+        case "scheduler.status":
+          return deps.scheduler
+            ? ok(deps.scheduler.status())
+            : fail("the unattended loop is not available");
+        case "scheduler.set": {
+          if (!deps.scheduler || !deps.confirm) return fail("the unattended loop is not available");
+          if (!req.enabled) {
+            deps.scheduler.stop();
+            return ok(deps.scheduler.status());
+          }
+          // Letting agents work without a person watching is a decision for a person, so it needs the native dialog.
+          const yes = await deps.confirm(
+            "Let agents work unattended?",
+            "Agents will start work on jobs by themselves, each in the role of its stage. You can turn this off at any time.",
+          );
+          if (!yes) return fail("declined");
+          deps.scheduler.start(deps.loopIntervalMs ?? 15000);
+          return ok(deps.scheduler.status());
+        }
         case "skills.resolve": {
           const def = await deps.workflows.get(req.workflowId);
           if (!def) return fail(`no workflow ${req.workflowId}`);

@@ -10,12 +10,19 @@ const TAIL = 4000;
 
 /** Runs the check command through the shell in its own process group, and kills the whole group on timeout. */
 export const nodeCheckRunner: CheckRunner = {
-  run: (command, cwd, timeoutMs) =>
+  run: (command, cwd, timeoutMs, onStart) =>
     new Promise((resolve) => {
       const child = spawn("sh", ["-c", command], {
         cwd,
         detached: true,
         stdio: ["ignore", "pipe", "pipe"],
+      });
+      onStart?.(() => {
+        try {
+          if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
+        } catch {
+          // Already gone.
+        }
       });
       let output = "";
       let timedOut = false;

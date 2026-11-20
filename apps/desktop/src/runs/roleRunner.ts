@@ -21,6 +21,8 @@ import { parkJob } from "../jobs/parkJob";
 import { findWorkflow, type WorkflowLookup } from "../jobs/workflowLookup";
 
 export interface ProviderRequest {
+  /** What to show in the process list, such as "Builder on j1". */
+  readonly label: string;
   readonly cwd: string;
   readonly tools: readonly string[];
   readonly decide: GuardDecide;
@@ -135,7 +137,12 @@ export const createRoleRunner = (deps: RoleRunnerDeps) => {
         }
         return inner(event);
       };
-      const provider = deps.makeProvider({ cwd: deps.cwdOf(job), tools: role.tools, decide });
+      const provider = deps.makeProvider({
+        label: `${role.name} on ${job.id}`,
+        cwd: deps.cwdOf(job),
+        tools: role.tools,
+        decide,
+      });
       const tracked: AgentProvider = {
         id: provider.id,
         start: async (request) => {

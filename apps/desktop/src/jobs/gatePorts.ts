@@ -8,7 +8,13 @@ export interface CheckResult {
 
 /** Runs the project's check command. The real one starts it in its own process group and kills it on timeout. */
 export interface CheckRunner {
-  run(command: string, cwd: string, timeoutMs: number): Promise<CheckResult>;
+  /** `onStart` receives the function that stops the command, so the app can list and stop it. */
+  run(
+    command: string,
+    cwd: string,
+    timeoutMs: number,
+    onStart?: (kill: () => void) => void,
+  ): Promise<CheckResult>;
 }
 
 /**

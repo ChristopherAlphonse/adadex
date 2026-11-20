@@ -23,13 +23,14 @@ import { withProtectedLocations } from "../host/protectedLocations";
 import { resolveReal } from "../host/toolGuard";
 import { type ApprovalBroker, createApprovalBroker } from "../ipc/approvalBroker";
 import { createHostApi, type HostApi } from "../ipc/hostApi";
-import type { GateConfig } from "../jobs/gatePorts";
+import type { CheckRunner, GateConfig } from "../jobs/gatePorts";
 import { createHumanKey } from "../jobs/gitGuard";
 import { createJobExecutor } from "../jobs/jobActions";
 import { createJobStore, type JobStore } from "../jobs/jobStore";
 import { makeWorktree } from "../jobs/makeWorktree";
 import { nodeCheckRunner, nodeGit } from "../jobs/nodeGate";
 import { createRoleStore, type RoleStore } from "../roles/roleStore";
+import { createProcessRegistry } from "../runs/processRegistry";
 import { createRoleRunner, type ProviderRequest, type RunResult } from "../runs/roleRunner";
 import { createScheduler, type Scheduler } from "../runs/scheduler";
 import { createWorkflowStore, type WorkflowStore } from "../workflows/workflowStore";
@@ -91,6 +92,19 @@ export const createApp = (options: AppOptions): App => {
   const prefix = options.branchPrefix ?? "adadex/";
   const humanKey = createHumanKey();
   const sessions = new Set<AgentSession>();
+  const processes = createProcessRegistry();
+  // The project's checks show up in the process list too, and can be stopped from there.
+  const checkRunner: CheckRunner = {
+    run: (command, cwd, timeoutMs, onStart) => {
+      let handle: { done(): void } | undefined;
+      return nodeCheckRunner
+        .run(command, cwd, timeoutMs, (kill) => {
+          handle = processes.register(`checks: ${command}`, kill);
+          onStart?.(kill);
+        })
+        .finally(() => handle?.done());
+    },
+  };
 
   const jobs = createJobStore(stateDir);
   const workflows = createWorkflowStore(join(options.dataDir, "workflows"));
@@ -125,7 +139,15 @@ export const createApp = (options: AppOptions): App => {
       await jobs.save({ ...job, ...made });
       await jobs.audit({ actor: "system", action: "worktree", jobId: job.id, detail: made.branch });
     },
-    gate: { runner: nodeCheckRunner, git: nodeGit, config: gateConfig, cwdOf },
+    gate: {
+      runner: checkRunner,
+      git: nodeGit,
+      config: gateConfig,
+      cwdOf,
+      // At the project root the app's own folders show up as untracked files. In a worktree they must not.
+      ignore: (cwd) =>
+        cwd === options.projectRoot ? [".adadex/factory/**", ".adadex/worktrees/**"] : [],
+    },
     commit: { git: nodeGit, config: gateConfig, cwdOf, humanKey: humanKey.key },
   });
 
@@ -145,7 +167,12 @@ export const createApp = (options: AppOptions): App => {
       command: options.claudeCommand ?? "claude",
       bridgePath: options.bridgePath,
       cwd: request.cwd,
-      spawn: options.spawn ?? spawnAgent,
+      spawn: (command, args, cwd) => {
+        const child = (options.spawn ?? spawnAgent)(command, args, cwd);
+        const handle = processes.register(request.label, () => child.kill());
+        child.onExit(() => handle.done());
+        return child;
+      },
       allowedTools: [...request.tools],
       guard: { hookPath: options.hookPath, decide: request.decide },
     });
@@ -190,6 +217,10 @@ export const createApp = (options: AppOptions): App => {
     jobs,
     host,
     approvals,
+    processes,
+    roles,
+    scheduler,
+    confirm: options.confirm,
     loadConfig: () => loadMachineConfig(configPath),
     configPath,
     roundLimit: 3,
@@ -207,6 +238,7 @@ export const createApp = (options: AppOptions): App => {
     runStage: (jobId) => runner.run(jobId),
     async shutdown() {
       scheduler.stop();
+      processes.killAll();
       approvals.declineAll();
       await Promise.all([...sessions].map((s) => s.stop()));
     },

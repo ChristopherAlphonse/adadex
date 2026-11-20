@@ -40,6 +40,8 @@ export const commitLocal = async (deps: CommitDeps, jobId: string): Promise<{ co
   if (!hasCommitMove(def, job.stage))
     throw new Error(`${job.id} is at ${job.stage}, which does not commit`);
   if (job.commit !== null) throw new Error("already committed");
+  if (job.worktree === undefined)
+    throw new Error("no worktree: a commit is made only in the job's own worktree");
 
   const dir = deps.store.jobDir(job.id);
   const message = await text(join(dir, "commit.md"));

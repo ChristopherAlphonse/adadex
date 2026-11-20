@@ -19,6 +19,8 @@ export interface GateDeps {
   readonly config: () => Promise<GateConfig>;
   /** Where the job's code lives: its worktree, or the project root. */
   readonly cwdOf: (job: WorkflowJob) => string;
+  /** Paths to leave out of the changed-file check for this folder: the app's own state, when the folder is the project root. */
+  readonly ignore?: (cwd: string) => readonly string[];
   readonly actor: "human" | "agent";
 }
 
@@ -68,10 +70,12 @@ export const runGate = async (deps: GateDeps, jobId: string): Promise<GateResult
   const cwd = deps.cwdOf(job);
   const tree = await deps.git.fingerprint(cwd);
 
-  const hits = findProtectedHits(await deps.git.changedFiles(cwd, config.baseBranch), [
-    ...PROTECTED_FLOOR,
-    ...config.protectedPaths,
-  ]);
+  const changed = await deps.git.changedFiles(cwd, config.baseBranch);
+  const own = new Set(findProtectedHits(changed, deps.ignore?.(cwd) ?? []));
+  const hits = findProtectedHits(
+    changed.filter((f) => !own.has(f)),
+    [...PROTECTED_FLOOR, ...config.protectedPaths],
+  );
   if (hits.length > 0) {
     return record(
       deps,

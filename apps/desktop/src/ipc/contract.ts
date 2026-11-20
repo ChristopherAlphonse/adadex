@@ -25,6 +25,11 @@ export type HostRequest =
   | { readonly kind: "processes.list" }
   | { readonly kind: "process.kill"; readonly processId: string }
   | { readonly kind: "skills.resolve"; readonly workflowId: string }
+  | { readonly kind: "roles.list" }
+  | { readonly kind: "roles.save"; readonly role: unknown }
+  | { readonly kind: "roles.remove"; readonly id: string }
+  | { readonly kind: "scheduler.status" }
+  | { readonly kind: "scheduler.set"; readonly enabled: boolean }
   | { readonly kind: "config.get" }
   | { readonly kind: "config.set"; readonly config: unknown };
 
@@ -62,6 +67,7 @@ const STRING_FIELDS: Readonly<Record<string, readonly string[]>> = {
   "approval.respond": ["approvalId"],
   "process.kill": ["processId"],
   "skills.resolve": ["workflowId"],
+  "roles.remove": ["id"],
 };
 const NO_FIELDS = new Set([
   "workflows.list",
@@ -69,6 +75,8 @@ const NO_FIELDS = new Set([
   "approvals.list",
   "processes.list",
   "config.get",
+  "roles.list",
+  "scheduler.status",
 ]);
 
 export const parseRequest = (raw: unknown): ParsedRequest => {
@@ -89,6 +97,14 @@ export const parseRequest = (raw: unknown): ParsedRequest => {
       return "config" in raw
         ? { ok: true, request: { kind, config: raw.config } }
         : { ok: false, error: "config.set needs config" };
+    case "roles.save":
+      return "role" in raw
+        ? { ok: true, request: { kind, role: raw.role } }
+        : { ok: false, error: "roles.save needs role" };
+    case "scheduler.set":
+      return typeof raw.enabled === "boolean"
+        ? { ok: true, request: { kind, enabled: raw.enabled } }
+        : { ok: false, error: "scheduler.set needs enabled as true or false" };
     case "approval.respond":
       return typeof raw.approved === "boolean"
         ? { ok: true, request: raw as unknown as HostRequest }
@@ -101,6 +117,7 @@ export const parseRequest = (raw: unknown): ParsedRequest => {
     case "processes.list":
     case "process.kill":
     case "skills.resolve":
+    case "roles.remove":
       return { ok: true, request: raw as unknown as HostRequest };
     default:
       return { ok: false, error: `unknown request ${kind}` };

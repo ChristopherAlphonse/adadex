@@ -63,7 +63,7 @@ const setup = async (
   };
   const store = createJobStore(root);
   const job = await store.create(factoryBuildPreset, "j1", "t", 3);
-  await store.save({ ...job, stage: doc.stage ?? "ship", round: 1 } as WorkflowJob);
+  await store.save({ ...job, stage: doc.stage ?? "ship", round: 1, worktree: root } as WorkflowJob);
   const dir = store.jobDir("j1");
   await mkdir(join(dir, "round-1"), { recursive: true });
   if (doc.message !== "")
@@ -163,7 +163,7 @@ describe("job.commit_local with real git", () => {
     git(work, "switch", "-c", "feature");
     const store = createJobStore(join(root, "state"));
     const job = await store.create(factoryBuildPreset, "j1", "t", 3);
-    await store.save({ ...job, stage: "ship", round: 1 } as WorkflowJob);
+    await store.save({ ...job, stage: "ship", round: 1, worktree: root } as WorkflowJob);
     await writeFile(join(store.jobDir("j1"), "commit.md"), "feat: real commit\n");
     const executor = createJobExecutor({
       store,
