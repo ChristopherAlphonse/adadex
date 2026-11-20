@@ -187,9 +187,12 @@ Dependabot (`dependabot.yml`) auto-updates SHA pins weekly — review those PRs 
 
 ## 8. Release Workflow
 
-Releases are manual: **Actions → Release → Run workflow → pick patch/minor/major**.
+Releases are manual, from `main`: **Actions → Release → Run workflow → pick current/patch/minor/major**.
 
-The workflow: quality gate (via `_quality.yml`) → bump `package.json` → commit + tag → build → tarball → GitHub Release.
+- `patch`/`minor`/`major` bump `package.json` with `npm version`.
+- `current` releases the version already in `package.json` as is. Use it after setting a version by hand (for example a jump to `2.0.0`).
+
+The workflow: quality gate (via `_quality.yml`) → resolve version (fails if its tag already exists) → build → tarball → commit the bump (if any) + annotated tag → push to `main` → GitHub Release. Nothing is pushed until the build and tarball succeed. Tags must be annotated: `git push --follow-tags` skips lightweight tags.
 
 Users download from the Releases tab — not npm.
 
