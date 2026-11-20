@@ -118,6 +118,60 @@ stateDiagram-v2
 
 </details>
 
+<details>
+<summary><strong>Job pipeline (desktop workflows)</strong></summary>
+
+```mermaid
+stateDiagram-v2
+    [*] --> shape
+    shape --> spec
+    spec --> build: spec approved (human)
+    build --> review: gate run
+    review --> build: changes requested
+    review --> polish: reviews clean
+    polish --> prove
+    prove --> ship
+    ship --> [*]: human commits
+    build --> needs_human: out of rounds / blocked
+    review --> needs_human
+    needs_human --> build: unblock (fresh round allowance)
+```
+
+</details>
+
+<details>
+<summary><strong>Role enforcement on an agent action</strong></summary>
+
+```mermaid
+flowchart TD
+    A[Agent calls an action or tool] --> R{Allowed by the run's frozen role?}
+    R -- No --> X[Refused]
+    R -- Yes --> P{Policy: deny rules, protected files?}
+    P -- Denied --> X
+    P -- OK --> H{Human-only action?}
+    H -- Yes --> D[Native OS dialog: only a person can confirm]
+    H -- No --> Run[Run and write to audit log]
+    D --> Run
+```
+
+</details>
+
+<details>
+<summary><strong>Signed audit log</strong></summary>
+
+```mermaid
+flowchart LR
+    E[Event] --> L[Log line + hash chained to previous]
+    L --> S[Ed25519 signature of hash]
+    S --> DB[(SQLite log)]
+    L --> An[Anchor file: newest line of each chain]
+    DB --> V{Offline verify}
+    An --> V
+    V --> Ok[Chain, signatures, anchor, job record all match]
+```
+
+</details>
+
 ## Requirements
 
 - Node.js `22+`

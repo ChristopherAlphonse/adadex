@@ -12,7 +12,7 @@ Made on 2026-11-19, when the user asked for tech lead decisions on the open ques
 | 6 | Provider | Claude Code only for now. No OpenCode adapter | Decided |
 | 7 | Keep the machine awake while agents run | Yes, with Electron's power save blocker | Built |
 | 8 | Delete factory's Python | Freeze it now. Delete only after the exit criteria below and on the user's explicit say-so | Decided, nothing deleted |
-| 9 | Sandboxing agent processes | Do it next, as the main remaining hardening | Not built |
+| 9 | Sandboxing agent processes | Do it next, as the main remaining hardening | Built (macOS) |
 | 10 | Commits | The agent never commits. The user decides when and what to commit | Decided |
 
 ## 1. Audit log: signed, anchored, verifiable offline
@@ -64,9 +64,9 @@ Made on 2026-11-19, when the user asked for tech lead decisions on the open ques
 
 **Why.** It is the only working reference for behavior until then, and deleting it spans two repositories.
 
-## 9. Sandbox, next
+## 9. Sandbox (built)
 
-**Why.** The tool policy cannot see inside an allowed program. `npm test` can write files. Reading the logs is also not blocked. An operating system sandbox around each agent process (a profile that allows the worktree and the job folder and nothing else) closes both. It is the largest remaining gap, and I would build it next.
+**Why.** The tool policy cannot see inside an allowed program. `npm test` can write files. Reading the logs is also not blocked. An operating system sandbox around each agent process (a profile that allows the worktree and the job folder and nothing else) closes both. Built on macOS with the system sandbox. The app refuses to start an agent where no sandbox exists, unless it is turned off for development. Linux and Windows need their own implementations (for example a container or a namespace sandbox).
 
 ## 10. Commits
 

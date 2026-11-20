@@ -69,6 +69,15 @@ Everything the app logs goes into one SQLite file on the machine: `<data folder>
 - A refused or failed run counts as a run that moved nothing, so a broken job cannot loop.
 - Quitting the app stops every running agent and declines every waiting approval.
 
+## The operating system sandbox
+
+Each agent process runs inside a macOS sandbox profile built for its run, behind the tool policy:
+
+- It may write its job folder, scratch space, its own settings, and package caches. A role that edits code may also write its worktree and that worktree's git folder. Every other place on disk is read-only.
+- It may never write the job record, any `checks.md`, the worktree's `.git` entry, or the git `config` and `config.worktree` files. Those are what hold the commit lock, so an allowed program cannot repoint git at different hooks.
+- It may not read the app's data folder or common credential folders.
+- Checked with the real sandbox, and live with Claude Code: an allowed `npm test` whose script wrote outside the project was refused, the app's database and keys could not be read, and a legitimate write still worked.
+
 ## Tool and file policy
 
 - Every tool call an agent makes passes through a hook that asks the app first, and blocks on any doubt (app not reachable, unreadable call, no answer in time).
@@ -78,9 +87,9 @@ Everything the app logs goes into one SQLite file on the machine: `<data folder>
 ## Not covered. Read this before an enterprise review.
 
 1. **The audit log is signed and anchored, but both stay on the machine.** Every line is signed with a per-machine key (wrapped by the OS keychain in Electron), and each chain's newest line is copied to a separate anchor file. Rewriting a chain now needs the key, and removing newest lines is caught by the anchor. Someone who has the key and can delete both files can still forge. Sending the anchor off the machine (`AnchorSink`) is the next step, and nothing ships yet.
-1a. **An agent can read the database.** The data folder is protected from writes, not reads, and the base policy allows `cat`. An agent can therefore read logs, which are redacted but may still hold project details. Blocking reads reliably needs an operating-system sandbox, because a shell command can name a file in many ways.
+1a. ~~An agent can read the database.~~ Closed on macOS: the sandbox denies reads of the app's data folder (logs, keys, roles) and of common credential folders (`.ssh`, `.aws`, `.gnupg`, `.kube`, `gcloud`, `gh`, `.netrc`, Docker config). Checked live: an allowed `cat` of the database failed.
 2. **Identity is the operating system user.** Human actions record the OS user name. There is no sign-in, single sign-on or per-person approval rule. Needed for any multi-person use.
-3. **An allowed program can do what an allowed command cannot.** `npm test` or a build tool runs project code, which can write files by itself. This was a known gap in factory too. The tool policy does not see inside a program. An operating-system sandbox would be the defense in depth.
+3. **An allowed program can do what an allowed command cannot, inside the places it may write.** `npm test` or a build tool runs project code. The operating system sandbox now limits it to the job folder and (for roles that edit code) the worktree, so it cannot write elsewhere. Inside the worktree it can still write anything the role may edit. The sandbox is macOS only; on another system the app refuses to start an agent unless the sandbox is turned off for development.
 4. **Sub-agents.** Whether Claude Code's tool hook also runs for a sub-agent's tool calls was not tested.
 5. **The loop has no UI or request yet.** The scheduler exists and is tested, but nothing in the request layer turns it on, and turning it on should itself need a native confirmation. The roles and workflow editors are not built either.
 6. **Budgets are per run.** There is no organization-wide or per-day budget.
