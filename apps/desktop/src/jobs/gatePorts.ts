@@ -25,7 +25,11 @@ export interface GitPort {
   mergeBase(cwd: string, base: string): Promise<string>;
   stageAll(cwd: string): Promise<void>;
   /** Commit the staged changes with the message in a file. */
-  commit(cwd: string, messageFile: string): Promise<{ ok: boolean; output: string }>;
+  commit(
+    cwd: string,
+    messageFile: string,
+    env?: NodeJS.ProcessEnv,
+  ): Promise<{ ok: boolean; output: string }>;
 }
 
 export interface GateConfig {

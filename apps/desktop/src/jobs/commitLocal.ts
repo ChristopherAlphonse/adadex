@@ -8,15 +8,19 @@ import {
   type WorkflowJob,
 } from "@adadex/core";
 import type { GateConfig, GitPort } from "./gatePorts";
+import { KEY_ENV } from "./gitGuard";
 import type { JobStore } from "./jobStore";
 import { parseKv } from "./kv";
+import { findWorkflow, type WorkflowLookup } from "./workflowLookup";
 
 export interface CommitDeps {
   readonly store: JobStore;
-  readonly workflows: Readonly<Record<string, WorkflowDefinition>>;
+  readonly workflows: WorkflowLookup;
   readonly git: GitPort;
   readonly config: () => Promise<GateConfig>;
   readonly cwdOf: (job: WorkflowJob) => string;
+  /** The human key, so the commit hook lets this one commit through. Only this git call gets it. */
+  readonly humanKey?: string;
 }
 
 /** A stage may commit when one of its moves needs a commit to have been made. */
@@ -32,8 +36,7 @@ const text = (path: string): Promise<string | null> => readFile(path, "utf8").ca
  */
 export const commitLocal = async (deps: CommitDeps, jobId: string): Promise<{ commit: string }> => {
   const job = await deps.store.load(jobId);
-  const def = deps.workflows[job.workflowId];
-  if (!def) throw new Error(`job ${job.id} uses unknown workflow ${job.workflowId}`);
+  const def = await findWorkflow(deps.workflows, job.workflowId);
   if (!hasCommitMove(def, job.stage))
     throw new Error(`${job.id} is at ${job.stage}, which does not commit`);
   if (job.commit !== null) throw new Error("already committed");
@@ -61,7 +64,11 @@ export const commitLocal = async (deps: CommitDeps, jobId: string): Promise<{ co
   if (hits.length > 0) throw new Error(`protected paths touched: ${hits.join(", ")}`);
 
   await deps.git.stageAll(cwd);
-  const result = await deps.git.commit(cwd, join(dir, "commit.md"));
+  const result = await deps.git.commit(
+    cwd,
+    join(dir, "commit.md"),
+    deps.humanKey === undefined ? undefined : { [KEY_ENV]: deps.humanKey },
+  );
   if (!result.ok) throw new Error(`git commit refused: ${result.output}`);
 
   const commit = await deps.git.head(cwd);

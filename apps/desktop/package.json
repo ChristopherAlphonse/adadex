@@ -9,5 +9,8 @@
   },
   "dependencies": {
     "@adadex/core": "*"
+  },
+  "devDependencies": {
+    "electron": "45.2.3"
   }
 }

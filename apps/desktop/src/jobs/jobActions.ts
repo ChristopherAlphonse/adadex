@@ -3,17 +3,17 @@ import {
   advanceJob,
   approve,
   NEEDS_HUMAN,
-  type WorkflowDefinition,
   type WorkflowJob,
 } from "@adadex/core";
 import { type CommitDeps, commitLocal } from "./commitLocal";
 import type { JobStore } from "./jobStore";
 import { readFacts } from "./readFacts";
 import { type GateDeps, runGate } from "./runGate";
+import { findWorkflow, type WorkflowLookup } from "./workflowLookup";
 
 export interface JobActionDeps {
   readonly store: JobStore;
-  readonly workflows: Readonly<Record<string, WorkflowDefinition>>;
+  readonly workflows: WorkflowLookup;
   /** Runs a named effect from a move, such as creating the worktree. Unknown names are ignored. */
   readonly runEffect: (name: string, job: WorkflowJob) => Promise<void>;
   readonly actor: (actionId: string) => "human" | "agent";
@@ -22,12 +22,6 @@ export interface JobActionDeps {
   /** Needed for `job.commit_local`. */
   readonly commit?: Omit<CommitDeps, "store" | "workflows">;
 }
-
-const definitionOf = (deps: JobActionDeps, job: WorkflowJob): WorkflowDefinition => {
-  const def = deps.workflows[job.workflowId];
-  if (!def) throw new Error(`job ${job.id} uses unknown workflow ${job.workflowId}`);
-  return def;
-};
 
 const field = (input: unknown, key: string): string =>
   String((input as Record<string, unknown>)[key]);
@@ -50,7 +44,7 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
     }
 
     if (actionId === "job.advance") {
-      const def = definitionOf(deps, job);
+      const def = await findWorkflow(deps.workflows, job.workflowId);
       const facts = await readFacts(store.jobDir(job.id), job);
       const to = field(input, "to");
       const result = advanceJob(def, job, to, facts);

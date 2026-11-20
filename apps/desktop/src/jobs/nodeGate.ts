@@ -77,9 +77,9 @@ export const nodeGit: GitPort = {
   async stageAll(cwd) {
     await git(cwd, ["add", "-A"]);
   },
-  async commit(cwd, messageFile) {
+  async commit(cwd, messageFile, env) {
     try {
-      await git(cwd, ["commit", "-F", messageFile]);
+      await git(cwd, ["commit", "-F", messageFile], env ? { ...process.env, ...env } : undefined);
       return { ok: true, output: "" };
     } catch (e) {
       const err = e as { stdout?: string; stderr?: string; message?: string };

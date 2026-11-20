@@ -9,10 +9,11 @@ import {
 } from "@adadex/core";
 import type { CheckRunner, GateConfig, GitPort } from "./gatePorts";
 import type { JobStore } from "./jobStore";
+import { findWorkflow, type WorkflowLookup } from "./workflowLookup";
 
 export interface GateDeps {
   readonly store: JobStore;
-  readonly workflows: Readonly<Record<string, WorkflowDefinition>>;
+  readonly workflows: WorkflowLookup;
   readonly runner: CheckRunner;
   readonly git: GitPort;
   readonly config: () => Promise<GateConfig>;
@@ -58,8 +59,7 @@ const record = async (
  */
 export const runGate = async (deps: GateDeps, jobId: string): Promise<GateResult> => {
   const job = await deps.store.load(jobId);
-  const def = deps.workflows[job.workflowId];
-  if (!def) throw new Error(`job ${job.id} uses unknown workflow ${job.workflowId}`);
+  const def = await findWorkflow(deps.workflows, job.workflowId);
   if (!hasGateMove(def, job.stage)) throw new Error(`${job.id} is ${job.stage}, which has no gate`);
 
   const config = await deps.config();
