@@ -1,8 +1,12 @@
 import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
+import { userInfo } from "node:os";
 import { join } from "node:path";
 import { newJob, type WorkflowDefinition, type WorkflowJob } from "@adadex/core";
+import type { AnchorSink } from "../logs/anchors";
+import type { AuditExport } from "../logs/auditExport";
 import { type AuditRow, GENESIS, type LogDb, lineHash, openLogDb, sha256 } from "../logs/logDb";
 import { redact } from "../logs/redact";
+import { type Signer, verifySignature } from "../logs/signer";
 
 const JOB_ID = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -50,6 +54,8 @@ export interface JobStore {
   verify(id: string): Promise<VerifyResult>;
   /** The audit lines, only if the chain is intact. */
   readAudit(id: string): Promise<readonly StoredAudit[]>;
+  /** The chain and the public key, for an auditor to check off the machine. */
+  exportAudit(id: string): AuditExport;
 }
 
 const exists = async (path: string): Promise<boolean> =>
@@ -63,6 +69,12 @@ export interface JobStoreOptions {
   readonly db?: LogDb;
   /** Keeps two projects' jobs apart in one database. */
   readonly project?: string;
+  /** Signs every audit line. With one, a line that is unsigned or signed by another key fails verification. */
+  readonly signer?: Signer;
+  /** Gets a second copy of each chain's newest line, so removed lines are noticed. */
+  readonly anchors?: AnchorSink;
+  /** Who is at the keyboard, written on every human action. Defaults to the operating system user. */
+  readonly user?: string;
 }
 
 const toStored = (r: AuditRow): StoredAudit => ({
@@ -90,6 +102,7 @@ export const createJobStore = (
 ): JobStore => {
   const logDb = options.db ?? openLogDb(":memory:");
   const project = options.project ?? "default";
+  const user = options.user ?? userInfo().username;
   const jobDir = (id: string): string => {
     if (!JOB_ID.test(id)) throw new Error(`bad job id ${id}`);
     return join(root, "jobs", id);
@@ -105,16 +118,27 @@ export const createJobStore = (
   const audit = async (entry: AuditEntry): Promise<void> => {
     jobDir(entry.jobId);
     const record = await readFile(file(entry.jobId), "utf8").catch(() => "");
-    logDb.appendAudit(project, {
-      ts: now().toISOString(),
-      actor: entry.actor,
-      action: entry.action,
+    const row = logDb.appendAudit(
+      project,
+      {
+        ts: now().toISOString(),
+        actor: entry.actor,
+        action: entry.action,
+        jobId: entry.jobId,
+        detail: redact(entry.detail),
+        role: entry.role,
+        runId: entry.runId,
+        data: entry.actor === "human" ? { ...entry.data, user } : entry.data,
+        state: sha256(record),
+      },
+      options.signer,
+    );
+    options.anchors?.append({
+      project,
       jobId: entry.jobId,
-      detail: redact(entry.detail),
-      role: entry.role,
-      runId: entry.runId,
-      data: entry.data,
-      state: sha256(record),
+      seq: row.seq,
+      hash: row.hash,
+      ts: row.ts,
     });
   };
 
@@ -132,6 +156,24 @@ export const createJobStore = (
       if (row.hash !== lineHash(prev, row))
         return { ok: false, reason: `audit line ${i + 1} was changed` };
       prev = row.hash;
+    }
+    const signer = options.signer;
+    if (signer) {
+      for (const [i, row] of rows.entries()) {
+        if (row.sig === undefined || row.keyId !== signer.keyId) {
+          return { ok: false, reason: `audit line ${i + 1} is not signed by this machine's key` };
+        }
+        if (!verifySignature(signer.publicKey, row.hash, row.sig)) {
+          return { ok: false, reason: `audit line ${i + 1} has a signature that does not verify` };
+        }
+      }
+    }
+    const anchor = options.anchors?.latest(project, id);
+    if (anchor && !rows.some((r) => r.seq === anchor.seq && r.hash === anchor.hash)) {
+      return {
+        ok: false,
+        reason: "audit lines were removed: the anchor names a line that is gone",
+      };
     }
     const record = await readFile(file(id), "utf8").catch(() => null);
     const last = rows.at(-1);
@@ -161,6 +203,14 @@ export const createJobStore = (
     audit,
     verify,
     readAudit,
+    exportAudit: (id) => ({
+      version: 1,
+      project,
+      jobId: id,
+      publicKey: options.signer?.publicKey ?? "",
+      keyId: options.signer?.keyId ?? "",
+      rows: logDb.auditRows(project, id),
+    }),
     load,
     async create(def, id, title, roundLimit) {
       if (await exists(file(id))) throw new Error(`${id} exists`);

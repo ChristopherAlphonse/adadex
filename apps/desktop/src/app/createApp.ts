@@ -30,8 +30,10 @@ import { createJobExecutor } from "../jobs/jobActions";
 import { createJobStore, type JobStore } from "../jobs/jobStore";
 import { makeWorktree } from "../jobs/makeWorktree";
 import { nodeCheckRunner, nodeGit } from "../jobs/nodeGate";
+import { createFileAnchors } from "../logs/anchors";
 import { type LogDb, openLogDb } from "../logs/logDb";
 import { createLogger, type Logger } from "../logs/logger";
+import { createFileSigner, type KeyProtector, type Signer } from "../logs/signer";
 import { createRoleStore, type RoleStore } from "../roles/roleStore";
 import { createProcessRegistry } from "../runs/processRegistry";
 import { createRoleRunner, type ProviderRequest, type RunResult } from "../runs/roleRunner";
@@ -58,6 +60,10 @@ export interface AppOptions {
   readonly stallLimit?: number;
   /** Operational events older than this are deleted at start. The audit chain is never pruned. */
   readonly logRetentionDays?: number;
+  /** Wraps the audit signing key for storage. Electron passes the operating system keychain. */
+  readonly keyProtector?: KeyProtector;
+  /** Called when the app starts or stops having agents or checks running, so the shell can keep the machine awake. */
+  readonly onBusyChange?: (busy: boolean) => void;
 }
 
 export interface App {
@@ -102,11 +108,19 @@ export const createApp = (options: AppOptions): App => {
   const prefix = options.branchPrefix ?? "adadex/";
   const humanKey = createHumanKey();
   const sessions = new Set<AgentSession>();
-  const processes = createProcessRegistry(undefined, undefined, (event, info) =>
+  let running = 0;
+  const processes = createProcessRegistry(undefined, undefined, (event, info) => {
     logs.log(event === "kill" ? "warn" : "info", "process", `${event}: ${info.label}`, {
       data: { processId: info.processId },
-    }),
-  );
+    });
+    if (event === "start") {
+      running += 1;
+      if (running === 1) options.onBusyChange?.(true);
+    } else if (event === "end") {
+      running -= 1;
+      if (running === 0) options.onBusyChange?.(false);
+    }
+  });
   // The project's checks show up in the process list too, and can be stopped from there.
   const checkRunner: CheckRunner = {
     run: (command, cwd, timeoutMs, onStart) => {
@@ -125,7 +139,9 @@ export const createApp = (options: AppOptions): App => {
   const logs = createLogger(logDb, project);
   logs.prune(options.logRetentionDays ?? 90);
   logs.log("info", "app", "app started");
-  const jobs = createJobStore(stateDir, undefined, { db: logDb, project });
+  const signer: Signer = createFileSigner(join(options.dataDir, "keys"), options.keyProtector);
+  const anchors = createFileAnchors(join(options.dataDir, "anchors", "audit-anchors.log"));
+  const jobs = createJobStore(stateDir, undefined, { db: logDb, project, signer, anchors });
   const workflows = createWorkflowStore(join(options.dataDir, "workflows"));
   const gateConfig = async (): Promise<GateConfig> => {
     const raw = (await loadProjectChecks(join(options.dataDir, "project.json"))) ?? {};

@@ -75,7 +75,43 @@ export const createHookProcessor = (deps: {
     return merged;
   };
 
-  const installHooksInDirectory = (targetCwd: string, _agentProvider = "kiro") => {
+  // Claude Code reads hooks from .claude/settings.local.json (git-ignored by default),
+  // grouped by event, with its own tool names (Write/Edit instead of fs_write).
+  const installClaudeHooks = (
+    targetCwd: string,
+    kiroHooks: Array<{
+      name: string;
+      trigger: string;
+      matcher: string;
+      action: { command: string };
+      timeout: number;
+    }>,
+  ) => {
+    const dir = join(targetCwd, ".claude");
+    const file = join(dir, "settings.local.json");
+    try {
+      mkdirSync(dir, { recursive: true });
+      const settings = existsSync(file)
+        ? (JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>)
+        : {};
+      const hooks = (settings.hooks ?? {}) as Record<string, unknown[]>;
+      for (const hook of kiroHooks) {
+        const groups = (hooks[hook.trigger] ?? []).filter(
+          (g) => !JSON.stringify(g).includes(`"${hook.action.command.replace(/"/g, '\\"')}"`),
+        );
+        groups.push({
+          matcher: hook.matcher === "fs_write" ? "Write|Edit|MultiEdit" : hook.matcher,
+          hooks: [{ type: "command", command: hook.action.command, timeout: hook.timeout }],
+        });
+        hooks[hook.trigger] = groups;
+      }
+      writeFileSync(file, `${JSON.stringify({ ...settings, hooks }, null, 2)}\n`, "utf8");
+    } catch {
+      // Best-effort; a malformed user settings file is left untouched.
+    }
+  };
+
+  const installHooksInDirectory = (targetCwd: string, agentProvider = "kiro") => {
     const targetKiroHooksDir = join(targetCwd, ".kiro", "hooks");
     const targetHookFilePath = join(targetKiroHooksDir, "adadex.json");
     const apiBaseUrl = getApiBaseUrl();
@@ -139,6 +175,16 @@ export const createHookProcessor = (deps: {
         timeout: 15,
       },
     ];
+
+    if (agentProvider === "claude") {
+      installClaudeHooks(targetCwd, nextHooks);
+      return;
+    }
+
+    if (agentProvider !== "kiro") {
+      // shortcut: OpenCode has no shell hooks; state comes from terminal output, add a plugin if that proves too coarse.
+      return;
+    }
 
     try {
       mkdirSync(targetKiroHooksDir, { recursive: true });

@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 export const GENESIS = "0".repeat(64);
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 export const sha256 = (text: string): string => createHash("sha256").update(text).digest("hex");
 
@@ -25,6 +25,9 @@ export interface AuditRow extends AuditBody {
   readonly seq: number;
   readonly prev: string;
   readonly hash: string;
+  /** Ed25519 signature of `hash` by the machine's key, and which key. Null for a line written before signing. */
+  readonly sig?: string | undefined;
+  readonly keyId?: string | undefined;
 }
 
 /** The body in one fixed key order, nothing undefined, so a line hashes the same when it is written and when it is checked. */
@@ -44,7 +47,11 @@ export const lineHash = (prev: string, body: AuditBody): string =>
 
 export interface LogDb {
   /** Append a line to a job's chain. Appends are atomic, and the table refuses updates and deletes. */
-  appendAudit(project: string, body: AuditBody): AuditRow;
+  appendAudit(
+    project: string,
+    body: AuditBody,
+    signer?: { sign(data: string): string; keyId: string },
+  ): AuditRow;
   auditRows(project: string, jobId: string): readonly AuditRow[];
   /** For the events table and queries. */
   readonly db: DatabaseSync;
@@ -58,6 +65,7 @@ CREATE TABLE IF NOT EXISTS audit (
   ts TEXT NOT NULL, actor TEXT NOT NULL, action TEXT NOT NULL, detail TEXT NOT NULL,
   role TEXT, run_id TEXT, data TEXT,
   state TEXT NOT NULL, prev TEXT NOT NULL, hash TEXT NOT NULL,
+  sig TEXT, key_id TEXT,
   UNIQUE (project, job_id, prev)
 );
 CREATE INDEX IF NOT EXISTS audit_job ON audit (project, job_id, seq);
@@ -87,6 +95,8 @@ interface RawRow {
   state: string;
   prev: string;
   hash: string;
+  sig: string | null;
+  key_id: string | null;
 }
 
 const toRow = (r: RawRow): AuditRow => ({
@@ -102,6 +112,8 @@ const toRow = (r: RawRow): AuditRow => ({
   state: r.state,
   prev: r.prev,
   hash: r.hash,
+  ...(r.sig === null ? {} : { sig: r.sig }),
+  ...(r.key_id === null ? {} : { keyId: r.key_id }),
 });
 
 /**
@@ -117,6 +129,8 @@ export const openLogDb = (path: string): LogDb => {
   if (version > SCHEMA_VERSION)
     throw new Error(`the log database is from a newer version of the app (schema ${version})`);
   db.exec(SCHEMA);
+  if (version === 1)
+    db.exec("ALTER TABLE audit ADD COLUMN sig TEXT; ALTER TABLE audit ADD COLUMN key_id TEXT;");
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   if (path !== ":memory:") {
     for (const f of [path, `${path}-wal`, `${path}-shm`]) {
@@ -132,18 +146,19 @@ export const openLogDb = (path: string): LogDb => {
     "SELECT hash FROM audit WHERE project = ? AND job_id = ? ORDER BY seq DESC LIMIT 1",
   );
   const insert = db.prepare(
-    "INSERT INTO audit (project, job_id, ts, actor, action, detail, role, run_id, data, state, prev, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO audit (project, job_id, ts, actor, action, detail, role, run_id, data, state, prev, hash, sig, key_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const rows = db.prepare("SELECT * FROM audit WHERE project = ? AND job_id = ? ORDER BY seq");
 
   return {
     db,
-    appendAudit(project, body) {
+    appendAudit(project, body, signer) {
       db.exec("BEGIN IMMEDIATE");
       try {
         const prev =
           (last.get(project, body.jobId) as { hash: string } | undefined)?.hash ?? GENESIS;
         const hash = lineHash(prev, body);
+        const sig = signer?.sign(hash) ?? null;
         const res = insert.run(
           project,
           body.jobId,
@@ -157,9 +172,17 @@ export const openLogDb = (path: string): LogDb => {
           body.state,
           prev,
           hash,
+          sig,
+          signer?.keyId ?? null,
         );
         db.exec("COMMIT");
-        return { ...canonical(body), seq: Number(res.lastInsertRowid), prev, hash };
+        return {
+          ...canonical(body),
+          seq: Number(res.lastInsertRowid),
+          prev,
+          hash,
+          ...(sig === null ? {} : { sig, keyId: signer?.keyId }),
+        };
       } catch (e) {
         db.exec("ROLLBACK");
         throw e;
