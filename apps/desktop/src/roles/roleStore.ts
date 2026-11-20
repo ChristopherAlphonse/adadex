@@ -37,9 +37,7 @@ export const createRoleStore = (dir: string, registry: ActionRegistry): RoleStor
       try {
         const r = parseRole(JSON.parse(await readFile(join(dir, name), "utf8")), registry);
         if (r.ok && !presetIds.has(r.role.id)) out.push(r.role);
-      } catch {
-        // Corrupt file: grants nothing.
-      }
+      } catch {}
     }
     return out;
   };

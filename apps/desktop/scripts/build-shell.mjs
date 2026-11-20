@@ -1,4 +1,3 @@
-// Bundles the Electron main process and puts the built web app next to it.
 import { execFileSync } from "node:child_process";
 import { copyFile, cp, mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -10,7 +9,6 @@ const workspaceRoot = join(root, "..", "..");
 const out = join(root, "dist");
 await mkdir(out, { recursive: true });
 
-// The window loads React, not the old static probe page.
 execFileSync(
   process.platform === "win32" ? "npm.cmd" : "npm",
   ["run", "build", "--workspace=@adadex/web"],

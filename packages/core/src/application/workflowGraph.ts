@@ -99,7 +99,6 @@ export const toGraph = (def: WorkflowDefinition): WorkflowGraph => {
       }
     }
   }
-  // A stage nothing reaches sits one column past the last, so it is visible and can be wired in.
   const last = Math.max(0, ...layer.values());
   for (const s of def.stages) if (!layer.has(s.id)) layer.set(s.id, last + 1);
 

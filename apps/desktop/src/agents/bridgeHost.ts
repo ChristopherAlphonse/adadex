@@ -35,9 +35,7 @@ export const startBridgeHost = async (
         if (typeof call.callId !== "string" || typeof call.actionId !== "string") return;
         owner.set(call.callId, socket);
         onCall({ callId: call.callId, actionId: call.actionId, input: call.input });
-      } catch {
-        // Not JSON: ignore it.
-      }
+      } catch {}
     });
   });
   await new Promise<void>((resolve, reject) => {

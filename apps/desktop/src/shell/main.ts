@@ -87,7 +87,6 @@ const smoke = async (w: BrowserWindow): Promise<void> => {
     ),
     push: await run(`window.adadex.request({kind:"action.run",actionId:"git.push",input:{}})`),
   };
-  // A page that is not ours gets the same bridge and must be refused.
   const stranger = new BrowserWindow({
     show: false,
     webPreferences: { preload: join(here, "preload.cjs"), contextIsolation: true, sandbox: true },

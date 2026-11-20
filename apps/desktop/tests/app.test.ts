@@ -115,7 +115,6 @@ describe("the app, end to end, with real git", () => {
     ).toBe(true);
     const jobDir = app.jobs.jobDir("j1");
 
-    // Leaving draft makes the job's own worktree and branch.
     await writeFile(join(jobDir, "draft.md"), "STATUS: READY\n");
     expect((await run(app, "job.advance", { id: "j1", to: "build" })).ok).toBe(true);
     const job = await app.jobs.load("j1");
@@ -123,13 +122,11 @@ describe("the app, end to end, with real git", () => {
     const wt = job.worktree ?? "";
     expect(git(wt, "branch", "--show-current")).toBe("adadex/j1");
 
-    // An agent running git in that worktree cannot commit, push, or move the branch.
     await writeFile(join(wt, "feature.txt"), "new work");
     git(wt, "add", "-A");
     expect(gitTry(wt, "commit", "-m", "sneaky").status).not.toBe(0);
     expect(gitTry(wt, "update-ref", "refs/heads/adadex/j1", "HEAD").status).not.toBe(0);
 
-    // Build, gate, ship.
     await writeFile(join(jobDir, "build.md"), "STATUS: READY\n");
     expect((await run(app, "job.advance", { id: "j1", to: "gate" })).ok).toBe(true);
     expect(await run(app, "job.run_gate", { id: "j1" })).toEqual({
@@ -138,7 +135,6 @@ describe("the app, end to end, with real git", () => {
     });
     expect((await run(app, "job.advance", { id: "j1", to: "ship" })).ok).toBe(true);
 
-    // The human-only commit: native confirmation first, then exactly the gated tree.
     await writeFile(join(jobDir, "commit.md"), "feat: add a file\n");
     const committed = (await run(app, "job.commit_local", { id: "j1" })) as {
       ok: true;

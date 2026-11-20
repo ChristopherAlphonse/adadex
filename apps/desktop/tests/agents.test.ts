@@ -218,7 +218,6 @@ describe("the whole chain: agent, bridge, host, registry", () => {
       askApproval: { request: async () => true },
       emit: (e) => events.push(e.type),
     });
-    // A fake "claude" that starts the real bridge from the config the provider wrote, then acts as Claude Code.
     let client: ((m: string, p?: unknown) => Promise<Record<string, unknown>>) | undefined;
     let bridge: ChildProcess | undefined;
     const f = fakeChild();

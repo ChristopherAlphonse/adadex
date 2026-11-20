@@ -116,7 +116,6 @@ export const createHostApi = (deps: HostApiDeps): HostApi => ({
             deps.scheduler.stop();
             return ok(deps.scheduler.status());
           }
-          // Letting agents work without a person watching is a decision for a person, so it needs the native dialog.
           const yes = await deps.confirm(
             "Let agents work unattended?",
             "Agents will start work on jobs by themselves, each in the role of its stage. You can turn this off at any time.",

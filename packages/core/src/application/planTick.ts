@@ -40,7 +40,6 @@ export const planTick = (
   const skip: { jobId: string; reason: string }[] = [];
   let free = Math.max(0, config.concurrency - running.size);
 
-  // Finish what is furthest along first.
   const depth = (c: TickCandidate): number => c.def.stages.findIndex((s) => s.id === c.job.stage);
   const ordered = [...candidates].sort(
     (a, b) => depth(b) - depth(a) || a.job.id.localeCompare(b.job.id),

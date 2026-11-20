@@ -39,9 +39,7 @@ export const createFileAnchors = (path: string): AnchorSink => ({
         const a = JSON.parse(line) as Anchor;
         if (a.project === project && a.jobId === jobId && (found === null || a.seq > found.seq))
           found = a;
-      } catch {
-        // A damaged line is skipped; the anchor before it still counts.
-      }
+      } catch {}
     }
     return found;
   },

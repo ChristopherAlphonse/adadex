@@ -15,9 +15,7 @@ export const spawnAgent: SpawnAgent = (command, args, cwd): AgentChild => {
       if (child.pid === undefined) return;
       try {
         process.kill(-child.pid, "SIGTERM");
-      } catch {
-        // Already gone.
-      }
+      } catch {}
     },
   };
 };

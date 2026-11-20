@@ -91,7 +91,6 @@ export const createActionHost = (deps: ActionHostDeps): ActionHost => {
   const agentPorts = (): AgentPorts => ({
     executor: {
       execute: async (actionId, input) => {
-        // Defense in depth: even if a caller skipped the registry, an agent never runs a human-only action.
         if (
           deps.registry.get(actionId)?.class !== "free" &&
           deps.registry.get(actionId)?.class !== "ask"

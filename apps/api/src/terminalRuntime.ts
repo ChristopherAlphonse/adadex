@@ -296,8 +296,6 @@ export const createTerminalRuntime = ({
     onStateChange: broadcastTerminalStateChanged,
   });
 
-  // Reap before recovery so a surviving process group is gone before a
-  // recorded session is treated as resumable on the next launch.
   processSupervisor.reapOrphansOnLaunch();
   const recovery = recoverPersistedSessions({
     terminals,

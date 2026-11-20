@@ -136,9 +136,7 @@ export const openLogDb = (path: string): LogDb => {
     for (const f of [path, `${path}-wal`, `${path}-shm`]) {
       try {
         chmodSync(f, 0o600);
-      } catch {
-        // The side files may not exist yet.
-      }
+      } catch {}
     }
   }
 

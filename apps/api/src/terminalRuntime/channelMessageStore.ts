@@ -56,9 +56,7 @@ export const loadChannelMessages = (registryPath: string): Map<string, ChannelMe
       queue.push({ ...candidate });
       queues.set(candidate.toTerminalId, queue);
     }
-  } catch {
-    // A corrupt message store must not block startup; pending messages are best-effort.
-  }
+  } catch {}
 
   return queues;
 };

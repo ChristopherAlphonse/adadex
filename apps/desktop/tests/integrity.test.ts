@@ -26,7 +26,6 @@ const setup = async () => {
     project: "p",
   });
   const job = await store.create(factoryBuildPreset, "j1", "t", 3);
-  /** What someone with the file and a sqlite client could do: open it themselves, and remove the guard rails first. */
   const attacker = () => {
     const db = new DatabaseSync(path);
     db.exec("DROP TRIGGER audit_no_update; DROP TRIGGER audit_no_delete;");

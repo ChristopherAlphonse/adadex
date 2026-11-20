@@ -106,9 +106,7 @@ export const createHookProcessor = (deps: {
         hooks[hook.trigger] = groups;
       }
       writeFileSync(file, `${JSON.stringify({ ...settings, hooks }, null, 2)}\n`, "utf8");
-    } catch {
-      // Best-effort; a malformed user settings file is left untouched.
-    }
+    } catch {}
   };
 
   const installHooksInDirectory = (targetCwd: string, agentProvider = "kiro") => {
@@ -182,7 +180,7 @@ export const createHookProcessor = (deps: {
     }
 
     if (agentProvider !== "kiro") {
-      // shortcut: OpenCode has no shell hooks; state comes from terminal output, add a plugin if that proves too coarse.
+      // OpenCode has no shell hooks.
       return;
     }
 

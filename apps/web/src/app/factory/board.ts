@@ -35,7 +35,6 @@ const actionsForJob = (
   const actions: FactoryAction[] = [];
   const jobInput = { id: job.id };
 
-  // Human actions come first: the host still confirms them, but the operator must find them.
   if (job.parkedFrom !== undefined) {
     actions.push({ id: "job.unblock", label: "Unblock", input: jobInput, isHuman: true });
   }

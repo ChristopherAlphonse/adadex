@@ -1,5 +1,3 @@
-// Starts the real Electron app hidden, sends it requests from its own page and from a stranger page,
-// and prints what came back. Run by hand: it needs a desktop session, so it is not part of `npm test`.
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

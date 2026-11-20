@@ -13,7 +13,6 @@ readline.createInterface({ input: socket }).on("line", (line) => {
     pending.get(reply.callId)?.(reply);
     pending.delete(reply.callId);
   } catch {
-    // A malformed line from the app is dropped. The waiting call times out on the agent's side.
   }
 });
 

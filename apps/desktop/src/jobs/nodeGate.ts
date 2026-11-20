@@ -20,9 +20,7 @@ export const nodeCheckRunner: CheckRunner = {
       onStart?.(() => {
         try {
           if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
-        } catch {
-          // Already gone.
-        }
+        } catch {}
       });
       let output = "";
       let timedOut = false;
@@ -35,9 +33,7 @@ export const nodeCheckRunner: CheckRunner = {
         timedOut = true;
         try {
           if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
-        } catch {
-          // Already gone.
-        }
+        } catch {}
       }, timeoutMs);
       child.on("close", (code) => {
         clearTimeout(timer);

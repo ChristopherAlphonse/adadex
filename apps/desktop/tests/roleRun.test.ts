@@ -42,7 +42,6 @@ const world = async (script: Script) => {
   const probes: Record<string, unknown> = {};
   const outcomes: unknown[] = [];
   const events: string[] = [];
-  // Nobody is at the screen: every approval card is declined as soon as it appears.
   const declineAll = () =>
     queueMicrotask(() => {
       for (const p of app.approvals.pending()) app.approvals.respond(p.approvalId, false);
@@ -174,7 +173,6 @@ describe("an agent works in the role of its stage, and only that", () => {
       "denied",
     ]);
     expect((await w.app.jobs.load("j1")).stage).toBe("gate");
-    // No role can list a human-only action, so an agent cannot even ask for one. The person presses the button.
   });
 
   it("a reviewer cannot change code or rewrite the build notes, but can write its verdict", async () => {

@@ -80,9 +80,7 @@ export const createLogger = (
           redact(message),
           context.data === undefined ? null : JSON.stringify(redactDeep(context.data)),
         );
-    } catch {
-      // Logging must never be the reason work stops.
-    }
+    } catch {}
   },
   query(q = {}) {
     const where: string[] = ["project = ?"];

@@ -1,4 +1,3 @@
-// A first, plain page that proves the window can talk to the app. The real board replaces it in Phase 5.
 const list = (id, items) => {
   const ul = document.getElementById(id);
   ul.replaceChildren(

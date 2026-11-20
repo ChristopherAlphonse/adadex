@@ -6,7 +6,6 @@ export interface ActionRegistry {
   list(): readonly ActionDef[];
 }
 
-// Pushing and opening a PR are outside this tool. Nothing may register them, whatever they claim to touch.
 const NEVER_REGISTERED = new Set(["git.push", "pr.open", "pr.create", "mr.open", "mr.create"]);
 
 export const createActionRegistry = (defs: readonly ActionDef[]): ActionRegistry => {

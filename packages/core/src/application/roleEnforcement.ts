@@ -53,7 +53,6 @@ export const policyForRole = (
     allow: [...base.allow, ...(role.allowShell ?? [])],
     deny: base.deny,
     ask: base.ask,
-    // The app's own files, wherever they sit under the job folder.
     noWrite: [
       ...base.noWrite,
       `${dir}/job.json`,
@@ -61,7 +60,6 @@ export const policyForRole = (
       `${dir}/**/checks.md`,
       `${dir}/checks.md`,
     ],
-    // A role that does not edit code may write only inside the job folder.
     writeOnly: role.editsCode ? base.writeOnly : [`${dir}/**`],
     scopedWrites: [...(base.scopedWrites ?? []), { root: dir, allow: role.writeDocs }],
   };

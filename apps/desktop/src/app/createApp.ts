@@ -133,7 +133,6 @@ export const createApp = (options: AppOptions): App => {
       if (running === 0) options.onBusyChange?.(false);
     }
   });
-  // The project's checks show up in the process list too, and can be stopped from there.
   const checkRunner: CheckRunner = {
     run: (command, cwd, timeoutMs, onStart) => {
       let handle: { done(): void } | undefined;
@@ -218,7 +217,6 @@ export const createApp = (options: AppOptions): App => {
       git: nodeGit,
       config: gateConfig,
       cwdOf,
-      // At the project root the app's own folders show up as untracked files. In a worktree they must not.
       ignore: (cwd) =>
         cwd === options.projectRoot ? [".adadex/factory/**", ".adadex/worktrees/**"] : [],
     },

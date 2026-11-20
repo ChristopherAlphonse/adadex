@@ -2,7 +2,6 @@ import { isTerminalAgentProvider, type TerminalAgentProvider } from "@adadex/cor
 
 export const AGENT_PROVIDER_STORAGE_KEY = "adadex.agentProvider";
 
-// Providers the terminal can launch: kiro, claude, opencode. Kept as an array (rather than inlining the
 // value at call sites) so the provider-switcher UI can be removed from
 // ConsoleChromeHeader/ActionCards without touching this module again if a
 // second provider is ever added.

@@ -44,9 +44,7 @@ export const writeTextFileAtomic = (
   } catch (error) {
     try {
       remove(tempPath);
-    } catch {
-      // Best effort: the target is still intact because rename did not happen.
-    }
+    } catch {}
     throw error;
   }
 };
@@ -70,9 +68,7 @@ export const writeTextFileAtomicAsync = async (
   } catch (error) {
     try {
       await remove(tempPath);
-    } catch {
-      // Best effort: the target is still intact because rename did not happen.
-    }
+    } catch {}
     throw error;
   }
 };

@@ -41,7 +41,6 @@ export const createScheduler = (deps: SchedulerDeps) => {
         stalls.set(jobId, r.stageAfter === stageId ? (stalls.get(jobId) ?? 0) + 1 : 0);
       })
       .catch(async () => {
-        // A refused or failed run counts as a run that moved nothing, so a broken job cannot loop.
         stalls.set(jobId, (stalls.get(jobId) ?? 0) + 1);
       })
       .finally(() => running.delete(jobId));

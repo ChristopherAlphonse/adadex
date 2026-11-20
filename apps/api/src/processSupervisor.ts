@@ -116,7 +116,6 @@ export const loadProcessRegistry = (registryPath: string): ProcessRegistryDocume
       processes: document.processes.filter(isSupervisedProcess),
     };
   } catch {
-    // A corrupt registry must not block startup; there is nothing safe to reap.
     return empty;
   }
 };
@@ -165,7 +164,6 @@ export const createProcessSupervisor = (dependencies: SupervisorDependencies) =>
       dependencies.signalGroup(record.processGroupId, signal);
       return true;
     } catch {
-      // The group is already gone; there is nothing left to reap.
       return false;
     }
   };
