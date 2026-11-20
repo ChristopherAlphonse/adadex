@@ -1,4 +1,4 @@
-import { isNumber, isObjectValue, isString } from "@adadex/core";
+import { asRecord, isNumber, isString, type ParsedValue } from "@adadex/core";
 import type { DeckCoordinationSummary } from "@adadex/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -48,7 +48,7 @@ function hashString(str: string): number {
 const orchestrationColor = (coordinationId: string, deckColor: string | null | undefined) =>
   deckColor && deckColor.length > 0
     ? deckColor
-    : (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ MASCOT_COLORS[hashString(coordinationId) % MASCOT_COLORS.length] as string);
+    : (MASCOT_COLORS[hashString(coordinationId) % MASCOT_COLORS.length] ?? "#a3e635");
 
 type UseCanvasGraphDataOptions = {
   columns: TerminalView;
@@ -71,27 +71,19 @@ const buildActiveSessionNodeId = (agentId: string) => `a:${agentId}`;
 
 const buildInactiveSessionNodeId = (sessionId: string) => `i:${sessionId}`;
 
-const normalizeDeckCoordinationSummary = (value: unknown): DeckCoordinationSummary | null => {
-  if (value === null || !isObjectValue(value)) {
-    return null;
-  }
+const normalizeDeckCoordinationSummary = (value: ParsedValue): DeckCoordinationSummary | null => {
+  const record = asRecord(value);
 
-  const record = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ value as Record<string, unknown>;
-
-  if (!isString(record.coordinationId)) {
+  if (!record || !isString(record.coordinationId)) {
     return null;
   }
 
   const todoItems = Array.isArray(record.todoItems)
     ? record.todoItems
         .map((item) => {
-          if (item === null || !isObjectValue(item)) {
-            return null;
-          }
+          const todoRecord = asRecord(item);
 
-          const todoRecord = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ item as Record<string, unknown>;
-
-          if (!isString(todoRecord.text)) {
+          if (!todoRecord || !isString(todoRecord.text)) {
             return null;
           }
 
@@ -103,17 +95,9 @@ const normalizeDeckCoordinationSummary = (value: unknown): DeckCoordinationSumma
         .filter((item): item is { text: string; done: boolean } => item !== null)
     : [];
 
-  const scopeRecord =
-    record.scope !== null && isObjectValue(record.scope)
-      ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ record.scope as Record<string, unknown>)
-      : null;
+  const scopeRecord = asRecord(record.scope);
 
-  const appearanceRecord =
-    record.mascot !== null && isObjectValue(record.mascot)
-      ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ record.mascot as Record<string, unknown>)
-      : record.octopus !== null && isObjectValue(record.octopus)
-        ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ record.octopus as Record<string, unknown>)
-        : null;
+  const appearanceRecord = asRecord(record.mascot) ?? asRecord(record.octopus);
 
   const status =
     record.status === "idle" ||
@@ -125,20 +109,15 @@ const normalizeDeckCoordinationSummary = (value: unknown): DeckCoordinationSumma
 
   return {
     coordinationId: record.coordinationId,
-    displayName:
-      isString(record.displayName) ? record.displayName : record.coordinationId,
+    displayName: isString(record.displayName) ? record.displayName : record.coordinationId,
     description: isString(record.description) ? record.description : "",
     status,
     color: isString(record.color) ? record.color : null,
     mascot: {
-      animation:
-        isString(appearanceRecord?.animation) ? appearanceRecord.animation : null,
-      expression:
-        isString(appearanceRecord?.expression) ? appearanceRecord.expression : null,
-      accessory:
-        isString(appearanceRecord?.accessory) ? appearanceRecord.accessory : null,
-      hairColor:
-        isString(appearanceRecord?.hairColor) ? appearanceRecord.hairColor : null,
+      animation: isString(appearanceRecord?.animation) ? appearanceRecord.animation : null,
+      expression: isString(appearanceRecord?.expression) ? appearanceRecord.expression : null,
+      accessory: isString(appearanceRecord?.accessory) ? appearanceRecord.accessory : null,
+      hairColor: isString(appearanceRecord?.hairColor) ? appearanceRecord.hairColor : null,
     },
     scope: {
       paths: Array.isArray(scopeRecord?.paths)
@@ -183,7 +162,7 @@ export const useCanvasGraphData = ({
       });
 
       if (!response.ok) return;
-      const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as unknown;
+      const payload: ParsedValue = await response.json();
 
       if (!Array.isArray(payload)) return;
 
@@ -205,7 +184,7 @@ export const useCanvasGraphData = ({
       });
 
       if (!response.ok) return;
-      const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as unknown;
+      const payload: ParsedValue = await response.json();
 
       const normalized = Array.isArray(payload)
         ? payload
@@ -321,9 +300,15 @@ export const useCanvasGraphData = ({
       coordinationId,
       label,
       color,
-      ...(firstActiveTerminal ? { workspaceMode: firstActiveTerminal.workspaceMode } : {}),
-      ...(deck?.mascot ? { mascot: deck.mascot } : {}),
     };
+
+    if (firstActiveTerminal?.workspaceMode !== undefined) {
+      node.workspaceMode = firstActiveTerminal.workspaceMode;
+    }
+
+    if (deck?.mascot) {
+      node.mascot = deck.mascot;
+    }
 
     nodes.push(node);
     currentNodesById.set(orchestrationNodeId, node);
@@ -358,13 +343,23 @@ export const useCanvasGraphData = ({
           sessionId: activeTerminal.terminalId,
           agentState: activeTerminal.state,
           hasUserPrompt: activeTerminal.hasUserPrompt ?? false,
-          ...(activeTerminal.workspaceMode ? { workspaceMode: activeTerminal.workspaceMode } : {}),
-          ...(activeTerminal.parentTerminalId
-            ? { parentTerminalId: activeTerminal.parentTerminalId }
-            : {}),
-          ...(runtimeInfo ? { agentRuntimeState: runtimeInfo.state } : {}),
-          ...(runtimeInfo?.toolName ? { waitingToolName: runtimeInfo.toolName } : {}),
         };
+
+        if (activeTerminal.workspaceMode) {
+          sessionNode.workspaceMode = activeTerminal.workspaceMode;
+        }
+
+        if (activeTerminal.parentTerminalId) {
+          sessionNode.parentTerminalId = activeTerminal.parentTerminalId;
+        }
+
+        if (runtimeInfo) {
+          sessionNode.agentRuntimeState = runtimeInfo.state;
+        }
+
+        if (runtimeInfo?.toolName) {
+          sessionNode.waitingToolName = runtimeInfo.toolName;
+        }
 
         nodes.push(sessionNode);
         currentNodesById.set(sessionNodeId, sessionNode);
@@ -425,11 +420,23 @@ export const useCanvasGraphData = ({
       sessionId: terminal.terminalId,
       agentState: terminal.state,
       hasUserPrompt: terminal.hasUserPrompt ?? false,
-      ...(terminal.workspaceMode ? { workspaceMode: terminal.workspaceMode } : {}),
-      ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
-      ...(bossRuntimeInfo ? { agentRuntimeState: bossRuntimeInfo.state } : {}),
-      ...(bossRuntimeInfo?.toolName ? { waitingToolName: bossRuntimeInfo.toolName } : {}),
     };
+
+    if (terminal.workspaceMode) {
+      sessionNode.workspaceMode = terminal.workspaceMode;
+    }
+
+    if (terminal.parentTerminalId) {
+      sessionNode.parentTerminalId = terminal.parentTerminalId;
+    }
+
+    if (bossRuntimeInfo) {
+      sessionNode.agentRuntimeState = bossRuntimeInfo.state;
+    }
+
+    if (bossRuntimeInfo?.toolName) {
+      sessionNode.waitingToolName = bossRuntimeInfo.toolName;
+    }
 
     nodes.push(sessionNode);
     currentNodesById.set(sessionNodeId, sessionNode);
@@ -472,10 +479,11 @@ export const useCanvasGraphData = ({
         : session.sessionId.slice(0, 12),
       color,
       sessionId: session.sessionId,
-      ...(session.firstUserTurnPreview !== null
-        ? { firstPromptPreview: session.firstUserTurnPreview }
-        : {}),
     };
+
+    if (session.firstUserTurnPreview !== null) {
+      sessionNode.firstPromptPreview = session.firstUserTurnPreview;
+    }
 
     nodes.push(sessionNode);
     currentNodesById.set(sessionNodeId, sessionNode);

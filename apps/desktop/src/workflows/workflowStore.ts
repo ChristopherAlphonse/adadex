@@ -1,7 +1,13 @@
 import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { PRESET_WORKFLOWS, parseWorkflow, type WorkflowDefinition } from "@adadex/core";
+import {
+  asRecord,
+  PRESET_WORKFLOWS,
+  parseWorkflow,
+  type ParsedValue,
+  type WorkflowDefinition,
+} from "@adadex/core";
 
 export type SaveResult =
   | { readonly ok: true; readonly workflow: WorkflowDefinition }
@@ -12,7 +18,7 @@ export interface WorkflowStore {
   list(): Promise<readonly WorkflowDefinition[]>;
   get(id: string): Promise<WorkflowDefinition | undefined>;
   /** Validates, then writes. A preset's id can never be overwritten. */
-  save(input: unknown): Promise<SaveResult>;
+  save<T>(input: T): Promise<SaveResult>;
   /** Copy any workflow (usually a preset) under a new id so it can be edited. */
   fork(fromId: string, newId: string, name: string): Promise<SaveResult>;
   remove(id: string): Promise<SaveResult | { readonly ok: true }>;
@@ -25,12 +31,12 @@ export const createWorkflowStore = (dir: string): WorkflowStore => {
   const file = (id: string): string => join(dir, `${id}.json`);
 
   const readUser = async (): Promise<WorkflowDefinition[]> => {
-    const names = await readdir(dir).catch(() => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[]);
+    const names = await readdir(dir).catch(() => []);
     const out: WorkflowDefinition[] = [];
 
     for (const name of names.filter((n) => n.endsWith(".json")).sort()) {
       const raw = await readFile(join(dir, name), "utf8").catch(() => "");
-      let parsed: unknown;
+      let parsed: ParsedValue = null;
 
       try {
         parsed = JSON.parse(raw);
@@ -54,8 +60,8 @@ export const createWorkflowStore = (dir: string): WorkflowStore => {
   const get = async (id: string): Promise<WorkflowDefinition | undefined> =>
     (await list()).find((w) => w.id === id);
 
-  const save = async (input: unknown): Promise<SaveResult> => {
-    const r = parseWorkflow(input);
+  const save = async <T>(input: T): Promise<SaveResult> => {
+    const r = parseWorkflow(asRecord(input) ?? null);
 
     if (!r.ok) return r;
 

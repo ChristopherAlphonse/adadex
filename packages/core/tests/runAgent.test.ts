@@ -5,6 +5,7 @@ import { runAgent } from "../src/application/runAgent";
 import { FACTORY_ACTIONS } from "../src/domain/action";
 import type { ActionExecutor, ApprovalGate } from "../src/ports/ActionPorts";
 import type { AgentEvent, AgentProvider, AgentSession } from "../src/ports/AgentProvider";
+import type { ParsedValue } from "../src/util/typeCoercion";
 
 const registry = createActionRegistry([
   ...FACTORY_ACTIONS,
@@ -50,7 +51,7 @@ const gate = (answer: boolean, asked: string[] = []): ApprovalGate => ({
   },
 });
 
-const act = (callId: string, actionId: string, input: unknown): AgentEvent => ({
+const act = (callId: string, actionId: string, input: ParsedValue): AgentEvent => ({
   type: "action",
   callId,
   actionId,

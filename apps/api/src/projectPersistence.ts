@@ -17,7 +17,11 @@ import {
   LEGACY_TERMINAL_REGISTRY_FILENAME,
   TERMINAL_REGISTRY_FILENAME,
   WORKSPACE_RUNTIME_DIR,
-, isObjectValue, isString} from "@adadex/core";
+  asRecord,
+  isParsedRecord,
+  isString,
+  type ParsedValue,
+} from "@adadex/core";
 
 export const GLOBAL_ADADEX_DIR = join(homedir(), GLOBAL_RUNTIME_DIR_NAME);
 
@@ -40,22 +44,13 @@ export type ProjectRegistryEntry = {
   lastOpenedAt?: string;
 };
 
-type LegacyProjectRegistryEntry = {
-  name?: unknown;
-  path?: unknown;
-  createdAt?: unknown;
-};
-
 export type ProjectsRegistry = { projects: ProjectRegistryEntry[] };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && isObjectValue(value) && !Array.isArray(value);
-
 const toProjectRegistryEntry = (
-  value: unknown,
+  value: ParsedValue,
   workspaceCwd?: string,
 ): ProjectRegistryEntry | null => {
-  if (!isRecord(value)) {
+  if (!isParsedRecord(value)) {
     return null;
   }
 
@@ -69,15 +64,18 @@ const toProjectRegistryEntry = (
     isString(value.createdAt) &&
     value.createdAt.trim().length > 0
   ) {
-    return {
+    const entry: ProjectRegistryEntry = {
       id: value.id,
       name: value.name,
       path: value.path,
       createdAt: value.createdAt,
-      ...(isString(value.lastOpenedAt) && value.lastOpenedAt.trim().length > 0
-        ? { lastOpenedAt: value.lastOpenedAt }
-        : {}),
     };
+
+    if (isString(value.lastOpenedAt) && value.lastOpenedAt.trim().length > 0) {
+      entry.lastOpenedAt = value.lastOpenedAt;
+    }
+
+    return entry;
   }
 
   if (
@@ -101,9 +99,9 @@ const toProjectRegistryEntry = (
   return null;
 };
 
-const toProjectConfigDocument = (value: unknown): ProjectConfigDocument | null => {
+const toProjectConfigDocument = (value: ParsedValue): ProjectConfigDocument | null => {
   if (
-    !isRecord(value) ||
+    !isParsedRecord(value) ||
     value.version !== 1 ||
     !isString(value.projectId) ||
     value.projectId.trim().length === 0 ||
@@ -123,9 +121,10 @@ const toProjectConfigDocument = (value: unknown): ProjectConfigDocument | null =
   };
 };
 
-const readJsonFile = (filePath: string): unknown | null => {
+const readJsonFile = (filePath: string): ParsedValue | null => {
   try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+    // SAFETY: JSON.parse can only produce JSON scalars, arrays, or plain objects.
+    return JSON.parse(readFileSync(filePath, "utf8")) as ParsedValue;
   } catch {
     return null;
   }
@@ -146,7 +145,7 @@ export const loadProjectsRegistry = (): ProjectsRegistry => {
 
   const parsed = readJsonFile(PROJECTS_FILE);
 
-  if (!isRecord(parsed) || !Array.isArray(parsed.projects)) {
+  if (!isParsedRecord(parsed) || !Array.isArray(parsed.projects)) {
     return { projects: [] };
   }
 
@@ -171,13 +170,15 @@ export const deriveProjectIdFromWorkspace = (workspaceCwd: string) =>
 const inferLegacyProjectName = (workspaceCwd: string): string | null => {
   const parsed = readJsonFile(PROJECTS_FILE);
 
-  if (!isRecord(parsed) || !Array.isArray(parsed.projects)) {
+  if (!isParsedRecord(parsed) || !Array.isArray(parsed.projects)) {
     return null;
   }
 
-  for (const legacyEntry of parsed.projects as LegacyProjectRegistryEntry[]) {
-    if (legacyEntry.path === workspaceCwd && isString(legacyEntry.name)) {
-      return legacyEntry.name;
+  for (const legacyEntry of parsed.projects) {
+    const entry = asRecord(legacyEntry);
+
+    if (entry?.path === workspaceCwd && isString(entry.name)) {
+      return entry.name;
     }
   }
 

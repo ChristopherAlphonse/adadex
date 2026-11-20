@@ -1,6 +1,7 @@
-import { isNumber, isObjectValue, isString } from "@adadex/core";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { isNumber, isParsedRecord, isString } from "@adadex/core";
 
 export type RuntimeMetadata = {
   apiBaseUrl: string;
@@ -13,9 +14,6 @@ export type RuntimeMetadata = {
 
 const RUNTIME_METADATA_FILENAME = "runtime.json";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && isObjectValue(value) && !Array.isArray(value);
-
 export const resolveRuntimeMetadataPath = (projectStateDir: string) =>
   join(projectStateDir, "state", RUNTIME_METADATA_FILENAME);
 
@@ -27,10 +25,10 @@ export const readRuntimeMetadata = (projectStateDir: string): RuntimeMetadata | 
   }
 
   try {
-    const parsed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+    const parsed: unknown = JSON.parse(readFileSync(filePath, "utf8"));
 
     if (
-      !isRecord(parsed) ||
+      !isParsedRecord(parsed) ||
       !isString(parsed.apiBaseUrl) ||
       !isString(parsed.host) ||
       !isNumber(parsed.port) ||

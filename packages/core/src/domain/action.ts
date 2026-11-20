@@ -60,7 +60,9 @@ const jobId = (value: ParsedValue): string => {
   return value;
 };
 
-const parseJobRef = (input: ParsedValue): JobRef => ({ id: jobId(requireRecord(input).id ?? null) });
+const parseJobRef = (input: ParsedValue): JobRef => ({
+  id: jobId(requireRecord(input).id ?? null),
+});
 
 const parseAdvance = (input: ParsedValue): AdvanceInput => {
   const r = requireRecord(input);

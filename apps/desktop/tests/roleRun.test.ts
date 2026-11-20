@@ -4,17 +4,20 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  type ActionOutcome,
   type AgentEvent,
   BUILD_POLICY,
   createActionRegistry,
   FACTORY_ACTIONS,
   factoryBuildPreset,
+  type ParsedRecord,
+  type ParsedValue,
   REVIEW_POLICY,
   type WorkflowJob,
 } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { GuardDecide } from "../src/agents/guardHost";
+import type { GuardDecide, GuardEvent } from "../src/agents/guardHost";
 import { createApp } from "../src/app/createApp";
 import { createRoleStore, missingRoles } from "../src/roles/roleStore";
 import { createRoleRunner, type ProviderRequest } from "../src/runs/roleRunner";
@@ -34,7 +37,7 @@ type Script = (api: {
   decide: GuardDecide;
   cwd: string;
   jobDir: string;
-  probe: (name: string, value: unknown) => void;
+  probe: (name: string, value: string) => void;
 }) => AsyncGenerator<AgentEvent>;
 
 const world = async (script: Script) => {
@@ -43,8 +46,8 @@ const world = async (script: Script) => {
   await mkdir(project, { recursive: true });
   await mkdir(dataDir, { recursive: true });
   execFileSync("git", ["init", "-b", "main"], { cwd: project });
-  const probes: Record<string, unknown> = {};
-  const outcomes: unknown[] = [];
+  const probes: Record<string, string> = {};
+  const outcomes: ActionOutcome[] = [];
   const events: string[] = [];
 
   const declineAll = () =>
@@ -95,20 +98,20 @@ const place = async (w: World, stage: string, over: Partial<WorkflowJob> = {}) =
   await w.app.jobs.audit({ actor: "system", action: "place", jobId: "j1", detail: stage });
 };
 
-const tool = (name: string, input: Record<string, unknown>, cwd: string) => ({
+const tool = (name: string, input: ParsedRecord, cwd: string) => ({
   tool_name: name,
   tool_input: input,
   cwd,
 });
 
-const act = (callId: string, actionId: string, input: unknown): AgentEvent => ({
+const act = (callId: string, actionId: string, input: ParsedValue): AgentEvent => ({
   type: "action",
   callId,
   actionId,
   input,
 });
 
-const kind = async (d: GuardDecide, e: unknown) => ((await d(e)).allow ? "allow" : "deny");
+const kind = async (d: GuardDecide, e: GuardEvent) => ((await d(e)).allow ? "allow" : "deny");
 
 describe("an agent works in the role of its stage, and only that", () => {
   it("a builder can write its own document and code, and nothing that is another role's or the app's", async () => {
@@ -179,7 +182,7 @@ describe("an agent works in the role of its stage, and only that", () => {
     await place(w, "build");
     await writeFile(join(w.app.jobs.jobDir("j1"), "build.md"), "STATUS: READY\n");
     await w.app.runStage("j1");
-    expect(w.outcomes.map((o) => (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ o as { status: string }).status)).toEqual([
+    expect(w.outcomes.map((o) => o.status)).toEqual([
       "ok",
       "denied",
       "denied",
@@ -336,12 +339,12 @@ describe("limits", () => {
   };
 
   it("stops a run that uses more actions than its role allows, and refuses the extra ones", async () => {
-    const w = await world(async function* ({ decide, cwd }) {
-      const answers: boolean[] = [];
+    const answers: boolean[] = [];
 
+    const w = await world(async function* ({ decide, cwd }) {
       for (let i = 0; i < 4; i++)
         answers.push((await decide(tool("Read", { file_path: join(cwd, "a") }, cwd))).allow);
-      w.probes.answers = answers;
+
       yield { type: "done", summary: "" };
     });
 
@@ -358,10 +361,15 @@ describe("limits", () => {
     };
 
     expect((await w.app.workflows.save(mini)).ok).toBe(true);
-    const job = await w.app.jobs.create(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await w.app.workflows.get("mini")) as never, "j1", "t", 3);
-    void job;
+
+    const workflow = await w.app.workflows.get("mini");
+
+    if (workflow === undefined) throw new Error("the mini workflow was not saved");
+
+    await w.app.jobs.create(workflow, "j1", "t", 3);
+
     const result = await w.app.runStage("j1");
-    expect(w.probes.answers).toEqual([true, true, false, false]);
+    expect(answers).toEqual([true, true, false, false]);
     expect(result.limited).toBe("actions");
     expect((await w.app.jobs.readAudit("j1")).some((l) => l.action === "limit")).toBe(true);
   });
@@ -384,7 +392,13 @@ describe("limits", () => {
     };
 
     await w.app.workflows.save(mini);
-    await w.app.jobs.create(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await w.app.workflows.get("mini")) as never, "j1", "t", 3);
+
+    const workflow = await w.app.workflows.get("mini");
+
+    if (workflow === undefined) throw new Error("the mini workflow was not saved");
+
+    await w.app.jobs.create(workflow, "j1", "t", 3);
+
     const timers: (() => void)[] = [];
     let stopped = false;
 
@@ -451,9 +465,13 @@ describe("the unattended loop", () => {
     actions: 0,
   });
 
-  it("is off until a person starts it, and stop turns it off", () => {
+  it("is off until a person starts it, and stop turns it off", async () => {
+    const w = await world(async function* () {
+      yield { type: "done", summary: "" };
+    });
+
     const sched = createScheduler({
-      store: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ null as never,
+      store: w.app.jobs,
       workflows: () => undefined,
       runStage: async () => result("build"),
       concurrency: 1,

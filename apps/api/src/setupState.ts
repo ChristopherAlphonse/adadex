@@ -17,7 +17,9 @@ export type SetupState = {
 };
 
 const isVerifiedSetupStepId = (value: WorkspaceSetupStepId): value is VerifiedSetupStepId =>
-  VERIFIED_SETUP_STEP_IDS.includes(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ value as VerifiedSetupStepId);
+  VERIFIED_SETUP_STEP_IDS.includes(
+    /* SAFETY: preceding checks establish the invariant this assertion encodes. */ value as VerifiedSetupStepId,
+  );
 
 export const readSetupState = (stateDir: string): SetupState => {
   const filePath = join(stateDir, SETUP_STATE_RELATIVE_PATH);
@@ -41,12 +43,11 @@ export const readSetupState = (stateDir: string): SetupState => {
       }
     }
 
-    const coordinationsInitializedAt =
-      isString(raw.coordinationsInitializedAt)
-        ? raw.coordinationsInitializedAt
-        : isString(raw.orchestrationsInitializedAt)
-          ? raw.orchestrationsInitializedAt
-          : undefined;
+    const coordinationsInitializedAt = isString(raw.coordinationsInitializedAt)
+      ? raw.coordinationsInitializedAt
+      : isString(raw.orchestrationsInitializedAt)
+        ? raw.orchestrationsInitializedAt
+        : undefined;
 
     const result: SetupState = { version: 1 };
 

@@ -5,7 +5,13 @@ import {
   LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY,
   LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY,
   LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY,
-, isBoolean, isNumber, isObjectValue, isString} from "@adadex/core";
+  type ParsedRecord,
+  type ParsedValue,
+  asRecord,
+  isBoolean,
+  isNumber,
+  isString,
+} from "@adadex/core";
 
 import { writeTextFileAtomic, writeTextFileAtomicAsync } from "../atomicJsonFile";
 import { TERMINAL_REGISTRY_VERSION } from "./constants";
@@ -26,9 +32,6 @@ type TerminalRegistryState = {
   terminals: Map<string, PersistedTerminal>;
   uiState: PersistedUiState;
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && isObjectValue(value) && !Array.isArray(value);
 
 const isTerminalNameOrigin = (value: unknown): value is TerminalNameOrigin =>
   value === "generated" || value === "user" || value === "prompt";
@@ -51,45 +54,47 @@ const inferTerminalNameOrigin = (
   return "user";
 };
 
-const parsePersistedUiState = (value: unknown): PersistedUiState => {
-  if (!isRecord(value)) {
+const parsePersistedUiState = (value: ParsedValue): PersistedUiState => {
+  const record = asRecord(value);
+
+  if (!record) {
     return {};
   }
 
   const nextState: PersistedUiState = {};
 
-  if (isBoolean(value.isAgentsSidebarVisible)) {
-    nextState.isAgentsSidebarVisible = value.isAgentsSidebarVisible;
+  if (isBoolean(record.isAgentsSidebarVisible)) {
+    nextState.isAgentsSidebarVisible = record.isAgentsSidebarVisible;
   }
 
-  if (isNumber(value.sidebarWidth) && Number.isFinite(value.sidebarWidth)) {
-    nextState.sidebarWidth = value.sidebarWidth;
+  if (isNumber(record.sidebarWidth) && Number.isFinite(record.sidebarWidth)) {
+    nextState.sidebarWidth = record.sidebarWidth;
   }
 
-  if (isBoolean(value.isActiveAgentsSectionExpanded)) {
-    nextState.isActiveAgentsSectionExpanded = value.isActiveAgentsSectionExpanded;
+  if (isBoolean(record.isActiveAgentsSectionExpanded)) {
+    nextState.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
   }
 
-  if (isBoolean(value.isRuntimeStatusStripVisible)) {
-    nextState.isRuntimeStatusStripVisible = value.isRuntimeStatusStripVisible;
+  if (isBoolean(record.isRuntimeStatusStripVisible)) {
+    nextState.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
   }
 
-  const completionSoundValue = value.terminalCompletionSound;
+  const completionSoundValue = record.terminalCompletionSound;
 
   if (isTerminalCompletionSoundId(completionSoundValue)) {
     nextState.terminalCompletionSound = completionSoundValue;
   }
 
-  const minimizedIds = value.minimizedTerminalIds;
+  const minimizedIds = record.minimizedTerminalIds;
 
   if (Array.isArray(minimizedIds)) {
     const ids = minimizedIds.filter((id): id is string => isString(id));
     nextState.minimizedTerminalIds = [...new Set(ids)];
   }
 
-  const widths = value.terminalWidths;
+  const widths = asRecord(record.terminalWidths);
 
-  if (isRecord(widths)) {
+  if (widths) {
     const terminalWidths = Object.entries(widths).reduce<Record<string, number>>(
       (acc, [id, width]) => {
         if (isNumber(width) && Number.isFinite(width)) {
@@ -104,31 +109,31 @@ const parsePersistedUiState = (value: unknown): PersistedUiState => {
     nextState.terminalWidths = terminalWidths;
   }
 
-  if (Array.isArray(value.canvasOpenTerminalIds)) {
-    nextState.canvasOpenTerminalIds = value.canvasOpenTerminalIds.filter(
-      (id): id is string => isString(id),
+  if (Array.isArray(record.canvasOpenTerminalIds)) {
+    nextState.canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter((id): id is string =>
+      isString(id),
     );
   }
 
-  if (Array.isArray(value.canvasOpenCoordinationIds)) {
-    nextState.canvasOpenCoordinationIds = value.canvasOpenCoordinationIds.filter(
+  if (Array.isArray(record.canvasOpenCoordinationIds)) {
+    nextState.canvasOpenCoordinationIds = record.canvasOpenCoordinationIds.filter(
       (id): id is string => isString(id),
     );
   } else {
-    const legacyCanvasOpen = value[LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY];
+    const legacyCanvasOpen = record[LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY];
 
     if (Array.isArray(legacyCanvasOpen)) {
-      nextState.canvasOpenCoordinationIds = legacyCanvasOpen.filter(
-        (id): id is string => isString(id),
+      nextState.canvasOpenCoordinationIds = legacyCanvasOpen.filter((id): id is string =>
+        isString(id),
       );
     }
   }
 
   if (
-    isNumber(value.canvasTerminalsPanelWidth) &&
-    Number.isFinite(value.canvasTerminalsPanelWidth)
+    isNumber(record.canvasTerminalsPanelWidth) &&
+    Number.isFinite(record.canvasTerminalsPanelWidth)
   ) {
-    nextState.canvasTerminalsPanelWidth = value.canvasTerminalsPanelWidth;
+    nextState.canvasTerminalsPanelWidth = record.canvasTerminalsPanelWidth;
   }
 
   return nextState;
@@ -171,7 +176,7 @@ export const pruneUiStateTerminalReferences = (
  * Child agents are dropped.
  */
 const migrateV2ToV3 = (
-  record: Record<string, unknown>,
+  record: ParsedRecord,
   registryPath: string,
 ): Map<string, PersistedTerminal> => {
   const rawList = record[LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY];
@@ -183,27 +188,26 @@ const migrateV2ToV3 = (
   const terminals = new Map<string, PersistedTerminal>();
 
   for (const item of rawList) {
-    if (item === null || !isObjectValue(item)) {
+    const entry = asRecord(item);
+
+    if (!entry) {
       throw new Error(`Invalid registry coordination entry (${registryPath}).`);
     }
 
-    const entry = item as Record<string, unknown>;
     const legacyCoordinationId = entry[LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY];
     const legacyCoordinationName = entry[LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY];
 
-    const coordinationIdRaw =
-      isString(entry.coordinationId)
-        ? entry.coordinationId
-        : isString(legacyCoordinationId)
-          ? legacyCoordinationId
-          : null;
+    const coordinationIdRaw = isString(entry.coordinationId)
+      ? entry.coordinationId
+      : isString(legacyCoordinationId)
+        ? legacyCoordinationId
+        : null;
 
-    const coordinationNameRaw =
-      isString(entry.coordinationName)
-        ? entry.coordinationName
-        : isString(legacyCoordinationName)
-          ? legacyCoordinationName
-          : null;
+    const coordinationNameRaw = isString(entry.coordinationName)
+      ? entry.coordinationName
+      : isString(legacyCoordinationName)
+        ? legacyCoordinationName
+        : null;
 
     const coordinationId = coordinationIdRaw;
     const coordinationName = coordinationNameRaw;
@@ -238,7 +242,7 @@ const migrateV2ToV3 = (
 };
 
 const parseV3Terminals = (
-  record: Record<string, unknown>,
+  record: ParsedRecord,
   registryPath: string,
 ): Map<string, PersistedTerminal> => {
   const rawTerminals = record.terminals;
@@ -250,28 +254,27 @@ const parseV3Terminals = (
   const terminals = new Map<string, PersistedTerminal>();
 
   for (const item of rawTerminals) {
-    if (item === null || !isObjectValue(item)) {
+    const entry = asRecord(item);
+
+    if (!entry) {
       throw new Error(`Invalid terminal entry in registry (${registryPath}).`);
     }
 
-    const entry = item as Record<string, unknown>;
     const terminalId = isString(entry.terminalId) ? entry.terminalId : null;
     const legacyCoordinationId = entry[LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY];
     const legacyCoordinationName = entry[LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY];
 
-    const coordinationId =
-      isString(entry.coordinationId)
-        ? entry.coordinationId
-        : isString(legacyCoordinationId)
-          ? legacyCoordinationId
-          : null;
+    const coordinationId = isString(entry.coordinationId)
+      ? entry.coordinationId
+      : isString(legacyCoordinationId)
+        ? legacyCoordinationId
+        : null;
 
-    const coordinationName =
-      isString(entry.coordinationName)
-        ? entry.coordinationName
-        : isString(legacyCoordinationName)
-          ? legacyCoordinationName
-          : null;
+    const coordinationName = isString(entry.coordinationName)
+      ? entry.coordinationName
+      : isString(legacyCoordinationName)
+        ? legacyCoordinationName
+        : null;
 
     const createdAt = isString(entry.createdAt) ? entry.createdAt : null;
 
@@ -303,8 +306,7 @@ const parseV3Terminals = (
 
     if (isString(entry.worktreeId)) terminal.worktreeId = entry.worktreeId;
 
-    if (isString(entry.parentTerminalId))
-      terminal.parentTerminalId = entry.parentTerminalId;
+    if (isString(entry.parentTerminalId)) terminal.parentTerminalId = entry.parentTerminalId;
 
     if (isTerminalAgentProvider(entry.agentProvider)) terminal.agentProvider = entry.agentProvider;
 
@@ -332,11 +334,7 @@ const parseV3Terminals = (
       terminal.lifecycleUpdatedAt = entry.lifecycleUpdatedAt;
     }
 
-    if (
-      isNumber(entry.processId) &&
-      Number.isInteger(entry.processId) &&
-      entry.processId > 0
-    ) {
+    if (isNumber(entry.processId) && Number.isInteger(entry.processId) && entry.processId > 0) {
       terminal.processId = entry.processId;
     }
 
@@ -361,13 +359,7 @@ const parseV3Terminals = (
   return terminals;
 };
 
-const parseRegistryDocument = (
-  raw: string,
-  registryPath: string,
-): {
-  terminals: Map<string, PersistedTerminal>;
-  uiState: PersistedUiState;
-} => {
+const parseRegistryDocument = (raw: string, registryPath: string): TerminalRegistryState => {
   let parsed: unknown;
 
   try {
@@ -376,11 +368,12 @@ const parseRegistryDocument = (
     throw new Error(`Invalid terminal registry JSON (${registryPath}): ${toErrorMessage(error)}`);
   }
 
-  if (parsed === null || !isObjectValue(parsed)) {
+  const record = asRecord(parsed);
+
+  if (!record) {
     throw new Error(`Invalid terminal registry shape (${registryPath}).`);
   }
 
-  const record = parsed as Record<string, unknown>;
   const version = record.version;
 
   if (version !== 1 && version !== 2 && version !== TERMINAL_REGISTRY_VERSION) {
@@ -394,15 +387,20 @@ const parseRegistryDocument = (
 
   return {
     terminals,
-    uiState: pruneUiStateTerminalReferences(parsePersistedUiState(record.uiState), terminals),
+    uiState: pruneUiStateTerminalReferences(
+      parsePersistedUiState(record.uiState ?? null),
+      terminals,
+    ),
   };
 };
 
-export const loadTerminalRegistry = (registryPath: string) => {
+export const loadTerminalRegistry = (registryPath: string): TerminalRegistryState => {
   if (!existsSync(registryPath)) {
+    const uiState: PersistedUiState = {};
+
     return {
       terminals: new Map<string, PersistedTerminal>(),
-      uiState: {} as PersistedUiState,
+      uiState,
     };
   }
 

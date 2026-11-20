@@ -1,4 +1,5 @@
-import { isObjectValue, isString, type ParsedRecord } from "@adadex/core";
+import { asRecord, isString, type ParsedRecord } from "@adadex/core";
+
 import type { ApiRouteHandler } from "./routeHelpers";
 import { readJsonBodyOrWriteError, writeJson, writeMethodNotAllowed } from "./routeHelpers";
 
@@ -19,11 +20,7 @@ export const handleCodeIntelEventsRoute: ApiRouteHandler = async (
     const payload = body.payload as ParsedRecord | null;
     const toolName = payload && isString(payload.tool_name) ? payload.tool_name : "";
 
-    const toolInput =
-      payload && isObjectValue(payload.tool_input) && payload.tool_input !== null
-        ? // SAFETY: an object-valued ParsedValue member is a parsed record at runtime.
-          (payload.tool_input as ParsedRecord)
-        : {};
+    const toolInput = payload ? (asRecord(payload.tool_input) ?? {}) : {};
 
     const filePath = isString(toolInput.file_path) ? toolInput.file_path : "";
 

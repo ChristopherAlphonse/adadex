@@ -51,8 +51,8 @@ export const normalizeFrontendUiStateSnapshot = (
   const minimizedIdsValue = record.minimizedTerminalIds;
 
   if (Array.isArray(minimizedIdsValue)) {
-    nextState.minimizedTerminalIds = [...new Set(minimizedIdsValue)].filter(
-      (id): id is string => isString(id),
+    nextState.minimizedTerminalIds = [...new Set(minimizedIdsValue)].filter((id): id is string =>
+      isString(id),
     );
   }
 
@@ -72,8 +72,8 @@ export const normalizeFrontendUiStateSnapshot = (
   }
 
   if (Array.isArray(record.canvasOpenTerminalIds)) {
-    nextState.canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter(
-      (id): id is string => isString(id),
+    nextState.canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter((id): id is string =>
+      isString(id),
     );
   }
 

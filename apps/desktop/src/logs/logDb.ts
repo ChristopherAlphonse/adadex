@@ -3,6 +3,8 @@ import { chmodSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { asRecord, isNumber, isString, type ParsedValue } from "@adadex/core";
+
 export const GENESIS = "0".repeat(64);
 
 const SCHEMA_VERSION = 2;
@@ -31,18 +33,35 @@ export interface AuditRow extends AuditBody {
   readonly keyId?: string | undefined;
 }
 
+type MutableAuditBody = { -readonly [K in keyof AuditBody]: AuditBody[K] };
+
+type MutableAuditRow = { -readonly [K in keyof AuditRow]: AuditRow[K] };
+
 /** The body in one fixed key order, nothing undefined, so a line hashes the same when it is written and when it is checked. */
-const canonical = (b: AuditBody): AuditBody => ({
-  ts: b.ts,
-  actor: b.actor,
-  action: b.action,
-  jobId: b.jobId,
-  detail: b.detail,
-  ...(b.role === undefined ? {} : { role: b.role }),
-  ...(b.runId === undefined ? {} : { runId: b.runId }),
-  ...(b.data === undefined ? {} : { data: b.data }),
-  state: b.state,
-});
+const canonical = (b: AuditBody): AuditBody => {
+  const out: MutableAuditBody = {
+    ts: b.ts,
+    actor: b.actor,
+    action: b.action,
+    jobId: b.jobId,
+    detail: b.detail,
+    role: undefined,
+    runId: undefined,
+    data: undefined,
+    state: b.state,
+  };
+
+  if (b.role === undefined) delete out.role;
+  else out.role = b.role;
+
+  if (b.runId === undefined) delete out.runId;
+  else out.runId = b.runId;
+
+  if (b.data === undefined) delete out.data;
+  else out.data = b.data;
+
+  return out;
+};
 
 export const lineHash = (prev: string, body: AuditBody): string =>
   sha256(prev + JSON.stringify(canonical(body)));
@@ -101,22 +120,77 @@ interface RawRow {
   key_id: string | null;
 }
 
-const toRow = (r: RawRow): AuditRow => ({
-  seq: r.seq,
-  ts: r.ts,
-  actor: r.actor,
-  action: r.action,
-  jobId: r.job_id,
-  detail: r.detail,
-  ...(r.role === null ? {} : { role: r.role }),
-  ...(r.run_id === null ? {} : { runId: r.run_id }),
-  ...(r.data === null ? {} : { data: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(r.data) as Record<string, string | number> }),
-  state: r.state,
-  prev: r.prev,
-  hash: r.hash,
-  ...(r.sig === null ? {} : { sig: r.sig }),
-  ...(r.key_id === null ? {} : { keyId: r.key_id }),
-});
+const nullableText = (v: ParsedValue | undefined): v is string | null => v === null || isString(v);
+
+const isRawRow = <T>(value: T): value is T & RawRow => {
+  // SAFETY: SQLite returns plain row objects; the checks below establish the RawRow shape before use.
+  const r = asRecord(value);
+
+  return (
+    r !== null &&
+    isNumber(r.seq) &&
+    isString(r.ts) &&
+    isString(r.actor) &&
+    isString(r.action) &&
+    isString(r.job_id) &&
+    isString(r.detail) &&
+    nullableText(r.role) &&
+    nullableText(r.run_id) &&
+    nullableText(r.data) &&
+    isString(r.state) &&
+    isString(r.prev) &&
+    isString(r.hash) &&
+    nullableText(r.sig) &&
+    nullableText(r.key_id)
+  );
+};
+
+const toRow = (r: RawRow): AuditRow => {
+  // SAFETY: the placeholders keep SQLite column order stable; missing columns are deleted below.
+  const out: Omit<AuditRow, "role" | "runId" | "data" | "sig" | "keyId"> & {
+    role?: string | undefined;
+    runId?: string | undefined;
+    data?: Readonly<Record<string, string | number>> | undefined;
+    sig?: string | undefined;
+    keyId?: string | undefined;
+  } = {
+    seq: r.seq,
+    ts: r.ts,
+    actor: r.actor,
+    action: r.action,
+    jobId: r.job_id,
+    detail: r.detail,
+    role: undefined,
+    runId: undefined,
+    data: undefined,
+    state: r.state,
+    prev: r.prev,
+    hash: r.hash,
+    sig: undefined,
+    keyId: undefined,
+  };
+
+  if (r.role === null) delete out.role;
+  else out.role = r.role;
+
+  if (r.run_id === null) delete out.runId;
+  else out.runId = r.run_id;
+
+  if (r.data === null) {
+    delete out.data;
+  } else {
+    // SAFETY: appendAudit stores only JSON.stringify of AuditBody.data in this column.
+    out.data = JSON.parse(r.data) as Record<string, string | number>;
+  }
+
+  if (r.sig === null) delete out.sig;
+  else out.sig = r.sig;
+
+  if (r.key_id === null) delete out.keyId;
+  else out.keyId = r.key_id;
+
+  return out;
+};
 
 /**
  * Open (or create) the machine's local log database. It holds the audit chain and the operational events in
@@ -127,7 +201,8 @@ export const openLogDb = (path: string): LogDb => {
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;");
 
-  const version = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ db.prepare("PRAGMA user_version").get() as { user_version: number })
+  // SAFETY: SQLite always returns one row for PRAGMA user_version with a numeric column.
+  const version = (db.prepare("PRAGMA user_version").get() as { user_version: number })
     .user_version;
 
   if (version > SCHEMA_VERSION)
@@ -162,8 +237,9 @@ export const openLogDb = (path: string): LogDb => {
       db.exec("BEGIN IMMEDIATE");
 
       try {
+        // SAFETY: the last-row query selects only the hash column; no row means this is the chain's first line.
         const prev =
-          (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ last.get(project, body.jobId) as { hash: string } | undefined)?.hash ?? GENESIS;
+          (last.get(project, body.jobId) as { hash: string } | undefined)?.hash ?? GENESIS;
 
         const hash = lineHash(prev, body);
         const sig = signer?.sign(hash) ?? null;
@@ -187,19 +263,32 @@ export const openLogDb = (path: string): LogDb => {
 
         db.exec("COMMIT");
 
-        return {
+        const row: MutableAuditRow = {
           ...canonical(body),
           seq: Number(res.lastInsertRowid),
           prev,
           hash,
-          ...(sig === null ? {} : { sig, keyId: signer?.keyId }),
         };
+
+        if (sig !== null) {
+          // SAFETY: a signature is only produced together with the key that made it.
+          row.sig = sig;
+          row.keyId = signer?.keyId;
+        }
+
+        return row;
       } catch (e) {
         db.exec("ROLLBACK");
         throw e;
       }
     },
-    auditRows: (project, jobId) => (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ rows.all(project, jobId) as unknown as RawRow[]).map(toRow),
+    auditRows: (project, jobId) => {
+      const found = rows.all(project, jobId);
+
+      if (!found.every(isRawRow)) throw new Error("the audit database contains a malformed row");
+
+      return found.map(toRow);
+    },
     close: () => db.close(),
   };
 };

@@ -4,6 +4,7 @@ import {
   type AgentProvider,
   createActionRegistry,
   FACTORY_ACTIONS,
+  type ParsedValue,
   runAgent,
 } from "@adadex/core";
 import { describe, expect, it } from "vitest";
@@ -11,7 +12,7 @@ import { describe, expect, it } from "vitest";
 import { createActionHost, type HostEvent } from "../src/host/actionHost";
 
 const setup = (opts: { confirm?: boolean; approve?: boolean } = {}) => {
-  const ran: { id: string; input: unknown }[] = [];
+  const ran: { id: string; input: ParsedValue }[] = [];
   const events: HostEvent[] = [];
   const confirmed: string[] = [];
 
@@ -106,7 +107,7 @@ describe("agent calls through the host", () => {
     };
   };
 
-  const call = (callId: string, actionId: string, input: unknown): AgentEvent => ({
+  const call = (callId: string, actionId: string, input: ParsedValue): AgentEvent => ({
     type: "action",
     callId,
     actionId,

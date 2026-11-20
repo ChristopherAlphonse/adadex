@@ -96,13 +96,20 @@ class FakeWebSocketServer {
   );
 }
 
+// SAFETY: the runtime only calls handleUpgrade on the server; the fake supplies that
+// method, so the intersection describes the surface the unit under test actually uses.
+const asRuntimeWebSocketServer = (fake: FakeWebSocketServer): import("ws").WebSocketServer =>
+  fake as FakeWebSocketServer & import("ws").WebSocketServer;
+
+// SAFETY: upgrade handling reads only the request URL before handing off to the fake server.
 const createUpgradeRequest = (coordinationId: string) =>
-  /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ({
+  ({
     url: `/api/terminals/${coordinationId}/ws`,
   }) as IncomingMessage;
 
+// SAFETY: sentMessages are JSON-serialized TerminalServerMessage values from the fake socket.
 const parseSentMessages = (socket: FakeWebSocket) =>
-  socket.sentMessages.map((raw) => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(raw) as { type: string; data?: string });
+  socket.sentMessages.map((raw) => JSON.parse(raw) as { type: string; data?: string });
 
 describe("createSessionRuntime", () => {
   const temporaryDirectories: string[] = [];
@@ -153,7 +160,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -167,7 +174,11 @@ describe("createSessionRuntime", () => {
     const firstSocket = new FakeWebSocket();
     websocketServer.nextSocket = firstSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
 
     pty.emitData("first line\r\n");
@@ -178,7 +189,11 @@ describe("createSessionRuntime", () => {
     const secondSocket = new FakeWebSocket();
     websocketServer.nextSocket = secondSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
 
     const secondMessages = parseSentMessages(secondSocket);
@@ -217,7 +232,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -231,7 +246,11 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
     socket.close();
 
@@ -269,7 +288,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -320,7 +339,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -369,7 +388,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -418,7 +437,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -471,7 +490,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(firstPty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -516,7 +535,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -530,7 +549,11 @@ describe("createSessionRuntime", () => {
     const firstSocket = new FakeWebSocket();
     websocketServer.nextSocket = firstSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
     pty.emitData("123456789012");
     firstSocket.close();
@@ -538,7 +561,11 @@ describe("createSessionRuntime", () => {
     const secondSocket = new FakeWebSocket();
     websocketServer.nextSocket = secondSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
 
     const secondMessages = parseSentMessages(secondSocket);
@@ -573,7 +600,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -587,7 +614,11 @@ describe("createSessionRuntime", () => {
     const firstSocket = new FakeWebSocket();
     websocketServer.nextSocket = firstSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
     pty.emitData("\u001b[48;2;55;55;55mHELLO\r\n");
     firstSocket.close();
@@ -595,7 +626,11 @@ describe("createSessionRuntime", () => {
     const secondSocket = new FakeWebSocket();
     websocketServer.nextSocket = secondSocket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
 
     const secondMessages = parseSentMessages(secondSocket);
@@ -630,7 +665,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -644,7 +679,11 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
 
     socket.emit("message", JSON.stringify({ type: "resize", cols: 120, rows: 35 }));
@@ -680,7 +719,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -694,7 +733,11 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
 
     socket.emit("message", JSON.stringify({ type: "input", data: "echo hi\r" }));
@@ -716,7 +759,10 @@ describe("createSessionRuntime", () => {
             .split(/\r?\n/)
             .map((line) => line.trim())
             .filter((line) => line.length > 0)
-            .map((line) => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(line) as { type: string; text?: string; reason?: string });
+            .map(
+              // SAFETY: transcript lines are JSON events written by the session runtime.
+              (line) => JSON.parse(line) as { type: string; text?: string; reason?: string },
+            );
 
           if (transcriptEvents.some((event) => event.type === "session_start")) {
             break;
@@ -763,7 +809,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -819,7 +865,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -833,7 +879,11 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
 
     expect(pty.write).toHaveBeenNthCalledWith(1, "claude\r");
@@ -871,7 +921,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -886,7 +936,11 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
 
     socket.emit("message", JSON.stringify({ type: "input", data: "echo hi\r" }));
@@ -922,7 +976,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -938,7 +992,11 @@ describe("createSessionRuntime", () => {
     const socket = new FakeWebSocket();
     websocketServer.nextSocket = socket;
     expect(
-      runtime.handleUpgrade(createUpgradeRequest(coordinationId), /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {} as Duplex, Buffer.alloc(0)),
+      runtime.handleUpgrade(
+        createUpgradeRequest(coordinationId),
+        /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+        Buffer.alloc(0),
+      ),
     ).toBe(true);
 
     expect(onSessionStart).toHaveBeenCalledWith(
@@ -992,7 +1050,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),
@@ -1045,7 +1103,7 @@ describe("createSessionRuntime", () => {
     spawnMock.mockReturnValue(pty);
 
     const runtime = createSessionRuntime({
-      websocketServer: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ websocketServer as unknown as import("ws").WebSocketServer,
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
       terminals,
       sessions,
       getOrchestrationWorkspaceCwd: () => process.cwd(),

@@ -305,11 +305,13 @@ export const useConversationsRuntime = ({
 
         const payload = asRecord(await response.json());
         const rawHits = payload?.hits;
+
         const hits = Array.isArray(rawHits)
           ? rawHits
               .map((hit) => normalizeConversationSearchHit(hit))
               .filter((hit): hit is ConversationSearchHit => hit !== null)
           : [];
+
         setSearchHits(hits);
         setHighlightedTurnId(null);
       } catch (error) {

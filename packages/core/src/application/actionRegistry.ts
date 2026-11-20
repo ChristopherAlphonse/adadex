@@ -1,5 +1,5 @@
-import type { ParsedValue } from "../util/typeCoercion";
 import type { ActionContext, ActionDef, AuthorizeResult } from "../domain/action";
+import type { ParsedValue } from "../util/typeCoercion";
 
 export interface ActionRegistry {
   has(id: string): boolean;

@@ -87,7 +87,7 @@ apiServer
   .then(({ port: activePort }) => {
     console.log(`Adadex API listening on http://${host}:${activePort}`);
   })
-  .catch((error: unknown) => {
-    console.error(error);
+  .catch((cause) => {
+    console.error(cause);
     process.exit(1);
   });

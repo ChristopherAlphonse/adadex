@@ -1,8 +1,8 @@
-import { asRecord, isString } from "../util/typeCoercion";
 import type { ActionContext, AuthorizeResult } from "../domain/action";
 import type { PolicyRules } from "../domain/policy";
-import type { ActionInput } from "../ports/ActionPorts";
 import type { RoleDefinition } from "../domain/role";
+import type { ActionInput } from "../ports/ActionPorts";
+import { asRecord, isString } from "../util/typeCoercion";
 import { type ActionRegistry, authorize } from "./actionRegistry";
 
 const deny = (reason: string): AuthorizeResult => ({ kind: "deny", reason });
@@ -22,6 +22,7 @@ export const authorizeForRole = (
   if (!role.actions.includes(actionId)) return deny(`role ${role.id} may not run ${actionId}`);
 
   const preApproved = approved || (role.autoApprove?.includes(actionId) ?? false);
+
   const ctx: ActionContext = preApproved
     ? { caller: "agent", approvedActionId: actionId }
     : { caller: "agent" };

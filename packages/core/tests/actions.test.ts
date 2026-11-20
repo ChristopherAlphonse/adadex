@@ -1,10 +1,10 @@
-import { isString } from "../src/util/typeCoercion";
 import { describe, expect, it } from "vitest";
 
 import { authorize, createActionRegistry } from "../src/application/actionRegistry";
 import { type ActionDef, FACTORY_ACTIONS } from "../src/domain/action";
+import { isString, type ParsedValue } from "../src/util/typeCoercion";
 
-const parseText = (input: unknown): string => {
+const parseText = (input: ParsedValue): string => {
   if (!isString(input) || input === "") throw new Error("expected a non-empty string");
 
   return input;

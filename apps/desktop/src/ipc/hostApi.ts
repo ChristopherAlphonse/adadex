@@ -33,15 +33,16 @@ export interface HostApiDeps {
   readonly roundLimit: number;
 }
 
-const ok = (data: unknown): HostResponse => ({ ok: true, data });
+const ok = <T>(data: T): HostResponse => ({ ok: true, data });
 
 const fail = (...errors: string[]): HostResponse => ({ ok: false, errors });
 
-const message = (e: unknown): string => (e instanceof Error ? e.message : "request failed");
+const message = (cause: unknown): string =>
+  cause instanceof Error ? cause.message : "request failed";
 
 export interface HostApi {
   /** Takes whatever the UI sent. Never throws. */
-  handle(raw: unknown): Promise<HostResponse>;
+  handle(raw: ParsedValue): Promise<HostResponse>;
 }
 
 /** The one entry point the Electron main process forwards UI requests to. */

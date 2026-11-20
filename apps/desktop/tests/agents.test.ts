@@ -5,11 +5,20 @@ import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { PassThrough } from "node:stream";
 
-import { createActionRegistry, FACTORY_ACTIONS, runAgent } from "@adadex/core";
+import {
+  asRecord,
+  createActionRegistry,
+  FACTORY_ACTIONS,
+  isBoolean,
+  isNumber,
+  isString,
+  type ParsedValue,
+  runAgent,
+} from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createAsyncQueue } from "../src/agents/asyncQueue";
-import { startBridgeHost } from "../src/agents/bridgeHost";
+import { type BridgeCall, startBridgeHost } from "../src/agents/bridgeHost";
 import {
   ADADEX_TOOL,
   type AgentChild,
@@ -32,16 +41,84 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
+interface RpcTextContent {
+  readonly text: string;
+}
+
+interface RpcTool {
+  readonly name: string;
+}
+
+interface RpcServerInfo {
+  readonly name: string;
+}
+
+interface RpcError {
+  readonly code: number;
+}
+
+interface RpcResult {
+  readonly isError?: boolean;
+  readonly content?: readonly RpcTextContent[];
+  readonly serverInfo?: RpcServerInfo;
+  readonly tools?: readonly RpcTool[];
+}
+
+interface RpcReply {
+  readonly id: number;
+  readonly result?: RpcResult;
+  readonly error?: RpcError;
+}
+
+/** Validates one JSON-RPC reply line from the bridge before a test reads any field. */
+const isRpcReply = <T>(value: T): value is T & RpcReply => {
+  const reply = asRecord(value);
+
+  if (reply === null || !isNumber(reply.id)) return false;
+
+  const result = asRecord(reply.result);
+
+  if (reply.result !== undefined && result === null) return false;
+
+  if (result !== null) {
+    if (result.isError !== undefined && !isBoolean(result.isError)) return false;
+
+    if (result.content !== undefined) {
+      if (!Array.isArray(result.content)) return false;
+
+      if (!result.content.every((item) => isString(asRecord(item)?.text))) return false;
+    }
+
+    if (result.serverInfo !== undefined && !isString(asRecord(result.serverInfo)?.name))
+      return false;
+
+    if (result.tools !== undefined) {
+      if (!Array.isArray(result.tools)) return false;
+
+      if (!result.tools.every((item) => isString(asRecord(item)?.name))) return false;
+    }
+  }
+
+  if (reply.error !== undefined && !isNumber(asRecord(reply.error)?.code)) return false;
+
+  return true;
+};
+
 /** Speaks MCP to a bridge process the way Claude Code would. */
 const mcpClient = (child: ChildProcess) => {
-  const waiting = new Map<number, (r: Record<string, unknown>) => void>();
-  createInterface({ input: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ child.stdout as NodeJS.ReadableStream }).on("line", (line) => {
-    const r = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(line) as { id: number };
-    waiting.get(r.id)?.(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ r as unknown as Record<string, unknown>);
+  const waiting = new Map<number, (reply: RpcReply) => void>();
+
+  // SAFETY: the bridge is spawned with piped stdio, so stdout is a readable stream.
+  createInterface({ input: child.stdout as NodeJS.ReadableStream }).on("line", (line) => {
+    // SAFETY: the bridge writes exactly one JSON-RPC reply per line.
+    const raw = JSON.parse(line) as ParsedValue;
+
+    if (isRpcReply(raw)) waiting.get(raw.id)?.(raw);
   });
+
   let id = 0;
 
-  return (method: string, params: unknown = {}): Promise<Record<string, unknown>> =>
+  return (method: string, params: ParsedValue = {}): Promise<RpcReply> =>
     new Promise((resolve) => {
       const n = ++id;
       waiting.set(n, resolve);
@@ -89,7 +166,7 @@ describe("reading Claude Code output", () => {
 
 describe("mcp bridge", () => {
   it("answers the MCP handshake, lists one tool, and forwards a call to the app and back", async () => {
-    const calls: unknown[] = [];
+    const calls: BridgeCall[] = [];
     const host = await startBridgeHost(join(dir, "b.sock"), (c) => calls.push(c));
 
     const bridge = spawn(process.execPath, [BRIDGE, join(dir, "b.sock")], {
@@ -99,13 +176,13 @@ describe("mcp bridge", () => {
     const rpc = mcpClient(bridge);
 
     try {
-      const init = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("initialize", { protocolVersion: "2025-06-18" })) as {
-        result: { serverInfo: { name: string } };
-      };
+      const init = await rpc("initialize", { protocolVersion: "2025-06-18" });
 
-      expect(init.result.serverInfo.name).toBe("adadex");
-      const list = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/list")) as { result: { tools: { name: string }[] } };
-      expect(list.result.tools.map((t) => t.name)).toEqual(["adadex_action"]);
+      expect(init.result?.serverInfo?.name).toBe("adadex");
+
+      const list = await rpc("tools/list");
+
+      expect(list.result?.tools?.map((t) => t.name)).toEqual(["adadex_action"]);
 
       const answer = rpc("tools/call", {
         name: "adadex_action",
@@ -113,11 +190,19 @@ describe("mcp bridge", () => {
       });
 
       while (calls.length === 0) await new Promise((r) => setTimeout(r, 5));
-      expect(calls[0]).toMatchObject({ actionId: "job.advance", input: { id: "j1", to: "spec" } });
-      host.reply((/* SAFETY: preceding checks establish the invariant this assertion encodes. */ calls[0] as { callId: string }).callId, '{"status":"ok"}', false);
-      const res = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await answer) as { result: { content: { text: string }[]; isError: boolean } };
-      expect(res.result.content[0]?.text).toBe('{"status":"ok"}');
-      expect(res.result.isError).toBe(false);
+
+      const forwarded = calls[0];
+
+      expect(forwarded).toMatchObject({ actionId: "job.advance", input: { id: "j1", to: "spec" } });
+
+      if (forwarded === undefined) throw new Error("the bridge never forwarded the call");
+
+      host.reply(forwarded.callId, '{"status":"ok"}', false);
+
+      const res = await answer;
+
+      expect(res.result?.content?.[0]?.text).toBe('{"status":"ok"}');
+      expect(res.result?.isError).toBe(false);
     } finally {
       bridge.kill();
       await host.close();
@@ -134,13 +219,13 @@ describe("mcp bridge", () => {
     const rpc = mcpClient(bridge);
 
     try {
-      const bad = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/call", { name: "adadex_action", arguments: {} })) as {
-        result: { isError: boolean };
-      };
+      const bad = await rpc("tools/call", { name: "adadex_action", arguments: {} });
 
-      expect(bad.result.isError).toBe(true);
-      const unknown = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("nope")) as { error: { code: number } };
-      expect(unknown.error.code).toBe(-32601);
+      expect(bad.result?.isError).toBe(true);
+
+      const unknown = await rpc("nope");
+
+      expect(unknown.error?.code).toBe(-32601);
     } finally {
       bridge.kill();
       await host.close();
@@ -196,7 +281,8 @@ describe("claude code provider", () => {
     expect(args.slice(-2)).toEqual(["--settings", "guard.json"]);
 
     const cfg = JSON.parse(
-      await readFile(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ args[args.indexOf("--mcp-config") + 1] as string, "utf8"),
+      // SAFETY: the provider always writes a path immediately after --mcp-config.
+      await readFile(args[args.indexOf("--mcp-config") + 1] as string, "utf8"),
     );
 
     expect(cfg.mcpServers.adadex.args[0]).toBe(BRIDGE);
@@ -219,7 +305,7 @@ describe("claude code provider", () => {
     const session = await provider.start({ goal: "g", contextFiles: [] });
     await session.stop();
     expect(f.wasKilled()).toBe(true);
-    await expect(readFile(join(dir, "run", "mcp.json"))).rejects.toThrow();
+    await expect(readFile(join(dir, "run", "mcp.json"))).rejects.toThrow("ENOENT");
   });
 });
 
@@ -246,7 +332,7 @@ describe("the whole chain: agent, bridge, host, registry", () => {
       emit: (e) => events.push(e.type),
     });
 
-    let client: ((m: string, p?: unknown) => Promise<Record<string, unknown>>) | undefined;
+    let client: ((m: string, p?: ParsedValue) => Promise<RpcReply>) | undefined;
     let bridge: ChildProcess | undefined;
     const f = fakeChild();
 
@@ -256,9 +342,11 @@ describe("the whole chain: agent, bridge, host, registry", () => {
       cwd: dir,
       tempDir: async () => join(dir, "chain"),
       spawn: (_c, args) => {
-        const cfgPath = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ args[args.indexOf("--mcp-config") + 1] as string;
+        // SAFETY: the provider always passes a path after --mcp-config.
+        const cfgPath = args[args.indexOf("--mcp-config") + 1] as string;
         void readFile(cfgPath, "utf8").then((text) => {
-          const server = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(text).mcpServers.adadex as { command: string; args: string[] };
+          // SAFETY: the provider writes the bridge config with this command and args shape.
+          const server = JSON.parse(text).mcpServers.adadex as { command: string; args: string[] };
           bridge = spawn(server.command, server.args, { stdio: ["pipe", "pipe", "ignore"] });
           client = mcpClient(bridge);
         });
@@ -279,8 +367,15 @@ describe("the whole chain: agent, bridge, host, registry", () => {
     };
   };
 
-  const ready = async (get: () => unknown) => {
-    while (!get()) await new Promise((r) => setTimeout(r, 5));
+  const ready = async (
+    get: () => ((m: string, p?: ParsedValue) => Promise<RpcReply>) | undefined,
+  ) => {
+    for (;;) {
+      const found = get();
+
+      if (found !== undefined) return found;
+      await new Promise((r) => setTimeout(r, 5));
+    }
   };
 
   it("runs a free action for the agent but never a human-only one, and never shows a dialog", async () => {
@@ -293,32 +388,31 @@ describe("the whole chain: agent, bridge, host, registry", () => {
       { goal: "g", contextFiles: [] },
     );
 
-    await ready(c.getClient);
-    const rpc = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ c.getClient() as NonNullable<ReturnType<typeof c.getClient>>;
+    const rpc = await ready(c.getClient);
     await rpc("initialize", {});
 
-    const advance = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/call", {
+    const advance = await rpc("tools/call", {
       name: "adadex_action",
       arguments: { actionId: "job.advance", input: { id: "j1", to: "spec" } },
-    })) as { result: { isError: boolean; content: { text: string }[] } };
+    });
 
-    expect(advance.result.isError).toBe(false);
-    expect(JSON.parse(advance.result.content[0]?.text ?? "{}").status).toBe("ok");
+    expect(advance.result?.isError).toBe(false);
+    expect(JSON.parse(advance.result?.content?.[0]?.text ?? "{}").status).toBe("ok");
 
-    const commit = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/call", {
+    const commit = await rpc("tools/call", {
       name: "adadex_action",
       arguments: { actionId: "job.commit_local", input: { id: "j1" } },
-    })) as { result: { isError: boolean; content: { text: string }[] } };
+    });
 
-    expect(commit.result.isError).toBe(true);
-    expect(JSON.parse(commit.result.content[0]?.text ?? "{}").status).toBe("needs-human-click");
+    expect(commit.result?.isError).toBe(true);
+    expect(JSON.parse(commit.result?.content?.[0]?.text ?? "{}").status).toBe("needs-human-click");
 
-    const push = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await rpc("tools/call", {
+    const push = await rpc("tools/call", {
       name: "adadex_action",
       arguments: { actionId: "git.push", input: {} },
-    })) as { result: { isError: boolean } };
+    });
 
-    expect(push.result.isError).toBe(true);
+    expect(push.result?.isError).toBe(true);
 
     c.stdout.write(`${JSON.stringify({ type: "result", result: "finished" })}\n`);
     const result = await run;

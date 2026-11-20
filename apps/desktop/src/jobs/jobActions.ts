@@ -2,7 +2,11 @@ import {
   type ActionExecutor,
   advanceJob,
   approve,
+  asRecord,
+  asString,
   NEEDS_HUMAN,
+  type ParsedRecord,
+  type ParsedValue,
   type WorkflowJob,
 } from "@adadex/core";
 
@@ -26,8 +30,11 @@ export interface JobActionDeps {
   readonly roundLimit?: number;
 }
 
-const field = (input: unknown, key: string): string =>
-  String((/* SAFETY: preceding checks establish the invariant this assertion encodes. */ input as Record<string, unknown>)[key]);
+const field = (input: ParsedValue, key: string): string => {
+  const record = asRecord(input);
+
+  return record === null ? "" : (asString(record[key]) ?? "");
+};
 
 /** Executors for the job actions. Input is already validated by the action's own parser. */
 export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
@@ -45,7 +52,14 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
     if (actionId === "job.run_gate") {
       if (!deps.gate) throw new Error("no executor for job.run_gate");
 
-      return runGate({ ...deps.gate, store, workflows: deps.workflows, actor }, job.id);
+      const gate = await runGate({ ...deps.gate, store, workflows: deps.workflows, actor }, job.id);
+
+      const output: ParsedRecord = {};
+      output.gate = gate.gate;
+
+      if (gate.reason !== undefined) output.reason = gate.reason;
+
+      return output;
     }
 
     if (actionId === "job.advance") {

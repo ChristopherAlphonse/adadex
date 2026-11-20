@@ -105,10 +105,7 @@ const resolveProjectStateDir = (workspaceCwd) => {
     try {
       const projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
 
-      if (
-        isStringValue(projectConfig.projectId) &&
-        projectConfig.projectId.trim().length > 0
-      ) {
+      if (isStringValue(projectConfig.projectId) && projectConfig.projectId.trim().length > 0) {
         return join(homedir(), ".adadex", "projects", projectConfig.projectId);
       }
     } catch {

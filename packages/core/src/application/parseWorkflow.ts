@@ -1,20 +1,32 @@
-import { isBoolean, isNumber, isObjectValue, isString } from "../util/typeCoercion";
 import { EFFECT_NAMES, NEEDS_HUMAN, type WorkflowDefinition } from "../domain/workflow";
+import {
+  isBoolean,
+  isNumber,
+  isParsedRecord,
+  isString,
+  type ParsedRecord,
+  type ParsedValue,
+} from "../util/typeCoercion";
 
 export type ParseWorkflowResult =
   | { readonly ok: true; readonly workflow: WorkflowDefinition }
   | { readonly ok: false; readonly errors: readonly string[] };
 
-type Obj = Record<string, unknown>;
+type Obj = ParsedRecord;
+
+/** Expected shape of one field: string, boolean, string-or-list, number, or effect name. */
+type FieldKind = "s" | "b" | "e" | "n" | "name";
+
+type FieldSpec = Readonly<Record<string, FieldKind>>;
 
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 
-const isObj = (v: unknown): v is Obj => isObjectValue(v) && v !== null && !Array.isArray(v);
+const isObj = <T>(v: T): v is T & ParsedRecord => isParsedRecord(v);
 
-const str = (v: unknown): v is string => isString(v) && v !== "";
+const str = (v: ParsedValue | undefined): v is string => isString(v) && v !== "";
 
 /** Required fields per condition kind. `s` is a string, `b` a boolean, `e` a string or list of strings. */
-const CONDITIONS: Readonly<Record<string, Readonly<Record<string, "s" | "b" | "e">>>> = {
+const CONDITIONS = {
   "doc-exists": { doc: "s" },
   "doc-field": { doc: "s", field: "s", equals: "e" },
   "doc-field-number": { doc: "s", field: "s" },
@@ -27,19 +39,24 @@ const CONDITIONS: Readonly<Record<string, Readonly<Record<string, "s" | "b" | "e
   "approval-current": { what: "s" },
   committed: {},
   flag: { name: "s", is: "b" },
-};
+} satisfies Readonly<Record<string, FieldSpec>>;
 
-const EFFECTS: Readonly<Record<string, Readonly<Record<string, "s" | "b" | "n" | "name">>>> = {
+const EFFECTS = {
   "bump-round": {},
   "set-round": { value: "n" },
   "set-flag": { name: "s", value: "b" },
   emit: { name: "name" },
-};
+} satisfies Readonly<Record<string, FieldSpec>>;
+
+const specFor = (
+  specs: Readonly<Record<string, FieldSpec>>,
+  kind: ParsedValue | undefined,
+): FieldSpec | undefined => (isString(kind) ? specs[kind] : undefined);
 
 const checkFields = (
   where: string,
   kind: string,
-  spec: Readonly<Record<string, string>>,
+  spec: FieldSpec,
   value: Obj,
   errors: string[],
 ): void => {
@@ -54,12 +71,12 @@ const checkFields = (
           : type === "n"
             ? isNumber(v) && Number.isInteger(v)
             : type === "name"
-              ? EFFECT_NAMES.includes(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ v as never)
+              ? EFFECT_NAMES.some((name) => name === v)
               : str(v) || (Array.isArray(v) && v.length > 0 && v.every(str));
 
     if (ok) continue;
 
-    const hintSuffixes: Readonly<Record<string, string>> = {
+    const hintSuffixes: Readonly<Partial<Record<FieldKind, string>>> = {
       b: " as true or false",
       n: " as a whole number",
       name: ` as ${EFFECT_NAMES.join(" or ")}`,
@@ -69,7 +86,7 @@ const checkFields = (
   }
 };
 
-const checkMove = (stageId: string, move: unknown, errors: string[]): void => {
+const checkMove = (stageId: string, move: ParsedValue, errors: string[]): void => {
   if (!isObj(move) || !str(move.to)) {
     errors.push(`stage ${stageId} has a move without a target`);
 
@@ -80,7 +97,7 @@ const checkMove = (stageId: string, move: unknown, errors: string[]): void => {
 
   for (const c of Array.isArray(move.requires) ? move.requires : []) {
     const kind = isObj(c) ? c.kind : undefined;
-    const spec = isString(kind) ? CONDITIONS[kind] : undefined;
+    const spec = specFor(CONDITIONS, kind);
 
     if (!isObj(c) || !isString(kind) || !spec)
       errors.push(`${where}: unknown condition kind ${String(kind)}`);
@@ -89,7 +106,7 @@ const checkMove = (stageId: string, move: unknown, errors: string[]): void => {
 
   for (const e of Array.isArray(move.effects) ? move.effects : []) {
     const kind = isObj(e) ? e.kind : undefined;
-    const spec = isString(kind) ? EFFECTS[kind] : undefined;
+    const spec = specFor(EFFECTS, kind);
 
     if (!isObj(e) || !isString(kind) || !spec)
       errors.push(`${where}: unknown effect kind ${String(kind)}`);
@@ -118,7 +135,11 @@ const walk = (from: string, next: (id: string) => string[]): Set<string> => {
   return seen;
 };
 
-const checkWorkflowStages = (stages: Obj[], initial: unknown, errors: string[]): void => {
+const checkWorkflowStages = (
+  stages: Obj[],
+  initial: ParsedValue | undefined,
+  errors: string[],
+): void => {
   const ids = new Set<string>();
 
   for (const s of stages) {
@@ -176,7 +197,7 @@ const checkWorkflowStages = (stages: Obj[], initial: unknown, errors: string[]):
  * or every problem found. Nothing here can weaken the safety rules: the human-only actions, the push
  * block and the policy live outside the workflow.
  */
-export const parseWorkflow = (input: unknown): ParseWorkflowResult => {
+export const parseWorkflow = (input: ParsedValue): ParseWorkflowResult => {
   if (!isObj(input)) return { ok: false, errors: ["a workflow must be an object"] };
   const errors: string[] = [];
 
@@ -211,11 +232,13 @@ export const parseWorkflow = (input: unknown): ParseWorkflowResult => {
 
   if (errors.length > 0) return { ok: false, errors };
 
+  // SAFETY: id, name, initial and the stages were checked above; initialRound is a non-negative
+  // integer, and origin is set below so a preset cannot be forged by a user workflow.
   return {
     ok: true,
     workflow: {
-      ...(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ input as unknown as WorkflowDefinition),
-      initialRound: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ round as number,
+      ...(input as ParsedRecord & WorkflowDefinition),
+      initialRound: round as number,
       origin: "user",
     },
   };

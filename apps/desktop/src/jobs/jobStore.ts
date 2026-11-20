@@ -79,19 +79,31 @@ export interface JobStoreOptions {
   readonly user?: string;
 }
 
-const toStored = (r: AuditRow): StoredAudit => ({
-  actor: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ r.actor as StoredAudit["actor"],
-  action: r.action,
-  jobId: r.jobId,
-  detail: r.detail,
-  ...(r.role === undefined ? {} : { role: r.role }),
-  ...(r.runId === undefined ? {} : { runId: r.runId }),
-  ...(r.data === undefined ? {} : { data: r.data }),
-  ts: r.ts,
-  state: r.state,
-  prev: r.prev,
-  hash: r.hash,
-});
+const toStored = (r: AuditRow): StoredAudit => {
+  const out: Omit<StoredAudit, "role" | "runId" | "data"> & {
+    role?: string;
+    runId?: string;
+    data?: Readonly<Record<string, string | number>>;
+  } = {
+    // SAFETY: appendAudit writes only the three actor values that StoredAudit allows.
+    actor: r.actor as StoredAudit["actor"],
+    action: r.action,
+    jobId: r.jobId,
+    detail: r.detail,
+    ts: r.ts,
+    state: r.state,
+    prev: r.prev,
+    hash: r.hash,
+  };
+
+  if (r.role !== undefined) out.role = r.role;
+
+  if (r.runId !== undefined) out.runId = r.runId;
+
+  if (r.data !== undefined) out.data = r.data;
+
+  return out;
+};
 
 /**
  * Jobs live under `<root>/jobs/<id>/job.json`, written through a temp file so a crash never leaves half a file.
@@ -212,7 +224,9 @@ export const createJobStore = (
 
   const load = async (id: string): Promise<WorkflowJob> => {
     try {
-      return /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(await readFile(file(id), "utf8")) as WorkflowJob;
+      return /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(
+        await readFile(file(id), "utf8"),
+      ) as WorkflowJob;
     } catch {
       throw new Error(`no job ${id}`);
     }
@@ -243,7 +257,10 @@ export const createJobStore = (
       return job;
     },
     async list() {
-      const ids = await readdir(join(root, "jobs")).catch(() => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[]);
+      const ids = await readdir(join(root, "jobs")).catch(
+        () =>
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
+      );
 
       const jobs = await Promise.all(
         ids.filter((i) => JOB_ID.test(i)).map((i) => load(i).catch(() => null)),

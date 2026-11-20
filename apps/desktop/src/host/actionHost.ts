@@ -1,10 +1,11 @@
 import {
   type ActionExecutor,
+  type ActionInput,
   type ActionOutcome,
+  type ActionOutput,
   type ActionRegistry,
   type ApprovalGate,
   authorize,
-  type ParsedValue,
 } from "@adadex/core";
 
 /** Shown by the main process as a native OS dialog. Web content cannot click it. */
@@ -30,7 +31,7 @@ export interface ActionHostDeps {
 }
 
 export type HostResult =
-  | { readonly status: "ok"; readonly output: unknown }
+  | { readonly status: "ok"; readonly output: ActionOutput }
   | { readonly status: "denied"; readonly reason: string }
   | { readonly status: "declined" }
   | { readonly status: "error"; readonly message: string };
@@ -43,7 +44,7 @@ export interface AgentPorts {
 
 export interface ActionHost {
   /** A button press in the UI. */
-  fromUi(actionId: string, input: ParsedValue): Promise<HostResult>;
+  fromUi(actionId: string, input: ActionInput): Promise<HostResult>;
   /** The ports `runAgent` needs, so an agent's calls go through the same registry and policy. */
   agentPorts(): AgentPorts;
 }
@@ -56,10 +57,10 @@ const message = (cause: unknown): string =>
  * is confirmed with a native dialog here. The UI and agents can ask for one but cannot supply the click.
  */
 export const createActionHost = (deps: ActionHostDeps): ActionHost => {
-  const run = async <T,>(
+  const run = async (
     caller: "ui" | "agent",
     actionId: string,
-    input: T,
+    input: ActionInput,
   ): Promise<HostResult> => {
     let result: HostResult;
 
@@ -79,7 +80,7 @@ export const createActionHost = (deps: ActionHostDeps): ActionHost => {
     return result;
   };
 
-  const fromUi = async (actionId: string, rawInput: ParsedValue): Promise<HostResult> => {
+  const fromUi = async (actionId: string, rawInput: ActionInput): Promise<HostResult> => {
     const def = deps.registry.get(actionId);
 
     if (!def) return { status: "denied", reason: `unknown action ${actionId}` };

@@ -1,4 +1,4 @@
-import { isObjectValue, isString } from "@adadex/core";
+import { type ParsedValue, isObjectValue, isString } from "@adadex/core";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -32,7 +32,7 @@ const workflow = {
   stages: [{ id: "ship", hint: "commit", moves: [{ to: "ready" }] }],
 };
 
-const dataFor = (kind: string): unknown => {
+const dataFor = (kind: string): ParsedValue => {
   if (kind === "jobs.list") return [job];
 
   if (kind === "workflows.list") return [workflow];
@@ -54,13 +54,15 @@ const dataFor = (kind: string): unknown => {
   return null;
 };
 
-const createBridge = (): { bridge: HostApiBridge; handle: ReturnType<typeof vi.fn> } => {
-  const handle = vi.fn(async (request: unknown) => {
+interface FactoryBridgeHarness {
+  bridge: HostApiBridge;
+  handle: ReturnType<typeof vi.fn>;
+}
+
+const createBridge = (): FactoryBridgeHarness => {
+  const handle = vi.fn(async (request: ParsedValue) => {
     const kind =
-      isObjectValue(request) &&
-      request !== null &&
-      "kind" in request &&
-      isString(request.kind)
+      isObjectValue(request) && request !== null && "kind" in request && isString(request.kind)
         ? request.kind
         : "";
 
@@ -161,8 +163,11 @@ describe("factory host bridge", () => {
   });
 
   it("reads roles, logs and the audit check, and treats missing roles or logs as null", async () => {
-    const handle = vi.fn(async (request: unknown) => {
-      const kind = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ request as { kind: string }).kind;
+    const handle = vi.fn(async (request: ParsedValue) => {
+      const kind =
+        isObjectValue(request) && request !== null && "kind" in request && isString(request.kind)
+          ? request.kind
+          : "";
 
       if (kind === "roles.list")
         return {
@@ -214,7 +219,7 @@ describe("factory host bridge", () => {
       expect(await host.listJobs()).toEqual([]);
       expect(request).toHaveBeenCalledWith({ kind: "jobs.list" });
     } finally {
-      delete (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ window as { adadex?: unknown }).adadex;
+      delete window.adadex;
     }
   });
 

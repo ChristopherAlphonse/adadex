@@ -1,6 +1,6 @@
-import { asNumber , isString} from "@adadex/core";
+import { type ParsedValue, asNumber, isString } from "@adadex/core";
 
-export const toResetIso = (value: unknown): string | null => {
+export const toResetIso = (value: ParsedValue): string | null => {
   if (isString(value)) {
     const parsed = new Date(value);
 

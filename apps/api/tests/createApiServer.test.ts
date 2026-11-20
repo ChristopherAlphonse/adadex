@@ -36,6 +36,7 @@ vi.mock("node-pty", () => ({
 import {
   LEGACY_DECK_NEXT_NUMBER_KEY,
   LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY,
+  type TerminalSnapshot,
 } from "@adadex/core";
 
 import { createApiServer } from "../src/createApiServer";
@@ -43,22 +44,21 @@ import type { GitHubRepoSummarySnapshot } from "../src/githubRepoSummary";
 import type { GitClient } from "../src/terminalRuntime";
 import { MAX_CHILDREN_PER_PARENT } from "../src/terminalRuntime";
 
+type FakeWorktreeStatus = {
+  branchName: string;
+  upstreamBranchName: string | null;
+  isDirty: boolean;
+  aheadCount: number;
+  behindCount: number;
+  insertedLineCount: number;
+  deletedLineCount: number;
+  hasConflicts: boolean;
+  changedFiles: string[];
+  defaultBaseBranchName: string | null;
+};
+
 class FakeGitClient implements GitClient {
-  private readonly worktreeStatusByCwd = new Map<
-    string,
-    {
-      branchName: string;
-      upstreamBranchName: string | null;
-      isDirty: boolean;
-      aheadCount: number;
-      behindCount: number;
-      insertedLineCount: number;
-      deletedLineCount: number;
-      hasConflicts: boolean;
-      changedFiles: string[];
-      defaultBaseBranchName: string | null;
-    }
-  >();
+  private readonly worktreeStatusByCwd = new Map<string, FakeWorktreeStatus>();
   private readonly commitsByCwd = new Map<string, string[]>();
   private readonly pushesByCwd = new Map<string, number>();
   private readonly syncsByCwd = new Map<string, string[]>();
@@ -173,36 +173,11 @@ class FakeGitClient implements GitClient {
     this.failMergePullRequest = shouldFail;
   }
 
-  setWorktreeStatus(
-    cwd: string,
-    status: {
-      branchName: string;
-      upstreamBranchName: string | null;
-      isDirty: boolean;
-      aheadCount: number;
-      behindCount: number;
-      insertedLineCount: number;
-      deletedLineCount: number;
-      hasConflicts: boolean;
-      changedFiles: string[];
-      defaultBaseBranchName: string | null;
-    },
-  ): void {
+  setWorktreeStatus(cwd: string, status: FakeWorktreeStatus): void {
     this.worktreeStatusByCwd.set(cwd, status);
   }
 
-  readWorktreeStatus({ cwd }: { cwd: string }): {
-    branchName: string;
-    upstreamBranchName: string | null;
-    isDirty: boolean;
-    aheadCount: number;
-    behindCount: number;
-    insertedLineCount: number;
-    deletedLineCount: number;
-    hasConflicts: boolean;
-    changedFiles: string[];
-    defaultBaseBranchName: string | null;
-  } {
+  readWorktreeStatus({ cwd }: { cwd: string }): FakeWorktreeStatus {
     const status = this.worktreeStatusByCwd.get(cwd);
 
     if (!status) {
@@ -486,7 +461,9 @@ describe("createApiServer", () => {
             continue;
           }
 
-          const document = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(raw) as TDocument;
+          // SAFETY: the registry file is JSON written by the app; the caller's predicate
+          // checks the shape before the document is returned.
+          const document = JSON.parse(raw) as TDocument;
 
           if (predicate(document)) {
             return document;
@@ -1099,7 +1076,8 @@ describe("createApiServer", () => {
 
     expect(initialResponse.status).toBe(200);
 
-    const initialPayload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await initialResponse.json()) as {
+    // SAFETY: the setup-status endpoint returns this response shape on a 200 reply.
+    const initialPayload = (await initialResponse.json()) as {
       isFirstRun: boolean;
       shouldShowSetupCard: boolean;
       hasAnyCoordinations: boolean;
@@ -1160,7 +1138,8 @@ describe("createApiServer", () => {
 
     expect(finalResponse.status).toBe(200);
 
-    const finalPayload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await finalResponse.json()) as {
+    // SAFETY: the setup-status endpoint returns this response shape on a 200 reply.
+    const finalPayload = (await finalResponse.json()) as {
       isFirstRun: boolean;
       hasAnyCoordinations: boolean;
       coordinationCount: number;
@@ -3151,7 +3130,8 @@ describe("createApiServer", () => {
     });
 
     expect(listResponse.status).toBe(200);
-    const snapshots = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await listResponse.json()) as Array<Record<string, unknown>>;
+    // SAFETY: the snapshots endpoint returns the TerminalSnapshot[] contract exposed by the API.
+    const snapshots = (await listResponse.json()) as TerminalSnapshot[];
     expect(snapshots).toEqual([
       expect.objectContaining({
         terminalId: "terminal-1",

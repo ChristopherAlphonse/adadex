@@ -15,12 +15,15 @@ import type {
   DeckCoordinationSummary,
   DeckMascotAppearance,
   TerminalAgentProvider,
-, isObjectValue, isString} from "@adadex/core";
+} from "@adadex/core";
 import {
   COORDINATIONS_DIR_SEGMENT,
-  isTerminalAgentProvider,
   LEGACY_DECK_STATE_MAP_KEY,
   WORKSPACE_RUNTIME_DIR,
+  asRecord,
+  isString,
+  isTerminalAgentProvider,
+  type ParsedValue,
 } from "@adadex/core";
 
 import {
@@ -34,15 +37,31 @@ const COORDINATIONS_DIR = join(WORKSPACE_RUNTIME_DIR, COORDINATIONS_DIR_SEGMENT)
 
 const VALID_STATUSES: ReadonlySet<string> = new Set(["idle", "active", "blocked", "needs-review"]);
 
+const isDeckCoordinationStatus = (
+  value: ParsedValue | undefined,
+): value is DeckCoordinationStatus => isString(value) && VALID_STATUSES.has(value);
+
 // ─── Deck state (app metadata, separate from agent-facing files) ────────────
+
+type DeckCoordinationScope = { paths: string[]; tags: string[] };
+
+type TodoProgressItem = { text: string; done: boolean };
+
+type TodoProgress = {
+  total: number;
+  done: number;
+  items: TodoProgressItem[];
+};
 
 type DeckCoordinationState = {
   color: string | null;
   status: DeckCoordinationStatus;
   mascot: DeckMascotAppearance;
-  scope: { paths: string[]; tags: string[] };
+  scope: DeckCoordinationScope;
   agentProvider?: TerminalAgentProvider;
 };
+
+type CoordinationStateInput = ParsedValue | DeckCoordinationState | undefined;
 
 type DeckStateDocument = {
   coordinations: Record<string, DeckCoordinationState>;
@@ -52,20 +71,20 @@ const readDeckState = (projectStateDir: string): DeckStateDocument => {
   const filePath = join(projectStateDir, "state", "deck.json");
 
   try {
-    const raw = JSON.parse(readFileSync(filePath, "utf-8")) as Record<string, unknown>;
+    const raw = asRecord(JSON.parse(readFileSync(filePath, "utf-8")));
 
-    if (raw && isObjectValue(raw)) {
+    if (raw) {
       const coordinations: Record<string, DeckCoordinationState> = {};
-      const fromNew = raw.coordinations;
-      const fromLegacy = raw[LEGACY_DECK_STATE_MAP_KEY];
+      const fromNew = asRecord(raw.coordinations);
+      const fromLegacy = asRecord(raw[LEGACY_DECK_STATE_MAP_KEY]);
 
-      if (fromNew && isObjectValue(fromNew) && fromNew !== null) {
+      if (fromNew) {
         for (const [key, val] of Object.entries(fromNew)) {
           coordinations[key] = parseCoordinationState(val);
         }
       }
 
-      if (fromLegacy && isObjectValue(fromLegacy) && fromLegacy !== null) {
+      if (fromLegacy) {
         for (const [key, val] of Object.entries(fromLegacy)) {
           if (!coordinations[key]) {
             coordinations[key] = parseCoordinationState(val);
@@ -90,7 +109,7 @@ const writeDeckState = (projectStateDir: string, state: DeckStateDocument): void
   writeFileSync(filePath, `${JSON.stringify(state, null, 2)}\n`);
 };
 
-const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
+const parseCoordinationState = (raw: CoordinationStateInput): DeckCoordinationState => {
   const defaults: DeckCoordinationState = {
     color: null,
     status: "idle",
@@ -98,16 +117,13 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
     scope: { paths: [], tags: [] },
   };
 
-  if (raw === null || !isObjectValue(raw)) return defaults;
-  const rec = raw as Record<string, unknown>;
+  const rec = asRecord(raw);
 
-  const color =
-    isString(rec.color) && rec.color.trim().length > 0 ? rec.color.trim() : null;
+  if (!rec) return defaults;
 
-  const status =
-    isString(rec.status) && VALID_STATUSES.has(rec.status)
-      ? (rec.status as DeckCoordinationStatus)
-      : "idle";
+  const color = isString(rec.color) && rec.color.trim().length > 0 ? rec.color.trim() : null;
+
+  const status = isDeckCoordinationStatus(rec.status) ? rec.status : "idle";
 
   const mascot: DeckMascotAppearance = {
     animation: null,
@@ -116,14 +132,9 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
     hairColor: null,
   };
 
-  const appearanceRaw =
-    rec.mascot !== null && isObjectValue(rec.mascot)
-      ? (rec.mascot as Record<string, unknown>)
-      : rec.octopus !== null && isObjectValue(rec.octopus)
-        ? (rec.octopus as Record<string, unknown>)
-        : null;
+  const appearanceRaw = asRecord(rec.mascot) ?? asRecord(rec.octopus);
 
-  if (appearanceRaw !== null) {
+  if (appearanceRaw) {
     if (isString(appearanceRaw.animation)) mascot.animation = appearanceRaw.animation;
 
     if (isString(appearanceRaw.expression)) mascot.expression = appearanceRaw.expression;
@@ -133,17 +144,16 @@ const parseCoordinationState = (raw: unknown): DeckCoordinationState => {
     if (isString(appearanceRaw.hairColor)) mascot.hairColor = appearanceRaw.hairColor;
   }
 
-  const scope = { paths: [] as string[], tags: [] as string[] };
+  const scope: DeckCoordinationScope = { paths: [], tags: [] };
+  const scopeRecord = asRecord(rec.scope);
 
-  if (rec.scope !== null && isObjectValue(rec.scope)) {
-    const s = rec.scope as Record<string, unknown>;
-
-    if (Array.isArray(s.paths)) {
-      scope.paths = s.paths.filter((p): p is string => isString(p));
+  if (scopeRecord) {
+    if (Array.isArray(scopeRecord.paths)) {
+      scope.paths = scopeRecord.paths.filter((p): p is string => isString(p));
     }
 
-    if (Array.isArray(s.tags)) {
-      scope.tags = s.tags.filter((t): t is string => isString(t));
+    if (Array.isArray(scopeRecord.tags)) {
+      scope.tags = scopeRecord.tags.filter((t): t is string => isString(t));
     }
   }
 
@@ -172,7 +182,7 @@ const parseContextMd = (
       const h1Match = trimmed.match(/^#\s+(.+)/);
 
       if (h1Match) {
-        displayName = (h1Match[1] as string).trim();
+        displayName = (h1Match[1] ?? "").trim();
       }
 
       continue;
@@ -192,13 +202,11 @@ const parseContextMd = (
 
 // ─── Todo parsing ───────────────────────────────────────────────────────────
 
-export const parseTodoProgress = (
-  content: string,
-): { total: number; done: number; items: { text: string; done: boolean }[] } => {
+export const parseTodoProgress = (content: string): TodoProgress => {
   const lines = content.split("\n");
   let total = 0;
   let done = 0;
-  const items: { text: string; done: boolean }[] = [];
+  const items: TodoProgressItem[] = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -208,10 +216,10 @@ export const parseTodoProgress = (
     if (checkedMatch) {
       total++;
       done++;
-      items.push({ text: checkedMatch[1] as string, done: true });
+      items.push({ text: checkedMatch[1] ?? "", done: true });
     } else if (uncheckedMatch) {
       total++;
-      items.push({ text: uncheckedMatch[1] as string, done: false });
+      items.push({ text: uncheckedMatch[1] ?? "", done: false });
     }
   }
 
@@ -284,7 +292,7 @@ export const readDeckCoordinations = (
     // Parse todo.md for progress
     let todoTotal = 0;
     let todoDone = 0;
-    let todoItems: { text: string; done: boolean }[] = [];
+    let todoItems: TodoProgressItem[] = [];
     const todoPath = join(entryPath, "todo.md");
 
     if (existsSync(todoPath)) {
@@ -299,7 +307,7 @@ export const readDeckCoordinations = (
       }
     }
 
-    results.push({
+    const result: DeckCoordinationSummary = {
       coordinationId: entry,
       displayName: agentInfo.displayName,
       description: agentInfo.description,
@@ -312,8 +320,13 @@ export const readDeckCoordinations = (
       todoDone,
       todoItems,
       suggestedSkills: agentInfo.suggestedSkills,
-      ...(state.agentProvider ? { agentProvider: state.agentProvider } : {}),
-    });
+    };
+
+    if (state.agentProvider) {
+      result.agentProvider = state.agentProvider;
+    }
+
+    results.push(result);
   }
 
   return results;
@@ -350,7 +363,7 @@ export const toggleTodoItem = (
   coordinationId: string,
   itemIndex: number,
   done: boolean,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
+): TodoProgress | null => {
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
@@ -370,13 +383,12 @@ export const toggleTodoItem = (
   let toggled = false;
 
   for (let i = 0; i < lines.length; i++) {
-    const trimmed = (lines[i] as string).trim();
+    const line = lines[i] ?? "";
+    const trimmed = line.trim();
 
     if (/^- \[[ xX]\]\s+/.test(trimmed)) {
       if (todoIndex === itemIndex) {
-        lines[i] = done
-          ? (lines[i] as string).replace(/- \[ \]/, "- [x]")
-          : (lines[i] as string).replace(/- \[[xX]\]/, "- [ ]");
+        lines[i] = done ? line.replace(/- \[ \]/, "- [x]") : line.replace(/- \[[xX]\]/, "- [ ]");
         toggled = true;
         break;
       }
@@ -406,7 +418,7 @@ export const editTodoItem = (
   coordinationId: string,
   itemIndex: number,
   text: string,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
+): TodoProgress | null => {
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
@@ -426,12 +438,13 @@ export const editTodoItem = (
   let edited = false;
 
   for (let i = 0; i < lines.length; i++) {
-    const trimmed = (lines[i] as string).trim();
+    const line = lines[i] ?? "";
+    const trimmed = line.trim();
     const match = trimmed.match(/^(- \[[ xX]\])\s+(.+)/);
 
     if (match) {
       if (todoIndex === itemIndex) {
-        const indent = (lines[i] as string).match(/^(\s*)/)?.[1] ?? "";
+        const indent = line.match(/^(\s*)/)?.[1] ?? "";
         lines[i] = `${indent}${match[1]} ${text}`;
         edited = true;
         break;
@@ -461,7 +474,7 @@ export const addTodoItem = (
   workspaceCwd: string,
   coordinationId: string,
   text: string,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
+): TodoProgress | null => {
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
@@ -495,7 +508,7 @@ export const deleteTodoItem = (
   workspaceCwd: string,
   coordinationId: string,
   itemIndex: number,
-): { total: number; done: number; items: { text: string; done: boolean }[] } | null => {
+): TodoProgress | null => {
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
@@ -515,7 +528,7 @@ export const deleteTodoItem = (
   let deleted = false;
 
   for (let i = 0; i < lines.length; i++) {
-    const trimmed = (lines[i] as string).trim();
+    const trimmed = (lines[i] ?? "").trim();
 
     if (/^- \[[ xX]\]\s+/.test(trimmed)) {
       if (todoIndex === itemIndex) {

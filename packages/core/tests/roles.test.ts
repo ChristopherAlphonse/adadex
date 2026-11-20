@@ -12,6 +12,7 @@ import { newJob, type WorkflowJob } from "../src/domain/workflow";
 import { factoryBuildPreset, factoryReviewPreset } from "../src/presets";
 import { BUILD_POLICY } from "../src/presets/defaultPolicy";
 import { PRESET_ROLES } from "../src/presets/roles";
+import type { ParsedRecord, ParsedValue } from "../src/util/typeCoercion";
 
 const registry = createActionRegistry([
   ...FACTORY_ACTIONS,
@@ -26,7 +27,7 @@ const roleOf = (id: string) => {
   return r;
 };
 
-const mine = (over: Record<string, unknown> = {}) => ({
+const mine = (over: ParsedRecord = {}) => ({
   id: "my-role",
   name: "Mine",
   actions: ["job.advance"],
@@ -38,7 +39,7 @@ const mine = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-const errorsOf = (input: unknown): readonly string[] => {
+const errorsOf = (input: ParsedValue): readonly string[] => {
   const r = parseRole(input, registry);
 
   return r.ok ? [] : r.errors;

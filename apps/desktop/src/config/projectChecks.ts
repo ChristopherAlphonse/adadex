@@ -1,15 +1,19 @@
-import { isNumber, isString } from "@adadex/core";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
+import { isNumber, isString } from "@adadex/core";
+
 import type { GateConfig } from "../jobs/gatePorts";
+
+/** A gate config filled in one checked field at a time. */
+type GateConfigDraft = { -readonly [K in keyof GateConfig]?: GateConfig[K] };
 
 /** The project's `checks` command and gate limits, read from the machine's data folder, never from the repo an agent edits. */
 export const loadProjectChecks = async (path: string): Promise<Partial<GateConfig> | null> => {
   try {
     // SAFETY: the file is untrusted JSON; every field is checked before it reaches the gate config.
     const raw = JSON.parse(await readFile(path, "utf8")) as Partial<GateConfig>;
-    const checks: Partial<GateConfig> = {};
+    const checks: GateConfigDraft = {};
 
     if (isString(raw.checks)) checks.checks = raw.checks;
 

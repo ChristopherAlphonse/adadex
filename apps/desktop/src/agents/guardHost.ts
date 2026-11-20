@@ -1,8 +1,9 @@
-import { isParsedRecord, type ParsedRecord, type ParsedValue } from "@adadex/core";
 import { mkdir, rm } from "node:fs/promises";
 import { createServer, type Socket } from "node:net";
 import { dirname } from "node:path";
 import { createInterface } from "node:readline";
+
+import { isParsedRecord, type ParsedRecord, type ParsedValue } from "@adadex/core";
 
 export type GuardAnswer =
   | { readonly allow: true }

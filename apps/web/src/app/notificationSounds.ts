@@ -1,4 +1,8 @@
-import { isTerminalCompletionSoundId, type TerminalCompletionSoundId , isFunctionValue} from "@adadex/core";
+import {
+  isFunctionValue,
+  isTerminalCompletionSoundId,
+  type TerminalCompletionSoundId,
+} from "@adadex/core";
 
 export { isTerminalCompletionSoundId, type TerminalCompletionSoundId };
 

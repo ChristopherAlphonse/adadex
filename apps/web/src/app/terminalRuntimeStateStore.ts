@@ -10,7 +10,9 @@ export type TerminalRuntimeStateInfo = {
 
 type Listener = () => void;
 
-type TerminalRuntimeStateMap = Record<string, TerminalRuntimeStateInfo>;
+interface TerminalRuntimeStateMap {
+  [terminalId: string]: TerminalRuntimeStateInfo;
+}
 
 const areRuntimeStatesEqual = (
   left: TerminalRuntimeStateInfo | undefined,
@@ -41,10 +43,13 @@ const sanitizeRuntimeState = (
     return undefined;
   }
 
-  return {
-    state: state.state,
-    ...(state.toolName ? { toolName: state.toolName } : {}),
-  };
+  const next: TerminalRuntimeStateInfo = { state: state.state };
+
+  if (state.toolName) {
+    next.toolName = state.toolName;
+  }
+
+  return next;
 };
 
 const buildRuntimeStateMap = (terminals: TerminalView): TerminalRuntimeStateMap =>
@@ -66,10 +71,13 @@ export const getTerminalRuntimeStateInfo = (
     return undefined;
   }
 
-  return {
-    state: terminal.agentRuntimeState,
-    ...(toolName ? { toolName } : {}),
-  };
+  const next: TerminalRuntimeStateInfo = { state: terminal.agentRuntimeState };
+
+  if (toolName) {
+    next.toolName = toolName;
+  }
+
+  return next;
 };
 
 export const stripTerminalRuntimeState = (terminal: TerminalView[number]): TerminalView[number] => {

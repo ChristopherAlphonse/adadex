@@ -77,8 +77,8 @@ const normalizeDayEntry = (value: ParsedValue): UsageDayEntry | null => {
   return {
     date,
     totalTokens,
-    projects: normalizeSlices(record.projects),
-    models: normalizeSlices(record.models),
+    projects: normalizeSlices(record.projects ?? null),
+    models: normalizeSlices(record.models ?? null),
     sessions,
   };
 };
@@ -94,8 +94,8 @@ const normalize = (raw: ParsedValue): UsageChartData | null => {
     days: record.days
       .map((day) => normalizeDayEntry(day))
       .filter((day): day is UsageDayEntry => day !== null),
-    projects: normalizeStrings(record.projects),
-    models: normalizeStrings(record.models),
+    projects: normalizeStrings(record.projects ?? null),
+    models: normalizeStrings(record.models ?? null),
   };
 };
 

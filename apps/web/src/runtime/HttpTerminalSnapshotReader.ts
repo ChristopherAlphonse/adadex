@@ -53,7 +53,7 @@ const isTerminalSnapshot = (value: ParsedValue): value is TerminalSnapshot => {
   return (
     typeof snapshot.terminalId === "string" &&
     typeof snapshot.label === "string" &&
-    isAgentState(snapshot.state) &&
+    isAgentState(snapshot.state ?? null) &&
     typeof snapshot.coordinationId === "string" &&
     (snapshot.coordinationName === undefined || typeof snapshot.coordinationName === "string") &&
     (snapshot.workspaceMode === undefined ||

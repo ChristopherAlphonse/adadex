@@ -9,7 +9,8 @@ import type {
   AgentProvider,
   AgentRunRequest,
   AgentSession,
-, isString} from "@adadex/core";
+} from "@adadex/core";
+import { isString } from "@adadex/core";
 
 import { createAsyncQueue } from "./asyncQueue";
 import { type BridgeHost, startBridgeHost } from "./bridgeHost";
@@ -61,10 +62,16 @@ export const buildPrompt = (request: AgentRunRequest): string =>
       : "",
   ].join("");
 
-const outcomeText = (outcome: ActionOutcome): { text: string; isError: boolean } => ({
+const outcomeText = (outcome: ActionOutcome) => ({
   text: JSON.stringify(outcome),
   isError: outcome.status !== "ok",
 });
+
+/** An assistant text block whose type and content were checked while reading the stream. */
+interface MessageTextContent {
+  readonly type?: string;
+  readonly text: string;
+}
 
 /** Reads Claude Code's stream-json lines and turns them into agent events. */
 export const eventsFromLine = (line: string): AgentEvent[] => {
@@ -81,9 +88,13 @@ export const eventsFromLine = (line: string): AgentEvent[] => {
   }
 
   if (msg.type === "assistant") {
-    return (msg.message?.content ?? [])
-      .filter((c) => c.type === "text" && isString(c.text) && c.text !== "")
-      .map((c): AgentEvent => ({ type: "message", text: c.text as string }));
+    const content = msg.message?.content ?? [];
+
+    return content
+      .filter(
+        (c): c is MessageTextContent => c.type === "text" && isString(c.text) && c.text !== "",
+      )
+      .map((c): AgentEvent => ({ type: "message", text: c.text }));
   }
 
   if (msg.type === "result")

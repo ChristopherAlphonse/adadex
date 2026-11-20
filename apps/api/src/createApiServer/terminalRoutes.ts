@@ -31,6 +31,25 @@ import {
   parseTerminalWorkspaceMode,
 } from "./terminalParsers";
 
+type CreateTerminalApiInput = {
+  terminalId?: string;
+  coordinationId?: string;
+  worktreeId?: string;
+  coordinationName?: string;
+  workspaceMode: CoordinationWorkspaceMode;
+  agentProvider?: TerminalAgentProvider;
+  nameOrigin?: TerminalNameOrigin;
+  initialPrompt?: string;
+  initialInputDraft?: string;
+  autoRenamePromptContext?: string;
+  parentTerminalId?: string;
+};
+
+type CreateTerminalResponse = TerminalSnapshot & {
+  initialPrompt?: string;
+  initialInputDraft?: string;
+};
+
 const buildCoordinationInitialPrompt = (
   promptsDir: string,
   workspaceCwd: string,
@@ -132,19 +151,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
   }
 
   try {
-    const createTerminalInput: {
-      terminalId?: string;
-      coordinationId?: string;
-      worktreeId?: string;
-      coordinationName?: string;
-      workspaceMode: CoordinationWorkspaceMode;
-      agentProvider?: TerminalAgentProvider;
-      nameOrigin?: TerminalNameOrigin;
-      initialPrompt?: string;
-      initialInputDraft?: string;
-      autoRenamePromptContext?: string;
-      parentTerminalId?: string;
-    } = {
+    const createTerminalInput: CreateTerminalApiInput = {
       workspaceMode: workspaceModeResult.workspaceMode,
     };
 
@@ -160,7 +167,8 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       createTerminalInput.nameOrigin = nameOriginResult.nameOrigin;
     }
 
-    const bodyPayload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ bodyReadResult.payload as Record<string, unknown> | null;
+    // SAFETY: readJsonBody parsed the body into ParsedValue members, including nested values.
+    const bodyPayload = bodyReadResult.payload as ParsedRecord | null;
 
     if (
       bodyPayload &&
@@ -210,16 +218,15 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     ) {
       const templateName = bodyPayload.promptTemplate.trim();
 
-      const templateVars: Record<string, string> =
-        bodyPayload.promptVariables != null &&
-        isObjectValue(bodyPayload.promptVariables) &&
-        !Array.isArray(bodyPayload.promptVariables)
-          ? Object.fromEntries(
-              Object.entries(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ bodyPayload.promptVariables as Record<string, unknown>)
-                .filter(([, v]) => isString(v))
-                .map(([k, v]) => [k, /* SAFETY: preceding checks establish the invariant this assertion encodes. */ v as string]),
-            )
-          : {};
+      const promptVariables = asRecord(bodyPayload.promptVariables);
+
+      const templateVars: Record<string, string> = promptVariables
+        ? Object.fromEntries(
+            Object.entries(promptVariables).filter((entry): entry is [string, string] =>
+              isString(entry[1]),
+            ),
+          )
+        : {};
 
       // Auto-inject terminalId variable so callers don't have to guess it.
       // The runtime hasn't allocated the ID yet, so we use the orchestration name
@@ -284,7 +291,7 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     }
 
     const snapshot = runtime.createTerminal(createTerminalInput);
-    const payload: Record<string, unknown> = { ...snapshot };
+    const payload: CreateTerminalResponse = { ...snapshot };
 
     if (createTerminalInput.initialPrompt) {
       payload.initialPrompt = createTerminalInput.initialPrompt;

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import type { ParsedValue } from "@adadex/core";
 import {
   app,
   BrowserWindow,
@@ -16,7 +17,7 @@ import {
   Tray,
 } from "electron";
 
-import { type App, createApp } from "../app/createApp";
+import { type App, type AppOptions, createApp } from "../app/createApp";
 import type { HostEvent, NativeConfirm } from "../host/actionHost";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -92,8 +93,18 @@ const createWindow = (): BrowserWindow => {
   return w;
 };
 
+export interface SmokeBoardResult {
+  readonly stage: string | null;
+  readonly refused: string | null;
+  readonly declined: string | null;
+  readonly loopAfter: string | null;
+  readonly stageAfter: string | undefined;
+}
+
+type MutableAppOptions = { -readonly [K in keyof AppOptions]: AppOptions[K] };
+
 /** Drives the real factory board the way a person would: open it, find a job, press buttons. */
-const smokeBoard = async (w: BrowserWindow): Promise<unknown> => {
+const smokeBoard = async (w: BrowserWindow): Promise<SmokeBoardResult> => {
   await w.webContents.executeJavaScript(
     `window.adadex.request({kind:"jobs.create",workflowId:"factory",id:"smoke-job",title:"Smoke job"})`,
   );
@@ -118,7 +129,8 @@ const smokeBoard = async (w: BrowserWindow): Promise<unknown> => {
     return { stage, refused, declined, loopAfter: loop.textContent };
   })()`);
 
-  const jobs = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await w.webContents.executeJavaScript(
+  // SAFETY: this smoke script asks the app for jobs.list, whose reply is that shape.
+  const jobs = (await w.webContents.executeJavaScript(
     `window.adadex.request({kind:"jobs.list"})`,
   )) as { data: { id: string; stage: string }[] };
 
@@ -148,7 +160,8 @@ const smoke = async (w: BrowserWindow): Promise<void> => {
     `window.adadex.request({kind:"workflows.list"})`,
   );
 
-  const names = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ result.workflows as { data: { id: string }[] }).data.map((x) => x.id);
+  // SAFETY: this smoke script asks the app for workflows.list, whose reply is that shape.
+  const names = (result.workflows as { data: { id: string }[] }).data.map((x) => x.id);
   const board = await smokeBoard(w);
   console.log(
     `SMOKE_RESULT ${JSON.stringify({ names, garbage: result.garbage, humanOnly: result.humanOnly, push: result.push, forged, board, dialogs: smokeLog })}`,
@@ -177,8 +190,7 @@ const boot = async (): Promise<void> => {
   // Keep the machine awake while an agent or a check is running, so unattended work is not cut off by sleep.
   let blocker: number | undefined;
 
-  core = createApp({
-    ...(keyProtector ? { keyProtector } : {}),
+  const options: MutableAppOptions = {
     onBusyChange: (busy) => {
       if (busy && blocker === undefined) blocker = powerSaveBlocker.start("prevent-app-suspension");
 
@@ -193,11 +205,14 @@ const boot = async (): Promise<void> => {
     emit,
     bridgePath: join(here, "mcp-bridge.mjs"),
     hookPath: join(here, "guard-hook.mjs"),
-  });
+  };
+
+  if (keyProtector) options.keyProtector = keyProtector;
+  core = createApp(options);
   const api = core.api;
 
   session.defaultSession.setPermissionRequestHandler((_w, _p, callback) => callback(false));
-  ipcMain.handle("adadex:request", async (event, raw: unknown) => {
+  ipcMain.handle("adadex:request", async (event, raw: ParsedValue) => {
     if (event.senderFrame?.url !== PAGE_URL) return { ok: false, errors: ["untrusted sender"] };
 
     return api.handle(raw);

@@ -1,5 +1,7 @@
+import { asRecord, isNumber, isString, type ParsedValue } from "@adadex/core";
+
 import type { LogDb } from "./logDb";
-import { redact, redactDeep } from "./redact";
+import { type RedactableValue, redact, redactDeep } from "./redact";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -9,7 +11,7 @@ export interface LogContext {
   readonly jobId?: string;
   readonly runId?: string;
   readonly role?: string;
-  readonly data?: Readonly<Record<string, unknown>>;
+  readonly data?: RedactableValue;
 }
 
 export interface LogQuery {
@@ -32,8 +34,10 @@ export interface LogEvent {
   readonly runId?: string;
   readonly role?: string;
   readonly message: string;
-  readonly data?: unknown;
+  readonly data?: ParsedValue;
 }
+
+type MutableLogEvent = { -readonly [K in keyof LogEvent]: LogEvent[K] };
 
 export interface Logger {
   log(level: LogLevel, source: string, message: string, context?: LogContext): void;
@@ -54,6 +58,28 @@ interface Raw {
   message: string;
   data: string | null;
 }
+
+const isLevel = (v: ParsedValue | undefined): v is LogLevel => LEVELS.some((level) => level === v);
+
+const nullableText = (v: ParsedValue | undefined): v is string | null => v === null || isString(v);
+
+const isRaw = <T>(value: T): value is T & Raw => {
+  // SAFETY: SQLite returns plain row objects; the checks below establish the Raw shape before use.
+  const r = asRecord(value);
+
+  return (
+    r !== null &&
+    isNumber(r.id) &&
+    isString(r.ts) &&
+    isLevel(r.level) &&
+    isString(r.source) &&
+    nullableText(r.job_id) &&
+    nullableText(r.run_id) &&
+    nullableText(r.role) &&
+    isString(r.message) &&
+    nullableText(r.data)
+  );
+};
 
 /**
  * Operational events (guard decisions, approvals, processes, the loop) in the local database, for one project.
@@ -112,21 +138,34 @@ export const createLogger = (
 
     args.push(Math.min(Math.max(q.limit ?? 200, 1), 1000));
 
-    const rows = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ logDb.db
+    const found = logDb.db
       .prepare(`SELECT * FROM events WHERE ${where.join(" AND ")} ORDER BY id DESC LIMIT ?`)
-      .all(...args) as unknown as Raw[];
+      .all(...args);
 
-    return rows.map((r) => ({
-      id: r.id,
-      ts: r.ts,
-      level: r.level,
-      source: r.source,
-      ...(r.job_id === null ? {} : { jobId: r.job_id }),
-      ...(r.run_id === null ? {} : { runId: r.run_id }),
-      ...(r.role === null ? {} : { role: r.role }),
-      message: r.message,
-      ...(r.data === null ? {} : { data: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(r.data) as unknown }),
-    }));
+    if (!found.every(isRaw)) throw new Error("the event database contains a malformed row");
+
+    return found.map((r) => {
+      const event: MutableLogEvent = {
+        id: r.id,
+        ts: r.ts,
+        level: r.level,
+        source: r.source,
+        message: r.message,
+      };
+
+      if (r.job_id !== null) event.jobId = r.job_id;
+
+      if (r.run_id !== null) event.runId = r.run_id;
+
+      if (r.role !== null) event.role = r.role;
+
+      if (r.data !== null) {
+        // SAFETY: the data column only holds JSON written by this logger after redaction.
+        event.data = JSON.parse(r.data) as ParsedValue;
+      }
+
+      return event;
+    });
   },
   prune(days) {
     const cutoff = new Date(now().getTime() - days * 86_400_000).toISOString();

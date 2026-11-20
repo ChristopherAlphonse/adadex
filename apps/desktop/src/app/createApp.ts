@@ -330,7 +330,10 @@ export const createApp = (options: AppOptions): App => {
     stallLimit: options.stallLimit ?? 2,
     onPlan: (plan) =>
       logs.log("info", "scheduler", `started ${plan.start.length}, parked ${plan.park.length}`, {
-        data: { start: plan.start, park: plan.park },
+        data: {
+          start: plan.start.map(({ jobId, stageId, roleId }) => ({ jobId, stageId, roleId })),
+          park: plan.park.map(({ jobId, reason }) => ({ jobId, reason })),
+        },
       }),
   });
 

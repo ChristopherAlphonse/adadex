@@ -11,7 +11,10 @@ import { parseKv } from "./kv";
 const read = async (path: string): Promise<string | null> =>
   readFile(path, "utf8").catch(() => null);
 
-const names = async (dir: string): Promise<string[]> => readdir(dir).catch(() => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[]);
+// SAFETY: a missing stage folder has no documents, so an empty name list is the correct fallback.
+const names = async (dir: string): Promise<string[]> => readdir(dir).catch(() => [] as string[]);
+
+type MutableJobFacts = { -readonly [K in keyof JobFacts]: JobFacts[K] };
 
 /** Read what the engine needs to judge a move: the stage documents, the gate result, the reviews, and the hash of anything approvable. */
 export const readFacts = async (store: JobStore, job: WorkflowJob): Promise<JobFacts> => {
@@ -36,5 +39,9 @@ export const readFacts = async (store: JobStore, job: WorkflowJob): Promise<JobF
   const spec = await read(join(jobDir, "spec.md"));
   const hashes = spec === null ? {} : { spec: createHash("sha256").update(spec).digest("hex") };
 
-  return { docs, reviews, hashes, ...(gate === undefined ? {} : { gate }) };
+  const facts: MutableJobFacts = { docs, reviews, hashes };
+
+  if (gate !== undefined) facts.gate = gate;
+
+  return facts;
 };

@@ -1,12 +1,26 @@
-import { isObjectValue, isString } from "@adadex/core";
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import type { GitClient } from "./types";
+import { type ParsedValue, isObjectValue, isParsedRecord, isString } from "@adadex/core";
 
-export const toErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error);
+import type { GitClient, GitClientPullRequestSnapshot } from "./types";
+
+type CommandFailure = {
+  code?: string;
+  message?: string;
+  status?: number;
+  stderr?: string | Buffer;
+};
+
+// SAFETY: child_process and gh reject with Error instances carrying these optional
+// diagnostic fields; the object check is the boundary between foreign throw values
+// and the shape the failure readers below actually inspect.
+const asCommandFailure = (cause: unknown): CommandFailure | null =>
+  isObjectValue(cause) && cause !== null ? (cause as CommandFailure) : null;
+
+export const toErrorMessage = (cause: unknown) =>
+  cause instanceof Error ? cause.message : String(cause);
 
 const runGitCommand = (cwd: string, args: string[]): string =>
   execFileSync("git", args, {
@@ -23,15 +37,8 @@ const readOptionalGitCommand = (cwd: string, args: string[]) => {
   }
 };
 
-const isExitCode = (error: unknown, exitCode: number) => {
-  if (!isObjectValue(error) || error === null) {
-    return false;
-  }
-
-  const errorWithStatus = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ error as { status?: unknown };
-
-  return errorWithStatus.status === exitCode;
-};
+const isExitCode = (cause: unknown, exitCode: number) =>
+  asCommandFailure(cause)?.status === exitCode;
 
 const CONFLICT_MARKERS = new Set(["DD", "AU", "UD", "UA", "DU", "AA", "UU"]);
 
@@ -82,37 +89,31 @@ const runGhCommand = (cwd: string, args: string[]): string =>
     stdio: "pipe",
   }).trim();
 
-const readErrorDetails = (error: unknown) => {
-  if (!isObjectValue(error) || error === null) {
+const readErrorDetails = (cause: unknown) => {
+  const failure = asCommandFailure(cause);
+
+  if (!failure) {
     return "";
   }
 
-  const errorWithStreams = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ error as { stderr?: unknown; message?: unknown };
-
   const stderr =
-    isString(errorWithStreams.stderr)
-      ? errorWithStreams.stderr
-      : Buffer.isBuffer(errorWithStreams.stderr)
-        ? errorWithStreams.stderr.toString("utf8")
-        : "";
+    isString(failure.stderr) || Buffer.isBuffer(failure.stderr)
+      ? String(failure.stderr).trim()
+      : "";
 
-  if (stderr.trim().length > 0) {
-    return stderr.trim();
+  if (stderr.length > 0) {
+    return stderr;
   }
 
-  return isString(errorWithStreams.message) ? errorWithStreams.message : "";
+  return failure.message ?? "";
 };
 
-const readGhFailureMessage = (error: unknown) => {
-  if (isObjectValue(error) && error !== null) {
-    const errorWithCode = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ error as { code?: unknown };
-
-    if (errorWithCode.code === "ENOENT") {
-      return "GitHub CLI not found. Install `gh` and run `gh auth login`.";
-    }
+const readGhFailureMessage = (cause: unknown) => {
+  if (asCommandFailure(cause)?.code === "ENOENT") {
+    return "GitHub CLI not found. Install `gh` and run `gh auth login`.";
   }
 
-  const details = readErrorDetails(error).toLowerCase();
+  const details = readErrorDetails(cause).toLowerCase();
 
   if (details.includes("not logged in")) {
     return "GitHub CLI is not authenticated. Run `gh auth login`.";
@@ -125,8 +126,8 @@ const readGhFailureMessage = (error: unknown) => {
   return null;
 };
 
-const isNoPullRequestError = (error: unknown) => {
-  const details = readErrorDetails(error).toLowerCase();
+const isNoPullRequestError = (cause: unknown) => {
+  const details = readErrorDetails(cause).toLowerCase();
 
   return (
     details.includes("no pull requests found") ||
@@ -135,24 +136,12 @@ const isNoPullRequestError = (error: unknown) => {
   );
 };
 
-const parsePullRequestPayload = (
-  payload: unknown,
-): {
-  number: number;
-  url: string;
-  title: string;
-  baseRef: string;
-  headRef: string;
-  state: "OPEN" | "MERGED" | "CLOSED";
-  isDraft: boolean;
-  mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
-  mergeStateStatus: string | null;
-} => {
-  if (payload === null || payload === undefined || !isObjectValue(payload)) {
+const parsePullRequestPayload = (payload: ParsedValue): GitClientPullRequestSnapshot => {
+  if (!isParsedRecord(payload)) {
     throw new Error("Invalid PR payload from gh.");
   }
 
-  const record = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ payload as Record<string, unknown>;
+  const record = payload;
   const number = Number.parseInt(String(record.number ?? ""), 10);
   const url = isString(record.url) ? record.url : "";
   const title = isString(record.title) ? record.title : "";

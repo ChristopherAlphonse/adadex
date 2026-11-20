@@ -1,12 +1,7 @@
-import {
-  asRecord,
-  isNumber,
-  isObjectValue,
-  isString,
-  type ParsedValue,
-} from "@adadex/core";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+
+import { asRecord, isNumber, isObjectValue, isString, type ParsedValue } from "@adadex/core";
 
 import { writeTextFileAtomic } from "./atomicJsonFile";
 

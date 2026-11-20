@@ -55,12 +55,10 @@ export const createGitOperations = (deps: {
     try {
       const status = gitClient.readWorktreeStatus({ cwd: workspaceCwd });
 
-      return {
+      const snapshot: CoordinationGitStatusSnapshot = {
         coordinationId,
         workspaceMode: terminal.workspaceMode,
         branchName: status.branchName,
-        ...(status.headCommit !== undefined ? { headCommit: status.headCommit } : {}),
-        ...(status.worktreePath !== undefined ? { worktreePath: status.worktreePath } : {}),
         upstreamBranchName: status.upstreamBranchName,
         isDirty: status.isDirty,
         aheadCount: status.aheadCount,
@@ -71,6 +69,16 @@ export const createGitOperations = (deps: {
         changedFiles: [...status.changedFiles],
         defaultBaseBranchName: status.defaultBaseBranchName,
       };
+
+      if (status.headCommit !== undefined) {
+        snapshot.headCommit = status.headCommit;
+      }
+
+      if (status.worktreePath !== undefined) {
+        snapshot.worktreePath = status.worktreePath;
+      }
+
+      return snapshot;
     } catch (error) {
       throw new RuntimeInputError(
         `Unable to read git status for ${coordinationId}: ${

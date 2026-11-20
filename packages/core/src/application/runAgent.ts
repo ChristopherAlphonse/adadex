@@ -1,3 +1,11 @@
+import type { ActionContext, AuthorizeResult } from "../domain/action";
+import type {
+  ActionExecutor,
+  ActionOutcome,
+  ActionInput,
+  ApprovalGate,
+} from "../ports/ActionPorts";
+import type { AgentProvider, AgentRunRequest } from "../ports/AgentProvider";
 import {
   isBoolean,
   isNumber,
@@ -5,9 +13,6 @@ import {
   isString,
   type ParsedValue,
 } from "../util/typeCoercion";
-import type { ActionContext, AuthorizeResult } from "../domain/action";
-import type { ActionExecutor, ActionOutcome, ActionInput, ApprovalGate } from "../ports/ActionPorts";
-import type { AgentProvider, AgentRunRequest } from "../ports/AgentProvider";
 import { type ActionRegistry, authorize } from "./actionRegistry";
 
 export interface RunAgentDeps {

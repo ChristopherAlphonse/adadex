@@ -1,9 +1,9 @@
-import { isNumber, isString } from "@adadex/core";
 import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
+import { isNumber, isString } from "@adadex/core";
 import { type IPty, spawn } from "node-pty";
 import type { WebSocket, WebSocketServer } from "ws";
 
@@ -32,7 +32,10 @@ import type {
   TerminalSession,
   TerminalSessionEndDetails,
   TerminalSessionStartDetails,
+  TerminalStateMessage,
 } from "./types";
+
+type SessionEndPayload = Extract<ConversationTranscriptEventPayload, { type: "session_end" }>;
 
 type CreateSessionRuntimeOptions = {
   websocketServer: WebSocketServer;
@@ -158,7 +161,9 @@ export const createSessionRuntime = ({
     const nextEventCount = (session.transcriptEventCount ?? 0) + 1;
     session.transcriptEventCount = nextEventCount;
 
-    const payload: ConversationTranscriptEvent = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
+    // SAFETY: event is a validated ConversationTranscriptEventPayload; adding the ids
+    // completes the same discriminated union with no field changes.
+    const payload: ConversationTranscriptEvent = {
       ...event,
       eventId: `${sessionId}:${nextEventCount}`,
       sessionId,
@@ -200,11 +205,13 @@ export const createSessionRuntime = ({
       timestamp: new Date().toISOString(),
     });
     onStateChange?.(sessionId, nextState, session.lastToolName);
-    broadcastMessage(session, {
-      type: "state",
-      state: nextState,
-      ...(session.lastToolName ? { toolName: session.lastToolName } : {}),
-    });
+    const stateMessage: TerminalStateMessage = { type: "state", state: nextState };
+
+    if (session.lastToolName) {
+      stateMessage.toolName = session.lastToolName;
+    }
+
+    broadcastMessage(session, stateMessage);
   };
 
   const resolveSession =
@@ -317,7 +324,8 @@ export const createSessionRuntime = ({
     clearIdleCloseTimer(session);
     clearPromptTimers(session);
     closeTranscript(session, sessionId, event);
-    onSessionEnd?.(sessionId, {
+
+    const endDetails: TerminalSessionEndDetails = {
       reason:
         event.reason === "pty_exit" ||
         event.reason === "operator_stop" ||
@@ -325,11 +333,17 @@ export const createSessionRuntime = ({
           ? event.reason
           : "session_close",
       endedAt: isString(event.timestamp) ? event.timestamp : new Date().toISOString(),
-      ...(isNumber(event.exitCode) ? { exitCode: event.exitCode } : {}),
-      ...(isNumber(event.signal) || isString(event.signal)
-        ? { signal: event.signal }
-        : {}),
-    });
+    };
+
+    if (isNumber(event.exitCode)) {
+      endDetails.exitCode = event.exitCode;
+    }
+
+    if (isNumber(event.signal) || isString(event.signal)) {
+      endDetails.signal = event.signal;
+    }
+
+    onSessionEnd?.(sessionId, endDetails);
 
     if (session.statePollTimer) {
       clearInterval(session.statePollTimer);
@@ -348,9 +362,7 @@ export const createSessionRuntime = ({
 
     if (options.killPty) {
       const processId =
-        isNumber(session.pty.pid) &&
-        Number.isInteger(session.pty.pid) &&
-        session.pty.pid > 0
+        isNumber(session.pty.pid) && Number.isInteger(session.pty.pid) && session.pty.pid > 0
           ? session.pty.pid
           : undefined;
 
@@ -620,10 +632,15 @@ export const createSessionRuntime = ({
       onProcessSpawn?.({ processId, processGroupId: processId, sessionId, coordinationId });
     }
 
-    onSessionStart?.(sessionId, {
+    const startDetails: TerminalSessionStartDetails = {
       startedAt: new Date().toISOString(),
-      ...(processId ? { processId } : {}),
-    });
+    };
+
+    if (processId) {
+      startDetails.processId = processId;
+    }
+
+    onSessionStart?.(sessionId, startDetails);
     appendTranscriptEvent(session, sessionId, {
       type: "session_start",
       timestamp: new Date().toISOString(),
@@ -662,18 +679,22 @@ export const createSessionRuntime = ({
         session,
         `session-exit session=${sessionId} code=${exitCode} signal=${signal}`,
       );
-      teardownSession(
-        sessionId,
-        session,
-        {
-          type: "session_end",
-          reason: "pty_exit",
-          ...(Number.isFinite(exitCode) ? { exitCode } : {}),
-          ...(Number.isFinite(signal) ? { signal } : {}),
-          timestamp: new Date().toISOString(),
-        },
-        { killPty: false },
-      );
+
+      const endEvent: SessionEndPayload = {
+        type: "session_end",
+        reason: "pty_exit",
+        timestamp: new Date().toISOString(),
+      };
+
+      if (Number.isFinite(exitCode)) {
+        endEvent.exitCode = exitCode;
+      }
+
+      if (isNumber(signal) && Number.isFinite(signal)) {
+        endEvent.signal = signal;
+      }
+
+      teardownSession(sessionId, session, endEvent, { killPty: false });
     });
 
     session.ptyDisposables = [dataDisposable, exitDisposable];
@@ -732,16 +753,17 @@ export const createSessionRuntime = ({
         state: session.agentState,
       });
 
-      websocket.on("message", (raw: unknown) => {
+      websocket.on("message", (raw) => {
         if (session.isClosed) {
           return;
         }
 
-        const text =
-          isString(raw) ? raw : raw instanceof Buffer ? raw.toString() : String(raw);
+        const text = isString(raw) ? raw : raw instanceof Buffer ? raw.toString() : String(raw);
 
         try {
-          const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(text) as
+          // SAFETY: websocket text is an input or resize command; the branches below
+          // validate data/cols/rows before using them.
+          const payload = JSON.parse(text) as
             | { type: "input"; data: string }
             | { type: "resize"; cols: number; rows: number };
 

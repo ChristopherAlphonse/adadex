@@ -76,26 +76,46 @@ export type ParsedRequest =
   | { readonly ok: true; readonly request: HostRequest }
   | { readonly ok: false; readonly error: string };
 
-const text = (v: ParsedValue): v is string => isString(v) && v !== "" && v.length <= 200;
+const text = (v: ParsedValue | undefined): v is string =>
+  isString(v) && v !== "" && v.length <= 200;
 
 /** Reads a field the STRING_FIELDS loop has already validated. */
 const fieldText = (record: ParsedRecord, key: string): string => asString(record[key]) ?? "";
 
-const STRING_KINDS = [
+type RequestKind = HostRequest["kind"];
+
+const REQUEST_KINDS: readonly RequestKind[] = [
+  "workflows.list",
+  "workflows.save",
   "workflows.fork",
   "workflows.remove",
+  "jobs.list",
   "jobs.create",
   "action.run",
   "approval.respond",
+  "approvals.list",
+  "processes.list",
   "process.kill",
   "skills.resolve",
+  "roles.list",
+  "roles.save",
   "roles.remove",
+  "scheduler.status",
+  "logs.query",
   "audit.verify",
-] as const;
+  "scheduler.set",
+  "config.get",
+  "config.set",
+  "project.get",
+  "project.set",
+];
 
-type StringKind = (typeof STRING_KINDS)[number];
+const isRequestKind = (v: ParsedValue | undefined): v is RequestKind =>
+  v !== undefined && REQUEST_KINDS.some((kind) => kind === v);
 
-const STRING_FIELDS: Readonly<Record<StringKind, readonly string[]>> = {
+type StringFieldMap = Readonly<Partial<Record<RequestKind, readonly string[]>>>;
+
+const STRING_FIELDS = {
   "workflows.fork": ["fromId", "newId", "name"],
   "workflows.remove": ["id"],
   "jobs.create": ["workflowId", "id", "title"],
@@ -105,7 +125,10 @@ const STRING_FIELDS: Readonly<Record<StringKind, readonly string[]>> = {
   "skills.resolve": ["workflowId"],
   "roles.remove": ["id"],
   "audit.verify": ["jobId"],
-};
+} satisfies StringFieldMap;
+
+const stringFieldsFor = (kind: RequestKind): readonly string[] =>
+  Object.entries(STRING_FIELDS).find(([name]) => name === kind)?.[1] ?? [];
 
 const NO_FIELDS: ReadonlySet<string> = new Set([
   "workflows.list",
@@ -122,7 +145,8 @@ const LEVELS = ["debug", "info", "warn", "error"] as const;
 
 type LogLevel = (typeof LEVELS)[number];
 
-const isLogLevel = (v: ParsedValue): v is LogLevel => LEVELS.some((level) => level === v);
+const isLogLevel = (v: ParsedValue | undefined): v is LogLevel =>
+  v !== undefined && LEVELS.some((level) => level === v);
 
 interface LogsQueryDraft {
   kind: "logs.query";
@@ -137,27 +161,34 @@ interface LogsQueryDraft {
 export const parseRequest = (raw: ParsedValue): ParsedRequest => {
   const record = asRecord(raw);
 
-  if (record === null || !isString(record.kind)) return { ok: false, error: "a request needs a kind" };
-  const kind = record.kind;
+  if (record === null) return { ok: false, error: "a request needs a kind" };
+  const parsedKind = asString(record.kind);
+
+  if (parsedKind === null) return { ok: false, error: "a request needs a kind" };
+
+  if (!isRequestKind(parsedKind)) return { ok: false, error: `unknown request ${parsedKind}` };
+
+  const kind = parsedKind;
 
   if (NO_FIELDS.has(kind))
     // SAFETY: NO_FIELDS lists exactly the HostRequest variants that carry no extra fields.
     return { ok: true, request: { kind } as HostRequest };
 
-  const stringFields = (STRING_FIELDS as Partial<Record<string, readonly string[]>>)[kind] ?? [];
+  const stringFields = stringFieldsFor(kind);
+
   for (const field of stringFields) {
     if (!text(record[field])) return { ok: false, error: `${kind} needs ${field}` };
   }
 
   switch (kind) {
     case "workflows.save":
-      return "workflow" in record
-        ? { ok: true, request: { kind, workflow: record.workflow } }
-        : { ok: false, error: "workflows.save needs workflow" };
+      return record.workflow === undefined
+        ? { ok: false, error: "workflows.save needs workflow" }
+        : { ok: true, request: { kind, workflow: record.workflow } };
     case "config.set":
-      return "config" in record
-        ? { ok: true, request: { kind, config: record.config } }
-        : { ok: false, error: "config.set needs config" };
+      return record.config === undefined
+        ? { ok: false, error: "config.set needs config" }
+        : { ok: true, request: { kind, config: record.config } };
     case "project.set":
       return isString(record.checks)
         ? { ok: true, request: { kind, checks: record.checks } }
@@ -194,9 +225,9 @@ export const parseRequest = (raw: ParsedValue): ParsedRequest => {
     case "audit.verify":
       return { ok: true, request: { kind, jobId: fieldText(record, "jobId") } };
     case "roles.save":
-      return "role" in record
-        ? { ok: true, request: { kind, role: record.role } }
-        : { ok: false, error: "roles.save needs role" };
+      return record.role === undefined
+        ? { ok: false, error: "roles.save needs role" }
+        : { ok: true, request: { kind, role: record.role } };
     case "scheduler.set":
       return isBoolean(record.enabled)
         ? { ok: true, request: { kind, enabled: record.enabled } }
@@ -205,7 +236,11 @@ export const parseRequest = (raw: ParsedValue): ParsedRequest => {
       return isBoolean(record.approved)
         ? {
             ok: true,
-            request: { kind, approvalId: fieldText(record, "approvalId"), approved: record.approved },
+            request: {
+              kind,
+              approvalId: fieldText(record, "approvalId"),
+              approved: record.approved,
+            },
           }
         : { ok: false, error: "approval.respond needs approved as true or false" };
     case "workflows.fork":
@@ -233,7 +268,11 @@ export const parseRequest = (raw: ParsedValue): ParsedRequest => {
     case "action.run":
       return {
         ok: true,
-        request: { kind, actionId: fieldText(record, "actionId"), input: record.input },
+        request: {
+          kind,
+          actionId: fieldText(record, "actionId"),
+          input: record.input ?? null,
+        },
       };
     case "process.kill":
       return { ok: true, request: { kind, processId: fieldText(record, "processId") } };

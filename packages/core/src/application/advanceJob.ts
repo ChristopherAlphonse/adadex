@@ -1,4 +1,3 @@
-import { isString } from "../util/typeCoercion";
 import {
   type Condition,
   type Effect,
@@ -9,6 +8,7 @@ import {
   type WorkflowDefinition,
   type WorkflowJob,
 } from "../domain/workflow";
+import { isString } from "../util/typeCoercion";
 
 export type AdvanceResult =
   | { readonly ok: true; readonly job: WorkflowJob; readonly effects: readonly EffectName[] }

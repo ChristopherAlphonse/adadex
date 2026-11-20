@@ -41,10 +41,13 @@ export const createProcessRegistry = (
       entries.delete(e.info.processId);
   };
 
-  const view = (e: Entry): HostProcess => ({
-    ...e.info,
-    ...(e.ended === undefined ? {} : { endedAt: e.ended }),
-  });
+  const view = (e: Entry): HostProcess => {
+    const result: Omit<HostProcess, "endedAt"> & { endedAt?: string } = { ...e.info };
+
+    if (e.ended !== undefined) result.endedAt = e.ended;
+
+    return result;
+  };
 
   return {
     register(label, kill) {

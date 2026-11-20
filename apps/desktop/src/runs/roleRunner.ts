@@ -24,6 +24,9 @@ import { parkJob } from "../jobs/parkJob";
 import { findWorkflow, type WorkflowLookup } from "../jobs/workflowLookup";
 import type { Logger } from "../logs/logger";
 
+/** A timer handle from the runtime, or the numeric handle a test fake returns. */
+export type TimeoutHandle = ReturnType<typeof setTimeout> | number;
+
 export interface ProviderRequest {
   /** What the agent process may write and read at the operating system level, under the policy. */
   readonly sandbox: SandboxPlan;
@@ -50,9 +53,11 @@ export interface RoleRunnerDeps {
   readonly logger?: Logger;
   readonly newRunId?: () => string;
   readonly now?: () => Date;
-  readonly setTimer?: (fn: () => void, ms: number) => unknown;
-  readonly clearTimer?: (handle: unknown) => void;
+  readonly setTimer?: (fn: () => void, ms: number) => TimeoutHandle;
+  readonly clearTimer?: (handle: TimeoutHandle) => void;
 }
+
+type MutableRunResult = { -readonly [K in keyof RunResult]: RunResult[K] };
 
 export interface RunResult {
   readonly binding: RunBinding;
@@ -70,7 +75,14 @@ export interface RunResult {
  */
 export const createRoleRunner = (deps: RoleRunnerDeps) => {
   const setTimer = deps.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
-  const clearTimer = deps.clearTimer ?? ((h) => clearTimeout(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ h as ReturnType<typeof setTimeout>));
+
+  const clearTimer =
+    deps.clearTimer ??
+    ((handle) => {
+      // SAFETY: the default handle comes from setTimeout; test fakes provide their own clearer.
+      clearTimeout(handle as ReturnType<typeof setTimeout>);
+    });
+
   const now = deps.now ?? (() => new Date());
 
   return {
@@ -233,13 +245,16 @@ export const createRoleRunner = (deps: RoleRunnerDeps) => {
         ...who,
       });
 
-      return {
+      const result: MutableRunResult = {
         binding,
         stageAfter: after.stage,
         summary,
         actions: calls,
-        ...(limited ? { limited } : {}),
       };
+
+      if (limited !== undefined) result.limited = limited;
+
+      return result;
     },
   };
 };

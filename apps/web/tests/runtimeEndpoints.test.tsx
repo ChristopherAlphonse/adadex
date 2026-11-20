@@ -162,7 +162,7 @@ describe("runtimeEndpoints", () => {
       buildTerminalSocketUrl(
         "orchestration-main",
         undefined,
-        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ new URL("https://workspace.example.com/dashboard") as unknown as Location,
+        new URL("https://workspace.example.com/dashboard"),
       ),
     ).toBe("wss://workspace.example.com/api/terminals/orchestration-main/ws");
   });
@@ -172,17 +172,14 @@ describe("runtimeEndpoints", () => {
       buildTerminalSocketUrl(
         "orchestration-main",
         "http://127.0.0.1:8787",
-        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ new URL("https://workspace.example.com/dashboard") as unknown as Location,
+        new URL("https://workspace.example.com/dashboard"),
       ),
     ).toBe("ws://127.0.0.1:8787/api/terminals/orchestration-main/ws");
   });
 
   it("builds same-origin terminal events websocket URL by default", () => {
     expect(
-      buildTerminalEventsSocketUrl(
-        undefined,
-        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ new URL("https://workspace.example.com/dashboard") as unknown as Location,
-      ),
+      buildTerminalEventsSocketUrl(undefined, new URL("https://workspace.example.com/dashboard")),
     ).toBe("wss://workspace.example.com/api/terminal-events/ws");
   });
 
@@ -190,7 +187,7 @@ describe("runtimeEndpoints", () => {
     expect(
       buildTerminalEventsSocketUrl(
         "http://127.0.0.1:8787",
-        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ new URL("https://workspace.example.com/dashboard") as unknown as Location,
+        new URL("https://workspace.example.com/dashboard"),
       ),
     ).toBe("ws://127.0.0.1:8787/api/terminal-events/ws");
   });

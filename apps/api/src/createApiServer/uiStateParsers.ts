@@ -1,10 +1,5 @@
-import {
-  isBoolean,
-  isNumber,
-  isObjectValue,
-  isString,
-  type ParsedRecord,
-} from "@adadex/core";
+import { isBoolean, isNumber, isObjectValue, isString, type ParsedRecord } from "@adadex/core";
+
 import { isTerminalCompletionSoundId, type PersistedUiState } from "../terminalRuntime";
 import type { JsonRequestPayload } from "./requestParsers";
 
@@ -155,8 +150,8 @@ export const parseUiStatePatch = (payload: JsonRequestPayload): UiStatePatchPars
       };
     }
 
-    const canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter(
-      (id): id is string => isString(id),
+    const canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter((id): id is string =>
+      isString(id),
     );
 
     if (canvasOpenTerminalIds.length !== record.canvasOpenTerminalIds.length) {
@@ -177,8 +172,8 @@ export const parseUiStatePatch = (payload: JsonRequestPayload): UiStatePatchPars
       };
     }
 
-    const canvasOpenCoordinationIds = record.canvasOpenCoordinationIds.filter(
-      (id): id is string => isString(id),
+    const canvasOpenCoordinationIds = record.canvasOpenCoordinationIds.filter((id): id is string =>
+      isString(id),
     );
 
     if (canvasOpenCoordinationIds.length !== record.canvasOpenCoordinationIds.length) {

@@ -3,11 +3,16 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { BUILD_POLICY, REVIEW_POLICY , isString} from "@adadex/core";
+import { BUILD_POLICY, isString, REVIEW_POLICY } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createClaudeCodeProvider } from "../src/agents/claudeCodeProvider";
-import { type GuardDecide, guardSettings, startGuardHost } from "../src/agents/guardHost";
+import {
+  type GuardDecide,
+  type GuardEvent,
+  guardSettings,
+  startGuardHost,
+} from "../src/agents/guardHost";
 import { createToolGuard, resolveReal } from "../src/host/toolGuard";
 import { createApprovalBroker } from "../src/ipc/approvalBroker";
 
@@ -25,7 +30,7 @@ afterEach(async () => {
 
 const runHook = (
   socket: string,
-  event: unknown,
+  event: GuardEvent | string,
   timeout = 5,
 ): Promise<{ code: number | null; stderr: string }> =>
   new Promise((resolve) => {
@@ -44,7 +49,8 @@ const runHook = (
 describe("the hook script", () => {
   it("exits 0 when the app allows, and 2 with the reason when it does not", async () => {
     const decide: GuardDecide = async (e) =>
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e as { tool_name: string }).tool_name === "Read"
+      // SAFETY: hook events here always carry the tool name this fake checks.
+      (e as { tool_name: string }).tool_name === "Read"
         ? { allow: true }
         : { allow: false, reason: "nope" };
 
@@ -208,9 +214,14 @@ describe("provider and the guard", () => {
   });
 
   it("builds settings that run the hook with the socket and a timeout", () => {
-    const s = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ guardSettings("/h.mjs", "/s.sock", 30) as {
-      hooks: { PreToolUse: { hooks: { command: string; timeout: number }[] }[] };
-    };
+    const s =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ guardSettings(
+        "/h.mjs",
+        "/s.sock",
+        30,
+      ) as {
+        hooks: { PreToolUse: { hooks: { command: string; timeout: number }[] }[] };
+      };
 
     expect(s.hooks.PreToolUse[0]?.hooks[0]?.command).toContain('"/h.mjs" "/s.sock" 30');
     expect(s.hooks.PreToolUse[0]?.hooks[0]?.timeout).toBe(35);

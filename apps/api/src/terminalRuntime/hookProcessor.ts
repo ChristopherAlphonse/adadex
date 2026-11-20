@@ -1,12 +1,13 @@
-import { isObjectValue, isString } from "@adadex/core";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { type ParsedRecord, asRecord, isParsedRecord, isString } from "@adadex/core";
 
 import { logVerbose } from "../logging";
 import { parseAgentTranscript } from "./agentTranscript";
 import { storeAgentTranscriptTurns } from "./conversations";
 import { broadcastMessage } from "./protocol";
-import type { PersistedTerminal, TerminalSession } from "./types";
+import type { PersistedTerminal, TerminalSession, TerminalStateMessage } from "./types";
 
 const MAX_AUTO_NAME_LENGTH = 50;
 
@@ -51,13 +52,12 @@ export const createHookProcessor = (deps: {
 
   const parseHookFile = (fileContents: string): { hooks: unknown[] } | null => {
     try {
-      const parsed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(fileContents) as unknown;
+      const parsed: unknown = JSON.parse(fileContents);
+      const record = asRecord(parsed);
 
-      if (!parsed || !isObjectValue(parsed) || Array.isArray(parsed)) {
+      if (!record) {
         return null;
       }
-
-      const record = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ parsed as Record<string, unknown>;
 
       return { hooks: Array.isArray(record.hooks) ? record.hooks : [] };
     } catch {
@@ -101,16 +101,20 @@ export const createHookProcessor = (deps: {
     try {
       mkdirSync(dir, { recursive: true });
 
-      const settings = existsSync(file)
-        ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>)
+      const settings: ParsedRecord = existsSync(file)
+        ? (asRecord(JSON.parse(readFileSync(file, "utf8"))) ?? {})
         : {};
 
-      const hooks = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (settings.hooks ?? {}) as Record<string, unknown[]>;
+      const hooks: ParsedRecord = isParsedRecord(settings.hooks) ? settings.hooks : {};
 
       for (const hook of kiroHooks) {
-        const groups = (hooks[hook.trigger] ?? []).filter(
-          (g) => !JSON.stringify(g).includes(`"${hook.action.command.replace(/"/g, '\\"')}"`),
-        );
+        const existingGroups = hooks[hook.trigger];
+
+        const groups = Array.isArray(existingGroups)
+          ? existingGroups.filter(
+              (g) => !JSON.stringify(g).includes(`"${hook.action.command.replace(/"/g, '\\"')}"`),
+            )
+          : [];
 
         groups.push({
           matcher: hook.matcher === "fs_write" ? "Write|Edit|MultiEdit" : hook.matcher,
@@ -216,18 +220,14 @@ export const createHookProcessor = (deps: {
     }
   };
 
-  const handleHook = (
-    hookName: string,
-    payload: unknown,
-    hookSessionId?: string,
-  ): { ok: boolean } => {
+  const handleHook = <T>(hookName: string, payload: T, hookSessionId?: string) => {
     logVerbose(`[Hook] Received hook: ${hookName} session=${hookSessionId ?? "(none)"}`);
 
-    if (!payload || !isObjectValue(payload)) {
+    const hookPayloadRecord = asRecord(payload);
+
+    if (!hookPayloadRecord) {
       return { ok: true };
     }
-
-    const hookPayloadRecord = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ payload as Record<string, unknown>;
 
     if (hookName === "notification") {
       if (!hookSessionId) {
@@ -242,10 +242,9 @@ export const createHookProcessor = (deps: {
         return { ok: true };
       }
 
-      const notificationType =
-        isString(hookPayloadRecord.notification_type)
-          ? hookPayloadRecord.notification_type
-          : null;
+      const notificationType = isString(hookPayloadRecord.notification_type)
+        ? hookPayloadRecord.notification_type
+        : null;
 
       logVerbose(`[Hook] notification: type=${notificationType} session=${hookSessionId}`);
 
@@ -253,11 +252,17 @@ export const createHookProcessor = (deps: {
         session.agentState = "waiting_for_permission";
         session.stateTracker.forceState("waiting_for_permission");
         onStateChange?.(hookSessionId, "waiting_for_permission", session.lastToolName);
-        broadcastMessage(session, {
+
+        const permissionMessage: TerminalStateMessage = {
           type: "state",
           state: "waiting_for_permission",
-          ...(session.lastToolName ? { toolName: session.lastToolName } : {}),
-        });
+        };
+
+        if (session.lastToolName) {
+          permissionMessage.toolName = session.lastToolName;
+        }
+
+        broadcastMessage(session, permissionMessage);
       } else if (notificationType === "idle_prompt") {
         session.agentState = "idle";
         session.stateTracker.forceState("idle");
@@ -282,8 +287,7 @@ export const createHookProcessor = (deps: {
         return { ok: true };
       }
 
-      const toolName =
-        isString(hookPayloadRecord.tool_name) ? hookPayloadRecord.tool_name : null;
+      const toolName = isString(hookPayloadRecord.tool_name) ? hookPayloadRecord.tool_name : null;
 
       logVerbose(`[Hook] pre-tool-use: tool=${toolName} session=${hookSessionId}`);
 
@@ -330,8 +334,7 @@ export const createHookProcessor = (deps: {
 
       // Auto-name the terminal from the first prompt when it still has its default name.
       if (terminal.nameOrigin === "generated") {
-        const prompt =
-          isString(hookPayloadRecord.prompt) ? hookPayloadRecord.prompt.trim() : "";
+        const prompt = isString(hookPayloadRecord.prompt) ? hookPayloadRecord.prompt.trim() : "";
 
         const renameContext = terminal.autoRenamePromptContext?.trim() || prompt;
 
@@ -359,12 +362,11 @@ export const createHookProcessor = (deps: {
       return { ok: true };
     }
 
-    const hookPayload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ payload as Record<string, unknown>;
+    const transcriptPath = isString(hookPayloadRecord.transcript_path)
+      ? hookPayloadRecord.transcript_path
+      : null;
 
-    const transcriptPath =
-      isString(hookPayload.transcript_path) ? hookPayload.transcript_path : null;
-
-    const hookCwd = isString(hookPayload.cwd) ? hookPayload.cwd : null;
+    const hookCwd = isString(hookPayloadRecord.cwd) ? hookPayloadRecord.cwd : null;
 
     logVerbose(`[Hook] Stop hook: transcriptPath=${transcriptPath}, hookCwd=${hookCwd}`);
 
@@ -393,10 +395,9 @@ export const createHookProcessor = (deps: {
     const turns = parseAgentTranscript(transcriptPath);
     logVerbose(`[Hook] Parsed ${turns?.length ?? 0} turns from transcript.`);
 
-    const lastAssistantMessage =
-      isString(hookPayload.last_assistant_message)
-        ? hookPayload.last_assistant_message.trim()
-        : null;
+    const lastAssistantMessage = isString(hookPayloadRecord.last_assistant_message)
+      ? hookPayloadRecord.last_assistant_message.trim()
+      : null;
 
     if (lastAssistantMessage && lastAssistantMessage.length > 0) {
       const effectiveTurns = turns ?? [];

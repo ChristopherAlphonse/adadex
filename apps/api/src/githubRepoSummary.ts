@@ -5,7 +5,8 @@ import type {
   GitHubCommitPoint,
   GitHubRecentCommit,
   GitHubRepoSummarySnapshot,
-, isObjectValue, isString} from "@adadex/core";
+} from "@adadex/core";
+import { asRecord, isString } from "@adadex/core";
 
 const execFileAsync = promisify(execFile);
 
@@ -99,23 +100,22 @@ const buildDailySeries = (now: Date): string[] => {
   return dates;
 };
 
-const readGhAuthenticationFailure = (error: unknown) => {
-  if (!isObjectValue(error) || !error) {
+const readGhAuthenticationFailure = (cause: unknown) => {
+  const details = asRecord(cause);
+
+  if (!details) {
     return null;
   }
 
-  const errorWithCode = error as { code?: unknown; stderr?: unknown; message?: unknown };
-
-  if (errorWithCode.code === "ENOENT") {
+  if (details.code === "ENOENT") {
     return "GitHub CLI not found. Install `gh` and run `gh auth login`.";
   }
 
-  const stderr =
-    isString(errorWithCode.stderr)
-      ? errorWithCode.stderr.toLowerCase()
-      : isString(errorWithCode.message)
-        ? errorWithCode.message.toLowerCase()
-        : "";
+  const stderr = isString(details.stderr)
+    ? details.stderr.toLowerCase()
+    : isString(details.message)
+      ? details.message.toLowerCase()
+      : "";
 
   if (stderr.includes("not logged in")) {
     return "GitHub CLI is not authenticated. Run `gh auth login`.";
@@ -167,26 +167,19 @@ const readRepositoryStats = async (
     },
   );
 
-  const parsed = JSON.parse(stdout) as {
-    data?: {
-      repository?: {
-        nameWithOwner?: unknown;
-        stargazerCount?: unknown;
-        issues?: { totalCount?: unknown } | null;
-        pullRequests?: { totalCount?: unknown } | null;
-      } | null;
-    };
-  };
+  const parsed = asRecord(JSON.parse(stdout));
+  const data = parsed ? asRecord(parsed.data) : null;
+  const repo = data ? asRecord(data.repository) : null;
 
-  const repo = parsed.data?.repository;
-
-  if (!repo || !isObjectValue(repo)) {
+  if (!repo) {
     throw new Error("repository_not_found");
   }
 
   const stargazerCount = Number.parseInt(String(repo.stargazerCount ?? "0"), 10);
-  const openIssueCount = Number.parseInt(String(repo.issues?.totalCount ?? "0"), 10);
-  const openPullRequestCount = Number.parseInt(String(repo.pullRequests?.totalCount ?? "0"), 10);
+  const issues = asRecord(repo.issues);
+  const pullRequests = asRecord(repo.pullRequests);
+  const openIssueCount = Number.parseInt(String(issues?.totalCount ?? "0"), 10);
+  const openPullRequestCount = Number.parseInt(String(pullRequests?.totalCount ?? "0"), 10);
 
   return {
     stargazerCount: Number.isFinite(stargazerCount) ? stargazerCount : 0,
@@ -414,9 +407,9 @@ export const readGithubRepoSummary = async (
       return unavailableSnapshot(now, knownFailure);
     }
 
-    const errorWithCode = error as { code?: unknown };
+    const failure = asRecord(error);
 
-    if (errorWithCode?.code === "ENOENT") {
+    if (failure?.code === "ENOENT") {
       return unavailableSnapshot(now, "Required command-line tools are not available.");
     }
 

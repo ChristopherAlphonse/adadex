@@ -1,7 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import type { ParsedValue } from "@adadex/core";
-
 import type { CodeIntelStore } from "../codeIntelStore";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import type { UsageChartResponse } from "../usageHeatmapScanner";
@@ -30,9 +28,6 @@ export type RouteHandlerContext = {
   corsOrigin: string | null;
 };
 
-/** Values JSON.stringify can serialize at the HTTP response boundary. */
-export type JsonResponsePayload = ParsedValue | object | undefined;
-
 type JsonBodyReadResult = { ok: true; payload: JsonRequestPayload } | { ok: false };
 
 export type ApiRouteHandler = (
@@ -40,10 +35,11 @@ export type ApiRouteHandler = (
   dependencies: RouteHandlerDependencies,
 ) => Promise<boolean>;
 
-export const writeJson = (
+/** The payload is already a domain value at this boundary; JSON.stringify owns serialization. */
+export const writeJson = <T>(
   response: ServerResponse,
   status: number,
-  payload: JsonResponsePayload,
+  payload: T,
   corsOrigin: string | null,
 ) => {
   response.writeHead(status, withCors({ "Content-Type": "application/json" }, corsOrigin));

@@ -5,6 +5,9 @@ import { parkJob } from "../jobs/parkJob";
 import { findWorkflow, type WorkflowLookup } from "../jobs/workflowLookup";
 import type { RunResult } from "./roleRunner";
 
+/** A timer handle from the runtime, or the numeric handle a test fake returns. */
+export type IntervalHandle = ReturnType<typeof setInterval> | number;
+
 export interface SchedulerDeps {
   readonly store: JobStore;
   readonly workflows: WorkflowLookup;
@@ -13,8 +16,8 @@ export interface SchedulerDeps {
   readonly stallLimit: number;
   /** Called with each plan that starts or parks something, for the log. */
   readonly onPlan?: (plan: TickPlan) => void;
-  readonly setInterval?: (fn: () => void, ms: number) => unknown;
-  readonly clearInterval?: (handle: unknown) => void;
+  readonly setInterval?: (fn: () => void, ms: number) => IntervalHandle;
+  readonly clearInterval?: (handle: IntervalHandle) => void;
 }
 
 export interface SchedulerStatus {
@@ -32,7 +35,7 @@ export const createScheduler = (deps: SchedulerDeps) => {
   const running = new Map<string, Promise<void>>();
   const stalls = new Map<string, number>();
   let enabled = false;
-  let timer: unknown;
+  let timer: IntervalHandle | undefined;
   let lastPlan: TickPlan | null = null;
 
   const launch = (jobId: string, stageId: string): void => {
@@ -97,7 +100,13 @@ export const createScheduler = (deps: SchedulerDeps) => {
       enabled = false;
 
       if (timer !== undefined)
-        (deps.clearInterval ?? ((h) => clearInterval(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ h as ReturnType<typeof setInterval>)))(timer);
+        (
+          deps.clearInterval ??
+          ((handle) => {
+            // SAFETY: the default handle comes from setInterval; test fakes provide their own clearer.
+            clearInterval(handle as ReturnType<typeof setInterval>);
+          })
+        )(timer);
       timer = undefined;
     },
     status: (): SchedulerStatus => ({ enabled, running: [...running.keys()], lastPlan }),

@@ -18,17 +18,21 @@ describe("createUpgradeHandler", () => {
     };
 
     const handler = createUpgradeHandler({
-      runtime: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ runtime as never,
+      // SAFETY: RuntimeLike is the exact slice of the runtime that upgrade handling invokes.
+      runtime: runtime as never,
       allowRemoteAccess: true,
     });
 
-    const socket = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
+    // SAFETY: the handler only calls destroy on the failing-upgrade path; the intersection
+    // keeps the double as a single checked assertion.
+    const socket = {
       destroy: vi.fn(),
-    } as unknown as Socket;
+    } as { destroy: ReturnType<typeof vi.fn> } & Socket;
 
     expect(() =>
       handler(
-        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
+        // SAFETY: the handler reads only host and origin from the request before delegating.
+        {
           headers: {
             host: "127.0.0.1:8787",
             origin: "http://127.0.0.1:5173",

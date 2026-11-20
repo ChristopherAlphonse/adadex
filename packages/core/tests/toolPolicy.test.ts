@@ -2,18 +2,19 @@ import { describe, expect, it } from "vitest";
 
 import { evaluateToolCall } from "../src/application/evaluateToolCall";
 import { BUILD_POLICY, REVIEW_POLICY } from "../src/presets/defaultPolicy";
+import type { ParsedRecord, ParsedValue } from "../src/util/typeCoercion";
 
 const at = (p: string) => p;
 
 const bash = (command: string) => ({ tool_name: "Bash", tool_input: { command }, cwd: "/repo" });
 
-const write = (tool: string, input: Record<string, unknown>) => ({
+const write = (tool: string, input: ParsedRecord) => ({
   tool_name: tool,
   tool_input: input,
   cwd: "/repo",
 });
 
-const kind = (e: unknown, policy = REVIEW_POLICY) => evaluateToolCall(policy, e, at).kind;
+const kind = (e: ParsedValue, policy = REVIEW_POLICY) => evaluateToolCall(policy, e, at).kind;
 
 describe("default policy, ported from factory", () => {
   it("blocks pushes however they are written, and mutating git needs a human", () => {

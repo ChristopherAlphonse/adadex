@@ -1,7 +1,7 @@
 import { realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
-import { type ApprovalGate, evaluateToolCall, type PolicyRules , isString} from "@adadex/core";
+import { type ApprovalGate, evaluateToolCall, isString, type PolicyRules } from "@adadex/core";
 
 import type { GuardDecide } from "../agents/guardHost";
 
@@ -35,13 +35,23 @@ export const createToolGuard =
     log: (line: string) => void = () => {},
   ): GuardDecide =>
   async (event) => {
-    const cwd =
-      isString((/* SAFETY: preceding checks establish the invariant this assertion encodes. */ event as { cwd?: unknown } | null)?.cwd)
-        ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ event as { cwd: string }).cwd
-        : process.cwd();
+    const cwd = isString(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        event as { cwd?: unknown } | null
+      )?.cwd,
+    )
+      ? /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+          event as { cwd: string }
+        ).cwd
+      : process.cwd();
 
     const verdict = evaluateToolCall(rules, event, (raw) => resolveReal(cwd, raw));
-    const tool = String((/* SAFETY: preceding checks establish the invariant this assertion encodes. */ event as { tool_name?: unknown } | null)?.tool_name);
+
+    const tool = String(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        event as { tool_name?: unknown } | null
+      )?.tool_name,
+    );
 
     if (verdict.kind === "allow") return { allow: true };
 

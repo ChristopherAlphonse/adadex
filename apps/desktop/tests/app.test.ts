@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { evaluateToolCall } from "@adadex/core";
+import { evaluateToolCall, type ParsedValue } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app/createApp";
@@ -108,7 +108,7 @@ const boot = async (checks = "true") => {
   return { app, project, dataDir, confirmed, events };
 };
 
-const run = (app: Awaited<ReturnType<typeof boot>>["app"], actionId: string, input: unknown) =>
+const run = (app: Awaited<ReturnType<typeof boot>>["app"], actionId: string, input: ParsedValue) =>
   app.api.handle({ kind: "action.run", actionId, input });
 
 describe("the app, end to end, with real git", () => {
@@ -149,10 +149,15 @@ describe("the app, end to end, with real git", () => {
 
     await writeFile(join(jobDir, "commit.md"), "feat: add a file\n");
 
-    const committed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await run(app, "job.commit_local", { id: "j1" })) as {
-      ok: true;
-      data: { commit: string };
-    };
+    const committed =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await run(
+        app,
+        "job.commit_local",
+        { id: "j1" },
+      )) as {
+        ok: true;
+        data: { commit: string };
+      };
 
     expect(committed.ok).toBe(true);
     expect(confirmed).toEqual(["Commit locally"]);

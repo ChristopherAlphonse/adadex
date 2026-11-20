@@ -11,7 +11,7 @@ const persistedUiStateMock = {
   isAgentsSidebarVisible: false,
   isRuntimeStatusStripVisible: false,
   isUiStateHydrated: true,
-  minimizedTerminalIds: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
+  minimizedTerminalIds: [],
   readUiState: vi.fn(),
   setIsActiveAgentsSectionExpanded: vi.fn(),
   setIsAgentsSidebarVisible: vi.fn(),
@@ -22,11 +22,11 @@ const persistedUiStateMock = {
   setTerminalCompletionSound: vi.fn(),
   sidebarWidth: 280,
   terminalCompletionSound: "pop" as const,
-  canvasOpenTerminalIds: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
+  canvasOpenTerminalIds: [],
   setCanvasOpenTerminalIds: vi.fn(),
-  canvasOpenCoordinationIds: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
+  canvasOpenCoordinationIds: [],
   setCanvasOpenCoordinationIds: vi.fn(),
-  canvasTerminalsPanelWidth: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ null as number | null,
+  canvasTerminalsPanelWidth: null,
   setCanvasTerminalsPanelWidth: vi.fn(),
 };
 
@@ -196,7 +196,7 @@ describe("App swarm actions", () => {
   });
 
   it("refreshes terminal snapshots after spawning a swarm", async () => {
-    vi.stubGlobal("WebSocket", /* SAFETY: preceding checks establish the invariant this assertion encodes. */ MockWebSocket as unknown as typeof WebSocket);
+    vi.stubGlobal("WebSocket", MockWebSocket);
 
     let terminalSnapshotReads = 0;
 

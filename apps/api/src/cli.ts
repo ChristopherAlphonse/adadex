@@ -1,8 +1,16 @@
-import { isNumber, isObjectValue, isString } from "@adadex/core";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { basename, join, resolve } from "node:path";
+
+import {
+  type ChannelMessage,
+  type ParsedRecord,
+  type TerminalSnapshot,
+  isNumber,
+  isObjectValue,
+  isString,
+} from "@adadex/core";
 
 import {
   ensureAdadexGitignoreEntry,
@@ -326,7 +334,9 @@ const HAIR_COLORS = [
   "#1e90ff",
 ];
 
-const pick = <T>(items: T[]): T => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ items[Math.floor(Math.random() * items.length)] as T;
+const pick = <T>(items: T[]): T =>
+  // SAFETY: Math.floor keeps the index strictly below items.length, so the element exists.
+  items[Math.floor(Math.random() * items.length)] as T;
 
 const randomAppearance = () => ({
   color: pick(COLORS),
@@ -356,7 +366,7 @@ const parseJsonFlag = (flag: string): Record<string, string> | undefined => {
   }
 
   try {
-    const parsed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(raw) as unknown;
+    const parsed: unknown = JSON.parse(raw);
 
     if (!parsed || !isObjectValue(parsed) || Array.isArray(parsed)) {
       console.error(`Error: ${flag} must be a JSON object.`);
@@ -391,7 +401,8 @@ const coordinationCreate = async () => {
       body: JSON.stringify({ name, description, color, mascot }),
     });
 
-    const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as Record<string, unknown>;
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
 
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
@@ -415,7 +426,8 @@ const coordinationList = async () => {
       process.exit(1);
     }
 
-    const coordinations = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as Array<Record<string, unknown>>;
+    // SAFETY: the coordination list endpoint returns an array of JSON objects.
+    const coordinations = (await response.json()) as ParsedRecord[];
 
     if (coordinations.length === 0) {
       console.log("No coordinations found.");
@@ -446,7 +458,7 @@ const terminalCreate = async () => {
   const promptVariables = parseJsonFlag("--prompt-variables");
   const apiBase = resolveRuntimeApiBase();
 
-  const body: Record<string, unknown> = {};
+  const body: ParsedRecord = {};
 
   if (name) body.name = name;
 
@@ -477,7 +489,8 @@ const terminalCreate = async () => {
       body: JSON.stringify(body),
     });
 
-    const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as Record<string, unknown>;
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
 
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
@@ -503,7 +516,8 @@ const terminalList = async () => {
       process.exit(1);
     }
 
-    const terminals = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as Array<Record<string, unknown>>;
+    // SAFETY: the snapshot endpoint returns the TerminalSnapshot[] contract exposed by the API.
+    const terminals = (await response.json()) as TerminalSnapshot[];
 
     if (terminals.length === 0) {
       console.log("No terminals found.");
@@ -521,8 +535,9 @@ const terminalList = async () => {
           ? ` pid=${terminal.processId}`
           : "";
 
-      const reason =
-        isString(terminal.lifecycleReason) ? ` reason=${terminal.lifecycleReason}` : "";
+      const reason = isString(terminal.lifecycleReason)
+        ? ` reason=${terminal.lifecycleReason}`
+        : "";
 
       console.log(`  ${terminalId}  ${lifecycle}${pid}${reason}  ${name}`);
     }
@@ -550,7 +565,8 @@ const terminalAction = async (action: "stop" | "kill") => {
       },
     );
 
-    const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as Record<string, unknown>;
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
 
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
@@ -572,7 +588,8 @@ const terminalPrune = async () => {
       headers: { Accept: "application/json" },
     });
 
-    const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as {
+    // SAFETY: the prune endpoint returns this response shape; error is only read for non-OK replies.
+    const data = (await response.json()) as {
       prunedTerminalIds?: string[];
       error?: unknown;
     };
@@ -641,7 +658,8 @@ const channelSend = async () => {
       },
     );
 
-    const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as Record<string, unknown>;
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
 
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
@@ -669,14 +687,16 @@ const channelList = async () => {
       `${apiBase}/api/channels/${encodeURIComponent(terminalId)}/messages`,
     );
 
-    const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as Record<string, unknown>;
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
 
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
       process.exit(1);
     }
 
-    const messages = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (data.messages ?? []) as Array<Record<string, unknown>>;
+    // SAFETY: the messages field is the ChannelMessage[] contract exposed by the API.
+    const messages = (data.messages ?? []) as ChannelMessage[];
 
     if (messages.length === 0) {
       console.log(`No messages for ${terminalId}.`);

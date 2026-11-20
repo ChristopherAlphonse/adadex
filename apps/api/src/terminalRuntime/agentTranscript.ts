@@ -1,5 +1,6 @@
-import { isObjectValue, isString } from "@adadex/core";
 import { existsSync, readFileSync } from "node:fs";
+
+import { type ParsedValue, isParsedRecord, isString } from "@adadex/core";
 
 import type { ConversationTurn } from "./conversations";
 
@@ -9,7 +10,7 @@ type ContentBlock = {
   thinking?: string;
   name?: string;
   id?: string;
-  input?: unknown;
+  input?: ParsedValue;
   tool_use_id?: string;
   content?: string | ContentBlock[];
   is_error?: boolean;
@@ -28,6 +29,9 @@ type AgentTranscriptMessage = {
   summary?: string;
   subtype?: string;
 };
+
+const isAgentTranscriptMessage = (value: unknown): value is AgentTranscriptMessage =>
+  isParsedRecord(value) && (value.type === "user" || value.type === "assistant");
 
 const extractTextContent = (msg: AgentTranscriptMessage): string | null => {
   const content = msg.message?.content ?? msg.content;
@@ -120,7 +124,7 @@ const extractToolUseSummary = (msg: AgentTranscriptMessage): string | null => {
       continue;
     }
 
-    const input = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ block.input as Record<string, unknown> | undefined;
+    const input = isParsedRecord(block.input) ? block.input : null;
     let detail = "";
 
     if (input) {
@@ -183,14 +187,10 @@ export const parseAgentTranscript = (transcriptPath: string): ConversationTurn[]
     }
 
     try {
-      const parsed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(trimmed) as unknown;
+      const parsed: unknown = JSON.parse(trimmed);
 
-      if (parsed !== null && isObjectValue(parsed) && !Array.isArray(parsed)) {
-        const msg = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ parsed as AgentTranscriptMessage;
-
-        if (msg.type === "user" || msg.type === "assistant") {
-          messages.push(msg);
-        }
+      if (isAgentTranscriptMessage(parsed)) {
+        messages.push(parsed);
       }
     } catch {
       // Skip malformed lines

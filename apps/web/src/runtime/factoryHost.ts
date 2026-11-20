@@ -116,6 +116,13 @@ export interface ElectronAdadexBridge {
 
 type HostBridge = HostApiBridge | ElectronAdadexBridge;
 
+declare global {
+  interface Window {
+    adadexFactoryHost?: HostBridge;
+    adadex?: unknown;
+  }
+}
+
 interface HostTransport {
   send(request: ParsedValue): Promise<ParsedValue>;
   listen(listener: (event: ParsedValue) => void): () => void;
@@ -154,7 +161,7 @@ const toTransport = (bridge: HostBridge): HostTransport => ({
     "subscribe" in bridge ? bridge.subscribe(listener) : bridge.onEvent(listener),
 });
 
-const isRecord = <T,>(value: T): value is T & ParsedRecord =>
+const isRecord = <T>(value: T): value is T & ParsedRecord =>
   isObjectValue(value) && value !== null && !Array.isArray(value);
 
 const readString = (record: ParsedRecord, key: string): string | undefined => {
@@ -332,7 +339,7 @@ const parseList = <T>(raw: ParsedValue, parse: (item: ParsedValue) => T): readon
 const unwrap = (raw: ParsedValue): ParsedValue => {
   if (!isRecord(raw)) throw new Error("host returned an invalid response");
 
-  if (raw.ok === true) return raw.data;
+  if (raw.ok === true) return raw.data ?? null;
 
   if (raw.ok === false && Array.isArray(raw.errors)) {
     const messages = raw.errors.filter((error): error is string => isString(error));
@@ -394,7 +401,7 @@ export const createHostApiFactoryHost = (bridge: HostBridge): FactoryHost => {
     listRoles: async () => {
       const raw = await transport.send({ kind: "roles.list" });
 
-      return isRecord(raw) && raw.ok === true ? parseList(raw.data, parseRole) : null;
+      return isRecord(raw) && raw.ok === true ? parseList(raw.data ?? null, parseRole) : null;
     },
     saveRole: async (role) => {
       await send("roles.save", { role });
@@ -405,7 +412,7 @@ export const createHostApiFactoryHost = (bridge: HostBridge): FactoryHost => {
     listLogs: async () => {
       const raw = await transport.send({ kind: "logs.query", limit: 50 });
 
-      return isRecord(raw) && raw.ok === true ? parseList(raw.data, parseLogEvent) : null;
+      return isRecord(raw) && raw.ok === true ? parseList(raw.data ?? null, parseLogEvent) : null;
     },
     verifyAudit: async (jobId) => parseAuditCheck(await send("audit.verify", { jobId })),
     subscribe: (onChange) => transport.listen(() => onChange()),
@@ -444,21 +451,22 @@ const isBridge = (value: unknown): value is HostBridge => {
 /** Test seam: lets a component test install a host without an Electron preload. */
 export const installFactoryHost = (bridge: HostBridge | null): void => {
   if (bridge === null) {
-    delete (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ window as { adadexFactoryHost?: HostBridge }).adadexFactoryHost;
+    delete window.adadexFactoryHost;
 
     return;
   }
 
-  (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ window as { adadexFactoryHost?: HostBridge }).adadexFactoryHost = bridge;
+  window.adadexFactoryHost = bridge;
 };
 
 export const createFactoryHost = (): FactoryHost => {
   if (typeof window === "undefined") return createEmptyFactoryHost();
-  const injected: unknown = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ window as { adadexFactoryHost?: unknown }).adadexFactoryHost;
+
+  const injected: unknown = window.adadexFactoryHost;
 
   if (isBridge(injected)) return createHostApiFactoryHost(injected);
 
-  const electron: unknown = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ window as { adadex?: unknown }).adadex;
+  const electron: unknown = window.adadex;
 
   return isBridge(electron) ? createHostApiFactoryHost(electron) : createEmptyFactoryHost();
 };

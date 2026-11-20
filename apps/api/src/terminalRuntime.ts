@@ -61,6 +61,17 @@ import {
 } from "./terminalRuntime/types";
 import { createWorktreeManager } from "./terminalRuntime/worktreeManager";
 
+type TerminalEvent =
+  | { type: "terminal-list-changed" }
+  | { type: "terminal-deleted"; terminalId: string }
+  | { type: "terminal-created" | "terminal-updated"; snapshot: TerminalSnapshot }
+  | {
+      type: "terminal-state-changed";
+      terminalId: string;
+      agentRuntimeState: string;
+      toolName?: string;
+    };
+
 export type {
   CoordinationWorkspaceMode,
   GitClient,
@@ -147,7 +158,7 @@ export const createTerminalRuntime = ({
     });
   };
 
-  const isProcessAlive = (pid: number | undefined): boolean => {
+  const isProcessAlive = (pid: number | undefined): pid is number => {
     if (!pid || !Number.isInteger(pid) || pid <= 0) {
       return false;
     }
@@ -265,12 +276,17 @@ export const createTerminalRuntime = ({
     agentRuntimeState: string,
     toolName?: string,
   ) => {
-    broadcastTerminalEvent({
+    const event: TerminalEvent = {
       type: "terminal-state-changed",
       terminalId,
       agentRuntimeState,
-      ...(toolName ? { toolName } : {}),
-    });
+    };
+
+    if (toolName) {
+      event.toolName = toolName;
+    }
+
+    broadcastTerminalEvent(event);
   };
 
   const sessionRuntime = createSessionRuntime({
@@ -387,7 +403,7 @@ export const createTerminalRuntime = ({
       ? "running"
       : (terminal.lifecycleState ?? "registered");
 
-    return {
+    const snapshot: TerminalSnapshot = {
       terminalId: terminal.terminalId,
       label: terminal.terminalId,
       state: lifecycleStateToAgentState(lifecycleState),
@@ -396,20 +412,49 @@ export const createTerminalRuntime = ({
       workspaceMode: terminal.workspaceMode,
       createdAt: terminal.createdAt,
       hasUserPrompt: isTerminalRecentlyActive(terminal),
-      ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
-      ...(session ? { agentRuntimeState: session.agentState } : {}),
       lifecycleState,
-      ...(terminal.lifecycleReason ? { lifecycleReason: terminal.lifecycleReason } : {}),
-      ...(terminal.lifecycleUpdatedAt ? { lifecycleUpdatedAt: terminal.lifecycleUpdatedAt } : {}),
-      ...(terminal.processId ? { processId: terminal.processId } : {}),
-      ...(terminal.startedAt ? { startedAt: terminal.startedAt } : {}),
-      ...(terminal.endedAt ? { endedAt: terminal.endedAt } : {}),
-      ...(terminal.exitCode !== undefined ? { exitCode: terminal.exitCode } : {}),
-      ...(terminal.exitSignal !== undefined ? { exitSignal: terminal.exitSignal } : {}),
     };
+
+    if (terminal.parentTerminalId) {
+      snapshot.parentTerminalId = terminal.parentTerminalId;
+    }
+
+    if (session) {
+      snapshot.agentRuntimeState = session.agentState;
+    }
+
+    if (terminal.lifecycleReason) {
+      snapshot.lifecycleReason = terminal.lifecycleReason;
+    }
+
+    if (terminal.lifecycleUpdatedAt) {
+      snapshot.lifecycleUpdatedAt = terminal.lifecycleUpdatedAt;
+    }
+
+    if (terminal.processId) {
+      snapshot.processId = terminal.processId;
+    }
+
+    if (terminal.startedAt) {
+      snapshot.startedAt = terminal.startedAt;
+    }
+
+    if (terminal.endedAt) {
+      snapshot.endedAt = terminal.endedAt;
+    }
+
+    if (terminal.exitCode !== undefined) {
+      snapshot.exitCode = terminal.exitCode;
+    }
+
+    if (terminal.exitSignal !== undefined) {
+      snapshot.exitSignal = terminal.exitSignal;
+    }
+
+    return snapshot;
   };
 
-  const broadcastTerminalEvent = (event: Record<string, unknown>) => {
+  const broadcastTerminalEvent = (event: TerminalEvent) => {
     const payload = JSON.stringify(event);
 
     for (const client of terminalEventClients) {
@@ -532,20 +577,35 @@ export const createTerminalRuntime = ({
     const terminal: PersistedTerminal = {
       terminalId,
       coordinationId,
-      ...(worktreeId ? { worktreeId } : {}),
       coordinationName: effectiveName,
       nameOrigin: nameOrigin ?? (coordinationName ? "user" : "generated"),
-      ...(autoRenamePromptContext ? { autoRenamePromptContext } : {}),
       createdAt: new Date().toISOString(),
       workspaceMode,
       agentProvider: effectiveAgentProvider ?? DEFAULT_AGENT_PROVIDER,
       lifecycleState: "registered",
       lifecycleUpdatedAt: new Date().toISOString(),
-      ...(initialPrompt ? { initialPrompt } : {}),
-      ...(initialInputDraft ? { initialInputDraft } : {}),
-      ...(initialPrompt ? { lastActiveAt: new Date().toISOString() } : {}),
-      ...(parentTerminalId ? { parentTerminalId } : {}),
     };
+
+    if (worktreeId) {
+      terminal.worktreeId = worktreeId;
+    }
+
+    if (autoRenamePromptContext) {
+      terminal.autoRenamePromptContext = autoRenamePromptContext;
+    }
+
+    if (initialPrompt) {
+      terminal.initialPrompt = initialPrompt;
+      terminal.lastActiveAt = new Date().toISOString();
+    }
+
+    if (initialInputDraft) {
+      terminal.initialInputDraft = initialInputDraft;
+    }
+
+    if (parentTerminalId) {
+      terminal.parentTerminalId = parentTerminalId;
+    }
 
     const effectiveWorktreeId = worktreeId ?? coordinationId;
     const shouldCreateWorktree = workspaceMode === "worktree";
@@ -732,7 +792,7 @@ export const createTerminalRuntime = ({
 
       if (!stoppedActiveSession && isProcessAlive(terminal.processId)) {
         try {
-          process.kill(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ terminal.processId as number, "SIGTERM");
+          process.kill(terminal.processId, "SIGTERM");
         } catch {
           // The lifecycle marker below still removes this terminal from the active set.
         }
@@ -760,7 +820,7 @@ export const createTerminalRuntime = ({
 
       if (!killedActiveSession && isProcessAlive(terminal.processId)) {
         try {
-          process.kill(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ terminal.processId as number, signal);
+          process.kill(terminal.processId, signal);
         } catch {
           // The lifecycle marker below still removes this terminal from the active set.
         }

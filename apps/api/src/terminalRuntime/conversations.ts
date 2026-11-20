@@ -1,22 +1,22 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type {
-  ConversationSearchHit,
-  ConversationSearchResult,
-  ConversationSessionDetail,
-  ConversationSessionSummary,
-  ConversationTurn,
-, isNumber, isObjectValue, isString} from "@adadex/core";
+import {
+  type ConversationSearchHit,
+  type ConversationSearchResult,
+  type ConversationSessionDetail,
+  type ConversationSessionSummary,
+  type ConversationTurn,
+  type ParsedValue,
+  asRecord,
+  asString,
+  isNumber,
+  isString,
+} from "@adadex/core";
 
 import type { AgentRuntimeState } from "../agentStateDetection";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && isObjectValue(value) && !Array.isArray(value);
-
-const asString = (value: unknown): string | null => (isString(value) ? value : null);
-
-const parseRuntimeState = (value: unknown): AgentRuntimeState | null =>
+const parseRuntimeState = (value: ParsedValue): AgentRuntimeState | null =>
   value === "idle" || value === "processing" ? value : null;
 
 export type ConversationTranscriptEventBase = {
@@ -73,8 +73,10 @@ export type { ConversationTurn };
 export const transcriptFilenameForSession = (sessionId: string) =>
   `${encodeURIComponent(sessionId)}.jsonl`;
 
-const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | null => {
-  if (!isRecord(value)) {
+const parseTranscriptEvent = (payload: ParsedValue): ConversationTranscriptEvent | null => {
+  const value = asRecord(payload);
+
+  if (!value) {
     return null;
   }
 
@@ -137,7 +139,7 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
   }
 
   if (eventType === "state_change") {
-    const state = parseRuntimeState(value.state);
+    const state = parseRuntimeState(value.state ?? null);
 
     if (!state) {
       return null;
@@ -167,21 +169,26 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
 
     const exitCode = isNumber(value.exitCode) ? value.exitCode : undefined;
 
-    const signal =
-      isNumber(value.signal) || isString(value.signal)
-        ? value.signal
-        : undefined;
+    const signal = isNumber(value.signal) || isString(value.signal) ? value.signal : undefined;
 
-    return {
+    const event: SessionEndTranscriptEvent = {
       type: "session_end",
       eventId,
       sessionId,
       coordinationId,
       timestamp,
       reason,
-      ...(exitCode !== undefined ? { exitCode } : {}),
-      ...(signal !== undefined ? { signal } : {}),
     };
+
+    if (exitCode !== undefined) {
+      event.exitCode = exitCode;
+    }
+
+    if (signal !== undefined) {
+      event.signal = signal;
+    }
+
+    return event;
   }
 
   return null;
@@ -232,7 +239,7 @@ const parseTranscriptLines = (rawJsonl: string): ConversationTranscriptEvent[] =
     }
 
     try {
-      const parsed = JSON.parse(trimmed) as unknown;
+      const parsed: ParsedValue = JSON.parse(trimmed);
       const event = parseTranscriptEvent(parsed);
 
       if (event) {
@@ -441,6 +448,32 @@ export const storeAgentTranscriptTurns = (
   writeFileSync(filePath, JSON.stringify(turns), "utf8");
 };
 
+const parseConversationTurn = (payload: ParsedValue): ConversationTurn | null => {
+  const record = asRecord(payload);
+
+  if (!record) {
+    return null;
+  }
+
+  const turnId = asString(record.turnId);
+  const role = record.role;
+  const content = asString(record.content);
+  const startedAt = asString(record.startedAt);
+  const endedAt = asString(record.endedAt);
+
+  if (
+    !turnId ||
+    (role !== "user" && role !== "assistant") ||
+    content === null ||
+    !startedAt ||
+    !endedAt
+  ) {
+    return null;
+  }
+
+  return { turnId, role, content, startedAt, endedAt };
+};
+
 const readAgentTranscriptTurns = (
   transcriptDirectoryPath: string,
   sessionId: string,
@@ -455,13 +488,17 @@ const readAgentTranscriptTurns = (
 
   try {
     const raw = readFileSync(filePath, "utf8");
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed: ParsedValue = JSON.parse(raw);
 
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return null;
     }
 
-    return parsed as ConversationTurn[];
+    const turns = parsed
+      .map((entry) => parseConversationTurn(entry))
+      .filter((turn): turn is ConversationTurn => turn !== null);
+
+    return turns.length > 0 ? turns : null;
   } catch {
     return null;
   }

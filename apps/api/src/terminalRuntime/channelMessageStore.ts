@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 
+import { isParsedRecord } from "@adadex/core";
+
 import { writeTextFileAtomic } from "../atomicJsonFile";
 import type { ChannelMessage } from "./types";
 
@@ -10,11 +12,8 @@ export type ChannelMessagesDocument = {
   messages: ChannelMessage[];
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
-
 const isChannelMessage = (value: unknown): value is ChannelMessage => {
-  if (!isRecord(value)) {
+  if (!isParsedRecord(value)) {
     return false;
   }
 
@@ -42,7 +41,7 @@ export const loadChannelMessages = (registryPath: string): Map<string, ChannelMe
     const parsed: unknown = JSON.parse(readFileSync(registryPath, "utf8"));
 
     if (
-      !isRecord(parsed) ||
+      !isParsedRecord(parsed) ||
       parsed.version !== CHANNEL_MESSAGES_VERSION ||
       !Array.isArray(parsed.messages)
     ) {

@@ -1,4 +1,4 @@
-import { isString } from "@adadex/core";
+import { asRecord, isString } from "@adadex/core";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useRef, useState } from "react";
 
@@ -132,32 +132,33 @@ export const useTerminalMutations = ({
         setIsCreatingTerminal(true);
         setLoadError(null);
 
+        const requestBody: CreateTerminalRequest = { workspaceMode };
+
+        if (coordinationId) {
+          requestBody.coordinationId = coordinationId;
+        }
+
         const response = await fetch("/api/terminals", {
           method: "POST",
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            workspaceMode,
-            ...(coordinationId ? { coordinationId } : {}),
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
           throw new Error(`Unable to create terminal (${response.status})`);
         }
 
-        const createdSnapshot = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as {
-          terminalId?: unknown;
-          coordinationName?: unknown;
-        };
+        const createdSnapshot = asRecord(await response.json());
 
         const nextColumns = await readColumns();
         setColumns(nextColumns);
 
-        const createdTerminalId =
-          isString(createdSnapshot.terminalId) ? createdSnapshot.terminalId : null;
+        const createdTerminalId = isString(createdSnapshot?.terminalId)
+          ? createdSnapshot.terminalId
+          : null;
 
         if (!createdTerminalId) {
           return undefined;
@@ -167,7 +168,7 @@ export const useTerminalMutations = ({
 
         const createdTerminalName =
           createdEntry?.coordinationName ??
-          (isString(createdSnapshot.coordinationName)
+          (isString(createdSnapshot?.coordinationName)
             ? createdSnapshot.coordinationName
             : createdTerminalId);
 

@@ -2,14 +2,22 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createActionRegistry, FACTORY_ACTIONS, factoryBuildPreset, runAgent } from "@adadex/core";
+import {
+  type ActionOutcome,
+  asRecord,
+  createActionRegistry,
+  FACTORY_ACTIONS,
+  factoryBuildPreset,
+  isString,
+  runAgent,
+} from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { loadMachineConfig } from "../src/config/machineConfig";
 import { createActionHost, type HostEvent } from "../src/host/actionHost";
 import { createApprovalBroker } from "../src/ipc/approvalBroker";
 import { type ProcessPort, parseRequest } from "../src/ipc/contract";
-import { createHostApi } from "../src/ipc/hostApi";
+import { createHostApi, type HostApiDeps } from "../src/ipc/hostApi";
 import { createJobExecutor } from "../src/jobs/jobActions";
 import { createJobStore } from "../src/jobs/jobStore";
 import { createWorkflowStore } from "../src/workflows/workflowStore";
@@ -117,16 +125,17 @@ const build = (confirmAnswer = true, processes?: ProcessPort) => {
 
   const configPath = join(root, "machine.json");
 
-  const api = createHostApi({
+  const deps: HostApiDeps = {
     workflows,
     jobs,
     host,
     approvals: broker,
-    ...(processes === undefined ? {} : { processes }),
     loadConfig: () => loadMachineConfig(configPath),
     configPath,
     roundLimit: 3,
-  });
+  };
+
+  const api = createHostApi(processes === undefined ? deps : { ...deps, processes });
 
   return { api, events, confirmed, broker, registry, host };
 };
@@ -190,10 +199,21 @@ describe("host api", () => {
   it("lists the presets, saves a user workflow, forks and removes it, and refuses to touch a preset", async () => {
     const { api } = build();
 
-    const names = async () =>
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await api.handle({ kind: "workflows.list" })) as { data: { id: string }[] }).data.map(
-        (w) => w.id,
-      );
+    const names = async () => {
+      const response = await api.handle({ kind: "workflows.list" });
+
+      if (!response.ok) throw new Error(response.errors.join("; "));
+
+      if (!Array.isArray(response.data)) throw new Error("workflows.list must return a list");
+
+      return response.data.map((workflow) => {
+        const id = asRecord(workflow)?.id;
+
+        if (!isString(id)) throw new Error("a workflow must have an id");
+
+        return id;
+      });
+    };
 
     expect(await names()).toEqual(["factory", "factory-review"]);
 
@@ -233,11 +253,22 @@ describe("host api", () => {
 
     expect(refused).toEqual({ ok: false, errors: ["shape.md needs STATUS: READY"] });
 
-    const jobs = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await api.handle({ kind: "jobs.list" })) as {
-      data: { id: string; stage: string }[];
-    };
+    const response = await api.handle({ kind: "jobs.list" });
 
-    expect(jobs.data.map((j) => [j.id, j.stage])).toEqual([["j1", "shape"]]);
+    if (!response.ok) throw new Error(response.errors.join("; "));
+
+    if (!Array.isArray(response.data)) throw new Error("jobs.list must return a list");
+
+    const jobs = response.data.map((job) => {
+      const record = asRecord(job);
+
+      if (!isString(record?.id) || !isString(record.stage))
+        throw new Error("a job must have an id and a stage");
+
+      return [record.id, record.stage];
+    });
+
+    expect(jobs).toEqual([["j1", "shape"]]);
   });
 
   it("a human-only action from the UI shows a native confirmation, and declining stops it", async () => {
@@ -258,7 +289,7 @@ describe("host api", () => {
 
   it("an agent's ask action waits for the UI to approve it, and the UI cannot approve a human-only action", async () => {
     const { api, events, broker, registry, host } = build();
-    let seenOutcome: unknown;
+    let seenOutcome: ActionOutcome | undefined;
 
     const provider = {
       id: "fake",
@@ -273,7 +304,7 @@ describe("host api", () => {
           };
           yield { type: "done" as const, summary: "" };
         },
-        respond: async (id: string, outcome: unknown) => {
+        respond: async (id: string, outcome: ActionOutcome) => {
           if (id === "1") seenOutcome = outcome;
         },
         stop: async () => {},
@@ -316,13 +347,17 @@ describe("host api", () => {
 
     expect(good.ok).toBe(true);
 
-    const resolved = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await api.handle({ kind: "skills.resolve", workflowId: "factory" })) as {
-      data: { stageId: string; via: string; skill: unknown }[];
-    };
+    const response = await api.handle({ kind: "skills.resolve", workflowId: "factory" });
 
-    expect(resolved.data.find((r) => r.stageId === "spec")).toMatchObject({
-      via: "map",
-      skill: null,
-    });
+    if (!response.ok) throw new Error(response.errors.join("; "));
+
+    if (!Array.isArray(response.data)) throw new Error("skills.resolve must return a list");
+
+    const spec = response.data
+      .map((entry) => asRecord(entry))
+      .find((entry) => entry?.stageId === "spec");
+
+    expect(spec?.via).toBe("map");
+    expect(spec?.skill).toBeNull();
   });
 });

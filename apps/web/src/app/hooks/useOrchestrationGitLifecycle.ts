@@ -1,4 +1,4 @@
-import { isBoolean, isNumber, isObjectValue, isString } from "@adadex/core";
+import { asRecord, isBoolean, isNumber, isString, type ParsedValue } from "@adadex/core";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -44,9 +44,9 @@ type UseOrchestrationGitLifecycleResult = {
 
 const parseGitError = async (response: Response, fallback: string) => {
   try {
-    const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as { error?: unknown };
+    const payload = asRecord(await response.json());
 
-    if (isString(payload.error) && payload.error.trim().length > 0) {
+    if (payload && isString(payload.error) && payload.error.trim().length > 0) {
       return payload.error.trim();
     }
   } catch {
@@ -56,12 +56,14 @@ const parseGitError = async (response: Response, fallback: string) => {
   return fallback;
 };
 
-const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSnapshot | null => {
-  if (payload === null || payload === undefined || !isObjectValue(payload)) {
+const parseOrchestrationGitStatus = (
+  payload: ParsedValue,
+): CoordinationGitStatusSnapshot | null => {
+  const record = asRecord(payload);
+
+  if (!record) {
     return null;
   }
-
-  const record = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ payload as Record<string, unknown>;
 
   if (
     !isString(record.coordinationId) ||
@@ -104,13 +106,13 @@ const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSna
 };
 
 const parseOrchestrationPullRequest = (
-  payload: unknown,
+  payload: ParsedValue,
 ): CoordinationPullRequestSnapshot | null => {
-  if (payload === null || payload === undefined || !isObjectValue(payload)) {
+  const record = asRecord(payload);
+
+  if (!record) {
     return null;
   }
-
-  const record = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ payload as Record<string, unknown>;
 
   if (
     !isString(record.coordinationId) ||
@@ -337,8 +339,8 @@ export const useOrchestrationGitLifecycle = ({
         ...current,
         [coordinationId]: true,
       }));
-      void fetchOrchestrationGitStatus(coordinationId).catch((error: unknown) => {
-        console.warn(`[git] Failed to fetch status for orchestration ${coordinationId}:`, error);
+      void fetchOrchestrationGitStatus(coordinationId).catch((cause: unknown) => {
+        console.warn(`[git] Failed to fetch status for orchestration ${coordinationId}:`, cause);
       });
     }
   }, [fetchOrchestrationGitStatus, gitStatusAttemptedOrchestrationIds, worktreeOrchestrationIds]);
@@ -353,10 +355,10 @@ export const useOrchestrationGitLifecycle = ({
         ...current,
         [coordinationId]: true,
       }));
-      void fetchOrchestrationPullRequest(coordinationId).catch((error: unknown) => {
+      void fetchOrchestrationPullRequest(coordinationId).catch((cause: unknown) => {
         console.warn(
           `[git] Failed to fetch pull request for orchestration ${coordinationId}:`,
-          error,
+          cause,
         );
       });
     }
@@ -375,9 +377,9 @@ export const useOrchestrationGitLifecycle = ({
       void Promise.all([
         fetchOrchestrationGitStatus(coordinationId),
         fetchOrchestrationPullRequest(coordinationId),
-      ]).catch((error: unknown) => {
+      ]).catch((cause: unknown) => {
         setGitDialogError(
-          error instanceof Error ? error.message : "Unable to fetch git lifecycle data.",
+          cause instanceof Error ? cause.message : "Unable to fetch git lifecycle data.",
         );
       });
     },

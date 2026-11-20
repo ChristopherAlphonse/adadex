@@ -26,7 +26,7 @@ const restoreWindowProperty = (name: keyof Window, descriptor: PropertyDescripto
     return;
   }
 
-  delete (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ window as unknown as Record<keyof Window, unknown>)[name];
+  Reflect.deleteProperty(window, name);
 };
 
 const createContextStub = () => {
@@ -110,7 +110,12 @@ describe("AgentGlyph", () => {
       <AgentGlyph animation="idle" graphScale={2} size={80} testId="agent-glyph" />,
     );
 
-    const canvas = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ getByTestId("agent-glyph") as HTMLCanvasElement;
+    const canvas = getByTestId("agent-glyph");
+
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error("Expected an HTMLCanvasElement");
+    }
+
     expect(canvas.width).toBe(320);
     expect(canvas.height).toBe(320);
     expect(canvas.style.width).toBe("80px");

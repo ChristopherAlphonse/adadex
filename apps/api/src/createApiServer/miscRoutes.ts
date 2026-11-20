@@ -159,8 +159,7 @@ export const handleHookRoute: ApiRouteHandler = async (
 
   // HTTP hooks pass the session ID via header; command hooks via query param.
   const hookSessionId =
-    (isString(request.headers["x-adadex-session"]) &&
-    request.headers["x-adadex-session"].length > 0
+    (isString(request.headers["x-adadex-session"]) && request.headers["x-adadex-session"].length > 0
       ? request.headers["x-adadex-session"]
       : undefined) ??
     requestUrl.searchParams.get("adadex_session") ??
@@ -232,7 +231,9 @@ export const handlePromptItemRoute: ApiRouteHandler = async (
 
   if (!match) return false;
 
-  const name = decodeURIComponent(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ match[1] as string);
+  const name = decodeURIComponent(
+    /* SAFETY: preceding checks establish the invariant this assertion encodes. */ match[1] as string,
+  );
 
   if (request.method === "GET") {
     // Resolve variables from query params (e.g. ?coordinationId=sandbox).
@@ -348,8 +349,7 @@ export const handleChannelMessagesRoute: ApiRouteHandler = async (
   // SAFETY: readJsonBody parsed the body into ParsedValue members, including nested values.
   const body = bodyReadResult.payload as ParsedRecord | null;
 
-  const fromTerminalId =
-    body && isString(body.fromTerminalId) ? body.fromTerminalId.trim() : "";
+  const fromTerminalId = body && isString(body.fromTerminalId) ? body.fromTerminalId.trim() : "";
 
   const content = body && isString(body.content) ? body.content.trim() : "";
 

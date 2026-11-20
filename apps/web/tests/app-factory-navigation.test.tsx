@@ -1,4 +1,4 @@
-import { isObjectValue } from "@adadex/core";
+import { type ParsedValue, isObjectValue } from "@adadex/core";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -36,8 +36,13 @@ const mockShellRequests = () => {
   });
 };
 
-const factoryBridge = (): { bridge: HostApiBridge; handle: ReturnType<typeof vi.fn> } => {
-  const handle = vi.fn(async (request: unknown) => {
+interface FactoryBridgeHarness {
+  bridge: HostApiBridge;
+  handle: ReturnType<typeof vi.fn>;
+}
+
+const factoryBridge = (): FactoryBridgeHarness => {
+  const handle = vi.fn(async (request: ParsedValue) => {
     if (
       isObjectValue(request) &&
       request !== null &&

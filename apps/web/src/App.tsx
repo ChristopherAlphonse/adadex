@@ -1,9 +1,11 @@
 import {
+  asRecord,
   buildTerminalList,
   isAgentRuntimeState,
+  isString,
   type TerminalSnapshot,
   type WorkspaceSetupStepId,
-, isString} from "@adadex/core";
+} from "@adadex/core";
 import {
   type ReactElement,
   type ReactNode,
@@ -35,6 +37,7 @@ import {
   getTerminalRuntimeStateInfo,
   stripTerminalRuntimeState,
   stripTerminalRuntimeStates,
+  type TerminalRuntimeStateInfo,
 } from "./app/terminalRuntimeStateStore";
 import type { TerminalView } from "./app/types";
 import { clampSidebarWidth } from "./app/uiStateNormalizers";
@@ -117,13 +120,8 @@ const AppShell = () => {
 
   const readColumns = useCallback(
     async (signal?: AbortSignal) => {
-      const readerOptions: { endpoint: string; signal?: AbortSignal } = {
-        endpoint: buildTerminalSnapshotsUrl(),
-      };
-
-      if (signal) {
-        readerOptions.signal = signal;
-      }
+      const endpoint = buildTerminalSnapshotsUrl();
+      const readerOptions = signal ? { endpoint, signal } : { endpoint };
 
       const reader = new HttpTerminalSnapshotReader(readerOptions);
       const nextColumns = await buildTerminalList(reader);
@@ -204,6 +202,7 @@ const AppShell = () => {
       }
 
       try {
+        // SAFETY: JSON.parse yields JSON values; the guards below narrow every field before use.
         const payload = JSON.parse(event.data) as
           | {
               type?: unknown;
@@ -228,7 +227,7 @@ const AppShell = () => {
           const structuralSnapshot = stripTerminalRuntimeState(payload.snapshot);
 
           if (payload.type === "terminal-created") {
-            setRecentlyCreatedTerminal(structuralSnapshot as TerminalView[number]);
+            setRecentlyCreatedTerminal(structuralSnapshot);
           }
 
           setTerminals((current) =>
@@ -248,10 +247,15 @@ const AppShell = () => {
             return;
           }
 
-          runtimeStateStore.setRuntimeState(payload.terminalId, {
+          const runtimeState: TerminalRuntimeStateInfo = {
             state: payload.agentRuntimeState,
-            ...(payload.toolName ? { toolName: payload.toolName } : {}),
-          });
+          };
+
+          if (payload.toolName) {
+            runtimeState.toolName = payload.toolName;
+          }
+
+          runtimeStateStore.setRuntimeState(payload.terminalId, runtimeState);
 
           return;
         }
@@ -539,14 +543,15 @@ const AppShell = () => {
                   return undefined;
                 }
 
-                const snapshot = (await response.json()) as { terminalId?: string };
+                const snapshot = asRecord(await response.json());
                 await refreshColumns();
+                const terminalId = snapshot?.terminalId;
 
-                if (!isString(snapshot.terminalId)) {
+                if (!isString(terminalId)) {
                   return undefined;
                 }
 
-                return snapshot.terminalId;
+                return terminalId;
               },
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
               onCanvasOpenOrchestrationIdsChange: setCanvasOpenCoordinationIds,
@@ -584,10 +589,11 @@ const AppShell = () => {
                   let message = "Failed to spawn swarm.";
 
                   try {
-                    const body = (await response.json()) as { error?: unknown };
+                    const body = asRecord(await response.json());
+                    const error = body?.error;
 
-                    if (isString(body.error) && body.error.trim().length > 0) {
-                      message = body.error;
+                    if (isString(error) && error.trim().length > 0) {
+                      message = error;
                     }
                   } catch {
                     // Fall back to the generic message when the server returns a non-JSON error.
@@ -610,10 +616,11 @@ const AppShell = () => {
                 });
 
                 if (!response.ok) return undefined;
-                const snapshot = (await response.json()) as { terminalId?: string };
+                const snapshot = asRecord(await response.json());
                 await refreshColumns();
+                const terminalId = snapshot?.terminalId;
 
-                return isString(snapshot.terminalId) ? snapshot.terminalId : undefined;
+                return isString(terminalId) ? terminalId : undefined;
               },
               onOrchestrationAction: async (coordinationId, action) => {
                 const response = await fetch("/api/terminals", {
@@ -630,10 +637,11 @@ const AppShell = () => {
                 });
 
                 if (!response.ok) return undefined;
-                const snapshot = (await response.json()) as { terminalId?: string };
+                const snapshot = asRecord(await response.json());
                 await refreshColumns();
+                const terminalId = snapshot?.terminalId;
 
-                return isString(snapshot.terminalId) ? snapshot.terminalId : undefined;
+                return isString(terminalId) ? terminalId : undefined;
               },
               onNavigateToConversation: (_sessionId) => {
                 setActivePrimaryNav(6);

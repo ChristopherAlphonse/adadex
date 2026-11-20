@@ -5,6 +5,7 @@ import {
   type ActionRegistry,
   PRESET_ROLES,
   parseRole,
+  type ParsedValue,
   type RoleDefinition,
   type WorkflowDefinition,
 } from "@adadex/core";
@@ -17,7 +18,7 @@ export interface RoleStore {
   list(): Promise<readonly RoleDefinition[]>;
   get(id: string): Promise<RoleDefinition | undefined>;
   /** Validates, then writes. A preset's id can never be overwritten. */
-  save(input: unknown): Promise<RoleSave>;
+  save<T>(input: T): Promise<RoleSave>;
   remove(id: string): Promise<RoleSave | { readonly ok: true }>;
 }
 
@@ -33,7 +34,12 @@ export const createRoleStore = (dir: string, registry: ActionRegistry): RoleStor
   const readUser = async (): Promise<RoleDefinition[]> => {
     const out: RoleDefinition[] = [];
 
-    for (const name of (await readdir(dir).catch(() => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[]))
+    for (const name of (
+      await readdir(dir).catch(
+        () =>
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
+      )
+    )
       .filter((n) => n.endsWith(".json"))
       .sort()) {
       try {
@@ -55,7 +61,8 @@ export const createRoleStore = (dir: string, registry: ActionRegistry): RoleStor
     list,
     get: async (id) => (await list()).find((r) => r.id === id),
     async save(input) {
-      const r = parseRole(input, registry);
+      // SAFETY: `save` is the untrusted-data boundary; parseRole checks the value before anything uses it.
+      const r = parseRole(input as ParsedValue, registry);
 
       if (!r.ok) return r;
 

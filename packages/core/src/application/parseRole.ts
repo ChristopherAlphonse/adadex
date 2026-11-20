@@ -1,3 +1,4 @@
+import { ROLE_TOOLS, type RoleDefinition } from "../domain/role";
 import {
   isBoolean,
   isNumber,
@@ -6,7 +7,6 @@ import {
   type ParsedRecord,
   type ParsedValue,
 } from "../util/typeCoercion";
-import { ROLE_TOOLS, type RoleDefinition } from "../domain/role";
 import type { ActionRegistry } from "./actionRegistry";
 
 export type ParseRoleResult =
@@ -15,11 +15,11 @@ export type ParseRoleResult =
 
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 
-const isObj = <T,>(v: T): v is T & ParsedRecord => isParsedRecord(v);
+const isObj = <T>(v: T): v is T & ParsedRecord => isParsedRecord(v);
 
-const text = <T,>(v: T): v is T & string => isString(v) && v !== "";
+const text = (v: ParsedValue | undefined): v is string => isString(v) && v !== "";
 
-const strings = <T,>(v: T): v is T & string[] => Array.isArray(v) && v.every(text);
+const strings = (v: ParsedValue | undefined): v is string[] => Array.isArray(v) && v.every(text);
 
 /** Files in a job's folder that only the app writes. No role can be granted them, whatever its writeDocs say. */
 const APP_ONLY = ["job.json", "audit.log", "checks.md", "human"];
@@ -130,7 +130,7 @@ export const parseRole = (input: ParsedValue, registry: ActionRegistry): ParseRo
 
   // SAFETY: id and name are non-empty strings, the id lists are string lists, tools are on ROLE_TOOLS,
   // writeDocs are safe globs and limits are whole numbers; origin is set below so a preset cannot be forged.
-  const role = input as RoleDefinition;
+  const role = input as ParsedRecord & RoleDefinition;
 
   return { ok: true, role: { ...role, origin: "user" } };
 };

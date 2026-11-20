@@ -1,5 +1,5 @@
-import { isParsedRecord, isString, type ParsedValue } from "../util/typeCoercion";
 import type { PolicyDecision, PolicyRules } from "../domain/policy";
+import { isParsedRecord, isString, type ParsedValue } from "../util/typeCoercion";
 import { evaluateShell, evaluateWrite } from "./evaluatePolicy";
 
 const SHELL_TOOLS = new Set(["Bash", "bash", "execute_bash"]);

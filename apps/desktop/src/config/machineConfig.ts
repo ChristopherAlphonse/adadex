@@ -1,6 +1,7 @@
-import { isParsedRecord, isString, type ParsedValue } from "@adadex/core";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+
+import { isParsedRecord, isString, type ParsedValue } from "@adadex/core";
 
 import type { SkillSource } from "../skills/fsSkillCatalog";
 
@@ -12,14 +13,14 @@ export interface MachineConfig {
 
 export const EMPTY_CONFIG: MachineConfig = { skillSources: [], skillMap: {} };
 
-const nonEmpty = (v: ParsedValue): v is string => isString(v) && v !== "";
+const nonEmpty = (v: ParsedValue | undefined): v is string => isString(v) && v !== "";
 
 export type ConfigResult =
   | { readonly ok: true; readonly config: MachineConfig }
   | { readonly ok: false; readonly errors: readonly string[] };
 
 /** Parses a machine config from an untrusted JSON value. */
-export const parseMachineConfig = <T,>(input: T): ConfigResult => {
+export const parseMachineConfig = <T>(input: T): ConfigResult => {
   if (!isParsedRecord(input)) return { ok: false, errors: ["config must be an object"] };
   const errors: string[] = [];
   const sources: SkillSource[] = [];

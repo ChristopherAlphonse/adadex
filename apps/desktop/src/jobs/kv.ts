@@ -1,5 +1,5 @@
 /** Read the `KEY: value` lines a stage document carries (for example `STATUS: READY`). */
-export const parseKv = (text: string): Record<string, string> => {
+export const parseKv = (text: string) => {
   const out: Record<string, string> = {};
 
   for (const line of text.split("\n")) {

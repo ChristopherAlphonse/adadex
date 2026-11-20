@@ -1,4 +1,4 @@
-import { isString } from "@adadex/core";
+import { type ParsedRecord, asRecord, isString } from "@adadex/core";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -42,7 +42,7 @@ describe("App UI state persistence", () => {
   });
 
   it("hydrates ui state from the API and persists ui changes back to the API", async () => {
-    const uiStatePatchBodies: Array<Record<string, unknown>> = [];
+    const uiStatePatchBodies: ParsedRecord[] = [];
 
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
@@ -81,7 +81,11 @@ describe("App UI state persistence", () => {
         const body = init?.body;
 
         if (isString(body)) {
-          uiStatePatchBodies.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(body) as Record<string, unknown>);
+          const parsedBody = asRecord(JSON.parse(body));
+
+          if (parsedBody) {
+            uiStatePatchBodies.push(parsedBody);
+          }
         }
 
         return new Response(body ?? "{}", {

@@ -11,6 +11,10 @@ const git = async (cwd: string, args: string[]): Promise<string> =>
 
 const quote = (s: string): string => `'${s.replaceAll("'", `'\\''`)}'`;
 
+export type HookName = "pre-commit" | "pre-push" | "reference-transaction";
+
+export type GuardedHooks = Record<HookName, string>;
+
 export interface HumanKey {
   /** Lives only in the app's memory. Never written to disk, never in an agent's environment. */
   readonly key: string;
@@ -38,7 +42,7 @@ human_ok() {
 `;
 
 /** The three hooks that matter, each followed by the repo's own hook of the same name so its checks still run. */
-const guarded = (hashFile: string, branchPrefix: string): Record<string, string> => ({
+const guarded = (hashFile: string, branchPrefix: string): GuardedHooks => ({
   "pre-commit": `${head(hashFile)}human_ok || { echo "${MESSAGE}" >&2; exit 1; }\nunset ${KEY_ENV}\n`,
   "pre-push": `${head(hashFile)}in=$(cat)\nhuman_ok || { echo "${MESSAGE}" >&2; exit 1; }\nunset ${KEY_ENV}\n`,
   "reference-transaction": `${head(hashFile)}in=$(cat)
@@ -91,15 +95,18 @@ export const installGitGuard = async (o: InstallGitGuard): Promise<void> => {
 
   const names = new Set<string>();
 
-  for (const name of await readdir(original).catch(() => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[])) {
+  // SAFETY: if the original hooks folder does not exist, there are no hooks to chain.
+  const existing = await readdir(original).catch(() => [] as string[]);
+
+  for (const name of existing) {
     if (await isExecutable(join(original, name))) names.add(name);
   }
 
-  const mine = guarded(o.hashFile, o.branchPrefix);
+  const mine = new Map<string, string>(Object.entries(guarded(o.hashFile, o.branchPrefix)));
 
-  for (const name of new Set([...names, ...Object.keys(mine)])) {
+  for (const name of new Set([...names, ...mine.keys()])) {
     const target = quote(join(original, name));
-    let body = mine[name] ?? "#!/bin/sh\n";
+    let body = mine.get(name) ?? "#!/bin/sh\n";
 
     if (names.has(name)) {
       body +=

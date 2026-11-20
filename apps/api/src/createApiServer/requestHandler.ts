@@ -1,8 +1,9 @@
-import { isNumber, isObjectValue } from "@adadex/core";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { extname, join } from "node:path";
+
+import { isNumber, isObjectValue } from "@adadex/core";
 
 import type { CodeIntelStore } from "../codeIntelStore";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
@@ -215,11 +216,14 @@ export const createApiRequestHandler = ({
     const startTime = Date.now();
     let statusCode = 0;
     const originalWriteHead = response.writeHead.bind(response);
-    response.writeHead = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ((...args: Parameters<typeof response.writeHead>) => {
-      statusCode = isNumber(args[0]) ? args[0] : 0;
+    response.writeHead =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ((
+        ...args: Parameters<typeof response.writeHead>
+      ) => {
+        statusCode = isNumber(args[0]) ? args[0] : 0;
 
-      return originalWriteHead(...args);
-    }) as typeof response.writeHead;
+        return originalWriteHead(...args);
+      }) as typeof response.writeHead;
 
     const originHeader = readHeaderValue(request.headers.origin);
     const hostHeader = readHeaderValue(request.headers.host);

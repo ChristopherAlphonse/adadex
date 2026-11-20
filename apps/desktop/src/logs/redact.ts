@@ -1,4 +1,13 @@
-import { type ParsedValue, isObjectValue, isString } from "@adadex/core";
+import { isObjectValue, isString } from "@adadex/core";
+
+/** JSON-shaped log data, with readonly arrays so callers can pass frozen plans and records. */
+export type RedactableValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly RedactableValue[]
+  | { readonly [key: string]: RedactableValue };
 
 const WHOLE: readonly RegExp[] = [
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
@@ -20,7 +29,7 @@ export const redact = (text: string): string =>
   );
 
 /** Redact every string inside a value, keeping its shape. */
-export const redactDeep = (value: ParsedValue): ParsedValue => {
+export const redactDeep = (value: RedactableValue): RedactableValue => {
   if (isString(value)) return redact(value);
 
   if (Array.isArray(value)) return value.map(redactDeep);

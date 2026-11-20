@@ -3,7 +3,8 @@ import type {
   DeckCoordinationSummary,
   WorkspaceSetupSnapshot,
   WorkspaceSetupStepId,
-, isObjectValue, isString} from "@adadex/core";
+} from "@adadex/core";
+import { asRecord, isObjectValue, isString, type ParsedValue } from "@adadex/core";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAgentProviderPreference } from "../app/hooks/useAgentProviderPreference";
@@ -31,11 +32,10 @@ import { MarkdownContent } from "./ui/MarkdownContent";
 
 export type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
 
-const normalizeDeckAvailableSkill = (value: unknown): DeckAvailableSkill | null => {
-  if (value === null || !isObjectValue(value)) return null;
-  const record = value as Record<string, unknown>;
+const normalizeDeckAvailableSkill = (value: ParsedValue): DeckAvailableSkill | null => {
+  const record = asRecord(value);
 
-  if (!isString(record.name)) return null;
+  if (!record || !isString(record.name)) return null;
 
   return {
     name: record.name,
@@ -123,7 +123,7 @@ export const DeckPrimaryView = ({
         });
 
         if (!response.ok) return;
-        const payload = (await response.json()) as unknown;
+        const payload: ParsedValue = await response.json();
 
         if (!Array.isArray(payload) || cancelled) return;
 
@@ -236,6 +236,7 @@ export const DeckPrimaryView = ({
 
       if (!response.ok) return;
       const data = await response.json();
+      // SAFETY: the terminal creation response carries one of these string identifiers.
       const agentId = (data.terminalId ?? data.coordinationId) as string;
       setFocus({
         type: "terminal",
@@ -592,6 +593,10 @@ export const DeckPrimaryView = ({
     >
       <div className="deck-pods-container">
         {orchestrations.map((t) => {
+          const visuals = visualsMap.get(t.coordinationId);
+
+          if (!visuals) return null;
+
           const isThis =
             (focus?.type === "vault" || focus?.type === "vault-browser") &&
             focus.coordinationId === t.coordinationId;
@@ -604,7 +609,7 @@ export const DeckPrimaryView = ({
             >
               <OrchestrationPod
                 orchestration={t}
-                visuals={visualsMap.get(t.coordinationId) as MascotVisuals}
+                visuals={visuals}
                 isFocused={isThis}
                 activeFileName={focus?.type === "vault" && isThis ? focus.fileName : undefined}
                 onVaultFileClick={(fileName) =>
