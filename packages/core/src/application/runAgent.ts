@@ -44,8 +44,10 @@ const decide = async (
   const first = authorize(deps.registry, actionId, rawInput, { caller: "agent" });
   if (first.kind === "run") return execute(deps.executor, actionId, first.input);
   if (first.kind === "deny") return { status: "denied", reason: first.reason };
-  if (first.kind === "needs-human-click")
+  if (first.kind === "needs-human-click") {
+    deps.onNeedsHumanClick?.(actionId, first.reason);
     return { status: "needs-human-click", reason: first.reason };
+  }
 
   const approved = await deps.approvals.request(actionId, first.reason);
   if (!approved) return { status: "denied", reason: "not approved" };
