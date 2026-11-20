@@ -1,5 +1,7 @@
 import { execFile, spawn } from "node:child_process";
-import { createHash } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { promisify } from "node:util";
 import type { CheckRunner, GitPort } from "./gatePorts";
 
@@ -41,8 +43,8 @@ export const nodeCheckRunner: CheckRunner = {
     }),
 };
 
-const git = async (cwd: string, args: string[]): Promise<string> =>
-  (await run("git", args, { cwd, maxBuffer: 16 * 1024 * 1024 })).stdout;
+const git = async (cwd: string, args: string[], env?: NodeJS.ProcessEnv): Promise<string> =>
+  (await run("git", args, { cwd, env: env ?? process.env, maxBuffer: 16 * 1024 * 1024 })).stdout;
 const lines = (text: string): string[] => text.split("\n").filter((l) => l !== "");
 
 export const nodeGit: GitPort = {
@@ -54,17 +56,37 @@ export const nodeGit: GitPort = {
     );
     return [...new Set([...lines(committed), ...lines(working), ...lines(untracked)])];
   },
+  /** Hash the working tree through a scratch index, so the real index is never touched. */
   async fingerprint(cwd) {
-    const head = await git(cwd, ["rev-parse", "HEAD"]).catch(() => "none");
-    const diff = await git(cwd, ["diff", "HEAD"]).catch(() => "");
-    const untracked = await git(cwd, ["ls-files", "--others", "--exclude-standard"]).catch(
-      () => "",
-    );
-    return createHash("sha256")
-      .update(head)
-      .update(diff)
-      .update(untracked)
-      .digest("hex")
-      .slice(0, 16);
+    const dir = await mkdtemp(join(tmpdir(), "adadex-index-"));
+    const env = { ...process.env, GIT_INDEX_FILE: join(dir, "index") };
+    try {
+      await git(cwd, ["read-tree", "HEAD"], env);
+      await git(cwd, ["add", "-A"], env);
+      return (await git(cwd, ["write-tree"], env)).trim();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  async head(cwd) {
+    return (await git(cwd, ["rev-parse", "HEAD"])).trim();
+  },
+  async mergeBase(cwd, base) {
+    return (await git(cwd, ["merge-base", "HEAD", base])).trim();
+  },
+  async stageAll(cwd) {
+    await git(cwd, ["add", "-A"]);
+  },
+  async commit(cwd, messageFile) {
+    try {
+      await git(cwd, ["commit", "-F", messageFile]);
+      return { ok: true, output: "" };
+    } catch (e) {
+      const err = e as { stdout?: string; stderr?: string; message?: string };
+      return {
+        ok: false,
+        output: `${err.stdout ?? ""}${err.stderr ?? ""}`.trim().slice(-600) || String(err.message),
+      };
+    }
   },
 };

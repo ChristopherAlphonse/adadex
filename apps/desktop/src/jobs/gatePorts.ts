@@ -11,12 +11,21 @@ export interface CheckRunner {
   run(command: string, cwd: string, timeoutMs: number): Promise<CheckResult>;
 }
 
-/** What the gate needs from git. */
+/**
+ * What the gate and the commit need from git. There is deliberately no push and no remote operation here,
+ * so nothing built on this port can publish work.
+ */
 export interface GitPort {
   /** Files changed on the job's branch since `base`, plus uncommitted changes. */
   changedFiles(cwd: string, base: string): Promise<readonly string[]>;
-  /** A short fingerprint of the working tree, so a later commit can tell if it changed after the gate. */
+  /** The git tree hash of everything in the working tree, so a commit can tell if it changed after the gate. */
   fingerprint(cwd: string): Promise<string>;
+  head(cwd: string): Promise<string>;
+  /** The commit where the job's branch left `base`. */
+  mergeBase(cwd: string, base: string): Promise<string>;
+  stageAll(cwd: string): Promise<void>;
+  /** Commit the staged changes with the message in a file. */
+  commit(cwd: string, messageFile: string): Promise<{ ok: boolean; output: string }>;
 }
 
 export interface GateConfig {

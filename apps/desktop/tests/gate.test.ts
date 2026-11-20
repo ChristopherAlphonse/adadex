@@ -51,6 +51,10 @@ const setup = async (
       git: {
         changedFiles: async () => over.files ?? ["src/app.ts"],
         fingerprint: async () => "abc123",
+        head: async () => "h",
+        mergeBase: async () => "h",
+        stageAll: async () => {},
+        commit: async () => ({ ok: true, output: "" }),
       },
       config: async () => ({ ...baseConfig, ...over.config }),
       cwdOf: () => root,
@@ -123,15 +127,14 @@ describe("job.run_gate", () => {
     });
   });
 
-  it("refuses when the stage has no gate, or no checks are configured", async () => {
-    const wrongStage = await setup({ stage: "build" });
-    await expect(wrongStage.executor.execute("job.run_gate", { id: "j1" })).rejects.toThrow(
-      "has no gate",
-    );
-    const noChecks = await setup({ config: { checks: "  " } });
-    await expect(noChecks.executor.execute("job.run_gate", { id: "j1" })).rejects.toThrow(
-      "set `checks`",
-    );
+  it("refuses when the stage has no gate", async () => {
+    const { executor } = await setup({ stage: "build" });
+    await expect(executor.execute("job.run_gate", { id: "j1" })).rejects.toThrow("has no gate");
+  });
+
+  it("refuses when no checks are configured", async () => {
+    const { executor } = await setup({ config: { checks: "  " } });
+    await expect(executor.execute("job.run_gate", { id: "j1" })).rejects.toThrow("set `checks`");
   });
 
   it("audits every gate run", async () => {

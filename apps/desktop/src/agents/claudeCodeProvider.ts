@@ -11,6 +11,7 @@ import type {
 } from "@adadex/core";
 import { createAsyncQueue } from "./asyncQueue";
 import { type BridgeHost, startBridgeHost } from "./bridgeHost";
+import { type GuardDecide, type GuardHost, guardSettings, startGuardHost } from "./guardHost";
 
 /** The few things the provider needs from a child process, so tests can fake it. */
 export interface AgentChild {
@@ -32,6 +33,15 @@ export interface ClaudeCodeOptions {
   /** Tools the agent may use besides the adadex tool. Empty by default: the agent can only call actions. */
   readonly allowedTools?: readonly string[];
   readonly tempDir?: () => Promise<string>;
+  /**
+   * Judges every tool call the agent makes, through a PreToolUse hook. Required whenever `allowedTools` lets the
+   * agent use its own tools, so a shell or editor is never available without the policy in front of it.
+   */
+  readonly guard?: {
+    readonly decide: GuardDecide;
+    readonly hookPath: string;
+    readonly timeoutSeconds?: number;
+  };
 }
 
 export const ADADEX_TOOL = "mcp__adadex__adadex_action";
@@ -105,6 +115,28 @@ export const createClaudeCodeProvider = (options: ClaudeCodeOptions): AgentProvi
       }),
     );
 
+    if ((options.allowedTools?.length ?? 0) > 0 && !options.guard) {
+      await host.close();
+      await rm(dir, { recursive: true, force: true });
+      throw new Error(
+        "allowedTools needs a guard: an agent's own tools must go through the policy",
+      );
+    }
+    let guardHost: GuardHost | undefined;
+    const guardArgs: string[] = [];
+    if (options.guard) {
+      const guardSocket = join(dir, "guard.sock");
+      guardHost = await startGuardHost(guardSocket, options.guard.decide);
+      const settingsPath = join(dir, "settings.json");
+      await writeFile(
+        settingsPath,
+        JSON.stringify(
+          guardSettings(options.guard.hookPath, guardSocket, options.guard.timeoutSeconds ?? 600),
+        ),
+      );
+      guardArgs.push("--settings", settingsPath);
+    }
+
     const args = [
       "-p",
       buildPrompt(request),
@@ -118,6 +150,7 @@ export const createClaudeCodeProvider = (options: ClaudeCodeOptions): AgentProvi
       [ADADEX_TOOL, ...(options.allowedTools ?? [])].join(","),
       "--append-system-prompt",
       INSTRUCTIONS,
+      ...guardArgs,
       ...(options.extraArgs ?? []),
     ];
     const child = options.spawn(options.command, args, options.cwd);
@@ -147,6 +180,7 @@ export const createClaudeCodeProvider = (options: ClaudeCodeOptions): AgentProvi
         child.kill();
         queue.close();
         await host.close();
+        await guardHost?.close();
         await rm(dir, { recursive: true, force: true });
       },
     };

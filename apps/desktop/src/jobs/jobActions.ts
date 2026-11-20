@@ -6,6 +6,7 @@ import {
   type WorkflowDefinition,
   type WorkflowJob,
 } from "@adadex/core";
+import { type CommitDeps, commitLocal } from "./commitLocal";
 import type { JobStore } from "./jobStore";
 import { readFacts } from "./readFacts";
 import { type GateDeps, runGate } from "./runGate";
@@ -18,6 +19,8 @@ export interface JobActionDeps {
   readonly actor: (actionId: string) => "human" | "agent";
   /** Needed for `job.run_gate`. Leave it out and that action reports it has no executor. */
   readonly gate?: Omit<GateDeps, "store" | "workflows" | "actor">;
+  /** Needed for `job.commit_local`. */
+  readonly commit?: Omit<CommitDeps, "store" | "workflows">;
 }
 
 const definitionOf = (deps: JobActionDeps, job: WorkflowJob): WorkflowDefinition => {
@@ -35,6 +38,11 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
     const { store } = deps;
     const job = await store.load(field(input, "id"));
     const actor = deps.actor(actionId);
+
+    if (actionId === "job.commit_local") {
+      if (!deps.commit) throw new Error("no executor for job.commit_local");
+      return commitLocal({ ...deps.commit, store, workflows: deps.workflows }, job.id);
+    }
 
     if (actionId === "job.run_gate") {
       if (!deps.gate) throw new Error("no executor for job.run_gate");
