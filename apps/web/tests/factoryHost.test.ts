@@ -117,6 +117,21 @@ describe("factory host bridge", () => {
     await expect(host.listJobs()).rejects.toThrow("not allowed; no job");
   });
 
+  it("uses Electron's request/onEvent bridge when that is what the preload exposes", async () => {
+    const request = vi.fn(async () => ({ ok: true, data: [] }));
+    Object.assign(window, {
+      adadex: { request, onEvent: vi.fn(() => () => undefined) },
+    });
+    try {
+      const host = createFactoryHost();
+      expect(host.isAvailable()).toBe(true);
+      expect(await host.listJobs()).toEqual([]);
+      expect(request).toHaveBeenCalledWith({ kind: "jobs.list" });
+    } finally {
+      delete (window as { adadex?: unknown }).adadex;
+    }
+  });
+
   it("uses the injected bridge when the preload has installed one", () => {
     const { bridge } = createBridge();
     installFactoryHost(bridge);

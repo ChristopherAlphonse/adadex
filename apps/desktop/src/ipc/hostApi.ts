@@ -5,13 +5,15 @@ import type { JobStore } from "../jobs/jobStore";
 import { createFsSkillCatalog } from "../skills/fsSkillCatalog";
 import type { WorkflowStore } from "../workflows/workflowStore";
 import type { ApprovalBroker } from "./approvalBroker";
-import { type HostResponse, parseRequest } from "./contract";
+import { type HostResponse, type ProcessPort, parseRequest } from "./contract";
 
 export interface HostApiDeps {
   readonly workflows: WorkflowStore;
   readonly jobs: JobStore;
   readonly host: ActionHost;
   readonly approvals: ApprovalBroker;
+  /** Absent until Electron wires a process supervisor; the panels then render empty. */
+  readonly processes?: ProcessPort;
   readonly loadConfig: () => Promise<MachineConfig>;
   readonly configPath: string;
   readonly roundLimit: number;
@@ -67,6 +69,14 @@ export const createHostApi = (deps: HostApiDeps): HostApi => ({
           return deps.approvals.respond(req.approvalId, req.approved)
             ? ok(null)
             : fail("no such approval is waiting");
+        case "approvals.list":
+          return ok(deps.approvals.pending());
+        case "processes.list":
+          return ok(deps.processes === undefined ? [] : await deps.processes.list());
+        case "process.kill":
+          if (deps.processes === undefined) return fail("process control is not available");
+          await deps.processes.kill(req.processId);
+          return ok(null);
         case "skills.resolve": {
           const def = await deps.workflows.get(req.workflowId);
           if (!def) return fail(`no workflow ${req.workflowId}`);

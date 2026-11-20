@@ -2,11 +2,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createActionRegistry, FACTORY_ACTIONS, factoryBuildPreset, runAgent } from "@adadex/core";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadMachineConfig } from "../src/config/machineConfig";
 import { createActionHost, type HostEvent } from "../src/host/actionHost";
 import { createApprovalBroker } from "../src/ipc/approvalBroker";
-import { parseRequest } from "../src/ipc/contract";
+import { type ProcessPort, parseRequest } from "../src/ipc/contract";
 import { createHostApi } from "../src/ipc/hostApi";
 import { createJobExecutor } from "../src/jobs/jobActions";
 import { createJobStore } from "../src/jobs/jobStore";
@@ -32,6 +32,10 @@ describe("parseRequest: the UI is untrusted", () => {
     expect(parseRequest({ kind: "approval.respond", approvalId: "a1", approved: true }).ok).toBe(
       true,
     );
+    expect(parseRequest({ kind: "approvals.list" }).ok).toBe(true);
+    expect(parseRequest({ kind: "processes.list" }).ok).toBe(true);
+    expect(parseRequest({ kind: "process.kill", processId: "p-1" }).ok).toBe(true);
+    expect(parseRequest({ kind: "process.kill" }).ok).toBe(false);
   });
 
   it("rejects non-objects, unknown kinds and missing or oversized fields", () => {
@@ -69,7 +73,7 @@ describe("approval broker", () => {
   });
 });
 
-const build = (confirmAnswer = true) => {
+const build = (confirmAnswer = true, processes?: ProcessPort) => {
   const events: HostEvent[] = [];
   const confirmed: string[] = [];
   const registry = createActionRegistry([
@@ -106,6 +110,7 @@ const build = (confirmAnswer = true) => {
     jobs,
     host,
     approvals: broker,
+    ...(processes === undefined ? {} : { processes }),
     loadConfig: () => loadMachineConfig(configPath),
     configPath,
     roundLimit: 3,
@@ -119,6 +124,52 @@ describe("host api", () => {
     expect(
       await api.handle({ kind: "jobs.create", workflowId: "nope", id: "j1", title: "t" }),
     ).toEqual({ ok: false, errors: ["no workflow nope"] });
+  });
+
+  it("lists approvals and processes and kills a process through the injected port", async () => {
+    const processes: ProcessPort = {
+      list: vi.fn(async () => [
+        {
+          processId: "p-1",
+          label: "claude -p",
+          startedAt: "2026-11-19T12:00:00.000Z",
+        },
+      ]),
+      kill: vi.fn(async () => undefined),
+    };
+    const { api, broker } = build(true, processes);
+    const waiting = broker.gate.request("demo.ask", "needs ok");
+
+    expect(await api.handle({ kind: "approvals.list" })).toEqual({
+      ok: true,
+      data: [{ approvalId: "approval-1", actionId: "demo.ask", reason: "needs ok" }],
+    });
+    expect(await api.handle({ kind: "processes.list" })).toEqual({
+      ok: true,
+      data: [
+        {
+          processId: "p-1",
+          label: "claude -p",
+          startedAt: "2026-11-19T12:00:00.000Z",
+        },
+      ],
+    });
+    expect(await api.handle({ kind: "process.kill", processId: "p-1" })).toEqual({
+      ok: true,
+      data: null,
+    });
+    expect(processes.kill).toHaveBeenCalledWith("p-1");
+    broker.respond("approval-1", false);
+    expect(await waiting).toBe(false);
+  });
+
+  it("reports that process control is unavailable when no port is injected", async () => {
+    const { api } = build();
+    expect(await api.handle({ kind: "processes.list" })).toEqual({ ok: true, data: [] });
+    expect(await api.handle({ kind: "process.kill", processId: "p-1" })).toEqual({
+      ok: false,
+      errors: ["process control is not available"],
+    });
   });
 
   it("lists the presets, saves a user workflow, forks and removes it, and refuses to touch a preset", async () => {

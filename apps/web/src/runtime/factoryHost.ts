@@ -53,11 +53,30 @@ export interface FactoryHost {
   subscribe(onChange: () => void): () => void;
 }
 
-/** Injected by Electron's preload before the web app loads. */
+/** Test seam and the shape used when a preload adapts the request/response API. */
 export interface HostApiBridge {
   handle(request: unknown): Promise<unknown>;
   subscribe(listener: (event: unknown) => void): () => void;
 }
+
+/** The shape Electron's preload exposes today as `window.adadex`. */
+export interface ElectronAdadexBridge {
+  request(request: unknown): Promise<unknown>;
+  onEvent(listener: (event: unknown) => void): () => void;
+}
+
+type HostBridge = HostApiBridge | ElectronAdadexBridge;
+
+interface HostTransport {
+  send(request: unknown): Promise<unknown>;
+  listen(listener: (event: unknown) => void): () => void;
+}
+
+const toTransport = (bridge: HostBridge): HostTransport => ({
+  send: (request) => ("handle" in bridge ? bridge.handle(request) : bridge.request(request)),
+  listen: (listener) =>
+    "subscribe" in bridge ? bridge.subscribe(listener) : bridge.onEvent(listener),
+});
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -163,9 +182,10 @@ const unwrap = (raw: unknown): unknown => {
   throw new Error("host returned an invalid response");
 };
 
-export const createHostApiFactoryHost = (bridge: HostApiBridge): FactoryHost => {
+export const createHostApiFactoryHost = (bridge: HostBridge): FactoryHost => {
+  const transport = toTransport(bridge);
   const send = async (kind: string, fields: Record<string, unknown>): Promise<unknown> =>
-    unwrap(await bridge.handle({ kind, ...fields }));
+    unwrap(await transport.send({ kind, ...fields }));
 
   return {
     isAvailable: () => true,
@@ -182,7 +202,7 @@ export const createHostApiFactoryHost = (bridge: HostApiBridge): FactoryHost => 
     killProcess: async (processId) => {
       await send("process.kill", { processId });
     },
-    subscribe: (onChange) => bridge.subscribe(() => onChange()),
+    subscribe: (onChange) => transport.listen(() => onChange()),
   };
 };
 
@@ -198,20 +218,27 @@ export const createEmptyFactoryHost = (): FactoryHost => ({
   subscribe: () => () => undefined,
 });
 
-const isBridge = (value: unknown): value is HostApiBridge =>
-  isRecord(value) && typeof value.handle === "function" && typeof value.subscribe === "function";
+const isBridge = (value: unknown): value is HostBridge => {
+  if (!isRecord(value)) return false;
+  const hasRequestApi = typeof value.request === "function" && typeof value.onEvent === "function";
+  const hasHandleApi = typeof value.handle === "function" && typeof value.subscribe === "function";
+  return hasRequestApi || hasHandleApi;
+};
 
 /** Test seam: lets a component test install a host without an Electron preload. */
-export const installFactoryHost = (bridge: HostApiBridge | null): void => {
+export const installFactoryHost = (bridge: HostBridge | null): void => {
   if (bridge === null) {
-    delete (window as { adadexFactoryHost?: HostApiBridge }).adadexFactoryHost;
+    delete (window as { adadexFactoryHost?: HostBridge }).adadexFactoryHost;
     return;
   }
-  (window as { adadexFactoryHost?: HostApiBridge }).adadexFactoryHost = bridge;
+  (window as { adadexFactoryHost?: HostBridge }).adadexFactoryHost = bridge;
 };
 
 export const createFactoryHost = (): FactoryHost => {
   if (typeof window === "undefined") return createEmptyFactoryHost();
-  const candidate: unknown = (window as { adadexFactoryHost?: unknown }).adadexFactoryHost;
-  return isBridge(candidate) ? createHostApiFactoryHost(candidate) : createEmptyFactoryHost();
+  const injected: unknown = (window as { adadexFactoryHost?: unknown }).adadexFactoryHost;
+  if (isBridge(injected)) return createHostApiFactoryHost(injected);
+
+  const electron: unknown = (window as { adadex?: unknown }).adadex;
+  return isBridge(electron) ? createHostApiFactoryHost(electron) : createEmptyFactoryHost();
 };

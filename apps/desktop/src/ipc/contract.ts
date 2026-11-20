@@ -21,9 +21,26 @@ export type HostRequest =
     }
   | { readonly kind: "action.run"; readonly actionId: string; readonly input: unknown }
   | { readonly kind: "approval.respond"; readonly approvalId: string; readonly approved: boolean }
+  | { readonly kind: "approvals.list" }
+  | { readonly kind: "processes.list" }
+  | { readonly kind: "process.kill"; readonly processId: string }
   | { readonly kind: "skills.resolve"; readonly workflowId: string }
   | { readonly kind: "config.get" }
   | { readonly kind: "config.set"; readonly config: unknown };
+
+/** A process the operator may inspect or kill from the board. */
+export interface HostProcess {
+  readonly processId: string;
+  readonly label: string;
+  readonly startedAt: string;
+  readonly endedAt?: string;
+}
+
+/** Injected by Electron main; the host itself never starts or signals processes. */
+export interface ProcessPort {
+  list(): Promise<readonly HostProcess[]>;
+  kill(processId: string): Promise<void>;
+}
 
 export type HostResponse =
   | { readonly ok: true; readonly data: unknown }
@@ -43,9 +60,16 @@ const STRING_FIELDS: Readonly<Record<string, readonly string[]>> = {
   "jobs.create": ["workflowId", "id", "title"],
   "action.run": ["actionId"],
   "approval.respond": ["approvalId"],
+  "process.kill": ["processId"],
   "skills.resolve": ["workflowId"],
 };
-const NO_FIELDS = new Set(["workflows.list", "jobs.list", "config.get"]);
+const NO_FIELDS = new Set([
+  "workflows.list",
+  "jobs.list",
+  "approvals.list",
+  "processes.list",
+  "config.get",
+]);
 
 export const parseRequest = (raw: unknown): ParsedRequest => {
   if (!isObj(raw) || typeof raw.kind !== "string")
@@ -73,6 +97,9 @@ export const parseRequest = (raw: unknown): ParsedRequest => {
     case "workflows.remove":
     case "jobs.create":
     case "action.run":
+    case "approvals.list":
+    case "processes.list":
+    case "process.kill":
     case "skills.resolve":
       return { ok: true, request: raw as unknown as HostRequest };
     default:

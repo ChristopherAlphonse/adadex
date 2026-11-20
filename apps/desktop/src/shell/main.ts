@@ -7,7 +7,7 @@ import { type App, createApp } from "../app/createApp";
 import type { HostEvent, NativeConfirm } from "../host/actionHost";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const PAGE = join(here, "index.html");
+const PAGE = join(here, "web", "index.html");
 const PAGE_URL = pathToFileURL(PAGE).href;
 const SMOKE = process.env.ADADEX_SMOKE === "1";
 
