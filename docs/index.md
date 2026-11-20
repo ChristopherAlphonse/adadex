@@ -34,7 +34,7 @@ Adadex has three main layers:
 
 ## Desktop app (in progress)
 
-The pages above describe the web app and local API. The Electron desktop app that replaces them is planned in `docs/plans/`. Start with [HANDOFF.md](plans/HANDOFF.md).
+The pages above describe the web app and local API. The Electron desktop app that replaces them is planned in [plans/PLAN.md](plans/PLAN.md).
 
 ## Contributor policy
 
