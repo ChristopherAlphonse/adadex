@@ -6,7 +6,7 @@ Adadex has three main layers:
 
 - **agent-facing files** in `.adadex/coordinations/<coordination-id>/`, which hold context, todos, and handoff notes
 - **runtime state** under `~/.adadex/projects/<project-id>/state/`, which tracks terminals, UI state, transcripts, and app metadata
-- **live sessions** in the API process, where WebSocket connections are attached to PTY-backed Kiro CLI terminals
+- **live sessions** in the API process, where WebSocket connections are attached to PTY-backed agent CLI terminals (Claude Code by default, or Kiro CLI or OpenCode)
 
 ## Start here
 
@@ -23,15 +23,18 @@ Adadex has three main layers:
 
 - [Working With Todos](guides/working-with-todos.md) explains how checkbox lines become progress and worker inputs
 - [Orchestrating Child Agents](guides/orchestrating-child-agents.md) explains parent/worker spawning, shared mode, and worktree mode
-- [Inter-Agent Messaging](guides/inter-agent-messaging.md) explains the in-memory channel queue and delivery rules
+- [Inter-Agent Messaging](guides/inter-agent-messaging.md) explains the channel queue and delivery rules
 
 ## Reference
 
 - [CLI](reference/cli.md)
 - [Filesystem Layout](reference/filesystem-layout.md)
 - [API](reference/api.md)
-- [Experimental Features](reference/experimental-features.md)
 - [Troubleshooting](reference/troubleshooting.md)
+
+## Desktop app (in progress)
+
+The pages above describe the web app and local API. The Electron desktop app that replaces them is planned in `docs/plans/`. Start with [HANDOFF.md](plans/HANDOFF.md).
 
 ## Contributor policy
 

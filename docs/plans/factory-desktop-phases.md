@@ -2,8 +2,6 @@
 
 Branch: `adadex-factory`. This file is the tracker. Whoever starts or finishes a phase edits the **Owner** and **Status** columns in the same change.
 
-Phase 0 findings may change the details below. Phase 0 is not finished until its report is written to `docs/plans/phase-0-findings.md`. Do not start Phase 1 before then.
-
 ## Tracker
 
 | Phase | What | Owner | Status | Depends on |
@@ -46,14 +44,14 @@ flowchart TD
 
 ## Phase 0: Baseline and reading
 
-Owner: Claude. Status: done, waiting for user review. Report: `docs/plans/phase-0-findings.md`.
+Owner: Claude. Status: done. Its report was removed once Phases 1 to 4 were built; what is left of it is the parity map in `phase-6-cutover.md`.
 
 - Read the adadex runtime, core and routes, and find everything hard-wired to Kiro.
 - Diff `factory/` and `factory-review/` in the `calphonse-skills` repo.
 - Name the 3 failing factory tests, the 4 skipped ones and the slowest ones.
 - List the behavior a port must preserve (CLI, state files, routes, exit codes, guard rules).
 
-Done when: `docs/plans/phase-0-findings.md` exists and the plan doc is updated.
+Done when: the findings report is written and the plan doc is updated.
 
 ## Design decision (2026-11-19): users build their own workflows
 

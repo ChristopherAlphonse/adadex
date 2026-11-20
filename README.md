@@ -23,7 +23,6 @@
 [CLI Reference](docs/reference/cli.md) &nbsp;|&nbsp;
 [Filesystem Layout](docs/reference/filesystem-layout.md) &nbsp;|&nbsp;
 [API Reference](docs/reference/api.md) &nbsp;|&nbsp;
-[Experimental Features](docs/reference/experimental-features.md) &nbsp;|&nbsp;
 [Troubleshooting](docs/reference/troubleshooting.md)
 
 </details>

@@ -21,7 +21,7 @@ The user's rules:
 | `apps/desktop` | Everything with IO, plus the Electron shell. `src/app/createApp.ts` wires it all |
 | `apps/web` | React UI. The Factory view (nav item 8) uses `src/runtime/factoryHost.ts` |
 | `apps/api` | The old local server. Stays until Phase 6 |
-| `docs/plans/` | `factory-desktop-phases.md` (tracker and log), `security-model.md`, `decisions.md`, `phase-0-findings.md`, `phase-6-cutover.md`, this file |
+| `docs/plans/` | `factory-desktop-phases.md` (tracker and log), `security-model.md`, `decisions.md`, `phase-6-cutover.md`, this file |
 
 `apps/desktop/src`: `agents/` (Claude Code provider, MCP bridge, guard hook, sandbox), `host/` (action host, tool guard), `ipc/` (request contract, host API, approval broker), `jobs/` (job store, gate, commit, git guard, worktree), `logs/` (SQLite, signing, anchors, redaction), `roles/`, `runs/` (role runner, scheduler, process registry), `workflows/`, `skills/`, `config/`, `shell/` (Electron main, preload, a placeholder page).
 

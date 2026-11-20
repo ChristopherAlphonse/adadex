@@ -25,7 +25,7 @@ The API process owns the moving parts that cannot live in markdown:
 - agent hook installation and ingestion
 - worktree creation and cleanup for isolated terminals
 - transcript capture and conversation export
-- in-memory channel queues
+- persisted channel queues
 - Deck file operations over `.adadex/coordinations/`
 - UI state persistence
 
@@ -50,7 +50,7 @@ Terminal WebSockets do not own the PTY. They are clients attached to a PTY sessi
 - runtime state lives under `~/.adadex/projects/<project-id>/state/`
 - transcript events persist independently from PTY scrollback
 - PTY sessions do not survive API restarts
-- terminal records persisted as `running` are reconciled to `stale` on startup when no live Adadex session owns them
+- terminal records persisted as `running` become `stopped` with reason `restart_pending` on startup and relaunch when a client attaches; a record whose process is still alive becomes `stale` instead
 
 The terminal registry file is named `coordinations.json`. Current records are terminals. A terminal record stores identity, coordination ID, optional worktree ID, parent terminal ID, workspace mode, display name, lifecycle fields, and UI-related metadata.
 
@@ -73,17 +73,23 @@ Stopping or killing a terminal tears down the active PTY and updates lifecycle m
 
 ## Hook mechanism
 
-Adadex writes a standalone Kiro CLI hook file to `.kiro/hooks/adadex.json` in the target workspace (Kiro CLI 3.0 hook format: a JSON array of hook objects, each with `trigger`, an optional `matcher`, and an `action` that calls back into the local API). The hooks provide state transitions that terminal output alone cannot reliably express.
+Adadex installs hooks in the target workspace that `curl` back into the local API. Where they go depends on the terminal's agent:
 
-Hooks currently feed these mechanisms:
+- **Claude Code** (default): merged into `.claude/settings.local.json`
+- **Kiro CLI**: written to `.kiro/hooks/adadex.json`
+- **OpenCode**: none, because it has no shell hooks; its state comes from terminal output only
 
+The hooks provide state transitions that terminal output alone cannot reliably express:
+
+- `SessionStart` links the agent session to the terminal
 - `UserPromptSubmit` marks the terminal active and can auto-name generated terminals from the first prompt
 - `PreToolUse` records the current tool and marks user-question waits
-- `Notification` marks permission waits and idle prompts
+- `PostToolUse` for file writes feeds code-intel events
 - `Stop` parses agent transcript data into stored conversations and releases the idle keep-alive
-- `PostToolUse` for `Edit|Write` feeds code-intel events
 
-Channel delivery is also tied to hooks. Messages are queued in memory and injected when a target session is idle, including after idle or stop hook events.
+The API still accepts a `notification` hook, but none is installed, so permission waits and idle prompts are detected from terminal output.
+
+Channel delivery is also tied to hooks. Messages are queued and injected when a target session is idle, including after idle or stop hook events.
 
 ## Main API groups
 

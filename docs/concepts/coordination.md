@@ -47,11 +47,11 @@ Examples:
 - what already exists
 - constraints and edge cases
 - what not to break
-- any Kiro skills that are especially useful for this coordination, when relevant
+- any skills that are especially useful for this coordination, when relevant
 
 The first heading and first non-empty paragraph are runtime-significant. Keep them stable and useful because they become the name and description shown in Deck, Canvas, prompt summaries, and terminal creation flows.
 
-When a coordination has suggested Kiro skills, Adadex appends a managed block at the bottom of `CONTEXT.md`:
+When a coordination has suggested skills (discovered from `.kiro/skills/`), Adadex appends a managed block at the bottom of `CONTEXT.md`:
 
 ```md
 <!-- adadex:suggested-skills:start -->
@@ -110,6 +110,6 @@ In shared mode, all terminals operate in the main workspace, so the context boun
 ## Failure boundaries
 
 - deleting a coordination removes its agent-facing files, but terminal records are separate runtime state
-- restarting the API preserves terminal metadata and transcripts but not live PTYs
-- channel messages do not persist, so durable handoffs belong in coordination markdown
+- restarting the API preserves terminal metadata, transcripts and queued channel messages, but not live PTYs
+- channel messages are short notes, so durable handoffs belong in coordination markdown
 - worktree branches are tied to worktree-backed terminals, not to the coordination folder itself
