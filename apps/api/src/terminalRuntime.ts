@@ -12,6 +12,13 @@ import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 import { readDeckCoordinations } from "./deck/readDeckCoordinations";
 
+import {
+  createProcessSupervisor,
+  loadProcessRegistry,
+  persistProcessRegistry,
+  readProcessStartedAt,
+  signalProcessGroup,
+} from "./processSupervisor";
 import { createChannelMessaging } from "./terminalRuntime/channelMessaging";
 import {
   DEFAULT_AGENT_PROVIDER,
@@ -89,6 +96,15 @@ export const createTerminalRuntime = ({
     }
   }
   const registryPath = registryPathPrimary;
+  const processRegistryPath = join(stateDir, "state", "processes.json");
+  const processSupervisor = createProcessSupervisor({
+    clock: () => new Date(),
+    load: () => loadProcessRegistry(processRegistryPath),
+    save: (document) => persistProcessRegistry(processRegistryPath, document),
+    isAlive: (processId) => isProcessAlive(processId),
+    readStartedAt: readProcessStartedAt,
+    signalGroup: signalProcessGroup,
+  });
   const registryState = loadTerminalRegistry(registryPath);
   const registryPersistence = createTerminalRegistryPersistence(registryPath);
   const terminals = registryState.terminals;
@@ -271,6 +287,9 @@ export const createTerminalRuntime = ({
     onStateChange: broadcastTerminalStateChanged,
     onSessionStart: markTerminalRunning,
     onSessionEnd: markTerminalEnded,
+    signalGroup: signalProcessGroup,
+    onProcessSpawn: (details) => processSupervisor.register(details),
+    onProcessExit: (sessionId) => processSupervisor.unregister(sessionId),
   });
 
   const gitOps = createGitOperations({
@@ -296,6 +315,9 @@ export const createTerminalRuntime = ({
     onStateChange: broadcastTerminalStateChanged,
   });
 
+  // Reap before reconciling lifecycle so orphaned groups are gone before
+  // terminals are marked stale on the next launch.
+  processSupervisor.reapOrphansOnLaunch();
   reconcilePersistedLifecycle();
 
   const allocateTerminalId = () => {
@@ -803,6 +825,7 @@ export const createTerminalRuntime = ({
 
     async close() {
       sessionRuntime.close();
+      processSupervisor.killAll();
       await registryPersistence.close();
       for (const client of terminalEventClients) {
         client.close();

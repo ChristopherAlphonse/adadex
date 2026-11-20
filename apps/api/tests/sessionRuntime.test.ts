@@ -926,4 +926,99 @@ describe("createSessionRuntime", () => {
 
     runtime.close();
   });
+
+  it("signals the whole process group when a session is stopped", () => {
+    const coordinationId = "orchestration-1";
+    const terminals = new Map<string, PersistedTerminal>([
+      [
+        coordinationId,
+        {
+          terminalId: coordinationId,
+          coordinationId,
+          coordinationName: coordinationId,
+          createdAt: new Date().toISOString(),
+          workspaceMode: "shared",
+        },
+      ],
+    ]);
+    const sessions = new Map<string, TerminalSession>();
+    const websocketServer = new FakeWebSocketServer();
+    const pty = new FakePty();
+    Object.defineProperty(pty, "pid", { value: 5100 });
+    const transcriptDirectoryPath = createTemporaryDirectory();
+    const signalGroup = vi.fn();
+    const onProcessSpawn = vi.fn();
+    const onProcessExit = vi.fn();
+    spawnMock.mockReturnValue(pty);
+
+    const runtime = createSessionRuntime({
+      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      terminals,
+      sessions,
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
+      isDebugPtyLogsEnabled: false,
+      ptyLogDir: process.cwd(),
+      transcriptDirectoryPath,
+      signalGroup,
+      onProcessSpawn,
+      onProcessExit,
+    });
+
+    expect(runtime.startSession(coordinationId)).toBe(true);
+    expect(onProcessSpawn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        processId: 5100,
+        processGroupId: 5100,
+        sessionId: coordinationId,
+        coordinationId,
+      }),
+    );
+
+    expect(runtime.stopSession(coordinationId)).toBe(true);
+    expect(signalGroup).toHaveBeenCalledWith(5100, "SIGKILL");
+    expect(pty.kill).toHaveBeenCalled();
+
+    runtime.close();
+  });
+
+  it("unregisters the supervised process when its PTY exits", () => {
+    const coordinationId = "orchestration-1";
+    const terminals = new Map<string, PersistedTerminal>([
+      [
+        coordinationId,
+        {
+          terminalId: coordinationId,
+          coordinationId,
+          coordinationName: coordinationId,
+          createdAt: new Date().toISOString(),
+          workspaceMode: "shared",
+        },
+      ],
+    ]);
+    const sessions = new Map<string, TerminalSession>();
+    const websocketServer = new FakeWebSocketServer();
+    const pty = new FakePty();
+    const transcriptDirectoryPath = createTemporaryDirectory();
+    const onProcessExit = vi.fn();
+    spawnMock.mockReturnValue(pty);
+
+    const runtime = createSessionRuntime({
+      websocketServer: websocketServer as unknown as import("ws").WebSocketServer,
+      terminals,
+      sessions,
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
+      isDebugPtyLogsEnabled: false,
+      ptyLogDir: process.cwd(),
+      transcriptDirectoryPath,
+      onProcessExit,
+    });
+
+    expect(runtime.startSession(coordinationId)).toBe(true);
+    pty.emitExit({ exitCode: 0, signal: 0 });
+
+    expect(onProcessExit).toHaveBeenCalledWith(coordinationId);
+    expect(sessions.has(coordinationId)).toBe(false);
+
+    runtime.close();
+  });
 });

@@ -1,13 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
-
+import { existsSync, readFileSync } from "node:fs";
 import {
   LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY,
   LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY,
   LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY,
   LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY,
 } from "@adadex/core";
+import { writeTextFileAtomic, writeTextFileAtomicAsync } from "../atomicJsonFile";
 
 import { TERMINAL_REGISTRY_VERSION } from "./constants";
 
@@ -386,13 +384,11 @@ const serializeTerminalRegistry = (state: TerminalRegistryState) => {
 };
 
 const writeSerializedRegistrySync = (registryPath: string, serialized: string) => {
-  mkdirSync(dirname(registryPath), { recursive: true });
-  writeFileSync(registryPath, serialized, "utf8");
+  writeTextFileAtomic(registryPath, serialized);
 };
 
 const writeSerializedRegistry = async (registryPath: string, serialized: string) => {
-  mkdirSync(dirname(registryPath), { recursive: true });
-  await writeFile(registryPath, serialized, "utf8");
+  await writeTextFileAtomicAsync(registryPath, serialized);
 };
 
 export const persistTerminalRegistry = (registryPath: string, state: TerminalRegistryState) => {

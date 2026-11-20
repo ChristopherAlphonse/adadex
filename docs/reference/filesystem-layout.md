@@ -49,11 +49,14 @@ Per-project runtime state is stored under:
 Notable files:
 
 - `coordinations.json`
+- `processes.json`
 - `deck.json`
 - `transcripts/<sessionId>.jsonl`
 - `code-intel.jsonl`
 
 `coordinations.json` is the terminal registry. It stores terminal records, lifecycle state, UI state, parent-child links, workspace mode, worktree IDs, and display names.
+
+`processes.json` is the process supervisor registry. Each record holds a session's pid, process group id, owning orchestration, and process start time. The start time lets launch-time reaping tell a surviving child from a recycled pid. Both registries are written through a temp file and rename so a crash mid-write cannot truncate them.
 
 `deck.json` stores Deck presentation metadata that is not part of the agent-facing coordination files.
 

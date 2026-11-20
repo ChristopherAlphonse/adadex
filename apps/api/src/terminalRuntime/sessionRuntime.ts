@@ -51,6 +51,15 @@ type CreateSessionRuntimeOptions = {
   onStateChange?: (terminalId: string, state: AgentRuntimeState, toolName?: string) => void;
   onSessionStart?: (terminalId: string, details: TerminalSessionStartDetails) => void;
   onSessionEnd?: (terminalId: string, details: TerminalSessionEndDetails) => void;
+  /** Signals the PTY's process group so descendants do not survive teardown. */
+  signalGroup?: (processGroupId: number, signal: NodeJS.Signals) => void;
+  onProcessSpawn?: (details: {
+    processId: number;
+    processGroupId: number;
+    sessionId: string;
+    coordinationId: string;
+  }) => void;
+  onProcessExit?: (sessionId: string) => void;
 };
 
 export const createSessionRuntime = ({
@@ -68,6 +77,9 @@ export const createSessionRuntime = ({
   onStateChange,
   onSessionStart,
   onSessionEnd,
+  signalGroup,
+  onProcessSpawn,
+  onProcessExit,
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
   const DEFAULT_PTY_ROWS = 35;
@@ -278,7 +290,7 @@ export const createSessionRuntime = ({
     sessionId: string,
     session: TerminalSession,
     event: Omit<SessionEndTranscriptEvent, "eventId" | "sessionId" | "coordinationId">,
-    options: { killPty: boolean; killSignal?: string },
+    options: { killPty: boolean; killSignal?: NodeJS.Signals },
   ): void => {
     if (session.isClosed) {
       return;
@@ -317,6 +329,20 @@ export const createSessionRuntime = ({
     session.ptyDisposables = [];
 
     if (options.killPty) {
+      const processId =
+        typeof session.pty.pid === "number" &&
+        Number.isInteger(session.pty.pid) &&
+        session.pty.pid > 0
+          ? session.pty.pid
+          : undefined;
+      if (processId !== undefined) {
+        try {
+          signalGroup?.(processId, options.killSignal ?? "SIGKILL");
+        } catch {
+          // Ignore group-signal errors; pty.kill still tears down the leader.
+        }
+      }
+
       try {
         session.pty.kill(options.killSignal);
       } catch {
@@ -337,6 +363,7 @@ export const createSessionRuntime = ({
     if (sessions.get(sessionId) === session) {
       sessions.delete(sessionId);
     }
+    onProcessExit?.(sessionId);
   };
 
   const closeSession = (sessionId: string): boolean => {
@@ -377,7 +404,7 @@ export const createSessionRuntime = ({
     return true;
   };
 
-  const killSession = (sessionId: string, signal = "SIGKILL"): boolean => {
+  const killSession = (sessionId: string, signal: NodeJS.Signals = "SIGKILL"): boolean => {
     const session = sessions.get(sessionId);
     if (!session) {
       return false;
@@ -551,6 +578,9 @@ export const createSessionRuntime = ({
     appendDebugLog(session, `session-start session=${sessionId} orchestration=${coordinationId}`);
     const processId =
       typeof pty.pid === "number" && Number.isInteger(pty.pid) && pty.pid > 0 ? pty.pid : undefined;
+    if (processId !== undefined) {
+      onProcessSpawn?.({ processId, processGroupId: processId, sessionId, coordinationId });
+    }
     onSessionStart?.(sessionId, {
       startedAt: new Date().toISOString(),
       ...(processId ? { processId } : {}),

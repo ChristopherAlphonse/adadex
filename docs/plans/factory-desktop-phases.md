@@ -9,11 +9,12 @@ Phase 0 findings may change the details below. Phase 0 is not finished until its
 | Phase | What | Owner | Status | Depends on |
 | --- | --- | --- | --- | --- |
 | 0 | Baseline and reading | Claude (two read-only agents) | Done, waiting for user review | none |
-| 1 | Core: workflow engine, policy, action registry | unassigned (suggested: Claude) | Not started | 0 |
-| 2 | Runtime: process supervisor, persisted sessions, reaping | unassigned (suggested: opencode) | Not started | 0 |
-| 3 | Agent runner: provider adapter, agents call actions | unassigned (suggested: Claude) | Not started | 1, 2 |
+| 1 | Core: workflow engine, policy, action registry | Claude | Done, uncommitted | 0 |
+| 2 | Runtime: process supervisor, persisted sessions, reaping | opencode | In progress | 0 |
+| 3 | Agent runner: provider adapter, agents call actions | Claude (core half done; adapter waits on 2) | In progress | 1, 2 |
 | 4 | Shell: Electron, IPC, remove server and cookie auth | unassigned (suggested: opencode) | Not started | 2 |
 | 5 | UI: factory board, processes panel, approval cards | unassigned (suggested: opencode) | Not started | 1, 4 |
+| 5b | Workflow builder: n8n-style canvas to create, copy and edit workflows; skill sources settings | unassigned (suggested: opencode for UI, Claude for storage) | Not started | 1, 5 |
 | 6 | Cutover: docs, factory skill pointers, delete Python | unassigned (suggested: Claude) | Not started | 3, 4, 5 |
 
 Phases 1 and 2 can run at the same time. Phases 3 and 4 can run at the same time once their inputs are done.
@@ -53,6 +54,15 @@ Owner: Claude. Status: done, waiting for user review. Report: `docs/plans/phase-
 - List the behavior a port must preserve (CLI, state files, routes, exit codes, guard rules).
 
 Done when: `docs/plans/phase-0-findings.md` exists and the plan doc is updated.
+
+## Design decision (2026-11-19): users build their own workflows
+
+adadex does not preload skills or a fixed pipeline. A workflow is **data** that a user can create, copy and edit, like an n8n flow. Two presets ship so there is a baseline: `factory` (build) and `factory-review`. They use the calphonse skills by name, and a user can fork them or write their own.
+
+- **A workflow is a JSON-serializable definition** (`WorkflowDefinition`): stages, the moves between them, the evidence each move needs (conditions), and effects (round counting, flags, named runtime work). Core runs any valid definition with one engine.
+- **User workflows are validated** by `parseWorkflow` before they can run: unknown stages, dead ends, unreachable stages, bad conditions and unknown effects are all reported together.
+- **Skills are referenced by name, not bundled.** `resolveSkills` matches names against the skill folders configured on this machine. A per-machine map lets an enterprise machine point `prd-mode` at its own spec skill, so one shared workflow works on every machine. A missing skill is reported, never guessed.
+- **Safety is not part of a workflow.** Human-only actions (approve spec, commit locally, unblock), the push and PR block, and the allow/ask/deny policy live in the action registry and policy, outside any workflow. A user workflow cannot weaken them.
 
 ## Phase 1: Core
 
@@ -98,6 +108,17 @@ Where: new `apps/desktop`.
 
 Done when: the app opens, one button runs one registered action, and quitting leaves nothing running.
 
+## Phase 5b: Workflow builder
+
+Where: `apps/web` (UI) and the runtime (storage).
+
+- A canvas where each stage is a node and each move is an edge, with the conditions and effects edited in a side panel. adadex already has a canvas to start from.
+- Create, duplicate a preset, edit, and delete user workflows. Presets are read-only, and editing one makes a copy.
+- Store user workflows as JSON files per project and per machine. Run `parseWorkflow` on every save and show its errors next to the field.
+- Skill sources settings: choose the folders to scan, see which skills each stage found, and set the per-machine map.
+
+Done when: a user can build a three-stage workflow in the UI, with a skill from a folder that is not calphonse-skills, and run a job through it.
+
 ## Phase 5: UI
 
 Where: `apps/web`.
@@ -123,4 +144,8 @@ Done when: parity is shown, and the user approves deleting the Python.
 Add a line per handoff: date, phase, who, what changed, what is next.
 
 - Phase 0 started by Claude.
+- 2026-11-19 Phase 2 by opencode. Verified node-pty already puts each PTY child in its own process group (`POSIX_SPAWN_SETSID` on macOS, `forkpty` on Linux); the bug was `pty.kill()` signalling only the leader. Added `atomicJsonFile.ts` (temp file plus rename) and `processSupervisor.ts` (group kill, kill-all on quit, launch reaping with pid-reuse guard) in `apps/api`, wired into `sessionRuntime.ts` and `terminalRuntime.ts`, with `docs/reference/filesystem-layout.md` updated for `state/processes.json`. 125 api tests pass, root build and lint clean. Still to do in Phase 2: persisted agent sessions and persisted channel messages.
 - Phase 0 finished by Claude. Findings in `docs/plans/phase-0-findings.md`. Next: user reviews, then Phases 1 and 2 can start in parallel.
+- Phase 1 done by Claude, uncommitted. In `packages/core`: `domain/workflow.ts` (build and review definitions), `application/advanceJob.ts` (pure stage moves with evidence and rounds), `application/evaluatePolicy.ts` (guard semantics), `domain/action.ts` and `application/actionRegistry.ts` (typed actions, hard blocks, human-click class). Core tests: 62 pass, `tsc` and `biome` clean.
+- Phase 3, core half done by Claude, uncommitted: `ports/AgentProvider.ts`, `ports/ActionPorts.ts` and `application/runAgent.ts` (every agent call goes through the registry; tested with a fake provider). Still to do: the Claude Code adapter and the executor, which need the Phase 2 supervisor. opencode: Phase 2 files in `apps/api` were not touched by Claude.
+- Design change by Claude, per the user: workflows are user-built data, with `factory` and `factory-review` as bundled presets and no preloaded skills. Core refactored to a declarative engine (`WorkflowDefinition`, `parseWorkflow`, `resolveSkills`, `presets/`). The old behavior tests pass unchanged against the presets, so nothing regressed. Added Phase 5b (workflow builder). Core tests: 81 pass.
