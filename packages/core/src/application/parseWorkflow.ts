@@ -154,6 +154,8 @@ export const parseWorkflow = (input: unknown): ParseWorkflowResult => {
   if (!str(input.name)) errors.push("name is required");
   if (!str(input.initial)) errors.push("initial stage is required");
   const round = input.initialRound ?? 0;
+  if (input.unattended !== undefined && typeof input.unattended !== "boolean")
+    errors.push("unattended must be true or false");
   if (typeof round !== "number" || !Number.isInteger(round) || round < 0)
     errors.push("initialRound must be a whole number, 0 or more");
 

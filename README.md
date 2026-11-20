@@ -32,13 +32,13 @@
 
 Adadex is a web-first orchestration layer for running multiple coding agents in parallel. Instead of juggling many terminal sessions and losing track of what each one is doing, Adadex gives each job its own scoped context, task list, and notes. One agent session can spawn others, assign them work, and exchange messages with them while you stay at the orchestration layer.
 
-> **Kiro CLI powered.** Adadex launches every terminal with [Kiro CLI](https://kiro.dev) (`kiro-cli`) as the coding agent. There is no provider switcher and no per-coordination model override — every terminal uses the same CLI, configured once.
+> **Claude Code by default.** Adadex launches terminals with [Claude Code](https://docs.claude.com/en/docs/claude-code) (`claude`) as the coding agent. Kiro CLI (`kiro-cli`) and OpenCode (`opencode`) can also be launched as terminal providers. The agent provider is chosen per terminal, not per coordination.
 
 ## What Adadex Does
 
 - Creates **coordinations** as scoped job containers: each one gets its own `CONTEXT.md`, `todo.md`, and notes
 - Runs multiple coding agent terminals side by side so one developer can manage several sessions at once
-- Runs every terminal against **Kiro CLI** (`kiro-cli`)
+- Runs terminals against **Claude Code** (`claude`) by default, with Kiro CLI and OpenCode as alternatives
 - Lets one agent session spawn others, assign them work, and exchange messages while you stay at the orchestration layer
 
 - Spawns child agents from todo items so parallel work has a concrete source of truth
@@ -46,29 +46,83 @@ Adadex is a web-first orchestration layer for running multiple coding agents in 
 - Keeps agent-facing context in files so state survives beyond a single prompt thread
 - Provides a local API and UI for terminal lifecycle, persistence, WebSocket transport, and orchestration
 
-## Screenshots
+## Workflows
 
-<div align="center">
-<table>
-<tr>
-<td><img src="./static/images/preview_1.png" alt="Agent canvas with live terminal and inspector" width="100%"/></td>
-<td><img src="./static/images/preview_2.png" alt="Two agents running side by side" width="100%"/></td>
-</tr>
-<tr>
-<td><img src="./static/images/preview_3.png" alt="Deck view with coordinations" width="100%"/></td>
-<td><img src="./static/images/preview_4.png" alt="Per-coordination customization options" width="100%"/></td>
-</tr>
-<tr>
-<td><img src="./static/images/preview_5.png" alt="Activity view with token usage and GitHub commits" width="100%"/></td>
-<td><img src="./static/images/preview_6.png" alt="Settings — appearance, sounds, workspace visibility" width="100%"/></td>
-</tr>
-</table>
-</div>
+Expand a workflow to see how it runs.
+
+<details>
+<summary><strong>System architecture</strong></summary>
+
+```mermaid
+flowchart LR
+    You([You]) --> UI[Web UI]
+    UI <-->|HTTP + WebSocket| API[Local API]
+    API --> T1[Terminal: coordinator]
+    API --> T2[Terminal: worker A]
+    API --> T3[Terminal: worker B]
+    T1 & T2 & T3 --> Agent[[Claude Code / Kiro / OpenCode]]
+    API <--> Files[(".adadex/coordinations/<id>/")]
+    Agent -->|hooks| API
+```
+
+</details>
+
+<details>
+<summary><strong>Coordinating child agents</strong></summary>
+
+```mermaid
+sequenceDiagram
+    participant U as You
+    participant C as Coordinator agent
+    participant W as Worker agent
+    participant F as todo.md
+    U->>C: Start coordination
+    C->>F: Read open items
+    C->>W: Spawn child for an item
+    W->>F: Work and check off item
+    W-->>C: Message: done / blocked / handoff
+    C-->>U: Status in UI
+```
+
+</details>
+
+<details>
+<summary><strong>Isolation: shared vs worktree terminals</strong></summary>
+
+```mermaid
+flowchart TD
+    Start([New terminal]) --> Q{Isolated?}
+    Q -- No --> Shared[Run in main workspace]
+    Q -- Yes --> WT[Create .adadex/worktrees/&lt;id&gt;<br/>on branch adadex/&lt;id&gt;]
+    Shared --> Run[PTY session + agent]
+    WT --> Run
+    Run --> Done([Review and merge])
+```
+
+</details>
+
+<details>
+<summary><strong>Terminal lifecycle and persistence</strong></summary>
+
+```mermaid
+stateDiagram-v2
+    [*] --> running: create
+    running --> idle: browser disconnects
+    idle --> running: reconnect within grace period
+    idle --> stopped: grace period ends
+    running --> stopped: stop / kill
+    running --> stale: API restarts
+    stale --> [*]: prune
+    stopped --> [*]: prune
+```
+
+</details>
 
 ## Requirements
 
 - Node.js `22+`
-- Kiro CLI (`kiro-cli`) — install via `curl -fsSL https://cli.kiro.dev/install | bash`
+- Claude Code (`claude`) — see the [install guide](https://docs.claude.com/en/docs/claude-code)
+- Optional: Kiro CLI (`kiro-cli`, `curl -fsSL https://cli.kiro.dev/install | bash`) or OpenCode (`opencode`) if you want those providers
 - `git` for worktree terminals
 - `gh` for GitHub pull request features
 - `curl` for agent hook callbacks

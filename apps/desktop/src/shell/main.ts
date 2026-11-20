@@ -2,7 +2,18 @@ import { mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, session, Tray } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeImage,
+  powerSaveBlocker,
+  safeStorage,
+  session,
+  Tray,
+} from "electron";
 import { type App, createApp } from "../app/createApp";
 import type { HostEvent, NativeConfirm } from "../host/actionHost";
 
@@ -100,7 +111,25 @@ const boot = async (): Promise<void> => {
       : join(app.getPath("userData"), "adadex"));
   await mkdir(dataDir, { recursive: true });
 
+  // The audit signing key is wrapped by the operating system keychain when there is one.
+  const keyProtector = safeStorage.isEncryptionAvailable()
+    ? {
+        protect: (plain: Buffer) => safeStorage.encryptString(plain.toString("utf8")),
+        unprotect: (stored: Buffer) => Buffer.from(safeStorage.decryptString(stored), "utf8"),
+      }
+    : undefined;
+  // Keep the machine awake while an agent or a check is running, so unattended work is not cut off by sleep.
+  let blocker: number | undefined;
+
   core = createApp({
+    ...(keyProtector ? { keyProtector } : {}),
+    onBusyChange: (busy) => {
+      if (busy && blocker === undefined) blocker = powerSaveBlocker.start("prevent-app-suspension");
+      if (!busy && blocker !== undefined) {
+        powerSaveBlocker.stop(blocker);
+        blocker = undefined;
+      }
+    },
     projectRoot,
     dataDir,
     confirm,

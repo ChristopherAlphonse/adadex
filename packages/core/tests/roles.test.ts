@@ -335,7 +335,8 @@ describe("planTick", () => {
     stage,
     ...over,
   });
-  const cand = (job: WorkflowJob, stalls = 0) => ({ job, def: factoryBuildPreset, stalls });
+  const auto = { ...factoryBuildPreset, unattended: true };
+  const cand = (job: WorkflowJob, stalls = 0) => ({ job, def: auto, stalls });
   const config = { concurrency: 2, stallLimit: 2 };
 
   it("starts a run for a job at a stage with a role, with that stage's role", () => {
@@ -380,12 +381,22 @@ describe("planTick", () => {
     expect(plan.start).toEqual([]);
   });
 
+  it("never works a job of a workflow that has not opted in, such as the factory preset", () => {
+    const plan = planTick(
+      [{ job: at("a", "build"), def: factoryBuildPreset, stalls: 0 }],
+      new Set(),
+      config,
+    );
+    expect(plan.start).toEqual([]);
+    expect(plan.skip).toEqual([
+      { jobId: "a", reason: "workflow factory is not set to run unattended" },
+    ]);
+  });
+
   it("leaves a stage with no role to a person", () => {
     const def = {
-      ...factoryBuildPreset,
-      stages: factoryBuildPreset.stages.map((s) =>
-        s.id === "build" ? { ...s, role: undefined } : s,
-      ),
+      ...auto,
+      stages: auto.stages.map((s) => (s.id === "build" ? { ...s, role: undefined } : s)),
     };
     const plan = planTick([{ job: at("a", "build"), def, stalls: 0 }], new Set(), config);
     expect(plan.skip[0]?.reason).toContain("has no role");

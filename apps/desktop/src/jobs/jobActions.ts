@@ -21,6 +21,8 @@ export interface JobActionDeps {
   readonly gate?: Omit<GateDeps, "store" | "workflows" | "actor">;
   /** Needed for `job.commit_local`. */
   readonly commit?: Omit<CommitDeps, "store" | "workflows">;
+  /** Rounds a job gets again when a person unblocks it. */
+  readonly roundLimit?: number;
 }
 
 const field = (input: unknown, key: string): string =>
@@ -78,16 +80,20 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
     }
 
     if (actionId === "job.unblock") {
-      if (job.stage !== NEEDS_HUMAN || job.parkedFrom === undefined)
+      if (job.stage !== NEEDS_HUMAN || job.parkedFrom === undefined) {
         throw new Error(`${job.id} is not parked`);
-      await store.save({ ...job, stage: job.parkedFrom });
-      await store.audit({
-        actor,
-        action: "unblock",
-        jobId: job.id,
-        detail: `back to ${job.parkedFrom}`,
+      }
+      // Back to where it was parked, with a fresh allowance of rounds, so a job parked for running out of rounds can go on.
+      const { note: _note, parkedFrom: _from, ...rest } = job;
+      const back = job.parkedFrom;
+      await store.save({
+        ...rest,
+        stage: back,
+        roundLimit: job.round + (deps.roundLimit ?? 3),
+        flags: back === "build" ? { ...job.flags, polished: false } : job.flags,
       });
-      return { stage: job.parkedFrom };
+      await store.audit({ actor, action: "unblock", jobId: job.id, detail: `back to ${back}` });
+      return { stage: back };
     }
 
     throw new Error(`no executor for ${actionId}`);

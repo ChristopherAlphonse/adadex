@@ -53,6 +53,13 @@ describe("parseWorkflow", () => {
     expect(moved.ok && moved.job.stage).toBe("done");
   });
 
+  it("accepts unattended as a true or false choice and refuses anything else", () => {
+    expect(parseWorkflow({ ...minimal(), unattended: true }).ok).toBe(true);
+    expect(errorsOf({ ...minimal(), unattended: "yes" })).toContain(
+      "unattended must be true or false",
+    );
+  });
+
   it("rejects anything that is not an object", () => {
     expect(errorsOf(null)).toEqual(["a workflow must be an object"]);
     expect(errorsOf("x")).toEqual(["a workflow must be an object"]);

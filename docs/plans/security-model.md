@@ -57,6 +57,8 @@ Everything the app logs goes into one SQLite file on the machine: `<data folder>
 - **Tamper-evident audit log.** Every line carries the hash of the line before it and the hash of the job record at that moment. An edited, deleted, reordered or forged line breaks the chain, even if someone with the database file removes the triggers first. A job record changed outside the app is detected too.
 - **A gate result counts only if the audit log vouches for it.** `checks.md` is believed only when the app's own audit line for the same round says the same verdict and tree. A file an agent wrote, or a verdict edited from FAIL to PASS, counts as "gate not run".
 - **Check before every run.** The role runner verifies the chain before it starts an agent. A broken chain stops the run and parks the job on a person with the reason.
+- **Signed lines and offline verification.** Each line carries an Ed25519 signature. A line that is unsigned, signed by another key, or whose signature fails is reported. An export of a chain with its public key can be verified by an auditor without the app.
+- **Anchors.** The newest line of each chain is also written to a separate file. If lines are removed, the anchor names a line the database no longer has.
 - **Every call is attributed.** Each agent call, run start, run end and limit stop is logged with the role and run id.
 
 ## Autonomy and limits
@@ -75,9 +77,9 @@ Everything the app logs goes into one SQLite file on the machine: `<data folder>
 
 ## Not covered. Read this before an enterprise review.
 
-1. **The audit log is tamper-evident, not tamper-proof.** Someone who can write the database file can rewrite a whole job's chain consistently, and removing the newest lines of a chain is caught only when the job record no longer matches the last line that is left. There is no signing key and no external anchor, such as a remote log. Add one before relying on the log as evidence.
+1. **The audit log is signed and anchored, but both stay on the machine.** Every line is signed with a per-machine key (wrapped by the OS keychain in Electron), and each chain's newest line is copied to a separate anchor file. Rewriting a chain now needs the key, and removing newest lines is caught by the anchor. Someone who has the key and can delete both files can still forge. Sending the anchor off the machine (`AnchorSink`) is the next step, and nothing ships yet.
 1a. **An agent can read the database.** The data folder is protected from writes, not reads, and the base policy allows `cat`. An agent can therefore read logs, which are redacted but may still hold project details. Blocking reads reliably needs an operating-system sandbox, because a shell command can name a file in many ways.
-2. **No user identity.** A human action is recorded as "human". The app does not record which person, and there is no sign-in, single sign-on or per-person approval rule. Needed for any multi-person use.
+2. **Identity is the operating system user.** Human actions record the OS user name. There is no sign-in, single sign-on or per-person approval rule. Needed for any multi-person use.
 3. **An allowed program can do what an allowed command cannot.** `npm test` or a build tool runs project code, which can write files by itself. This was a known gap in factory too. The tool policy does not see inside a program. An operating-system sandbox would be the defense in depth.
 4. **Sub-agents.** Whether Claude Code's tool hook also runs for a sub-agent's tool calls was not tested.
 5. **The loop has no UI or request yet.** The scheduler exists and is tested, but nothing in the request layer turns it on, and turning it on should itself need a native confirmation. The roles and workflow editors are not built either.

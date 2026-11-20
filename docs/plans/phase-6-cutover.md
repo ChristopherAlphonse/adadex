@@ -43,7 +43,15 @@ Counts come from the test classes in `calphonse-skills`: 263 factory tests and 1
 3. Move the web UI from the HTTP routes to the request layer.
 4. Retire the old server and the Python together, in one change, with the parity map above rewritten as all covered or dropped on purpose.
 
-## Decisions needed from you
+## Decisions (made by the tech lead, see `decisions.md`)
+
+- Unattended loop: off globally and per workflow until a workflow opts in. Built.
+- Integrity: signed, anchored audit log. Built, shipping to a central log later.
+- Stack skills: each workflow names its skills. No detection.
+- Unblock: back to the parked stage with a fresh round allowance. Built.
+- Deleting the Python: frozen now, deleted only after the exit criteria in `decisions.md` and on your say-so.
+
+## Decisions that were open
 
 1. **The unattended loop.** Built and tested, off by default. Still needed: a request and a UI toggle, and a native confirmation when a person turns it on. Do you want it on by default for any workflow, or opt in per workflow?
 2. **Integrity checks.** Done. Do you want the audit log signed or sent to a remote log (see `security-model.md`, gap 1)?

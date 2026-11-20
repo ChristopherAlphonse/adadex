@@ -12,6 +12,13 @@ import {
   type WorkflowJob,
 } from "@adadex/core";
 import { createClaudeCodeProvider, type SpawnAgent } from "../agents/claudeCodeProvider";
+import {
+  buildProfile,
+  defaultDenyRead,
+  defaultWritable,
+  sandboxAvailable,
+  sandboxSpawn,
+} from "../agents/sandbox";
 import { spawnAgent } from "../agents/spawnAgent";
 import { loadMachineConfig } from "../config/machineConfig";
 import {
@@ -64,6 +71,11 @@ export interface AppOptions {
   readonly keyProtector?: KeyProtector;
   /** Called when the app starts or stops having agents or checks running, so the shell can keep the machine awake. */
   readonly onBusyChange?: (busy: boolean) => void;
+  /**
+   * Run each agent process in an operating system sandbox. `required` (the default) refuses to start an agent where
+   * there is no sandbox. `off` is for development only.
+   */
+  readonly sandbox?: "required" | "off";
 }
 
 export interface App {
@@ -183,6 +195,7 @@ export const createApp = (options: AppOptions): App => {
   const executor = createJobExecutor({
     store: jobs,
     workflows: (id) => workflows.get(id),
+    roundLimit: 3,
     actor: (actionId) => (registry.get(actionId)?.class === "human" ? "human" : "agent"),
     runEffect: async (name, job) => {
       if (name !== "make-worktree") return;
@@ -223,13 +236,30 @@ export const createApp = (options: AppOptions): App => {
   const policy = withProtectedLocations(BUILD_POLICY, [resolveReal("/", options.dataDir)]);
   const roles = createRoleStore(join(options.dataDir, "roles"), registry);
 
-  const defaultProvider = (request: ProviderRequest): AgentProvider =>
-    createClaudeCodeProvider({
+  const defaultProvider = (request: ProviderRequest): AgentProvider => {
+    const base = options.spawn ?? spawnAgent;
+    let spawn = base;
+    if ((options.sandbox ?? "required") === "required") {
+      if (!sandboxAvailable())
+        throw new Error(
+          "no operating system sandbox is available on this machine, so no agent is started",
+        );
+      const plan = request.sandbox;
+      spawn = sandboxSpawn(
+        base,
+        buildProfile({
+          ...plan,
+          writable: [...defaultWritable(), ...plan.writable],
+          denyRead: [...defaultDenyRead(), ...plan.denyRead],
+        }),
+      );
+    }
+    return createClaudeCodeProvider({
       command: options.claudeCommand ?? "claude",
       bridgePath: options.bridgePath,
       cwd: request.cwd,
       spawn: (command, args, cwd) => {
-        const child = (options.spawn ?? spawnAgent)(command, args, cwd);
+        const child = spawn(command, args, cwd);
         const handle = processes.register(request.label, () => child.kill());
         child.onExit(() => handle.done());
         return child;
@@ -237,6 +267,7 @@ export const createApp = (options: AppOptions): App => {
       allowedTools: [...request.tools],
       guard: { hookPath: options.hookPath, decide: request.decide },
     });
+  };
   const trackedProvider = (request: ProviderRequest): AgentProvider => {
     const inner = (options.makeProvider ?? defaultProvider)(request);
     return {

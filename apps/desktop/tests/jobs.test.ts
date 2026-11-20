@@ -126,6 +126,27 @@ describe("job actions on disk", () => {
       "only the user can move it",
     );
     expect(await executor.execute("job.unblock", { id: "j1" })).toEqual({ stage: "gate" });
+    // A job parked for running out of rounds gets a fresh allowance, and the reason is cleared.
+    const back = await store.load("j1");
+    expect(back).toMatchObject({ stage: "gate", round: 2, roundLimit: 5 });
+    expect(back.note).toBeUndefined();
+    expect(back.parkedFrom).toBeUndefined();
+    expect((await store.verify("j1")).ok).toBe(true);
+  });
+
+  it("clears the polished flag when an unblocked job goes back to build", async () => {
+    const { store, executor } = setup();
+    const job = await store.create(factoryBuildPreset, "j1", "t", 3);
+    await store.save({
+      ...job,
+      stage: "needs-human",
+      parkedFrom: "build",
+      flags: { polished: true },
+      note: "stuck",
+    });
+    await store.audit({ actor: "system", action: "park", jobId: "j1", detail: "stuck" });
+    await executor.execute("job.unblock", { id: "j1" });
+    expect((await store.load("j1")).flags).toEqual({ polished: false });
   });
 
   it("refuses to unblock a job that is not parked", async () => {

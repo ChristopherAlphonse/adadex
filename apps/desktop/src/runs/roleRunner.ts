@@ -12,6 +12,7 @@ import {
   type WorkflowJob,
 } from "@adadex/core";
 import type { GuardDecide } from "../agents/guardHost";
+import { gitDirOf, regexEscape, type SandboxPlan } from "../agents/sandbox";
 import type { ActionHost } from "../host/actionHost";
 import { withProtectedLocations } from "../host/protectedLocations";
 import { createToolGuard, resolveReal } from "../host/toolGuard";
@@ -22,6 +23,8 @@ import { findWorkflow, type WorkflowLookup } from "../jobs/workflowLookup";
 import type { Logger } from "../logs/logger";
 
 export interface ProviderRequest {
+  /** What the agent process may write and read at the operating system level, under the policy. */
+  readonly sandbox: SandboxPlan;
   /** What to show in the process list, such as "Builder on j1". */
   readonly label: string;
   readonly cwd: string;
@@ -148,6 +151,13 @@ export const createRoleRunner = (deps: RoleRunnerDeps) => {
         return inner(event);
       };
       const provider = deps.makeProvider({
+        sandbox: sandboxPlan(
+          role,
+          job,
+          deps.store.jobDir(job.id),
+          deps.cwdOf(job),
+          deps.protectedLocations,
+        ),
         label: `${role.name} on ${job.id}`,
         cwd: deps.cwdOf(job),
         tools: role.tools,
@@ -211,6 +221,37 @@ export const createRoleRunner = (deps: RoleRunnerDeps) => {
         ...(limited ? { limited } : {}),
       };
     },
+  };
+};
+
+/**
+ * The second lock behind the tool policy, at the operating system: the agent process may write its job folder, and
+ * the worktree only if its role edits code. It may never write the job record, the gate result, or the git settings that
+ * hold the commit lock, and it may not read the app's data folder.
+ */
+export const sandboxPlan = (
+  role: RoleDefinition,
+  job: WorkflowJob,
+  jobDir: string,
+  cwd: string,
+  dataFolders: readonly string[],
+): SandboxPlan => {
+  const real = (p: string): string => resolveReal("/", p);
+  const jobReal = real(jobDir);
+  const cwdReal = real(cwd);
+  const gitDir = job.worktree === undefined ? undefined : gitDirOf(cwdReal);
+  return {
+    writable: [jobReal, ...(role.editsCode ? [cwdReal, ...(gitDir ? [real(gitDir)] : [])] : [])],
+    denyWrite: [
+      `${jobReal}/job.json`,
+      `${cwdReal}/.git`,
+      ...(gitDir ? [`${real(gitDir)}/config`, `${real(gitDir)}/config.worktree`] : []),
+    ],
+    denyWriteRegex: [
+      `^${regexEscape(jobReal)}/(.*/)?checks\\.md$`,
+      `^${regexEscape(cwdReal)}/\\.git/`,
+    ],
+    denyRead: dataFolders.map(real),
   };
 };
 

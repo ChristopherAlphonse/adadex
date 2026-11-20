@@ -51,6 +51,8 @@ export const planTick = (
     if (running.has(job.id)) skip.push({ jobId: job.id, reason: "already running" });
     else if (job.stage === NEEDS_HUMAN || stage?.terminal === true || !stage)
       skip.push({ jobId: job.id, reason: "held for a person" });
+    else if (def.unattended !== true)
+      skip.push({ jobId: job.id, reason: `workflow ${def.id} is not set to run unattended` });
     else if (stage.role === undefined)
       skip.push({
         jobId: job.id,

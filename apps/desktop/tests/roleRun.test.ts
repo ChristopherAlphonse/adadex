@@ -396,8 +396,10 @@ describe("the unattended loop", () => {
     const w = await world(async function* () {
       yield { type: "done", summary: "" };
     });
+    const auto = { ...factoryBuildPreset, id: "auto", name: "Auto", unattended: true };
+    await w.app.workflows.save(auto);
     for (const id of ["a", "b"]) {
-      const job = await w.app.jobs.create(factoryBuildPreset, id, id, 3);
+      const job = await w.app.jobs.create(auto, id, id, 3);
       await w.app.jobs.save({ ...job, stage: "build", round: 1 });
       await w.app.jobs.audit({ actor: "system", action: "place", jobId: id, detail: "build" });
     }
