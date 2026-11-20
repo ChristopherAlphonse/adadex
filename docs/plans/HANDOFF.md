@@ -51,14 +51,14 @@ Security model, controls and the honest gap list: `docs/plans/security-model.md`
 ## Verify before and after any change
 
 ```
-npm test                      # core 138, desktop 170, api 147, web 93 at the time of writing
+npm test                      # core 147, desktop 171, api 138, web 98 at the time of writing; run web alone with `--maxWorkers=2` if it is killed for memory
 npx oxlint apps/desktop packages/core && npx oxfmt --check apps/desktop packages/core
 npx tsc -p packages/core/tsconfig.json --noEmit     # also apps/desktop, apps/api
 npm run build
 cd apps/desktop && npm run smoke    # starts the real Electron app hidden
 ```
 
-`npm run lint` at the root fails on accessibility errors in six `apps/web` files that are unchanged from `main`. `npm audit` reports `vite 8.3.2` and `zod 4.6.5` (through knip), also unchanged from `main`. A Dependabot branch for vite 8.3.5 exists. Neither was caused by this work.
+`npm run lint` passes; the existing accessibility and React findings in `apps/web` are warnings in `.oxlintrc.json`. `npm audit` reports `vite 8.3.2` and `zod 4.6.5` (through knip), unchanged from `main`. A Dependabot branch for vite 8.3.5 exists. Neither was caused by this work.
 
 Live checks against the real Claude Code (needs `claude` signed in, costs tokens): there were two throwaway scripts in a scratchpad that are gone. Rebuild one from `apps/desktop/tests/roleRun.test.ts` (`world()`), but use `createApp` with the default provider, a user role from `app.roles.save`, a workflow from `app.workflows.save`, and `app.runStage`. Tempt the role to overstep, then check the files on disk, not only what the model says.
 
@@ -74,8 +74,8 @@ Live checks against the real Claude Code (needs `claude` signed in, costs tokens
 
 ## Open work, in the order I would do it
 
-1. **Project checks have no way to be set.** The gate reads its command from `<data folder>/project.json`, which no request writes. Add a request and a UI field. It must stay out of anything an agent can write.
-2. **UI for what exists.** Buttons or screens for: the loop on and off (`scheduler.status`, `scheduler.set`, native dialog on enable), roles (`roles.list`, `roles.save`, `roles.remove`), logs (`logs.query`), chain check (`audit.verify`). An export request (`audit.export`) is not added yet; `store.exportAudit` and `verifyAuditExport` exist.
+1. ~~Project checks have no way to be set.~~ Done: `project.get` / `project.set` (`config/projectChecks.ts`), and a field in the Factory view. Saving shows the command in a native dialog and changes only `checks` in `project.json`; `baseBranch`, `timeoutMs` and `protectedPaths` still have no request.
+2. **UI for what exists.** The loop toggle is done. Still missing: roles (`roles.list`, `roles.save`, `roles.remove`), logs (`logs.query`), chain check (`audit.verify`). An export request (`audit.export`) is not added yet; `store.exportAudit` and `verifyAuditExport` exist.
 3. **Phase 5b canvas.** Build it on `toGraph` and the `editWorkflow` operations in core, with `problemsOf` shown beside the canvas and `workflows.save` to store. Presets are read-only: fork first. A workflow must set `unattended: true` to be worked by the loop.
 4. **Sub-agents.** Check whether the `PreToolUse` hook also runs for a sub-agent's tool calls. Not tested.
 5. **Per-reviewer roles.** One reviewer can overwrite another's `review-*.md`. Give each its own role or scope the pattern.

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -63,6 +63,9 @@ describe("new requests are checked before anything acts", () => {
     expect(parseRequest({ kind: "scheduler.set", enabled: true }).ok).toBe(true);
     expect(parseRequest({ kind: "scheduler.set", enabled: "yes" }).ok).toBe(false);
     expect(parseRequest({ kind: "scheduler.set" }).ok).toBe(false);
+    expect(parseRequest({ kind: "project.get" }).ok).toBe(true);
+    expect(parseRequest({ kind: "project.set", checks: "npm test" }).ok).toBe(true);
+    expect(parseRequest({ kind: "project.set", checks: 1 }).ok).toBe(false);
   });
 });
 
@@ -119,6 +122,33 @@ describe("the unattended loop is turned on only by a person", () => {
     expect(accepted.confirmed.length).toBe(before);
     expect(await status(accepted)).toBe(false);
     await accepted.app.shutdown();
+  });
+});
+
+describe("the checks command is set only by a person", () => {
+  it("shows the command in the native dialog, keeps the other gate settings, and refuses bad or declined input", async () => {
+    const declined = await boot(false, "true");
+    const checks = async (w: typeof declined) =>
+      ((await w.app.api.handle({ kind: "project.get" })) as { data: { checks: string } }).data
+        .checks;
+    expect(await checks(declined)).toBe("true");
+    expect(await declined.app.api.handle({ kind: "project.set", checks: "npm test" })).toEqual({
+      ok: false,
+      errors: ["declined"],
+    });
+    expect(await checks(declined)).toBe("true");
+    for (const bad of ["", "   ", "npm test\nrm -rf /", "x".repeat(2001)]) {
+      expect((await declined.app.api.handle({ kind: "project.set", checks: bad })).ok).toBe(false);
+    }
+    expect(declined.confirmed).toEqual(["Set the project's checks command?"]);
+
+    const accepted = await boot(true, "true", "second");
+    expect((await accepted.app.api.handle({ kind: "project.set", checks: "npm test" })).ok).toBe(
+      true,
+    );
+    expect(await checks(accepted)).toBe("npm test");
+    const file = JSON.parse(await readFile(join(root, "second", "data", "project.json"), "utf8"));
+    expect(file).toEqual({ checks: "npm test", baseBranch: "main" });
   });
 });
 

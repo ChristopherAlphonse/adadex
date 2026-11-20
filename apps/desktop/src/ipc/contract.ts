@@ -40,7 +40,9 @@ export type HostRequest =
   | { readonly kind: "audit.verify"; readonly jobId: string }
   | { readonly kind: "scheduler.set"; readonly enabled: boolean }
   | { readonly kind: "config.get" }
-  | { readonly kind: "config.set"; readonly config: unknown };
+  | { readonly kind: "config.set"; readonly config: unknown }
+  | { readonly kind: "project.get" }
+  | { readonly kind: "project.set"; readonly checks: string };
 
 /** A process the operator may inspect or kill from the board. */
 export interface HostProcess {
@@ -87,6 +89,7 @@ const NO_FIELDS = new Set([
   "config.get",
   "roles.list",
   "scheduler.status",
+  "project.get",
 ]);
 
 export const parseRequest = (raw: unknown): ParsedRequest => {
@@ -107,6 +110,10 @@ export const parseRequest = (raw: unknown): ParsedRequest => {
       return "config" in raw
         ? { ok: true, request: { kind, config: raw.config } }
         : { ok: false, error: "config.set needs config" };
+    case "project.set":
+      return typeof raw.checks === "string"
+        ? { ok: true, request: { kind, checks: raw.checks } }
+        : { ok: false, error: "project.set needs checks" };
     case "logs.query": {
       const q: Record<string, unknown> = { kind };
       for (const f of ["jobId", "runId", "role"] as const) {

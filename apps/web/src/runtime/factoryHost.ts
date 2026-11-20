@@ -53,6 +53,10 @@ export interface FactoryHost {
   getLoop(): Promise<boolean | null>;
   /** Turning the loop on needs the user's yes in a native dialog the page cannot press. */
   setLoop(enabled: boolean): Promise<void>;
+  /** The gate's checks command, or null when this host has no project settings. */
+  getChecks(): Promise<string | null>;
+  /** Saving needs the user's yes in a native dialog that shows the command. */
+  setChecks(command: string): Promise<void>;
   /** Called for every host event. Returns an unsubscribe function. */
   subscribe(onChange: () => void): () => void;
 }
@@ -217,6 +221,17 @@ export const createHostApiFactoryHost = (bridge: HostBridge): FactoryHost => {
     setLoop: async (enabled) => {
       await send("scheduler.set", { enabled });
     },
+    getChecks: async () => {
+      const raw = await transport.send({ kind: "project.get" });
+      if (!isRecord(raw) || raw.ok !== true) return null;
+      if (!isRecord(raw.data) || typeof raw.data.checks !== "string") {
+        throw new Error("host returned invalid project settings");
+      }
+      return raw.data.checks;
+    },
+    setChecks: async (checks) => {
+      await send("project.set", { checks });
+    },
     subscribe: (onChange) => transport.listen(() => onChange()),
   };
 };
@@ -232,6 +247,8 @@ export const createEmptyFactoryHost = (): FactoryHost => ({
   killProcess: async () => undefined,
   getLoop: async () => null,
   setLoop: async () => undefined,
+  getChecks: async () => null,
+  setChecks: async () => undefined,
   subscribe: () => () => undefined,
 });
 

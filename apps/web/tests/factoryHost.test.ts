@@ -135,6 +135,20 @@ describe("factory host bridge", () => {
     expect(handle).toHaveBeenCalledWith({ kind: "scheduler.set", enabled: true });
   });
 
+  it("reads the checks command, and treats a host without project settings as null", async () => {
+    const handle = vi.fn(async () => ({ ok: true, data: { checks: "npm test" } }));
+    const host = createHostApiFactoryHost({ handle, subscribe: () => () => undefined });
+    const without = createHostApiFactoryHost({
+      handle: async () => ({ ok: false, errors: ["project settings are not available"] }),
+      subscribe: () => () => undefined,
+    });
+
+    await expect(host.getChecks()).resolves.toBe("npm test");
+    await expect(without.getChecks()).resolves.toBeNull();
+    await host.setChecks("npm run check");
+    expect(handle).toHaveBeenCalledWith({ kind: "project.set", checks: "npm run check" });
+  });
+
   it("uses Electron's request/onEvent bridge when that is what the preload exposes", async () => {
     const request = vi.fn(async () => ({ ok: true, data: [] }));
     Object.assign(window, {

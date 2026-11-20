@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -23,6 +22,7 @@ import {
 } from "../agents/sandbox";
 import { spawnAgent } from "../agents/spawnAgent";
 import { loadMachineConfig } from "../config/machineConfig";
+import { loadProjectChecks } from "../config/projectChecks";
 import {
   type ActionHost,
   createActionHost,
@@ -156,8 +156,9 @@ export const createApp = (options: AppOptions): App => {
   const anchors = createFileAnchors(join(options.dataDir, "anchors", "audit-anchors.log"));
   const jobs = createJobStore(stateDir, undefined, { db: logDb, project, signer, anchors });
   const workflows = createWorkflowStore(join(options.dataDir, "workflows"));
+  const projectPath = join(options.dataDir, "project.json");
   const gateConfig = async (): Promise<GateConfig> => {
-    const raw = (await loadProjectChecks(join(options.dataDir, "project.json"))) ?? {};
+    const raw = (await loadProjectChecks(projectPath)) ?? {};
     return { ...DEFAULT_CHECKS, ...raw };
   };
   const cwdOf = (job: WorkflowJob): string => job.worktree ?? options.projectRoot;
@@ -321,6 +322,7 @@ export const createApp = (options: AppOptions): App => {
     confirm: options.confirm,
     loadConfig: () => loadMachineConfig(configPath),
     configPath,
+    projectPath,
     roundLimit: 3,
   });
 
@@ -347,21 +349,4 @@ export const createApp = (options: AppOptions): App => {
       logDb.close();
     },
   };
-};
-
-/** The project's `checks` command and gate limits, read from the machine's data folder, never from the repo an agent edits. */
-const loadProjectChecks = async (path: string): Promise<Partial<GateConfig> | null> => {
-  try {
-    const raw = JSON.parse(await readFile(path, "utf8")) as Partial<GateConfig>;
-    return {
-      ...(typeof raw.checks === "string" ? { checks: raw.checks } : {}),
-      ...(typeof raw.timeoutMs === "number" ? { timeoutMs: raw.timeoutMs } : {}),
-      ...(typeof raw.baseBranch === "string" ? { baseBranch: raw.baseBranch } : {}),
-      ...(Array.isArray(raw.protectedPaths)
-        ? { protectedPaths: raw.protectedPaths.filter((p) => typeof p === "string") }
-        : {}),
-    };
-  } catch {
-    return null;
-  }
 };

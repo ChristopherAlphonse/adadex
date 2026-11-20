@@ -79,6 +79,14 @@ const factoryBridge = (): { bridge: HostApiBridge; handle: ReturnType<typeof vi.
     ) {
       return { ok: true, data: { enabled: false, running: [], lastPlan: null } };
     }
+    if (
+      typeof request === "object" &&
+      request !== null &&
+      "kind" in request &&
+      request.kind === "project.get"
+    ) {
+      return { ok: true, data: { checks: "npm test" } };
+    }
     return { ok: true, data: [] };
   });
   return { bridge: { handle, subscribe: () => () => undefined }, handle };

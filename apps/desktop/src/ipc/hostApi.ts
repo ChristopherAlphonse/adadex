@@ -1,6 +1,7 @@
 import { resolveSkills } from "@adadex/core";
 
 import { type MachineConfig, saveMachineConfig } from "../config/machineConfig";
+import { checkCommandError, loadProjectChecks, saveProjectChecks } from "../config/projectChecks";
 import type { ActionHost, NativeConfirm } from "../host/actionHost";
 import type { JobStore } from "../jobs/jobStore";
 import type { Logger } from "../logs/logger";
@@ -27,6 +28,8 @@ export interface HostApiDeps {
   readonly loopIntervalMs?: number;
   readonly loadConfig: () => Promise<MachineConfig>;
   readonly configPath: string;
+  /** Holds the gate's `checks` command. Lives in the data folder, which no agent may write. */
+  readonly projectPath?: string;
   readonly roundLimit: number;
 }
 
@@ -137,6 +140,23 @@ export const createHostApi = (deps: HostApiDeps): HostApi => ({
         case "config.set": {
           const r = await saveMachineConfig(deps.configPath, req.config);
           return r.ok ? ok(r.config) : fail(...r.errors);
+        }
+        case "project.get":
+          if (!deps.projectPath) return fail("project settings are not available");
+          return ok({ checks: (await loadProjectChecks(deps.projectPath))?.checks ?? "" });
+        case "project.set": {
+          if (!deps.projectPath || !deps.confirm) return fail("project settings are not available");
+          const error = checkCommandError(req.checks);
+          if (error !== null) return fail(error);
+          // The gate runs this command in every job's worktree, so only a person in a native dialog may set it.
+          const yes = await deps.confirm(
+            "Set the project's checks command?",
+            `The gate will run this command for every job:\n\n${req.checks}`,
+          );
+          if (!yes) return fail("declined");
+          await saveProjectChecks(deps.projectPath, req.checks);
+          deps.logs?.log("info", "config", `checks command set to: ${req.checks}`);
+          return ok({ checks: req.checks });
         }
       }
     } catch (e) {

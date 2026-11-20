@@ -4,6 +4,7 @@ import { buildFactoryBoard, type FactoryAction } from "../../app/factory/board";
 import { useFactoryHost } from "../../app/hooks/useFactoryHost";
 import type { FactoryApproval, FactoryHost } from "../../runtime/factoryHost";
 import { ApprovalCards } from "./ApprovalCards";
+import { ChecksForm } from "./ChecksForm";
 import { FactoryBoard } from "./FactoryBoard";
 import { ProcessesPanel } from "./ProcessesPanel";
 
@@ -18,6 +19,7 @@ export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
     respondApproval,
     killProcess,
     setLoop,
+    setChecks,
   } = useFactoryHost(host);
   const board = useMemo(
     () => buildFactoryBoard(snapshot.jobs, snapshot.workflows),
@@ -87,6 +89,14 @@ export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
         <p className="text-[13px] text-muted-foreground">Loading factory…</p>
       ) : (
         <>
+          {snapshot.checks !== null && (
+            <ChecksForm
+              key={snapshot.checks}
+              saved={snapshot.checks}
+              isPending={pendingKey === "checks"}
+              onSave={(command) => void setChecks(command)}
+            />
+          )}
           <FactoryBoard
             columns={board.columns}
             placedJobs={board.placedJobs}

@@ -14,6 +14,7 @@ export interface FactorySnapshot {
   readonly approvals: readonly FactoryApproval[];
   readonly processes: readonly FactoryProcess[];
   readonly loop: boolean | null;
+  readonly checks: string | null;
 }
 
 const EMPTY_SNAPSHOT: FactorySnapshot = {
@@ -22,20 +23,22 @@ const EMPTY_SNAPSHOT: FactorySnapshot = {
   approvals: [],
   processes: [],
   loop: null,
+  checks: null,
 };
 
 const messageOf = (cause: unknown): string =>
   cause instanceof Error && cause.message.length > 0 ? cause.message : "Factory request failed";
 
 const readSnapshot = async (host: FactoryHost): Promise<FactorySnapshot> => {
-  const [jobs, workflows, approvals, processes, loop] = await Promise.all([
+  const [jobs, workflows, approvals, processes, loop, checks] = await Promise.all([
     host.listJobs(),
     host.listWorkflows(),
     host.listApprovals(),
     host.listProcesses(),
     host.getLoop(),
+    host.getChecks(),
   ]);
-  return { jobs, workflows, approvals, processes, loop };
+  return { jobs, workflows, approvals, processes, loop, checks };
 };
 
 export const useFactoryHost = (host: FactoryHost) => {
@@ -111,6 +114,11 @@ export const useFactoryHost = (host: FactoryHost) => {
     [host, runMutation],
   );
 
+  const setChecks = useCallback(
+    async (command: string) => runMutation("checks", () => host.setChecks(command)),
+    [host, runMutation],
+  );
+
   return {
     snapshot,
     isLoading,
@@ -121,5 +129,6 @@ export const useFactoryHost = (host: FactoryHost) => {
     respondApproval,
     killProcess,
     setLoop,
+    setChecks,
   };
 };

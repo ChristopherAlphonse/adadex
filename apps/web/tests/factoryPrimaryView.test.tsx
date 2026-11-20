@@ -82,6 +82,25 @@ describe("Factory primary view", () => {
     expect(host.killProcess).toHaveBeenCalledWith("p-1");
   });
 
+  it("shows the checks command and saves an edit through the host", async () => {
+    const host = createFakeFactoryHost({ getChecks: vi.fn(async () => "npm test") });
+
+    render(<FactoryPrimaryView host={host} />);
+    const field = await screen.findByLabelText(/Checks command/);
+    expect(field).toHaveValue("npm test");
+    const save = screen.getByRole("button", { name: "Save checks" });
+    expect(save).toBeDisabled();
+
+    fireEvent.change(field, { target: { value: "npm run check" } });
+    fireEvent.click(save);
+    expect(host.setChecks).toHaveBeenCalledWith("npm run check");
+
+    cleanup();
+    render(<FactoryPrimaryView host={createFakeFactoryHost()} />);
+    await screen.findByLabelText("Factory board");
+    expect(screen.queryByLabelText(/Checks command/)).toBeNull();
+  });
+
   it("shows the unattended loop toggle only when the host has a loop", async () => {
     const host = createFakeFactoryHost({ getLoop: vi.fn(async () => false) });
 
