@@ -6,6 +6,7 @@ import { evaluateToolCall } from "@adadex/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app/createApp";
 import type { HostEvent } from "../src/host/actionHost";
+import { resolveReal } from "../src/host/toolGuard";
 import { KEY_ENV } from "../src/jobs/gitGuard";
 
 let root: string;
@@ -179,7 +180,7 @@ describe("the app, end to end, with real git", () => {
       evaluateToolCall(
         app.policy,
         { tool_name: "Write", tool_input: { file_path }, cwd: project },
-        (p) => p,
+        (p) => resolveReal(project, p),
       ).kind;
     expect(write(join(dataDir, "project.json"))).toBe("deny");
     expect(write(join(dataDir, "guard", "hooks", "j1", "pre-commit"))).toBe("deny");

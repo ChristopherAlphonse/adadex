@@ -7,7 +7,7 @@ import {
   createActionRegistry,
   FACTORY_ACTIONS,
   type PolicyRules,
-  runAgent,
+  REVIEW_POLICY,
   type WorkflowJob,
 } from "@adadex/core";
 import { createClaudeCodeProvider, type SpawnAgent } from "../agents/claudeCodeProvider";
@@ -20,7 +20,7 @@ import {
   type NativeConfirm,
 } from "../host/actionHost";
 import { withProtectedLocations } from "../host/protectedLocations";
-import { createToolGuard } from "../host/toolGuard";
+import { resolveReal } from "../host/toolGuard";
 import { type ApprovalBroker, createApprovalBroker } from "../ipc/approvalBroker";
 import { createHostApi, type HostApi } from "../ipc/hostApi";
 import type { GateConfig } from "../jobs/gatePorts";
@@ -29,6 +29,9 @@ import { createJobExecutor } from "../jobs/jobActions";
 import { createJobStore, type JobStore } from "../jobs/jobStore";
 import { makeWorktree } from "../jobs/makeWorktree";
 import { nodeCheckRunner, nodeGit } from "../jobs/nodeGate";
+import { createRoleStore, type RoleStore } from "../roles/roleStore";
+import { createRoleRunner, type ProviderRequest, type RunResult } from "../runs/roleRunner";
+import { createScheduler, type Scheduler } from "../runs/scheduler";
 import { createWorkflowStore, type WorkflowStore } from "../workflows/workflowStore";
 
 export interface AppOptions {
@@ -44,6 +47,11 @@ export interface AppOptions {
   readonly claudeCommand?: string;
   readonly bridgePath: string;
   readonly hookPath: string;
+  /** How agents are started. The default runs Claude Code; tests pass a fake. */
+  readonly makeProvider?: (request: ProviderRequest) => AgentProvider;
+  /** Most agents at once, and how many runs that move nothing before a job is parked. */
+  readonly concurrency?: number;
+  readonly stallLimit?: number;
 }
 
 export interface App {
@@ -53,8 +61,14 @@ export interface App {
   readonly workflows: WorkflowStore;
   readonly approvals: ApprovalBroker;
   readonly policy: PolicyRules;
-  /** Run an agent on a job: its own tools are allowed, behind the policy and the approval cards. */
-  runAgentOnJob(jobId: string, goal: string): Promise<{ summary: string }>;
+  readonly roles: RoleStore;
+  /** The unattended loop. Off until a person starts it. */
+  readonly scheduler: Scheduler;
+  /**
+   * Run one agent on a job, in the role of the job's current stage and no other. There is no way to run an agent
+   * without a role or to pick a different one.
+   */
+  runStage(jobId: string): Promise<RunResult>;
   /** Stop every running agent and decline anything waiting, so quitting leaves nothing running. */
   shutdown(): Promise<void>;
 }
@@ -123,7 +137,54 @@ export const createApp = (options: AppOptions): App => {
     emit: options.emit,
   });
 
-  const policy = withProtectedLocations(BUILD_POLICY, [options.dataDir]);
+  const policy = withProtectedLocations(BUILD_POLICY, [resolveReal("/", options.dataDir)]);
+  const roles = createRoleStore(join(options.dataDir, "roles"), registry);
+
+  const defaultProvider = (request: ProviderRequest): AgentProvider =>
+    createClaudeCodeProvider({
+      command: options.claudeCommand ?? "claude",
+      bridgePath: options.bridgePath,
+      cwd: request.cwd,
+      spawn: options.spawn ?? spawnAgent,
+      allowedTools: [...request.tools],
+      guard: { hookPath: options.hookPath, decide: request.decide },
+    });
+  const trackedProvider = (request: ProviderRequest): AgentProvider => {
+    const inner = (options.makeProvider ?? defaultProvider)(request);
+    return {
+      id: inner.id,
+      start: async (r) => {
+        const session = await inner.start(r);
+        sessions.add(session);
+        return {
+          ...session,
+          stop: async () => {
+            sessions.delete(session);
+            await session.stop();
+          },
+        };
+      },
+    };
+  };
+  const runner = createRoleRunner({
+    store: jobs,
+    workflows: (id) => workflows.get(id),
+    roles,
+    registry,
+    host,
+    approvals,
+    basePolicy: (role) => (role.editsCode ? BUILD_POLICY : REVIEW_POLICY),
+    protectedLocations: [options.dataDir],
+    makeProvider: trackedProvider,
+    cwdOf,
+  });
+  const scheduler = createScheduler({
+    store: jobs,
+    workflows: (id) => workflows.get(id),
+    runStage: (jobId) => runner.run(jobId),
+    concurrency: options.concurrency ?? 1,
+    stallLimit: options.stallLimit ?? 2,
+  });
   const api = createHostApi({
     workflows,
     jobs,
@@ -141,38 +202,11 @@ export const createApp = (options: AppOptions): App => {
     workflows,
     approvals,
     policy,
-    async runAgentOnJob(jobId, goal) {
-      const job = await jobs.load(jobId);
-      const inner = createClaudeCodeProvider({
-        command: options.claudeCommand ?? "claude",
-        bridgePath: options.bridgePath,
-        cwd: cwdOf(job),
-        spawn: options.spawn ?? spawnAgent,
-        allowedTools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash"],
-        guard: { hookPath: options.hookPath, decide: createToolGuard(policy, approvals.gate) },
-      });
-      const provider: AgentProvider = {
-        id: inner.id,
-        start: async (request) => {
-          const session = await inner.start(request);
-          sessions.add(session);
-          return {
-            ...session,
-            stop: async () => {
-              sessions.delete(session);
-              await session.stop();
-            },
-          };
-        },
-      };
-      const ports = host.agentPorts();
-      const result = await runAgent(
-        { provider, registry, ...ports },
-        { goal, contextFiles: [join(jobs.jobDir(jobId), "spec.md")] },
-      );
-      return { summary: result.summary };
-    },
+    roles,
+    scheduler,
+    runStage: (jobId) => runner.run(jobId),
     async shutdown() {
+      scheduler.stop();
       approvals.declineAll();
       await Promise.all([...sessions].map((s) => s.stop()));
     },

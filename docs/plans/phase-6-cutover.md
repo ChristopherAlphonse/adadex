@@ -14,9 +14,9 @@ Counts come from the test classes in `calphonse-skills`: 263 factory tests and 1
 | Human-only actions, policy | `TestPolicy` 15, `TestHumanGate` 10+5 | Action registry (human class), native confirmation, git hooks with the human key, commit refusals | Covered. The key model differs: it lives in app memory, not in a server process |
 | Tool policy (the guard) | `Guard` 12+10, `ClaudeGuard` 1+1, `OpenCodeGuard` 3+3 | `evaluateToolCall`, the hook, two live runs against real Claude Code | Covered for Claude Code. Not for OpenCode or Kiro |
 | Audit log | `TestAudit` 5+3 | Every move, refusal, gate and commit is written | Covered |
-| **Integrity checks** | `Integrity` 9+8 | Nothing. Factory parks a job on the user when `job.json`, `audit.log` or the hooks do not agree | **Not ported** |
-| **Queue and the unattended loop** | `TestQueue` 6+3, `TickTests` 9+9, `LoopTests` 3 | Nothing. There is no scheduler that picks the next stage, starts an agent, limits how many run at once, or stops when a job stalls | **Not ported** |
-| **Read-only review rules** | `TestNoHumanGatesAndNoWrites` 8, `TestReadOnly` 5 | The review preset has no loop back to build. But a reviewer that edits a tracked file does not park the job, and review of a base and head (`--review`) is not built | **Partly** |
+| Integrity checks | `Integrity` 9+8 | Hash-chained audit log, job-record check, and a gate result that counts only if the audit log vouches for it; checked before every agent run. Not ported: the git hook digest check | Mostly covered |
+| Queue and the unattended loop | `TestQueue` 6+3, `TickTests` 9+9, `LoopTests` 3 | `planTick` and a scheduler: one run per job, concurrency limit, stall limit, parks a stuck job, off until a person turns it on. Not yet reachable from the UI. No keep-awake | Mostly covered |
+| Read-only review rules | `TestNoHumanGatesAndNoWrites` 8, `TestReadOnly` 5 | Stronger: a reviewer role cannot change code at all, and a write it attempts is refused instead of parking the job afterwards. The `--review` base-and-head mode is not built | Partly |
 | **Stack detection** | `TestStackDetection` 4+3 | Nothing. Factory reads the file names and picks stack skills (TypeScript, C#, Python). Stage skills are fixed names today | **Not ported** |
 | Unblock | in `TestHumanGate` | `job.unblock` returns the job to the stage it was parked from. Factory returns a build job to `build`, turns polish off, and gives it a fresh round allowance | **Different** |
 | Keep the machine awake while agents run | `keep_awake` in factory-review | Nothing. Electron can do this with its power save blocker | Not ported |
@@ -45,7 +45,7 @@ Counts come from the test classes in `calphonse-skills`: 263 factory tests and 1
 
 ## Decisions needed from you
 
-1. **The unattended loop.** Do you want the app to run a job's stages by itself (pick the next stage, start an agent, run several jobs at once, stop on a stall), as `tick loop` does? It is the largest missing piece. Without it every stage is started by a click.
-2. **Integrity checks.** Keep them? They catch a job whose files were edited by hand or by an agent behind the app's back. I'd keep them.
+1. **The unattended loop.** Built and tested, off by default. Still needed: a request and a UI toggle, and a native confirmation when a person turns it on. Do you want it on by default for any workflow, or opt in per workflow?
+2. **Integrity checks.** Done. Do you want the audit log signed or sent to a remote log (see `security-model.md`, gap 1)?
 3. **Stack skills.** Keep choosing skills from the files in the repo (TypeScript, C#, Python), or let each workflow say exactly which skills a stage uses? With user-built workflows the second is simpler, and the first can be an optional step.
 4. **Unblock.** Return to the stage the job was parked from (today), or follow factory (back to build with a fresh round allowance)?

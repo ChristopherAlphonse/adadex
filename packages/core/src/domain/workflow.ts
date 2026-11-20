@@ -97,6 +97,8 @@ export interface WorkflowJob {
   readonly approvals: Readonly<Record<string, string>>;
   readonly commit: string | null;
   readonly parkedFrom?: string;
+  /** Why the job is waiting for a person, when the app parked it. */
+  readonly note?: string;
   /** Where the job's code lives and on which branch, once a worktree has been made for it. */
   readonly worktree?: string;
   readonly branch?: string;
