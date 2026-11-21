@@ -1,6 +1,7 @@
 import {
   asRecord,
   buildTerminalList,
+  type CoordinationWorkspaceMode,
   isAgentRuntimeState,
   isString,
   type TerminalSnapshot,
@@ -438,6 +439,36 @@ const AppShell = () => {
     activePrimaryNav !== 7 &&
     (hasPrimarySidebarContent || hasSidebarActionPanel);
 
+  const spawnSwarm = async (coordinationId: string, workspaceMode: CoordinationWorkspaceMode) => {
+    const response = await fetch(
+      `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/swarm`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceMode }),
+      },
+    );
+
+    if (!response.ok) {
+      let message = "Failed to spawn swarm.";
+
+      try {
+        const body = asRecord(await response.json());
+        const error = body?.error;
+
+        if (isString(error) && error.trim().length > 0) {
+          message = error;
+        }
+      } catch {
+        // Fall back to the generic message when the server returns a non-JSON error.
+      }
+
+      throw new Error(message);
+    }
+
+    await refreshColumns();
+  };
+
   return (
     <div className={cn("page console-shell design-console", isLight && "light")}>
       <ConsoleChromeHeader
@@ -478,6 +509,10 @@ const AppShell = () => {
               onRefreshWorkspaceSetup: refreshWorkspaceSetup,
               onRunWorkspaceSetupStep: runWorkspaceSetupStep,
               suppressWorkspaceSetupCard: true,
+              onCreateAgent: async (coordinationId) => {
+                return await createTerminal("shared", coordinationId);
+              },
+              onSpawnSwarm: spawnSwarm,
             }}
             activityPrimaryViewProps={{
               usageChartProps: {
@@ -589,35 +624,7 @@ const AppShell = () => {
                   }
                 }
               },
-              onSpawnSwarm: async (coordinationId, workspaceMode) => {
-                const response = await fetch(
-                  `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/swarm`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ workspaceMode }),
-                  },
-                );
-
-                if (!response.ok) {
-                  let message = "Failed to spawn swarm.";
-
-                  try {
-                    const body = asRecord(await response.json());
-                    const error = body?.error;
-
-                    if (isString(error) && error.trim().length > 0) {
-                      message = error;
-                    }
-                  } catch {
-                    // Fall back to the generic message when the server returns a non-JSON error.
-                  }
-
-                  throw new Error(message);
-                }
-
-                await refreshColumns();
-              },
+              onSpawnSwarm: spawnSwarm,
               onDeckLeadAction: async (action) => {
                 const response = await fetch("/api/terminals", {
                   method: "POST",

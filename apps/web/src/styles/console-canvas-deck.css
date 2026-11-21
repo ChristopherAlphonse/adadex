@@ -847,6 +847,56 @@
   margin-right: auto;
 }
 
+.deck-pod-btn--icon {
+  padding: 0.3rem 0.6rem;
+  font-size: 1rem;
+  line-height: 0.8;
+}
+
+.deck-pod-confirm-text {
+  margin-right: auto;
+  font-size: 0.76rem;
+  color: var(--muted-foreground);
+}
+
+.deck-pod-menu {
+  position: relative;
+}
+
+.deck-pod-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 130px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-ctl, 12px);
+  background: var(--surface);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.35);
+}
+
+.deck-pod-menu-list button {
+  padding: 0.4rem 0.6rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--foreground);
+  font: 500 0.78rem "Inter", ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.deck-pod-menu-list button:hover {
+  background: var(--surface-2);
+}
+
+.deck-pod-menu-list .deck-pod-menu-danger {
+  color: var(--destructive);
+}
+
 .deck-pod-btn--delete {
   color: var(--destructive);
   padding: 0.3rem 0.5rem;
@@ -963,35 +1013,64 @@
 
 .deck-pod-status {
   position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  font-family: var(--font-main);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0.1rem 0.36rem;
-  border-radius: 2px;
+  top: 0.55rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--muted-foreground);
   z-index: 1;
 }
 
-.deck-pod-status--idle {
-  color: var(--muted-foreground);
-  background: var(--surface);
+.deck-pod-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
 }
 
 .deck-pod-status--active {
-  color: #4ec9b0;
-  background: rgba(78, 201, 176, 0.1);
+  color: var(--running);
+}
+
+.deck-pod-status--active::before {
+  opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--running) 22%, transparent);
 }
 
 .deck-pod-status--blocked {
   color: var(--destructive);
-  background: rgba(224, 85, 85, 0.1);
 }
 
 .deck-pod-status--needs-review {
-  color: var(--accent-secondary, #eab308);
-  background: color-mix(in srgb, var(--accent-secondary, #eab308) 12%, transparent);
+  color: var(--stale);
+}
+
+.deck-pod-status--blocked::before,
+.deck-pod-status--needs-review::before {
+  opacity: 1;
+}
+
+.deck-pod[data-status="active"] {
+  border-color: color-mix(in srgb, var(--running) 55%, var(--border));
+}
+
+.deck-pod[data-status="blocked"] {
+  border-color: color-mix(in srgb, var(--destructive) 55%, var(--border));
+}
+
+.deck-pod[data-status="needs-review"] {
+  border-color: color-mix(in srgb, var(--stale) 60%, var(--border));
+}
+
+.deck-pod[data-status="idle"] .deck-pod-mascot {
+  opacity: 0.8;
 }
 
 .deck-pod-identity-text {
@@ -1003,9 +1082,9 @@
 }
 
 .deck-pod-name {
-  font-family: "Silkscreen", cursive;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
-  font-weight: 400;
+  font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
 }
@@ -1141,16 +1220,23 @@
 .deck-pod-progress-fill {
   height: 100%;
   border-radius: 2px;
+  background: var(--brand);
+  opacity: 0.75;
   transition: width 0.3s;
 }
 
+.deck-pod-progress-fill[data-complete="true"] {
+  opacity: 1;
+}
+
 .deck-pod-progress-label {
-  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
   flex-shrink: 0;
   white-space: nowrap;
-  padding: 0.1rem 0.3rem;
-  border-radius: 2px;
 }
 
 /* ─── Todo list ───────────────────────────────────────────────────────────── */
@@ -1169,13 +1255,19 @@
 }
 
 .deck-pod-todo-item {
-  font-family: "JetBrains Mono", "IBM Plex Mono", monospace;
-  font-size: 0.76rem;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
   color: var(--text-secondary);
   display: flex;
   align-items: baseline;
   gap: 0.3rem;
   min-width: 0;
+}
+
+.deck-pod:not(.deck-pod--focused) .deck-pod-todo-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deck-pod-todo-text {

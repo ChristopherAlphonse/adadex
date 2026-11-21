@@ -504,6 +504,41 @@ const readAgentTranscriptTurns = (
   }
 };
 
+/**
+ * Adds one turn to the stored session turns without replacing them. Used when the agent's own
+ * transcript cannot be read, so prompts and replies still accumulate across the whole session.
+ */
+export const appendAgentTranscriptTurn = (
+  transcriptDirectoryPath: string,
+  sessionId: string,
+  role: ConversationTurn["role"],
+  content: string,
+) => {
+  const text = content.trim();
+
+  if (text.length === 0) {
+    return;
+  }
+
+  const turns = readAgentTranscriptTurns(transcriptDirectoryPath, sessionId) ?? [];
+  const lastTurn = turns[turns.length - 1];
+
+  if (lastTurn?.role === role && lastTurn.content === text) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  turns.push({
+    turnId: `turn-${turns.length + 1}`,
+    role,
+    content: text,
+    startedAt: now,
+    endedAt: now,
+  });
+  storeAgentTranscriptTurns(transcriptDirectoryPath, sessionId, turns);
+};
+
 const buildSearchSnippet = (content: string, query: string, contextChars = 80): string => {
   const lowerContent = content.toLowerCase();
   const lowerQuery = query.toLowerCase();

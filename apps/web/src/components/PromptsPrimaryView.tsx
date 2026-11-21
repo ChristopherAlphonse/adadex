@@ -1,8 +1,8 @@
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { usePromptLibrary } from "../app/hooks/usePromptLibrary";
+import { toPromptLabel } from "../app/promptLabel";
 import { SidebarPromptsList } from "./SidebarPromptsList";
-import { Terminal } from "./Terminal";
 import { ActionButton } from "./ui/ActionButton";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
@@ -11,9 +11,13 @@ type PromptsPrimaryViewProps = {
   onSidebarContent?: (content: ReactNode) => void;
 };
 
-type NewPromptMode = {
-  terminalId: string;
-} | null;
+const toPromptSlug = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/\.md$/i, "")
+    .replace(/[^\w.-]+/g, "-")
+    .replace(/^[-.]+|-+$/g, "");
 
 export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimaryViewProps) => {
   const {
@@ -27,6 +31,7 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
     errorMessage,
     refreshPrompts,
     selectPrompt: selectPromptLibraryItem,
+    savePrompt: savePromptLibraryItem,
     deletePrompt: deletePromptLibraryItem,
     startEditing: onStartEditing,
     cancelEditing: onCancelEditing,
@@ -34,10 +39,17 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
     submitEdit: onSubmitEdit,
   } = usePromptLibrary({ enabled });
 
-  const [promptEngineerTerminalId, setPromptEngineerTerminalId] = useState<string | null>(null);
-  const [newPromptRequestCount, setNewPromptRequestCount] = useState(0);
-  const [restoreTerminalCount, setRestoreTerminalCount] = useState(0);
-  const [closeTerminalCount, setCloseTerminalCount] = useState(0);
+  const [isComposing, setIsComposing] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newContent, setNewContent] = useState("");
+  const [isSavingNew, setIsSavingNew] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (isComposing) {
+      nameInputRef.current?.focus();
+    }
+  }, [isComposing]);
 
   const onDelete = useCallback(() => {
     if (selectedPromptName) {
@@ -47,8 +59,38 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
     return Promise.resolve(false);
   }, [selectedPromptName, deletePromptLibraryItem]);
 
-  const onRefresh = refreshPrompts;
-  const onTerminalIdChange = setPromptEngineerTerminalId;
+  const newSlug = toPromptSlug(newName);
+  const slugTaken = prompts.some((p) => p.name === newSlug);
+  const canSaveNew = newSlug.length > 0 && newContent.trim().length > 0 && !slugTaken;
+
+  const onCancelNew = useCallback(() => {
+    setIsComposing(false);
+    setNewName("");
+    setNewContent("");
+  }, []);
+
+  const onSaveNew = useCallback(async () => {
+    if (!canSaveNew) {
+      return;
+    }
+
+    setIsSavingNew(true);
+    const ok = await savePromptLibraryItem(newSlug, newContent);
+
+    setIsSavingNew(false);
+
+    if (ok) {
+      onCancelNew();
+      selectPromptLibraryItem(newSlug);
+    }
+  }, [
+    canSaveNew,
+    newSlug,
+    newContent,
+    savePromptLibraryItem,
+    selectPromptLibraryItem,
+    onCancelNew,
+  ]);
 
   // Push sidebar content
   const sidebarContent = (
@@ -56,19 +98,15 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
       prompts={prompts}
       selectedPromptName={selectedPromptName}
       isLoadingPrompts={isLoadingPrompts}
-      onSelectPrompt={selectPromptLibraryItem}
+      onSelectPrompt={(name) => {
+        setIsComposing(false);
+        selectPromptLibraryItem(name);
+      }}
       onRefresh={() => {
         void refreshPrompts();
       }}
       onNewPrompt={() => {
-        setNewPromptRequestCount((c) => c + 1);
-      }}
-      activeTerminalId={promptEngineerTerminalId}
-      onRestoreTerminal={() => {
-        setRestoreTerminalCount((c) => c + 1);
-      }}
-      onCloseTerminal={() => {
-        setCloseTerminalCount((c) => c + 1);
+        setIsComposing(true);
       }}
     />
   );
@@ -78,111 +116,56 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
 
     return () => onSidebarContent?.(null);
   });
-  const [newPromptMode, setNewPromptMode] = useState<NewPromptMode>(null);
-  const [, setIsCreatingTerminal] = useState(false);
-  const [showTerminal, setShowTerminal] = useState(false);
-
-  const handleNewPrompt = useCallback(async () => {
-    setIsCreatingTerminal(true);
-
-    try {
-      const res = await fetch("/api/terminals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceMode: "shared",
-          promptTemplate: "meta-prompt-generator",
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to create terminal");
-
-      const data =
-        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as {
-          terminalId?: string;
-          coordinationId?: string;
-        };
-
-      const agentId =
-        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (data.terminalId ??
-          data.coordinationId) as string;
-
-      setNewPromptMode({ terminalId: agentId });
-      setShowTerminal(true);
-      onTerminalIdChange(agentId);
-    } catch {
-      // Silently fail — the user can retry
-    } finally {
-      setIsCreatingTerminal(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (newPromptRequestCount > 0) {
-      void handleNewPrompt();
-    }
-  }, [newPromptRequestCount, handleNewPrompt]);
-
-  // When a prompt is selected from the sidebar, switch away from terminal view
-  useEffect(() => {
-    if (selectedPrompt) {
-      setShowTerminal(false);
-    }
-  }, [selectedPrompt]);
-
-  // When the sidebar's minimized bar is clicked, restore terminal view
-  useEffect(() => {
-    if (restoreTerminalCount > 0) {
-      setShowTerminal(true);
-    }
-  }, [restoreTerminalCount]);
-
-  // When the sidebar's close button is clicked, destroy the terminal
-  useEffect(() => {
-    if (closeTerminalCount > 0) {
-      setNewPromptMode(null);
-      setShowTerminal(false);
-      onTerminalIdChange(null);
-      void onRefresh();
-    }
-  }, [closeTerminalCount, onRefresh]);
-
-  const handleBackToLibrary = useCallback(() => {
-    setNewPromptMode(null);
-    setShowTerminal(false);
-    onTerminalIdChange(null);
-    void onRefresh();
-  }, [onRefresh]);
-
-  const showPromptDetail = !showTerminal || !newPromptMode;
 
   return (
     <section className="prompts-view" aria-label="Prompts primary view">
-      {/* Terminal — kept mounted when active, hidden via CSS when viewing a prompt */}
-      {newPromptMode && (
-        <div
-          className="prompts-terminal"
-          key={newPromptMode.terminalId}
-          style={showTerminal ? undefined : { display: "none" }}
-        >
-          <header className="prompts-terminal-header">
-            <button type="button" className="prompts-terminal-back" onClick={handleBackToLibrary}>
-              ← Back
-            </button>
-            <span className="prompts-terminal-label">
-              <strong>Prompt Engineer</strong>
-            </span>
+      {isComposing ? (
+        <div className="prompts-detail">
+          <header className="prompts-detail-header">
+            <div className="prompts-detail-header-left prompts-compose-name">
+              <input
+                aria-label="Prompt name"
+                ref={nameInputRef}
+                className="prompts-compose-input"
+                onChange={(e) => {
+                  setNewName(e.target.value);
+                }}
+                placeholder="Prompt name, e.g. release notes"
+                type="text"
+                value={newName}
+              />
+              {slugTaken ? (
+                <span className="prompts-compose-hint prompts-compose-hint--error">
+                  A prompt with this name already exists
+                </span>
+              ) : newSlug.length > 0 ? (
+                <span className="prompts-compose-hint">Saved as {newSlug}</span>
+              ) : null}
+            </div>
+            <div className="prompts-detail-header-actions">
+              <ActionButton onClick={onCancelNew}>Cancel</ActionButton>
+              <ActionButton
+                disabled={!canSaveNew || isSavingNew}
+                onClick={() => {
+                  void onSaveNew();
+                }}
+              >
+                {isSavingNew ? "Saving..." : "Save"}
+              </ActionButton>
+            </div>
           </header>
-          <Terminal
-            terminalId={newPromptMode.terminalId}
-            terminalLabel="Prompt Engineer"
-            hidePromptPicker
+          {errorMessage ? <p className="prompts-error">{errorMessage}</p> : null}
+          <textarea
+            className="prompts-edit-area"
+            onChange={(e) => {
+              setNewContent(e.target.value);
+            }}
+            placeholder="Write your prompt here. Use {{variable}} for values filled in at launch."
+            spellCheck={false}
+            value={newContent}
           />
         </div>
-      )}
-
-      {/* Prompt detail / empty state — shown when terminal is hidden or doesn't exist */}
-      {showPromptDetail && (
+      ) : (
         <>
           {errorMessage ? <p className="prompts-error">{errorMessage}</p> : null}
 
@@ -192,7 +175,7 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
             <div className="prompts-detail">
               <header className="prompts-detail-header">
                 <div className="prompts-detail-header-left">
-                  <h3 className="prompts-detail-name">{selectedPrompt.name}</h3>
+                  <h3 className="prompts-detail-name">{toPromptLabel(selectedPrompt.name)}</h3>
                   <span className="prompts-detail-source-badge" data-source={selectedPrompt.source}>
                     {selectedPrompt.source === "user" ? "User" : "Built-in"}
                   </span>

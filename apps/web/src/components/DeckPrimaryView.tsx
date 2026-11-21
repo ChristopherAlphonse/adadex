@@ -1,4 +1,5 @@
 import type {
+  CoordinationWorkspaceMode,
   DeckAvailableSkill,
   DeckCoordinationSummary,
   WorkspaceSetupSnapshot,
@@ -23,6 +24,7 @@ import {
 import { ActionCards } from "./deck/ActionCards";
 import type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
 import { AddOrchestrationForm } from "./deck/AddOrchestrationForm";
+import { AgentSheet } from "./deck/AgentSheet";
 import { DeckBottomActions } from "./deck/DeckBottomActions";
 import { deriveMascotVisuals, type MascotVisuals } from "./deck/mascotVisuals";
 import { OrchestrationPod } from "./deck/OrchestrationPod";
@@ -61,6 +63,11 @@ type DeckPrimaryViewProps = {
   onRefreshWorkspaceSetup: () => Promise<WorkspaceSetupSnapshot | null>;
   onRunWorkspaceSetupStep: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
   suppressWorkspaceSetupCard?: boolean;
+  onCreateAgent?: (coordinationId: string) => Promise<string | undefined>;
+  onSpawnSwarm?: (
+    coordinationId: string,
+    workspaceMode: CoordinationWorkspaceMode,
+  ) => Promise<void>;
 };
 
 type LoadedVaultFile = { focus: FocusState; content: string | null };
@@ -87,9 +94,12 @@ export const DeckPrimaryView = ({
   onRefreshWorkspaceSetup,
   onRunWorkspaceSetupStep,
   suppressWorkspaceSetupCard = false,
+  onCreateAgent,
+  onSpawnSwarm,
 }: DeckPrimaryViewProps) => {
   const [orchestrations, setOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [focus, setFocus] = useState<FocusState | null>(null);
+  const [sheetCoordinationId, setSheetCoordinationId] = useState<string | null>(null);
   const [loadedVault, setLoadedVault] = useState<LoadedVaultFile | null>(null);
   const [emptyViewMode, setEmptyViewMode] = useState<EmptyViewMode>("idle");
   const [isCreating, setIsCreating] = useState(false);
@@ -647,6 +657,7 @@ export const DeckPrimaryView = ({
                   })
                 }
                 onClose={handleClose}
+                onOpen={() => setSheetCoordinationId(t.coordinationId)}
                 onDelete={() => handleDeleteOrchestration(t.coordinationId)}
                 isDeleting={deletingOrchestrationId === t.coordinationId}
                 onTodoToggle={handleTodoToggle}
@@ -766,6 +777,20 @@ export const DeckPrimaryView = ({
           </div>
         )}
       </div>
+
+      <AgentSheet
+        orchestration={
+          orchestrations.find((item) => item.coordinationId === sheetCoordinationId) ?? null
+        }
+        visuals={sheetCoordinationId ? (visualsMap.get(sheetCoordinationId) ?? null) : null}
+        onClose={() => setSheetCoordinationId(null)}
+        onTodoToggle={handleTodoToggle}
+        onVaultFileClick={(coordinationId, fileName) =>
+          setFocus({ type: "vault", coordinationId, fileName })
+        }
+        onCreateAgent={onCreateAgent}
+        onSpawnSwarm={onSpawnSwarm}
+      />
     </section>
   );
 };

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { toPromptLabel } from "../app/promptLabel";
 import type { PromptDetail, PromptLibraryEntry } from "../app/types";
 import { buildPromptItemUrl, buildPromptsUrl } from "../runtime/runtimeEndpoints";
 
@@ -125,7 +126,7 @@ export const TerminalPromptPicker = ({
                     void handleSelectPrompt(p.name);
                   }}
                 >
-                  {p.name}.md
+                  {toPromptLabel(p.name)}
                 </button>
               ))}
             </div>
@@ -142,7 +143,7 @@ export const TerminalPromptPicker = ({
                     void handleSelectPrompt(p.name);
                   }}
                 >
-                  {p.name}.md
+                  {toPromptLabel(p.name)}
                 </button>
               ))}
             </div>

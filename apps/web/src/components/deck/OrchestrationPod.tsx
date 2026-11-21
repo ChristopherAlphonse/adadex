@@ -77,6 +77,7 @@ export type OrchestrationPodProps = {
   onVaultFileClick?: (fileName: string) => void;
   onVaultBrowse?: () => void;
   onClose?: () => void;
+  onOpen?: () => void;
   onDelete?: () => void;
   isDeleting?: boolean | undefined;
   onTodoToggle?: (coordinationId: string, itemIndex: number, done: boolean) => void;
@@ -104,6 +105,7 @@ export const OrchestrationPod = ({
   onVaultFileClick,
   onVaultBrowse,
   onClose,
+  onOpen,
   onDelete,
   isDeleting,
   onTodoToggle,
@@ -117,6 +119,41 @@ export const OrchestrationPod = ({
     orchestration.todoTotal > 0
       ? Math.round((orchestration.todoDone / orchestration.todoTotal) * 100)
       : 0;
+
+  const nextTodo = orchestration.todoItems.find((item) => !item.done);
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        menuRef.current &&
+        event.target instanceof Node &&
+        !menuRef.current.contains(event.target)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isMenuOpen]);
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
@@ -183,7 +220,7 @@ export const OrchestrationPod = ({
 
   return (
     <article
-      className={`deck-pod${isFocused ? " deck-pod--focused" : ""}`}
+      className={`deck-pod${isFocused ? " deck-pod--focused" : ""}${onOpen && !isFocused ? " deck-pod--clickable" : ""}`}
       data-status={orchestration.status}
     >
       <header className="deck-pod-header">
@@ -192,37 +229,16 @@ export const OrchestrationPod = ({
             ← Back
           </button>
         )}
-        <button
-          type="button"
-          className="deck-pod-btn"
-          onClick={() => setIsEditingSkills((v) => !v)}
-        >
-          Skills
-        </button>
-        <button
-          type="button"
-          className="deck-pod-btn"
-          onClick={() => {
-            setEditColor(visuals.color);
-            setEditExpression(visuals.expression);
-            setEditAccessory(visuals.accessory);
-            setIsEditingMascot(true);
-          }}
-        >
-          Customize
-        </button>
-        <button type="button" className="deck-pod-btn" onClick={() => onVaultBrowse?.()}>
-          Vault
-        </button>
         {confirmingDelete ? (
           <>
+            <span className="deck-pod-confirm-text">Delete this orchestration?</span>
             <button
               type="button"
               className="deck-pod-btn deck-pod-btn--danger"
               disabled={isDeleting}
               onClick={() => onDelete?.()}
             >
-              {isDeleting ? "..." : "Confirm Delete"}
+              {isDeleting ? "..." : "Delete"}
             </button>
             <button
               type="button"
@@ -233,23 +249,66 @@ export const OrchestrationPod = ({
             </button>
           </>
         ) : (
-          <button
-            type="button"
-            className="deck-pod-btn deck-pod-btn--delete"
-            onClick={() => setConfirmingDelete(true)}
-            aria-label="Delete orchestration"
-          >
-            <svg className="deck-pod-btn-icon" viewBox="0 0 16 16" aria-hidden="true">
-              <path
-                d="M5.5 1.5h5M2 4h12M6 7v5M10 7v5M3.5 4l.75 9.5a1 1 0 001 .9h5.5a1 1 0 001-.9L12.5 4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+          <div className="deck-pod-menu" ref={menuRef}>
+            <button
+              type="button"
+              className="deck-pod-btn deck-pod-btn--icon"
+              aria-label="Orchestration actions"
+              aria-haspopup="menu"
+              aria-expanded={isMenuOpen}
+              onClick={() => setIsMenuOpen((v) => !v)}
+            >
+              ⋯
+            </button>
+            {isMenuOpen && (
+              <div className="deck-pod-menu-list" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsEditingSkills((v) => !v);
+                  }}
+                >
+                  Skills
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setEditColor(visuals.color);
+                    setEditExpression(visuals.expression);
+                    setEditAccessory(visuals.accessory);
+                    setIsEditingMascot(true);
+                  }}
+                >
+                  Customize
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onVaultBrowse?.();
+                  }}
+                >
+                  Vault
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="deck-pod-menu-danger"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setConfirmingDelete(true);
+                  }}
+                >
+                  Delete…
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </header>
 
@@ -262,7 +321,7 @@ export const OrchestrationPod = ({
             <div className="deck-pod-mascot">
               <MascotSprite
                 speedMs={100}
-                size={100}
+                size={isFocused ? 100 : 72}
                 color={visuals.color}
                 animation={visuals.animation}
                 expression={visuals.expression}
@@ -274,12 +333,18 @@ export const OrchestrationPod = ({
             </div>
           </div>
           <div className="deck-pod-identity-text">
-            <span className="deck-pod-name">{orchestration.displayName}</span>
+            {onOpen && !isFocused ? (
+              <button type="button" className="deck-pod-name deck-pod-open" onClick={onOpen}>
+                {orchestration.displayName}
+              </button>
+            ) : (
+              <span className="deck-pod-name">{orchestration.displayName}</span>
+            )}
             <span className="deck-pod-description">{orchestration.description}</span>
           </div>
         </div>
 
-        {orchestration.agentProvider && (
+        {isFocused && orchestration.agentProvider && (
           <div className="deck-pod-agent-badge">
             <span className="deck-pod-vault-label">agent</span>
             <span className="deck-pod-vault-file">{orchestration.agentProvider}</span>
@@ -505,65 +570,74 @@ export const OrchestrationPod = ({
               <div className="deck-pod-progress-bar">
                 <div
                   className="deck-pod-progress-fill"
-                  style={{
-                    width: `${progressPct}%`,
-                    backgroundColor: visuals.color,
-                  }}
+                  data-complete={progressPct >= 100 ? "true" : undefined}
+                  style={{ width: `${progressPct}%` }}
                 />
               </div>
-              <span
-                className="deck-pod-progress-label"
-                style={{
-                  backgroundColor: `${visuals.color}22`,
-                  color: visuals.color,
-                }}
-              >
-                {orchestration.todoDone}/{orchestration.todoTotal} done
+              <span className="deck-pod-progress-label">
+                {orchestration.todoDone} of {orchestration.todoTotal}
               </span>
             </div>
           )}
 
-          {orchestration.todoItems.length > 0 && (
-            <TodoList
-              items={orchestration.todoItems}
-              coordinationId={orchestration.coordinationId}
-              onToggle={onTodoToggle}
-            />
-          )}
+          {isFocused ? (
+            <>
+              {orchestration.todoItems.length > 0 && (
+                <TodoList
+                  items={orchestration.todoItems}
+                  coordinationId={orchestration.coordinationId}
+                  onToggle={onTodoToggle}
+                />
+              )}
 
-          {orchestration.suggestedSkills.length > 0 && (
-            <div className="deck-pod-vault">
-              <span className="deck-pod-vault-label">skills</span>
-              <div className="deck-pod-vault-files">
-                {orchestration.suggestedSkills.map((skill) => (
-                  <span key={skill} className="deck-pod-vault-file">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+              {orchestration.suggestedSkills.length > 0 && (
+                <div className="deck-pod-vault">
+                  <span className="deck-pod-vault-label">skills</span>
+                  <div className="deck-pod-vault-files">
+                    {orchestration.suggestedSkills.map((skill) => (
+                      <span key={skill} className="deck-pod-vault-file">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          {orchestration.vaultFiles.length > 0 && (
-            <div className="deck-pod-vault">
-              <span className="deck-pod-vault-label">vault</span>
-              <div className="deck-pod-vault-files">
-                {orchestration.vaultFiles.map((file) => (
-                  <button
-                    key={file}
-                    type="button"
-                    className="deck-pod-vault-file"
-                    aria-current={activeFileName === file ? "true" : undefined}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onVaultFileClick?.(file);
-                    }}
-                  >
-                    {file}
-                  </button>
-                ))}
-              </div>
-            </div>
+              {orchestration.vaultFiles.length > 0 && (
+                <div className="deck-pod-vault">
+                  <span className="deck-pod-vault-label">vault</span>
+                  <div className="deck-pod-vault-files">
+                    {orchestration.vaultFiles.map((file) => (
+                      <button
+                        key={file}
+                        type="button"
+                        className="deck-pod-vault-file"
+                        aria-current={activeFileName === file ? "true" : undefined}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onVaultFileClick?.(file);
+                        }}
+                      >
+                        {file}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="deck-pod-next">
+              {nextTodo ? (
+                <>
+                  <span className="deck-pod-next-label">Next</span>
+                  <span className="deck-pod-next-text">{nextTodo.text}</span>
+                </>
+              ) : orchestration.todoTotal > 0 ? (
+                <span className="deck-pod-next-text">All todos done</span>
+              ) : (
+                <span className="deck-pod-next-text">No todos yet</span>
+              )}
+            </p>
           )}
         </div>
       </div>

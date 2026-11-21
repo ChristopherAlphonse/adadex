@@ -3,7 +3,7 @@ import { type TerminalAgentProvider, asRecord, isString } from "@adadex/core";
 import { logVerbose } from "../logging";
 import { installAgentHooks } from "./agentHooks";
 import { parseAgentTranscript } from "./agentTranscript";
-import { storeAgentTranscriptTurns } from "./conversations";
+import { appendAgentTranscriptTurn, storeAgentTranscriptTurns } from "./conversations";
 import { broadcastMessage } from "./protocol";
 import type { PersistedTerminal, TerminalSession, TerminalStateMessage } from "./types";
 
@@ -164,6 +164,21 @@ export const createHookProcessor = (deps: {
         broadcastMessage(activitySession, { type: "activity" });
       }
 
+      // Keep the operator's message as a conversation turn, even if the agent's transcript file
+      // cannot be read later on.
+      const submittedPrompt = isString(hookPayloadRecord.prompt)
+        ? hookPayloadRecord.prompt.trim()
+        : "";
+
+      if (submittedPrompt.length > 0) {
+        appendAgentTranscriptTurn(
+          transcriptDirectoryPath,
+          terminal.terminalId,
+          "user",
+          submittedPrompt,
+        );
+      }
+
       // Auto-name the terminal from the first prompt when it still has its default name.
       if (terminal.nameOrigin === "generated") {
         const prompt = isString(hookPayloadRecord.prompt) ? hookPayloadRecord.prompt.trim() : "";
@@ -224,11 +239,16 @@ export const createHookProcessor = (deps: {
       ? hookPayloadRecord.last_assistant_message.trim()
       : null;
 
-    if (lastAssistantMessage && lastAssistantMessage.length > 0) {
-      const effectiveTurns = turns ?? [];
-      const lastTurn = effectiveTurns.length > 0 ? effectiveTurns[effectiveTurns.length - 1] : null;
+    if (turns && turns.length > 0) {
+      // The agent's own transcript is the full record, so it replaces what was stored so far.
+      const effectiveTurns = [...turns];
+      const lastTurn = effectiveTurns[effectiveTurns.length - 1];
 
-      if (lastTurn?.role !== "assistant" || lastTurn.content !== lastAssistantMessage) {
+      if (
+        lastAssistantMessage &&
+        lastAssistantMessage.length > 0 &&
+        (lastTurn?.role !== "assistant" || lastTurn.content !== lastAssistantMessage)
+      ) {
         const now = new Date().toISOString();
         effectiveTurns.push({
           turnId: `turn-${effectiveTurns.length + 1}`,
@@ -240,13 +260,17 @@ export const createHookProcessor = (deps: {
         logVerbose("[Hook] Appended last_assistant_message as final turn.");
       }
 
-      if (effectiveTurns.length > 0) {
-        storeAgentTranscriptTurns(transcriptDirectoryPath, matchedSessionId, effectiveTurns);
-        logVerbose(`[Hook] Stored ${effectiveTurns.length} turns for session ${matchedSessionId}.`);
-      }
-    } else if (turns && turns.length > 0) {
-      storeAgentTranscriptTurns(transcriptDirectoryPath, matchedSessionId, turns);
-      logVerbose(`[Hook] Stored ${turns.length} turns for session ${matchedSessionId}.`);
+      storeAgentTranscriptTurns(transcriptDirectoryPath, matchedSessionId, effectiveTurns);
+      logVerbose(`[Hook] Stored ${effectiveTurns.length} turns for session ${matchedSessionId}.`);
+    } else if (lastAssistantMessage && lastAssistantMessage.length > 0) {
+      // No readable transcript: add the reply after the prompts already recorded for this session.
+      appendAgentTranscriptTurn(
+        transcriptDirectoryPath,
+        matchedSessionId,
+        "assistant",
+        lastAssistantMessage,
+      );
+      logVerbose(`[Hook] Appended last_assistant_message for session ${matchedSessionId}.`);
     }
 
     // Deliver any queued channel messages now that the agent is idle.
