@@ -11,6 +11,10 @@ type UsageChartSectionProps = {
 
 type BarSegmentMode = "project" | "model";
 
+const EMPTY_DAYS: UsageDayEntry[] = [];
+
+const EMPTY_KEYS: string[] = [];
+
 const SEGMENT_COLORS = [
   "var(--accent-primary, #a3e635)",
   "var(--accent-secondary, #eab308)",
@@ -28,12 +32,15 @@ const SEGMENT_COLORS = [
 
 const formatTokenCount = (tokens: number): string => {
   if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
+
   if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`;
+
   return tokens.toString();
 };
 
 const formatDateLabel = (date: string): string => {
   const d = new Date(`${date}T00:00:00`);
+
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
@@ -58,8 +65,10 @@ const buildColorMap = (keys: string[]) =>
 
 const buildBars = (days: UsageDayEntry[], keys: string[], mode: BarSegmentMode): BarData[] => {
   const colorMap = buildColorMap(keys);
+
   return days.map((day) => {
     const slices = mode === "model" ? day.models : day.projects;
+
     return {
       date: day.date,
       totalTokens: day.totalTokens,
@@ -77,10 +86,12 @@ const buildYTicks = (maxTokens: number): { value: number; label: string }[] => {
   if (maxTokens === 0) return [];
   const ticks: { value: number; label: string }[] = [];
   const step = maxTokens / 4;
+
   for (let i = 0; i <= 4; i++) {
     const value = step * i;
     ticks.push({ value, label: formatTokenCount(Math.round(value)) });
   }
+
   return ticks;
 };
 
@@ -98,6 +109,7 @@ const ChartTooltip = ({
   containerWidth: number;
 }) => {
   const isRightHalf = x > containerWidth / 2;
+
   return (
     <div
       className="usage-heatmap-tooltip"
@@ -145,6 +157,7 @@ const buildTrendPath = (
   if (bars.length < 2 || maxTokens === 0) return "";
 
   const LIFT = 8;
+
   const points = bars.map((bar, i) => ({
     x: yAxisWidth + i * barSlotWidth + barSlotWidth / 2,
     y: Math.max(topPad, topPad + chartHeight - (bar.totalTokens / maxTokens) * chartHeight - LIFT),
@@ -152,19 +165,24 @@ const buildTrendPath = (
 
   if (points.length === 2) {
     const [firstPoint, secondPoint] = points;
+
     if (!firstPoint || !secondPoint) return "";
+
     return `M${firstPoint.x},${firstPoint.y}L${secondPoint.x},${secondPoint.y}`;
   }
 
   const [firstPoint] = points;
+
   if (!firstPoint) return "";
 
   let d = `M${firstPoint.x},${firstPoint.y}`;
+
   for (let i = 0; i < points.length - 1; i++) {
     const p0 = points[Math.max(0, i - 1)];
     const p1 = points[i];
     const p2 = points[i + 1];
     const p3 = points[Math.min(points.length - 1, i + 2)];
+
     if (!p0 || !p1 || !p2 || !p3) continue;
 
     const cp1x = p1.x + (p2.x - p0.x) / 10;
@@ -181,8 +199,11 @@ const buildTrendPath = (
 /* ── Bar chart view ─────────────────────────────────── */
 
 const Y_AXIS_WIDTH = 52;
+
 const X_LABEL_HEIGHT = 18;
+
 const TOP_PAD = 6;
+
 const BAR_GAP_RATIO = 0.3;
 
 const BarChartView = ({
@@ -225,6 +246,7 @@ const BarChartView = ({
       {yTicks.map((tick) => {
         const y =
           TOP_PAD + chartHeight - (maxTokens > 0 ? (tick.value / maxTokens) * chartHeight : 0);
+
         return (
           <g key={tick.value}>
             <line
@@ -263,6 +285,7 @@ const BarChartView = ({
             {bar.segments.map((seg) => {
               const segHeight = maxTokens > 0 ? (seg.tokens / maxTokens) * chartHeight : 0;
               yOffset -= segHeight;
+
               return (
                 <rect
                   key={seg.label}
@@ -282,6 +305,7 @@ const BarChartView = ({
       {bars.map((bar, i) => {
         if (i % xLabelStep !== 0) return null;
         const x = Y_AXIS_WIDTH + i * barSlotWidth + barSlotWidth / 2;
+
         return (
           <text
             key={`label-${bar.date}`}
@@ -312,9 +336,13 @@ const BarChartView = ({
 /* ── Heatmap view ───────────────────────────────────── */
 
 const CELL_GAP = 3;
+
 const CELL_RADIUS = 2;
+
 const WEEKS_TO_SHOW = 26;
+
 const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
+
 const MONTH_LABELS = [
   "Jan",
   "Feb",
@@ -344,7 +372,7 @@ type HeatmapCell = {
 
 const buildHeatmapGrid = (bars: BarData[]): HeatmapCell[] => {
   const barMap = new Map(bars.map((b) => [b.date, b]));
-  const tokenValues = bars.map((b) => b.totalTokens).filter((v) => v > 0);
+  const tokenValues = bars.flatMap((b) => (b.totalTokens > 0 ? [b.totalTokens] : []));
   tokenValues.sort((a, b) => a - b);
 
   const getIntensity = (tokens: number): number => {
@@ -352,9 +380,13 @@ const buildHeatmapGrid = (bars: BarData[]): HeatmapCell[] => {
     const idx = tokenValues.findIndex((v) => v >= tokens);
     const pos = idx === -1 ? tokenValues.length : idx;
     const ratio = pos / tokenValues.length;
+
     if (ratio <= 0.25) return 1;
+
     if (ratio <= 0.5) return 2;
+
     if (ratio <= 0.75) return 3;
+
     return 4;
   };
 
@@ -383,6 +415,7 @@ const buildHeatmapGrid = (bars: BarData[]): HeatmapCell[] => {
       bar,
     });
     cursor.setUTCDate(cursor.getUTCDate() + 1);
+
     if (cursor.getUTCDay() === 0) week++;
   }
 
@@ -392,16 +425,20 @@ const buildHeatmapGrid = (bars: BarData[]): HeatmapCell[] => {
 const buildMonthLabels = (cells: HeatmapCell[]): { label: string; week: number }[] => {
   const labels: { label: string; week: number }[] = [];
   let lastMonth = -1;
+
   for (const cell of cells) {
     if (cell.dayOfWeek !== 0) continue;
     const month = new Date(cell.date).getUTCMonth();
+
     if (month !== lastMonth) {
       const label = MONTH_LABELS[month];
+
       if (!label) continue;
       labels.push({ label, week: cell.week });
       lastMonth = month;
     }
   }
+
   return labels;
 };
 
@@ -424,6 +461,7 @@ const HeatmapView = ({
   const monthLabelHeight = 16;
   const availableHeight = containerHeight - monthLabelHeight - 8;
   const availableWidth = containerWidth - dayLabelWidth - 8;
+
   const cellSize = Math.max(
     8,
     Math.min(
@@ -431,6 +469,7 @@ const HeatmapView = ({
       Math.floor((availableWidth - (WEEKS_TO_SHOW - 1) * CELL_GAP) / WEEKS_TO_SHOW),
     ),
   );
+
   const gridWidth = WEEKS_TO_SHOW * (cellSize + CELL_GAP);
   const gridHeight = 7 * (cellSize + CELL_GAP);
   const svgWidth = dayLabelWidth + gridWidth + 8;
@@ -506,7 +545,9 @@ const usePanelSize = () => {
   useEffect(() => {
     measure();
     const observer = new ResizeObserver(measure);
+
     if (ref.current) observer.observe(ref.current);
+
     return () => observer.disconnect();
   }, [measure]);
 
@@ -519,21 +560,23 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
   const [segmentMode, setSegmentMode] = useState<BarSegmentMode>("project");
   const [hoveredBar, setHoveredBar] = useState<BarData | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const splitRef = useRef<HTMLDivElement>(null);
-  const barPanel = usePanelSize();
-  const heatmapPanel = usePanelSize();
+  const { ref: splitRef, width: splitWidth } = usePanelSize();
+  const { ref: barRef, width: barWidth, height: barHeight } = usePanelSize();
+  const { ref: heatmapRef, width: heatmapWidth, height: heatmapHeight } = usePanelSize();
 
-  const days = data?.days ?? [];
-  const projects = data?.projects ?? [];
-  const models = data?.models ?? [];
+  const days = data?.days ?? EMPTY_DAYS;
+  const projects = data?.projects ?? EMPTY_KEYS;
+  const models = data?.models ?? EMPTY_KEYS;
 
   const segmentKeys = segmentMode === "model" ? models : projects;
 
   const maxTokens = useMemo(() => {
     let max = 0;
+
     for (const d of days) {
       if (d.totalTokens > max) max = d.totalTokens;
     }
+
     return max;
   }, [days]);
 
@@ -545,27 +588,35 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
     () => buildBars(days, segmentKeys, segmentMode),
     [days, segmentKeys, segmentMode],
   );
+
   const heatmapBars = useMemo(() => buildBars(days, projects, "project"), [days, projects]);
   const colorMap = useMemo(() => buildColorMap(segmentKeys), [segmentKeys]);
 
   const stats = useMemo(() => {
     const [firstDay] = days;
+
     if (!firstDay) return null;
+
     const peakDay = days.reduce(
       (best, d) => (d.totalTokens > best.totalTokens ? d : best),
       firstDay,
     );
+
     const avgPerSession = totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0;
     const topModel = models[0] ?? "—";
     const topProject = projects[0] ?? "—";
 
     let streak = 0;
     let maxStreak = 0;
+
     for (let i = days.length - 1; i >= 0; i--) {
       const day = days[i];
+
       if (!day) continue;
+
       if (day.totalTokens > 0) {
         streak++;
+
         if (streak > maxStreak) maxStreak = streak;
       } else {
         streak = 0;
@@ -604,6 +655,7 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
         ref={splitRef}
         onMouseMove={(e) => {
           const rect = splitRef.current?.getBoundingClientRect();
+
           if (rect) {
             setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
           }
@@ -626,12 +678,12 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
           </button>
         </div>
         <div className="usage-chart-left-stack">
-          <div className="usage-chart-panel" ref={barPanel.ref}>
+          <div className="usage-chart-panel" ref={barRef}>
             <BarChartView
               bars={bars}
               maxTokens={maxTokens}
-              containerWidth={barPanel.width}
-              containerHeight={barPanel.height}
+              containerWidth={barWidth}
+              containerHeight={barHeight}
               hoveredBar={hoveredBar}
               setHoveredBar={setHoveredBar}
             />
@@ -651,11 +703,11 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
           )}
         </div>
         <div className="usage-chart-right-stack">
-          <div className="usage-chart-panel" ref={heatmapPanel.ref}>
+          <div className="usage-chart-panel" ref={heatmapRef}>
             <HeatmapView
               bars={heatmapBars}
-              containerWidth={heatmapPanel.width}
-              containerHeight={heatmapPanel.height}
+              containerWidth={heatmapWidth}
+              containerHeight={heatmapHeight}
               hoveredBar={hoveredBar}
               setHoveredBar={setHoveredBar}
             />
@@ -696,7 +748,7 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
             bar={hoveredBar}
             x={mousePos.x}
             y={mousePos.y}
-            containerWidth={splitRef.current?.clientWidth ?? 800}
+            containerWidth={splitWidth || 800}
           />
         )}
       </div>

@@ -1,5 +1,9 @@
+import { isNumber } from "@adadex/core";
+
 const PIXELS_PER_LINE = 36;
+
 const PIXELS_PER_DOM_LINE = 16;
+
 const PIXELS_PER_DOM_PAGE = 160;
 
 type TerminalActiveBufferLike = {
@@ -15,6 +19,7 @@ export const wheelDeltaToScrollLines = (deltaY: number, deltaMode: number): numb
 
   const absoluteDelta = Math.abs(deltaY);
   let pixelDelta = absoluteDelta;
+
   if (deltaMode === WheelEvent.DOM_DELTA_LINE) {
     pixelDelta = absoluteDelta * PIXELS_PER_DOM_LINE;
   } else if (deltaMode === WheelEvent.DOM_DELTA_PAGE) {
@@ -22,6 +27,7 @@ export const wheelDeltaToScrollLines = (deltaY: number, deltaMode: number): numb
   }
 
   const lines = Math.max(1, Math.round(pixelDelta / PIXELS_PER_LINE));
+
   return deltaY > 0 ? lines : -lines;
 };
 
@@ -44,7 +50,7 @@ export const readViewportY = (
 ): number | null => {
   if (
     !activeBuffer ||
-    typeof activeBuffer.viewportY !== "number" ||
+    !isNumber(activeBuffer.viewportY) ||
     !Number.isFinite(activeBuffer.viewportY)
   ) {
     return null;

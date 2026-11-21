@@ -46,4 +46,8 @@ Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
   value: () => canvasContextStub,
 });
 
-globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+Object.defineProperty(globalThis, "WebSocket", {
+  configurable: true,
+  writable: true,
+  value: MockWebSocket,
+});

@@ -49,11 +49,19 @@ Per-project runtime state is stored under:
 Notable files:
 
 - `coordinations.json`
+- `processes.json`
+- `channel-messages.json`
 - `deck.json`
 - `transcripts/<sessionId>.jsonl`
 - `code-intel.jsonl`
 
 `coordinations.json` is the terminal registry. It stores terminal records, lifecycle state, UI state, parent-child links, workspace mode, worktree IDs, and display names.
+
+`processes.json` is the process supervisor registry. Each record holds a session's pid, process group id, owning orchestration, and process start time. The start time lets launch-time reaping tell a surviving child from a recycled pid. All registries are written through a temp file and rename so a crash mid-write cannot truncate them.
+
+`channel-messages.json` holds pending inter-agent messages, including whether each was delivered. Messages survive a restart and are not delivered twice.
+
+A PTY cannot survive an app restart, so on launch a recorded `running` terminal becomes `stopped` with reason `restart_pending`: its persisted prompt and provider are kept and the session is launched again when a client attaches. A terminal whose process is still alive after launch-time reaping is kept `stale` instead, to avoid starting a second agent.
 
 `deck.json` stores Deck presentation metadata that is not part of the agent-facing coordination files.
 

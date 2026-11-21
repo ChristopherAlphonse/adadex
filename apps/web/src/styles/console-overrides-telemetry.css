@@ -1,10 +1,10 @@
 .console-shell .dashboard-deck-shell {
-  border-right: 1px solid #2b2f36;
+  border-right: 1px solid var(--border);
 }
 
 .console-shell .active-agents-sidebar {
   background: #0b0f14;
-  border-right: 1px solid #2b2f36;
+  border-right: 1px solid var(--border);
 }
 
 .console-shell .active-agents-footer {
@@ -13,8 +13,8 @@
 
 .console-shell .active-agents-section,
 .console-shell .active-agents-group {
-  border-color: #2b2f36;
-  background: #11161d;
+  border-color: var(--border);
+  background: var(--surface-2);
   box-shadow: none;
 }
 
@@ -57,7 +57,7 @@
 }
 
 .console-shell .active-agents-codex-usage {
-  border-color: #2b2f36;
+  border-color: var(--border);
   background: #0c131b;
 }
 
@@ -79,7 +79,7 @@
 }
 
 .console-shell .empty-state {
-  border: 1px dashed #2b2f36;
+  border: 1px dashed var(--border);
   background: #090c10;
 }
 
@@ -94,20 +94,20 @@
 }
 
 .console-shell .terminal-column {
-  border: 1px solid #2b2f36;
-  background: #0b0d10;
+  border: 1px solid var(--border);
+  background: var(--background);
 }
 
 .console-shell .terminal-divider {
   flex-basis: 6px;
-  border-left: 1px solid #2b2f36;
+  border-left: 1px solid var(--border);
   border-right: 1px solid #11151b;
   background: linear-gradient(180deg, #141920, #0b0f15);
 }
 
 .console-shell .terminal-column-header {
   background: #161b23;
-  border-bottom: 1px solid #2b2f36;
+  border-bottom: 1px solid var(--border);
 }
 
 .console-shell .terminal-column-header h2 {
@@ -142,7 +142,7 @@
 }
 
 .console-shell .terminal-pane {
-  background: #0b0d10;
+  background: var(--background);
 }
 
 .console-shell .terminal-header {
@@ -151,7 +151,7 @@
     color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
     color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
   );
-  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--border) 35%, transparent);
   color: #121212;
 }
 
@@ -161,7 +161,7 @@
     color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
     color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
   );
-  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--border) 35%, transparent);
   color: #121212;
 }
 
@@ -180,7 +180,7 @@
 
 .console-shell .pill,
 .console-shell .status-badge {
-  border-color: color-mix(in srgb, #000000 55%, #2b2f36 45%);
+  border-color: color-mix(in srgb, var(--border) 55%, var(--border) 45%);
   font-size: 0.68rem;
 }
 

@@ -1,0 +1,219 @@
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { FactoryPrimaryView } from "../src/components/factory/FactoryPrimaryView";
+import { createFakeFactoryHost } from "./test-utils/fakeFactoryHost";
+
+const job = {
+  id: "demo",
+  title: "Demo job",
+  workflowId: "factory",
+  stage: "ship",
+  round: 1,
+  roundLimit: 3,
+  commit: null,
+};
+
+const workflow = {
+  id: "factory",
+  name: "Factory",
+  stages: [{ id: "ship", moves: [{ to: "ready" }] }],
+};
+
+afterEach(() => {
+  cleanup();
+});
+
+describe("Factory primary view", () => {
+  it("renders jobs, approvals and processes from the host", async () => {
+    const host = createFakeFactoryHost({
+      listJobs: vi.fn(async () => [job]),
+      listWorkflows: vi.fn(async () => [workflow]),
+      listApprovals: vi.fn(async () => [
+        { approvalId: "approval-1", actionId: "job.advance", reason: "May we move?" },
+      ]),
+      listProcesses: vi.fn(async () => [
+        {
+          processId: "p-1",
+          label: "claude -p",
+          startedAt: "2026-11-19T12:00:00.000Z",
+        },
+      ]),
+    });
+
+    render(<FactoryPrimaryView host={host} />);
+
+    expect(await screen.findByLabelText("Job Demo job")).toBeInTheDocument();
+    expect(screen.getByLabelText("Stage ship")).toBeInTheDocument();
+    expect(screen.getByText("May we move?")).toBeInTheDocument();
+    expect(document.querySelector("time")).not.toBeNull();
+    expect(screen.getByLabelText("Processes")).toBeInTheDocument();
+  });
+
+  it("routes board buttons, approval answers and kills through the host", async () => {
+    const host = createFakeFactoryHost({
+      listJobs: vi.fn(async () => [job]),
+      listWorkflows: vi.fn(async () => [workflow]),
+      listApprovals: vi.fn(async () => [
+        { approvalId: "approval-1", actionId: "job.advance", reason: "May we move?" },
+      ]),
+      listProcesses: vi.fn(async () => [
+        {
+          processId: "p-1",
+          label: "claude -p",
+          startedAt: "2026-11-19T12:00:00.000Z",
+        },
+      ]),
+    });
+
+    render(<FactoryPrimaryView host={host} />);
+    await screen.findByLabelText("Job Demo job");
+
+    fireEvent.click(screen.getByLabelText("Commit locally for Demo job"));
+    expect(host.runAction).toHaveBeenCalledWith("job.commit_local", { id: "demo" });
+
+    fireEvent.click(screen.getByLabelText("Approve job.advance"));
+    expect(host.respondApproval).toHaveBeenCalledWith("approval-1", true);
+
+    fireEvent.click(screen.getByLabelText("Decline job.advance"));
+    expect(host.respondApproval).toHaveBeenCalledWith("approval-1", false);
+
+    fireEvent.click(screen.getByLabelText("Kill process claude -p"));
+    expect(host.killProcess).toHaveBeenCalledWith("p-1");
+  });
+
+  it("shows the checks command and saves an edit through the host", async () => {
+    const host = createFakeFactoryHost({ getChecks: vi.fn(async () => "npm test") });
+
+    render(<FactoryPrimaryView host={host} />);
+    const field = await screen.findByLabelText(/Checks command/);
+    expect(field).toHaveValue("npm test");
+    const save = screen.getByRole("button", { name: "Save checks" });
+    expect(save).toBeDisabled();
+
+    fireEvent.change(field, { target: { value: "npm run check" } });
+    fireEvent.click(save);
+    expect(host.setChecks).toHaveBeenCalledWith("npm run check");
+
+    cleanup();
+    render(<FactoryPrimaryView host={createFakeFactoryHost()} />);
+    await screen.findByLabelText("Factory board");
+    expect(screen.queryByLabelText(/Checks command/)).toBeNull();
+  });
+
+  it("copies a preset role into the editor under a new id, saves it, and removes only user roles", async () => {
+    const preset = { id: "builder", name: "Builder", origin: "preset" as const };
+    const mine = { id: "mine", name: "Mine", origin: "user" as const };
+
+    const host = createFakeFactoryHost({
+      listRoles: vi.fn(async () => [
+        { ...preset, definition: { ...preset, actions: ["job.advance"] } },
+        { ...mine, definition: mine },
+      ]),
+    });
+
+    render(<FactoryPrimaryView host={host} />);
+    fireEvent.click(await screen.findByLabelText("Copy role Builder"));
+    fireEvent.click(screen.getByRole("button", { name: "Save role" }));
+    await waitFor(() => expect(host.saveRole).toHaveBeenCalled());
+    expect(host.saveRole).toHaveBeenCalledWith({
+      id: "builder-copy",
+      name: "Builder (copy)",
+      origin: "user",
+      actions: ["job.advance"],
+    });
+
+    expect(screen.queryByLabelText("Remove role Builder")).toBeNull();
+    fireEvent.click(screen.getByLabelText("Remove role Mine"));
+    expect(host.removeRole).toHaveBeenCalledWith("mine");
+
+    fireEvent.change(screen.getByLabelText(/Role JSON/), { target: { value: "{ nope" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save role" }));
+    expect(await screen.findByText("The role is not valid JSON.")).toBeInTheDocument();
+    expect(host.saveRole).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows recent log events and a job's audit chain result", async () => {
+    const host = createFakeFactoryHost({
+      listJobs: vi.fn(async () => [job]),
+      listWorkflows: vi.fn(async () => [workflow]),
+      listLogs: vi.fn(async () => [
+        {
+          id: 1,
+          ts: "2026-11-19T12:00:00.000Z",
+          level: "warn",
+          source: "approval",
+          message: "declined a-1",
+          jobId: "demo",
+        },
+      ]),
+      verifyAudit: vi.fn(async () => ({ ok: false as const, reason: "line 2 was changed" })),
+    });
+
+    render(<FactoryPrimaryView host={host} />);
+    expect(await screen.findByText(/declined a-1/)).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Check audit chain for Demo job"));
+    expect(await screen.findByText("Audit chain broken: line 2 was changed")).toBeInTheDocument();
+    expect(host.verifyAudit).toHaveBeenCalledWith("demo");
+  });
+
+  it("shows the unattended loop toggle only when the host has a loop", async () => {
+    const host = createFakeFactoryHost({ getLoop: vi.fn(async () => false) });
+
+    render(<FactoryPrimaryView host={host} />);
+    const toggle = await screen.findByRole("button", { name: "Unattended loop: Off" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(toggle);
+    expect(host.setLoop).toHaveBeenCalledWith(true);
+
+    cleanup();
+    render(<FactoryPrimaryView host={createFakeFactoryHost()} />);
+    await screen.findByLabelText("Factory board");
+    expect(screen.queryByRole("button", { name: /Unattended loop/ })).toBeNull();
+  });
+
+  it("shows host failures without losing the board", async () => {
+    const host = createFakeFactoryHost({
+      listApprovals: vi.fn(async () => {
+        throw new Error("host is busy");
+      }),
+    });
+
+    render(<FactoryPrimaryView host={host} />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("host is busy");
+    expect(screen.getByLabelText("Factory board")).toBeInTheDocument();
+  });
+
+  it("keeps a refused action's reason on screen after the host event that follows it", async () => {
+    let notify: () => void = () => undefined;
+
+    const host = createFakeFactoryHost({
+      listJobs: vi.fn(async () => [job]),
+      listWorkflows: vi.fn(async () => [workflow]),
+      runAction: vi.fn(async () => {
+        notify();
+        throw new Error("shape.md is not READY");
+      }),
+      subscribe: vi.fn((onChange: () => void) => {
+        notify = onChange;
+
+        return () => undefined;
+      }),
+    });
+
+    render(<FactoryPrimaryView host={host} />);
+    fireEvent.click(await screen.findByLabelText("Move to ready for Demo job"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("shape.md is not READY");
+    await waitFor(() => expect(host.listJobs).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("alert")).toHaveTextContent("shape.md is not READY");
+  });
+
+  it("tells the operator when no desktop host is injected", async () => {
+    render(<FactoryPrimaryView host={createFakeFactoryHost({ isAvailable: () => false })} />);
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Factory host is not connected");
+  });
+});

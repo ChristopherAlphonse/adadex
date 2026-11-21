@@ -1,5 +1,6 @@
+import { asRecord, isBoolean, isNumber, isString, type ParsedValue } from "@adadex/core";
 import type { Dispatch, SetStateAction } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   buildOrchestrationGitCommitUrl,
@@ -43,8 +44,9 @@ type UseOrchestrationGitLifecycleResult = {
 
 const parseGitError = async (response: Response, fallback: string) => {
   try {
-    const payload = (await response.json()) as { error?: unknown };
-    if (typeof payload.error === "string" && payload.error.trim().length > 0) {
+    const payload = asRecord(await response.json());
+
+    if (payload && isString(payload.error) && payload.error.trim().length > 0) {
       return payload.error.trim();
     }
   } catch {
@@ -54,30 +56,33 @@ const parseGitError = async (response: Response, fallback: string) => {
   return fallback;
 };
 
-const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSnapshot | null => {
-  if (payload === null || payload === undefined || typeof payload !== "object") {
+const parseOrchestrationGitStatus = (
+  payload: ParsedValue,
+): CoordinationGitStatusSnapshot | null => {
+  const record = asRecord(payload);
+
+  if (!record) {
     return null;
   }
 
-  const record = payload as Record<string, unknown>;
   if (
-    typeof record.coordinationId !== "string" ||
+    !isString(record.coordinationId) ||
     (record.workspaceMode !== "shared" && record.workspaceMode !== "worktree") ||
-    typeof record.branchName !== "string" ||
+    !isString(record.branchName) ||
     (record.headCommit !== null &&
       record.headCommit !== undefined &&
-      typeof record.headCommit !== "string") ||
+      !isString(record.headCommit)) ||
     (record.worktreePath !== null &&
       record.worktreePath !== undefined &&
-      typeof record.worktreePath !== "string") ||
-    (record.upstreamBranchName !== null && typeof record.upstreamBranchName !== "string") ||
-    typeof record.isDirty !== "boolean" ||
-    typeof record.aheadCount !== "number" ||
-    typeof record.behindCount !== "number" ||
-    typeof record.hasConflicts !== "boolean" ||
+      !isString(record.worktreePath)) ||
+    (record.upstreamBranchName !== null && !isString(record.upstreamBranchName)) ||
+    !isBoolean(record.isDirty) ||
+    !isNumber(record.aheadCount) ||
+    !isNumber(record.behindCount) ||
+    !isBoolean(record.hasConflicts) ||
     !Array.isArray(record.changedFiles) ||
-    !record.changedFiles.every((file) => typeof file === "string") ||
-    (record.defaultBaseBranchName !== null && typeof record.defaultBaseBranchName !== "string")
+    !record.changedFiles.every((file) => isString(file)) ||
+    (record.defaultBaseBranchName !== null && !isString(record.defaultBaseBranchName))
   ) {
     return null;
   }
@@ -86,14 +91,14 @@ const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSna
     coordinationId: record.coordinationId,
     workspaceMode: record.workspaceMode,
     branchName: record.branchName,
-    headCommit: typeof record.headCommit === "string" ? record.headCommit : null,
-    worktreePath: typeof record.worktreePath === "string" ? record.worktreePath : null,
+    headCommit: isString(record.headCommit) ? record.headCommit : null,
+    worktreePath: isString(record.worktreePath) ? record.worktreePath : null,
     upstreamBranchName: record.upstreamBranchName,
     isDirty: record.isDirty,
     aheadCount: record.aheadCount,
     behindCount: record.behindCount,
-    insertedLineCount: typeof record.insertedLineCount === "number" ? record.insertedLineCount : 0,
-    deletedLineCount: typeof record.deletedLineCount === "number" ? record.deletedLineCount : 0,
+    insertedLineCount: isNumber(record.insertedLineCount) ? record.insertedLineCount : 0,
+    deletedLineCount: isNumber(record.deletedLineCount) ? record.deletedLineCount : 0,
     hasConflicts: record.hasConflicts,
     changedFiles: [...record.changedFiles],
     defaultBaseBranchName: record.defaultBaseBranchName,
@@ -101,31 +106,32 @@ const parseOrchestrationGitStatus = (payload: unknown): CoordinationGitStatusSna
 };
 
 const parseOrchestrationPullRequest = (
-  payload: unknown,
+  payload: ParsedValue,
 ): CoordinationPullRequestSnapshot | null => {
-  if (payload === null || payload === undefined || typeof payload !== "object") {
+  const record = asRecord(payload);
+
+  if (!record) {
     return null;
   }
 
-  const record = payload as Record<string, unknown>;
   if (
-    typeof record.coordinationId !== "string" ||
+    !isString(record.coordinationId) ||
     (record.workspaceMode !== "shared" && record.workspaceMode !== "worktree") ||
     (record.status !== "none" &&
       record.status !== "open" &&
       record.status !== "merged" &&
       record.status !== "closed") ||
-    (record.number !== null && typeof record.number !== "number") ||
-    (record.url !== null && typeof record.url !== "string") ||
-    (record.title !== null && typeof record.title !== "string") ||
-    (record.baseRef !== null && typeof record.baseRef !== "string") ||
-    (record.headRef !== null && typeof record.headRef !== "string") ||
-    (record.isDraft !== null && typeof record.isDraft !== "boolean") ||
+    (record.number !== null && !isNumber(record.number)) ||
+    (record.url !== null && !isString(record.url)) ||
+    (record.title !== null && !isString(record.title)) ||
+    (record.baseRef !== null && !isString(record.baseRef)) ||
+    (record.headRef !== null && !isString(record.headRef)) ||
+    (record.isDraft !== null && !isBoolean(record.isDraft)) ||
     (record.mergeable !== null &&
       record.mergeable !== "MERGEABLE" &&
       record.mergeable !== "CONFLICTING" &&
       record.mergeable !== "UNKNOWN") ||
-    (record.mergeStateStatus !== null && typeof record.mergeStateStatus !== "string")
+    (record.mergeStateStatus !== null && !isString(record.mergeStateStatus))
   ) {
     return null;
   }
@@ -151,21 +157,24 @@ export const useOrchestrationGitLifecycle = ({
   const [gitStatusByOrchestrationId, setGitStatusByOrchestrationId] = useState<
     Record<string, CoordinationGitStatusSnapshot>
   >({});
+
   const [gitStatusLoadingByOrchestrationId, setGitStatusLoadingByOrchestrationId] = useState<
     Record<string, boolean>
   >({});
-  const [gitStatusAttemptedOrchestrationIds, setGitStatusAttemptedOrchestrationIds] = useState<
-    Record<string, boolean>
-  >({});
+
   const [pullRequestByOrchestrationId, setPullRequestByOrchestrationId] = useState<
     Record<string, CoordinationPullRequestSnapshot>
   >({});
+
   const [pullRequestLoadingByOrchestrationId, setPullRequestLoadingByOrchestrationId] = useState<
     Record<string, boolean>
   >({});
-  const [pullRequestAttemptedOrchestrationIds, setPullRequestAttemptedOrchestrationIds] = useState<
-    Record<string, boolean>
-  >({});
+
+  // Only used to fetch each orchestration once; never rendered, so refs rather than state.
+  const gitStatusAttemptedIdsRef = useRef(new Set<string>());
+  const pullRequestAttemptedIdsRef = useRef(new Set<string>());
+  const [prunedForColumns, setPrunedForColumns] = useState(columns);
+
   const [openGitOrchestrationId, setOpenGitOrchestrationId] = useState<string | null>(null);
   const [gitCommitMessageDraft, setGitCommitMessageDraft] = useState("");
   const [gitDialogError, setGitDialogError] = useState<string | null>(null);
@@ -184,15 +193,18 @@ export const useOrchestrationGitLifecycle = ({
           Accept: "application/json",
         },
       });
+
       if (!response.ok) {
         const errorMessage = await parseGitError(
           response,
           `Unable to fetch git status (${response.status}).`,
         );
+
         throw new Error(errorMessage);
       }
 
       const payload = parseOrchestrationGitStatus(await response.json());
+
       if (!payload) {
         throw new Error("Unable to parse git status response.");
       }
@@ -201,6 +213,7 @@ export const useOrchestrationGitLifecycle = ({
         ...current,
         [coordinationId]: payload,
       }));
+
       return payload;
     } finally {
       setGitStatusLoadingByOrchestrationId((current) => ({
@@ -223,15 +236,18 @@ export const useOrchestrationGitLifecycle = ({
           Accept: "application/json",
         },
       });
+
       if (!response.ok) {
         const errorMessage = await parseGitError(
           response,
           `Unable to fetch pull request status (${response.status}).`,
         );
+
         throw new Error(errorMessage);
       }
 
       const payload = parseOrchestrationPullRequest(await response.json());
+
       if (!payload) {
         throw new Error("Unable to parse pull request response.");
       }
@@ -240,6 +256,7 @@ export const useOrchestrationGitLifecycle = ({
         ...current,
         [coordinationId]: payload,
       }));
+
       return payload;
     } finally {
       setPullRequestLoadingByOrchestrationId((current) => ({
@@ -257,95 +274,69 @@ export const useOrchestrationGitLifecycle = ({
     [columns],
   );
 
-  useEffect(() => {
+  // Drop state for orchestrations that left `columns`. Done during render (React's
+  // "adjust state when a prop changes" pattern) instead of in an effect.
+  if (prunedForColumns !== columns) {
     const activeOrchestrationIds = new Set(columns.map((column) => column.coordinationId));
-    setGitStatusByOrchestrationId((current) =>
+
+    const keepActive = <T>(current: Record<string, T>): Record<string, T> =>
       Object.fromEntries(
         Object.entries(current).filter(([coordinationId]) =>
           activeOrchestrationIds.has(coordinationId),
         ),
-      ),
-    );
-    setGitStatusLoadingByOrchestrationId((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
-    setGitStatusAttemptedOrchestrationIds((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
-    setPullRequestByOrchestrationId((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
-    setPullRequestLoadingByOrchestrationId((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
-    setPullRequestAttemptedOrchestrationIds((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([coordinationId]) =>
-          activeOrchestrationIds.has(coordinationId),
-        ),
-      ),
-    );
+      );
+
+    setPrunedForColumns(columns);
+    setGitStatusByOrchestrationId(keepActive);
+    setGitStatusLoadingByOrchestrationId(keepActive);
+    setPullRequestByOrchestrationId(keepActive);
+    setPullRequestLoadingByOrchestrationId(keepActive);
+
     if (openGitOrchestrationId && !activeOrchestrationIds.has(openGitOrchestrationId)) {
       setOpenGitOrchestrationId(null);
       setGitDialogError(null);
       setGitCommitMessageDraft("");
     }
-  }, [columns, openGitOrchestrationId]);
+  }
 
   useEffect(() => {
-    for (const coordinationId of worktreeOrchestrationIds) {
-      if (gitStatusAttemptedOrchestrationIds[coordinationId]) {
-        continue;
-      }
+    const activeOrchestrationIds = new Set(columns.map((column) => column.coordinationId));
 
-      setGitStatusAttemptedOrchestrationIds((current) => ({
-        ...current,
-        [coordinationId]: true,
-      }));
-      void fetchOrchestrationGitStatus(coordinationId).catch((error: unknown) => {
-        console.warn(`[git] Failed to fetch status for orchestration ${coordinationId}:`, error);
-      });
+    for (const attemptedIds of [
+      gitStatusAttemptedIdsRef.current,
+      pullRequestAttemptedIdsRef.current,
+    ]) {
+      for (const coordinationId of attemptedIds) {
+        if (!activeOrchestrationIds.has(coordinationId)) {
+          attemptedIds.delete(coordinationId);
+        }
+      }
     }
-  }, [fetchOrchestrationGitStatus, gitStatusAttemptedOrchestrationIds, worktreeOrchestrationIds]);
+  }, [columns]);
 
   useEffect(() => {
+    const gitStatusAttemptedIds = gitStatusAttemptedIdsRef.current;
+    const pullRequestAttemptedIds = pullRequestAttemptedIdsRef.current;
+
     for (const coordinationId of worktreeOrchestrationIds) {
-      if (pullRequestAttemptedOrchestrationIds[coordinationId]) {
-        continue;
+      if (!gitStatusAttemptedIds.has(coordinationId)) {
+        gitStatusAttemptedIds.add(coordinationId);
+        void fetchOrchestrationGitStatus(coordinationId).catch((cause: unknown) => {
+          console.warn(`[git] Failed to fetch status for orchestration ${coordinationId}:`, cause);
+        });
       }
 
-      setPullRequestAttemptedOrchestrationIds((current) => ({
-        ...current,
-        [coordinationId]: true,
-      }));
-      void fetchOrchestrationPullRequest(coordinationId).catch((error: unknown) => {
-        console.warn(
-          `[git] Failed to fetch pull request for orchestration ${coordinationId}:`,
-          error,
-        );
-      });
+      if (!pullRequestAttemptedIds.has(coordinationId)) {
+        pullRequestAttemptedIds.add(coordinationId);
+        void fetchOrchestrationPullRequest(coordinationId).catch((cause: unknown) => {
+          console.warn(
+            `[git] Failed to fetch pull request for orchestration ${coordinationId}:`,
+            cause,
+          );
+        });
+      }
     }
-  }, [
-    fetchOrchestrationPullRequest,
-    pullRequestAttemptedOrchestrationIds,
-    worktreeOrchestrationIds,
-  ]);
+  }, [fetchOrchestrationGitStatus, fetchOrchestrationPullRequest, worktreeOrchestrationIds]);
 
   const openOrchestrationGitActions = useCallback(
     (coordinationId: string) => {
@@ -356,9 +347,9 @@ export const useOrchestrationGitLifecycle = ({
       void Promise.all([
         fetchOrchestrationGitStatus(coordinationId),
         fetchOrchestrationPullRequest(coordinationId),
-      ]).catch((error: unknown) => {
+      ]).catch((cause: unknown) => {
         setGitDialogError(
-          error instanceof Error ? error.message : "Unable to fetch git lifecycle data.",
+          cause instanceof Error ? cause.message : "Unable to fetch git lifecycle data.",
         );
       });
     },
@@ -389,6 +380,7 @@ export const useOrchestrationGitLifecycle = ({
 
       setIsGitDialogMutating(true);
       setGitDialogError(null);
+
       try {
         const response = await fetch(endpoint, {
           method: "POST",
@@ -404,10 +396,12 @@ export const useOrchestrationGitLifecycle = ({
             response,
             `Unable to ${action} (${response.status}).`,
           );
+
           throw new Error(errorMessage);
         }
 
         const payload = parseOrchestrationGitStatus(await response.json());
+
         if (!payload) {
           throw new Error("Unable to parse git lifecycle response.");
         }
@@ -416,11 +410,13 @@ export const useOrchestrationGitLifecycle = ({
           ...current,
           [openGitOrchestrationId]: payload,
         }));
+
         return payload;
       } catch (error) {
         setGitDialogError(
           error instanceof Error ? error.message : `Unable to ${action} orchestration worktree.`,
         );
+
         return null;
       } finally {
         setIsGitDialogMutating(false);
@@ -439,6 +435,7 @@ export const useOrchestrationGitLifecycle = ({
 
       setIsGitDialogMutating(true);
       setGitDialogError(null);
+
       try {
         const response = await fetch(endpoint, {
           method: "POST",
@@ -454,10 +451,12 @@ export const useOrchestrationGitLifecycle = ({
             response,
             `Unable to merge pull request (${response.status}).`,
           );
+
           throw new Error(errorMessage);
         }
 
         const payload = parseOrchestrationPullRequest(await response.json());
+
         if (!payload) {
           throw new Error("Unable to parse pull request response.");
         }
@@ -477,8 +476,10 @@ export const useOrchestrationGitLifecycle = ({
 
   const commitOrchestrationChanges = useCallback(async () => {
     const message = gitCommitMessageDraft.trim();
+
     if (message.length === 0) {
       setGitDialogError("Commit message cannot be empty.");
+
       return;
     }
 
@@ -488,6 +489,7 @@ export const useOrchestrationGitLifecycle = ({
       },
       body: JSON.stringify({ message }),
     });
+
     if (committed) {
       setGitCommitMessageDraft("");
     }
@@ -495,8 +497,10 @@ export const useOrchestrationGitLifecycle = ({
 
   const commitAndPushOrchestrationBranch = useCallback(async () => {
     const message = gitCommitMessageDraft.trim();
+
     if (message.length === 0) {
       setGitDialogError("Commit message cannot be empty.");
+
       return;
     }
 
@@ -506,9 +510,11 @@ export const useOrchestrationGitLifecycle = ({
       },
       body: JSON.stringify({ message }),
     });
+
     if (!committed) {
       return;
     }
+
     setGitCommitMessageDraft("");
     await runGitMutation("push");
   }, [gitCommitMessageDraft, runGitMutation]);
@@ -529,10 +535,12 @@ export const useOrchestrationGitLifecycle = ({
     openGitOrchestrationId !== null
       ? (gitStatusByOrchestrationId[openGitOrchestrationId] ?? null)
       : null;
+
   const openGitOrchestrationPullRequest =
     openGitOrchestrationId !== null
       ? (pullRequestByOrchestrationId[openGitOrchestrationId] ?? null)
       : null;
+
   const isGitDialogLoading =
     openGitOrchestrationId !== null
       ? (gitStatusLoadingByOrchestrationId[openGitOrchestrationId] ?? false) ||

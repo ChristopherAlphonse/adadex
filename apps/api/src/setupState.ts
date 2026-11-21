@@ -1,9 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { asRecord, isString, type ParsedRecord } from "@adadex/core";
 import type { WorkspaceSetupStepId } from "@adadex/core";
 
 const SETUP_STATE_RELATIVE_PATH = join("state", "setup.json");
-const VERIFIED_SETUP_STEP_IDS = ["check-kiro", "check-git", "check-curl"] as const;
+
+const VERIFIED_SETUP_STEP_IDS = ["check-agent-cli", "check-git", "check-curl"] as const;
 
 type VerifiedSetupStepId = (typeof VERIFIED_SETUP_STEP_IDS)[number];
 
@@ -14,39 +17,52 @@ export type SetupState = {
 };
 
 const isVerifiedSetupStepId = (value: WorkspaceSetupStepId): value is VerifiedSetupStepId =>
-  VERIFIED_SETUP_STEP_IDS.includes(value as VerifiedSetupStepId);
+  VERIFIED_SETUP_STEP_IDS.includes(
+    /* SAFETY: preceding checks establish the invariant this assertion encodes. */ value as VerifiedSetupStepId,
+  );
 
 export const readSetupState = (stateDir: string): SetupState => {
   const filePath = join(stateDir, SETUP_STATE_RELATIVE_PATH);
+
   if (!existsSync(filePath)) {
     return { version: 1 };
   }
 
   try {
-    const raw = JSON.parse(readFileSync(filePath, "utf-8")) as Record<string, unknown>;
+    const raw: ParsedRecord = asRecord(JSON.parse(readFileSync(filePath, "utf-8"))) ?? {};
     const verifiedSteps: Partial<Record<VerifiedSetupStepId, string>> = {};
-    const rawVerifiedSteps = raw.verifiedSteps;
-    if (rawVerifiedSteps && typeof rawVerifiedSteps === "object") {
+    const verifiedStepRecords = asRecord(raw.verifiedSteps);
+
+    if (verifiedStepRecords) {
       for (const stepId of VERIFIED_SETUP_STEP_IDS) {
-        const checkedAt = (rawVerifiedSteps as Record<string, unknown>)[stepId];
-        if (typeof checkedAt === "string") {
+        // Older versions called the agent CLI check "check-kiro".
+        const checkedAt =
+          verifiedStepRecords[stepId] ??
+          (stepId === "check-agent-cli" ? verifiedStepRecords["check-kiro"] : undefined);
+
+        if (isString(checkedAt)) {
           verifiedSteps[stepId] = checkedAt;
         }
       }
     }
 
-    const coordinationsInitializedAt =
-      typeof raw.coordinationsInitializedAt === "string"
-        ? raw.coordinationsInitializedAt
-        : typeof raw.orchestrationsInitializedAt === "string"
-          ? raw.orchestrationsInitializedAt
-          : undefined;
+    const coordinationsInitializedAt = isString(raw.coordinationsInitializedAt)
+      ? raw.coordinationsInitializedAt
+      : isString(raw.orchestrationsInitializedAt)
+        ? raw.orchestrationsInitializedAt
+        : undefined;
 
-    return {
-      version: 1,
-      ...(coordinationsInitializedAt ? { coordinationsInitializedAt } : {}),
-      ...(Object.keys(verifiedSteps).length > 0 ? { verifiedSteps } : {}),
-    };
+    const result: SetupState = { version: 1 };
+
+    if (coordinationsInitializedAt) {
+      result.coordinationsInitializedAt = coordinationsInitializedAt;
+    }
+
+    if (Object.keys(verifiedSteps).length > 0) {
+      result.verifiedSteps = verifiedSteps;
+    }
+
+    return result;
   } catch {
     return { version: 1 };
   }
@@ -74,6 +90,7 @@ export const markSetupStepVerified = (stateDir: string, stepId: WorkspaceSetupSt
 
 export const markCoordinationsInitialized = (stateDir: string) => {
   const currentState = readSetupState(stateDir);
+
   if (currentState.coordinationsInitializedAt) {
     return;
   }

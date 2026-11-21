@@ -1,22 +1,22 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type {
-  ConversationSearchHit,
-  ConversationSearchResult,
-  ConversationSessionDetail,
-  ConversationSessionSummary,
-  ConversationTurn,
+import {
+  type ConversationSearchHit,
+  type ConversationSearchResult,
+  type ConversationSessionDetail,
+  type ConversationSessionSummary,
+  type ConversationTurn,
+  type ParsedValue,
+  asRecord,
+  asString,
+  isNumber,
+  isString,
 } from "@adadex/core";
 
 import type { AgentRuntimeState } from "../agentStateDetection";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
-
-const asString = (value: unknown): string | null => (typeof value === "string" ? value : null);
-
-const parseRuntimeState = (value: unknown): AgentRuntimeState | null =>
+const parseRuntimeState = (value: ParsedValue): AgentRuntimeState | null =>
   value === "idle" || value === "processing" ? value : null;
 
 export type ConversationTranscriptEventBase = {
@@ -73,8 +73,10 @@ export type { ConversationTurn };
 export const transcriptFilenameForSession = (sessionId: string) =>
   `${encodeURIComponent(sessionId)}.jsonl`;
 
-const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | null => {
-  if (!isRecord(value)) {
+const parseTranscriptEvent = (payload: ParsedValue): ConversationTranscriptEvent | null => {
+  const value = asRecord(payload);
+
+  if (!value) {
     return null;
   }
 
@@ -101,6 +103,7 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
   if (eventType === "input_submit") {
     const submitId = asString(value.submitId);
     const text = asString(value.text);
+
     if (!submitId || text === null) {
       return null;
     }
@@ -119,6 +122,7 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
   if (eventType === "output_chunk") {
     const chunkId = asString(value.chunkId);
     const text = asString(value.text);
+
     if (!chunkId || text === null) {
       return null;
     }
@@ -135,7 +139,8 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
   }
 
   if (eventType === "state_change") {
-    const state = parseRuntimeState(value.state);
+    const state = parseRuntimeState(value.state ?? null);
+
     if (!state) {
       return null;
     }
@@ -152,6 +157,7 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
 
   if (eventType === "session_end") {
     const reason = value.reason;
+
     if (
       reason !== "pty_exit" &&
       reason !== "session_close" &&
@@ -161,22 +167,28 @@ const parseTranscriptEvent = (value: unknown): ConversationTranscriptEvent | nul
       return null;
     }
 
-    const exitCode = typeof value.exitCode === "number" ? value.exitCode : undefined;
-    const signal =
-      typeof value.signal === "number" || typeof value.signal === "string"
-        ? value.signal
-        : undefined;
+    const exitCode = isNumber(value.exitCode) ? value.exitCode : undefined;
 
-    return {
+    const signal = isNumber(value.signal) || isString(value.signal) ? value.signal : undefined;
+
+    const event: SessionEndTranscriptEvent = {
       type: "session_end",
       eventId,
       sessionId,
       coordinationId,
       timestamp,
       reason,
-      ...(exitCode !== undefined ? { exitCode } : {}),
-      ...(signal !== undefined ? { signal } : {}),
     };
+
+    if (exitCode !== undefined) {
+      event.exitCode = exitCode;
+    }
+
+    if (signal !== undefined) {
+      event.signal = signal;
+    }
+
+    return event;
   }
 
   return null;
@@ -191,6 +203,7 @@ const buildConversationSummary = (
   const assistantTurns = turns.filter((turn) => turn.role === "assistant");
   const firstEvent = events[0] ?? null;
   const lastEvent = events.length > 0 ? events[events.length - 1] : null;
+
   const lastSessionEnd =
     [...events].reverse().find((event) => event.type === "session_end") ?? null;
 
@@ -217,15 +230,18 @@ const buildConversationSummary = (
 const parseTranscriptLines = (rawJsonl: string): ConversationTranscriptEvent[] => {
   const events: ConversationTranscriptEvent[] = [];
   const lines = rawJsonl.split(/\r?\n/);
+
   for (const line of lines) {
     const trimmed = line.trim();
+
     if (trimmed.length === 0) {
       continue;
     }
 
     try {
-      const parsed = JSON.parse(trimmed) as unknown;
+      const parsed: ParsedValue = JSON.parse(trimmed);
       const event = parseTranscriptEvent(parsed);
+
       if (event) {
         events.push(event);
       }
@@ -242,11 +258,13 @@ const readSessionEventsFromFile = (
   sessionId: string,
 ): ConversationTranscriptEvent[] => {
   const transcriptPath = join(transcriptDirectoryPath, transcriptFilenameForSession(sessionId));
+
   if (!existsSync(transcriptPath)) {
     return [];
   }
 
   const rawJsonl = readFileSync(transcriptPath, "utf8");
+
   return parseTranscriptLines(rawJsonl);
 };
 
@@ -256,6 +274,7 @@ const parseSessionIdFromFilename = (filename: string): string | null => {
   }
 
   const basename = filename.slice(0, -".jsonl".length);
+
   if (basename.length === 0) {
     return null;
   }
@@ -273,6 +292,7 @@ const truncatePreview = (value: string | null): string | null => {
   }
 
   const normalized = value.replace(/\s+/g, " ").trim();
+
   if (normalized.length <= 160) {
     return normalized;
   }
@@ -285,6 +305,7 @@ export const readConversationSession = (
   sessionId: string,
 ): ConversationSessionDetail | null => {
   const events = readSessionEventsFromFile(transcriptDirectoryPath, sessionId);
+
   if (events.length === 0) {
     return null;
   }
@@ -317,6 +338,7 @@ export const listConversationSessions = (
   const summaries = sessionIds
     .map((sessionId) => {
       const detail = readConversationSession(transcriptDirectoryPath, sessionId);
+
       // Skip sessions that have no actual conversation turns — these are
       // PTY sessions that were spawned but never received any user input.
       if (!detail || detail.turnCount === 0) {
@@ -349,6 +371,7 @@ export const listConversationSessions = (
   return summaries.sort((left, right) => {
     const leftTime = left.lastEventAt ? Date.parse(left.lastEventAt) : 0;
     const rightTime = right.lastEventAt ? Date.parse(right.lastEventAt) : 0;
+
     return rightTime - leftTime;
   });
 };
@@ -393,6 +416,7 @@ export const deleteAllConversations = (transcriptDirectoryPath: string) => {
   }
 
   const files = readdirSync(transcriptDirectoryPath);
+
   for (const file of files) {
     if (
       file.endsWith(".jsonl") ||
@@ -424,6 +448,32 @@ export const storeAgentTranscriptTurns = (
   writeFileSync(filePath, JSON.stringify(turns), "utf8");
 };
 
+const parseConversationTurn = (payload: ParsedValue): ConversationTurn | null => {
+  const record = asRecord(payload);
+
+  if (!record) {
+    return null;
+  }
+
+  const turnId = asString(record.turnId);
+  const role = record.role;
+  const content = asString(record.content);
+  const startedAt = asString(record.startedAt);
+  const endedAt = asString(record.endedAt);
+
+  if (
+    !turnId ||
+    (role !== "user" && role !== "assistant") ||
+    content === null ||
+    !startedAt ||
+    !endedAt
+  ) {
+    return null;
+  }
+
+  return { turnId, role, content, startedAt, endedAt };
+};
+
 const readAgentTranscriptTurns = (
   transcriptDirectoryPath: string,
   sessionId: string,
@@ -431,27 +481,69 @@ const readAgentTranscriptTurns = (
   const primaryPath = join(transcriptDirectoryPath, agentTurnsFilename(sessionId));
   const legacyPath = join(transcriptDirectoryPath, legacyAgentTurnsFilename(sessionId));
   const filePath = existsSync(primaryPath) ? primaryPath : legacyPath;
+
   if (!existsSync(filePath)) {
     return null;
   }
 
   try {
     const raw = readFileSync(filePath, "utf8");
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed: ParsedValue = JSON.parse(raw);
+
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return null;
     }
 
-    return parsed as ConversationTurn[];
+    const turns = parsed
+      .map((entry) => parseConversationTurn(entry))
+      .filter((turn): turn is ConversationTurn => turn !== null);
+
+    return turns.length > 0 ? turns : null;
   } catch {
     return null;
   }
+};
+
+/**
+ * Adds one turn to the stored session turns without replacing them. Used when the agent's own
+ * transcript cannot be read, so prompts and replies still accumulate across the whole session.
+ */
+export const appendAgentTranscriptTurn = (
+  transcriptDirectoryPath: string,
+  sessionId: string,
+  role: ConversationTurn["role"],
+  content: string,
+) => {
+  const text = content.trim();
+
+  if (text.length === 0) {
+    return;
+  }
+
+  const turns = readAgentTranscriptTurns(transcriptDirectoryPath, sessionId) ?? [];
+  const lastTurn = turns[turns.length - 1];
+
+  if (lastTurn?.role === role && lastTurn.content === text) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  turns.push({
+    turnId: `turn-${turns.length + 1}`,
+    role,
+    content: text,
+    startedAt: now,
+    endedAt: now,
+  });
+  storeAgentTranscriptTurns(transcriptDirectoryPath, sessionId, turns);
 };
 
 const buildSearchSnippet = (content: string, query: string, contextChars = 80): string => {
   const lowerContent = content.toLowerCase();
   const lowerQuery = query.toLowerCase();
   const matchIndex = lowerContent.indexOf(lowerQuery);
+
   if (matchIndex === -1) {
     return content
       .slice(0, contextChars * 2)
@@ -462,8 +554,11 @@ const buildSearchSnippet = (content: string, query: string, contextChars = 80): 
   const start = Math.max(0, matchIndex - contextChars);
   const end = Math.min(content.length, matchIndex + query.length + contextChars);
   let snippet = content.slice(start, end).replace(/\s+/g, " ").trim();
+
   if (start > 0) snippet = `...${snippet}`;
+
   if (end < content.length) snippet = `${snippet}...`;
+
   return snippet;
 };
 
@@ -484,6 +579,7 @@ export const searchConversations = (
 
   for (const sessionId of sessionIds) {
     const turns = readAgentTranscriptTurns(transcriptDirectoryPath, sessionId) ?? [];
+
     for (const turn of turns) {
       if (turn.content.toLowerCase().includes(lowerQuery)) {
         hits.push({

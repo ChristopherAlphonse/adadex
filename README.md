@@ -1,74 +1,39 @@
 <div align="center">
 
-<img width="150" height='100' alt="Adadex header" src="./static/images/adadex-header.png" />
-
-**Turn chaos into execution.**
-
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-22+-5FA04E?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-
-<details>
-<summary><strong>Docs</strong></summary>
-<br>
-
-[Docs Home](docs/index.md) &nbsp;|&nbsp;
-[Installation](docs/getting-started/installation.md) &nbsp;|&nbsp;
-[Quickstart](docs/getting-started/quickstart.md) &nbsp;|&nbsp;
-[Mental Model](docs/concepts/mental-model.md) &nbsp;|&nbsp;
-[Coordination](docs/concepts/coordination.md) &nbsp;|&nbsp;
-[Runtime and API](docs/concepts/runtime-and-api.md) &nbsp;|&nbsp;
-[Working With Todos](docs/guides/working-with-todos.md) &nbsp;|&nbsp;
-[Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md) &nbsp;|&nbsp;
-[Inter-Agent Messaging](docs/guides/inter-agent-messaging.md) &nbsp;|&nbsp;
-[CLI Reference](docs/reference/cli.md) &nbsp;|&nbsp;
-[Filesystem Layout](docs/reference/filesystem-layout.md) &nbsp;|&nbsp;
-[API Reference](docs/reference/api.md) &nbsp;|&nbsp;
-[Experimental Features](docs/reference/experimental-features.md) &nbsp;|&nbsp;
-[Troubleshooting](docs/reference/troubleshooting.md)
-
-</details>
+<img width="150" height="100" alt="Adadex header" src="./static/images/adadex-header.png" />
 
 </div>
 
-Adadex is a web-first orchestration layer for running multiple coding agents in parallel. Instead of juggling many terminal sessions and losing track of what each one is doing, Adadex gives each job its own scoped context, task list, and notes. One agent session can spawn others, assign them work, and exchange messages with them while you stay at the orchestration layer.
+# Adadex
 
-> **Kiro CLI powered.** Adadex launches every terminal with [Kiro CLI](https://kiro.dev) (`kiro-cli`) as the coding agent. There is no provider switcher and no per-coordination model override — every terminal uses the same CLI, configured once.
+Adadex is a web-first orchestration layer for running multiple coding agents in parallel. Each job gets its own scoped context, todo list, and notes. One agent can spawn other agents, assign them work, and exchange messages while you stay at the orchestration layer.
+
+Terminals run [Claude Code](https://docs.claude.com/en/docs/claude-code) (`claude`) by default. Kiro CLI (`kiro-cli`) and OpenCode (`opencode`) can be selected per terminal.
+
+## Docs
+
+- **Start:** [Docs Home](docs/index.md), [Installation](docs/getting-started/installation.md), [Quickstart](docs/getting-started/quickstart.md)
+- **Concepts:** [Mental Model](docs/concepts/mental-model.md), [Coordination](docs/concepts/coordination.md), [Runtime and API](docs/concepts/runtime-and-api.md)
+- **Guides:** [Working With Todos](docs/guides/working-with-todos.md), [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md), [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md)
+- **Reference:** [CLI](docs/reference/cli.md), [API](docs/reference/api.md), [Filesystem Layout](docs/reference/filesystem-layout.md), [Troubleshooting](docs/reference/troubleshooting.md)
+
+The Electron desktop app is in progress; see [plans/PLAN.md](docs/plans/PLAN.md).
 
 ## What Adadex Does
 
-- Creates **coordinations** as scoped job containers: each one gets its own `CONTEXT.md`, `todo.md`, and notes
-- Runs multiple coding agent terminals side by side so one developer can manage several sessions at once
-- Runs every terminal against **Kiro CLI** (`kiro-cli`)
-- Lets one agent session spawn others, assign them work, and exchange messages while you stay at the orchestration layer
-
-- Spawns child agents from todo items so parallel work has a concrete source of truth
-- Supports inter-agent messaging so workers and coordinators can report completion, blockers, and handoffs
-- Keeps agent-facing context in files so state survives beyond a single prompt thread
+- Creates **coordinations** as scoped job containers, each with `CONTEXT.md`, `todo.md`, and notes
+- Runs multiple coding agent terminals side by side, with the provider chosen per terminal
+- Spawns child agents from todo items so parallel work has a source of truth
+- Supports inter-agent messaging for completion reports, blockers, and handoffs
+- Keeps agent-facing context in files so state survives beyond a chat thread
 - Provides a local API and UI for terminal lifecycle, persistence, WebSocket transport, and orchestration
-
-## Screenshots
-
-<div align="center">
-<table>
-<tr>
-<td><img src="./static/images/preview_1.png" alt="Agent canvas with live terminal and inspector" width="100%"/></td>
-<td><img src="./static/images/preview_2.png" alt="Two agents running side by side" width="100%"/></td>
-</tr>
-<tr>
-<td><img src="./static/images/preview_3.png" alt="Deck view with coordinations" width="100%"/></td>
-<td><img src="./static/images/preview_4.png" alt="Per-coordination customization options" width="100%"/></td>
-</tr>
-<tr>
-<td><img src="./static/images/preview_5.png" alt="Activity view with token usage and GitHub commits" width="100%"/></td>
-<td><img src="./static/images/preview_6.png" alt="Settings — appearance, sounds, workspace visibility" width="100%"/></td>
-</tr>
-</table>
-</div>
+- Offers optional git worktrees so terminals can work in isolation
 
 ## Requirements
 
 - Node.js `22+`
-- Kiro CLI (`kiro-cli`) — install via `curl -fsSL https://cli.kiro.dev/install | bash`
+- Claude Code (`claude`) — see the [install guide](https://docs.claude.com/en/docs/claude-code)
+- Optional: Kiro CLI (`kiro-cli`, `curl -fsSL https://cli.kiro.dev/install | bash`) or OpenCode (`opencode`) if you want those providers
 - `git` for worktree terminals
 - `gh` for GitHub pull request features
 - `curl` for agent hook callbacks
@@ -95,16 +60,9 @@ adadex
 
 The `npm install -g adadex` registry path will work once the package is published.
 
-## First Run
+## First run
 
-On first run, Adadex:
-
-- creates a `.adadex/` scaffold in the project directory
-- assigns a stable project ID
-- picks an available local API port starting at `8787`
-- opens the UI in your browser
-
-Set `ADADEX_NO_OPEN=1` to suppress the browser launch.
+On first run, Adadex creates a `.adadex/` scaffold in the project directory, assigns a stable project ID, picks an available local API port starting at `8787`, and opens the UI in your browser. Set `ADADEX_NO_OPEN=1` to suppress the browser launch.
 
 ## How It Works
 
@@ -132,7 +90,7 @@ For the full model, see [Coordination](docs/concepts/coordination.md) and [Worki
 
 ## Coordinating Multiple Agents
 
-In Adadex, a terminal agent is not only a single session waiting for a human prompt. One agent can coordinate others: assign them specific jobs and exchange short messages with them while the human stays at the orchestration layer.
+A terminal agent is not only a single session waiting for a human prompt. One agent can coordinate others: assign them specific jobs and exchange short messages with them while the human stays at the orchestration layer.
 
 This differs from a vendor's built-in subagent spawning because you can directly see and control what each worker agent is doing.
 

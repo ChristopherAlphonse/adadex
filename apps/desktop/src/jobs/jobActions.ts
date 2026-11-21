@@ -1,0 +1,126 @@
+import {
+  type ActionExecutor,
+  advanceJob,
+  approve,
+  asRecord,
+  asString,
+  NEEDS_HUMAN,
+  type ParsedRecord,
+  type ParsedValue,
+  type WorkflowJob,
+} from "@adadex/core";
+
+import { type CommitDeps, commitLocal } from "./commitLocal";
+import type { JobStore } from "./jobStore";
+import { readFacts } from "./readFacts";
+import { type GateDeps, runGate } from "./runGate";
+import { findWorkflow, type WorkflowLookup } from "./workflowLookup";
+
+export interface JobActionDeps {
+  readonly store: JobStore;
+  readonly workflows: WorkflowLookup;
+  /** Runs a named effect from a move, such as creating the worktree. Unknown names are ignored. */
+  readonly runEffect: (name: string, job: WorkflowJob) => Promise<void>;
+  readonly actor: (actionId: string) => "human" | "agent";
+  /** Needed for `job.run_gate`. Leave it out and that action reports it has no executor. */
+  readonly gate?: Omit<GateDeps, "store" | "workflows" | "actor">;
+  /** Needed for `job.commit_local`. */
+  readonly commit?: Omit<CommitDeps, "store" | "workflows">;
+  /** Rounds a job gets again when a person unblocks it. */
+  readonly roundLimit?: number;
+}
+
+const field = (input: ParsedValue, key: string): string => {
+  const record = asRecord(input);
+
+  return record === null ? "" : (asString(record[key]) ?? "");
+};
+
+/** Executors for the job actions. Input is already validated by the action's own parser. */
+export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
+  async execute(actionId, input) {
+    const { store } = deps;
+    const job = await store.load(field(input, "id"));
+    const actor = deps.actor(actionId);
+
+    if (actionId === "job.commit_local") {
+      if (!deps.commit) throw new Error("no executor for job.commit_local");
+
+      return commitLocal({ ...deps.commit, store, workflows: deps.workflows }, job.id);
+    }
+
+    if (actionId === "job.run_gate") {
+      if (!deps.gate) throw new Error("no executor for job.run_gate");
+
+      const gate = await runGate({ ...deps.gate, store, workflows: deps.workflows, actor }, job.id);
+
+      const output: ParsedRecord = {};
+      output.gate = gate.gate;
+
+      if (gate.reason !== undefined) output.reason = gate.reason;
+
+      return output;
+    }
+
+    if (actionId === "job.advance") {
+      const def = await findWorkflow(deps.workflows, job.workflowId);
+      const facts = await readFacts(store, job);
+      const to = field(input, "to");
+      const result = advanceJob(def, job, to, facts);
+
+      if (!result.ok) {
+        await store.audit({
+          actor,
+          action: "advance-refused",
+          jobId: job.id,
+          detail: `${job.stage} -> ${to}: ${result.reason}`,
+        });
+        throw new Error(result.reason);
+      }
+
+      await store.save(result.job);
+      await store.audit({
+        actor,
+        action: "advance",
+        jobId: job.id,
+        detail: `${job.stage} -> ${result.job.stage}`,
+      });
+
+      for (const name of result.effects) await deps.runEffect(name, result.job);
+
+      return { stage: result.job.stage, round: result.job.round };
+    }
+
+    if (actionId === "job.approve_spec") {
+      const facts = await readFacts(store, job);
+      const hash = facts.hashes?.spec;
+
+      if (hash === undefined) throw new Error("spec.md missing");
+      await store.save(approve(job, "spec", hash));
+      await store.audit({ actor, action: "approve-spec", jobId: job.id, detail: hash });
+
+      return { approved: hash };
+    }
+
+    if (actionId === "job.unblock") {
+      if (job.stage !== NEEDS_HUMAN || job.parkedFrom === undefined) {
+        throw new Error(`${job.id} is not parked`);
+      }
+
+      // Back to where it was parked, with a fresh allowance of rounds, so a job parked for running out of rounds can go on.
+      const { note: _note, parkedFrom: _from, ...rest } = job;
+      const back = job.parkedFrom;
+      await store.save({
+        ...rest,
+        stage: back,
+        roundLimit: job.round + (deps.roundLimit ?? 3),
+        flags: back === "build" ? { ...job.flags, polished: false } : job.flags,
+      });
+      await store.audit({ actor, action: "unblock", jobId: job.id, detail: `back to ${back}` });
+
+      return { stage: back };
+    }
+
+    throw new Error(`no executor for ${actionId}`);
+  },
+});

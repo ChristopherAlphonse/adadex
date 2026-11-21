@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import { ConfirmationDialog } from "./ui/ConfirmationDialog";
@@ -17,21 +17,29 @@ export const DeleteOrchestrationDialog = ({
   onConfirmDelete,
 }: DeleteOrchestrationDialogProps) => {
   const [cleanupConfirmationInput, setCleanupConfirmationInput] = useState("");
+
   const isCleanupIntent =
     pendingDeleteTerminal.intent === "cleanup-worktree" &&
     pendingDeleteTerminal.workspaceMode === "worktree";
+
   const isCloseIntent = pendingDeleteTerminal.intent === "close-terminal";
+
   const isCleanupConfirmationValid =
     !isCleanupIntent || cleanupConfirmationInput.trim() === pendingDeleteTerminal.terminalId;
+
   // Only treat *this* orchestration as busy. A stale `isDeletingTerminalId` for another id would
   // otherwise keep confirm/cancel disabled and make the dialog feel "stuck".
   const isThisDeleting = isDeletingTerminalId === pendingDeleteTerminal.terminalId;
   const dialogResetKey = `${pendingDeleteTerminal.terminalId}:${pendingDeleteTerminal.intent}`;
 
-  useEffect(() => {
-    void dialogResetKey;
+  // Reset the confirmation field when the pending target changes, during render, so the field
+  // is already clear on the frame that displays the new dialog.
+  const [previousDialogResetKey, setPreviousDialogResetKey] = useState(dialogResetKey);
+
+  if (dialogResetKey !== previousDialogResetKey) {
+    setPreviousDialogResetKey(dialogResetKey);
     setCleanupConfirmationInput("");
-  }, [dialogResetKey]);
+  }
 
   return (
     <ConfirmationDialog

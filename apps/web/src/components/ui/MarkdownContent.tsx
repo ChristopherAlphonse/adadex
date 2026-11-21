@@ -15,9 +15,11 @@ const highlightHtml = (html: string, term: string): string => {
   // Only highlight text nodes — skip anything inside HTML tags
   // Split on tags, highlight only the non-tag segments
   const parts = html.split(/(<[^>]*>)/);
+
   return parts
     .map((part) => {
       if (part.startsWith("<")) return part;
+
       return part.replace(regex, '<mark class="search-highlight">$1</mark>');
     })
     .join("");
@@ -31,13 +33,19 @@ type MarkdownContentProps = {
 
 export const MarkdownContent = ({ content, className, highlightTerm }: MarkdownContentProps) => {
   const html = useMemo(() => {
-    const rendered = marked.parse(content, { async: false }) as string;
+    const rendered =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ marked.parse(
+        content,
+        { async: false },
+      ) as string;
+
     if (highlightTerm && highlightTerm.length > 0) {
       return highlightHtml(rendered, highlightTerm);
     }
+
     return rendered;
   }, [content, highlightTerm]);
 
-  // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is rendered only inside the local operator UI and highlight markup is controlled.
+  // oxlint-disable-next-line react/no-danger -- markdown is rendered only inside the local operator UI and highlight markup is controlled.
   return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 };

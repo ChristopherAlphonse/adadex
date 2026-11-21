@@ -1,4 +1,8 @@
-import { isTerminalCompletionSoundId, type TerminalCompletionSoundId } from "@adadex/core";
+import {
+  isFunctionValue,
+  isTerminalCompletionSoundId,
+  type TerminalCompletionSoundId,
+} from "@adadex/core";
 
 export { isTerminalCompletionSoundId, type TerminalCompletionSoundId };
 
@@ -94,16 +98,18 @@ const writeWavHeader = (buffer: DataView, payloadByteLength: number) => {
 };
 
 const encodeBase64 = (bytes: Uint8Array): string | null => {
-  if (typeof btoa !== "function") {
+  if (!isFunctionValue(btoa)) {
     return null;
   }
 
   let binary = "";
   const chunkSize = 8_192;
+
   for (let index = 0; index < bytes.length; index += chunkSize) {
     const chunk = bytes.subarray(index, index + chunkSize);
     binary += String.fromCharCode(...chunk);
   }
+
   return btoa(binary);
 };
 
@@ -120,6 +126,7 @@ const buildStepSamples = (step: ToneStep): Int16Array => {
   for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
     const time = sampleIndex / SAMPLE_RATE;
     const phase = 2 * Math.PI * step.frequencyHz * time;
+
     const waveformValue =
       step.waveform === "square" ? (Math.sin(phase) >= 0 ? 1 : -1) : Math.sin(phase);
 
@@ -137,6 +144,7 @@ export const buildTerminalCompletionSoundDataUrl = (
   soundId: TerminalCompletionSoundId,
 ): string | null => {
   const pattern = SOUND_PATTERNS[soundId];
+
   if (pattern.length === 0) {
     return null;
   }
@@ -149,6 +157,7 @@ export const buildTerminalCompletionSoundDataUrl = (
   writeWavHeader(wavView, payloadByteLength);
 
   let writeOffset = 44;
+
   for (const part of sampleParts) {
     for (let sampleIndex = 0; sampleIndex < part.length; sampleIndex += 1) {
       wavView.setInt16(writeOffset, part[sampleIndex] ?? 0, true);
@@ -157,8 +166,10 @@ export const buildTerminalCompletionSoundDataUrl = (
   }
 
   const base64 = encodeBase64(wavBytes);
+
   if (!base64) {
     return null;
   }
+
   return `data:audio/wav;base64,${base64}`;
 };

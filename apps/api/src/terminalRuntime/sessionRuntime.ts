@@ -3,6 +3,7 @@ import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
+import { isNumber, isString } from "@adadex/core";
 import { type IPty, spawn } from "node-pty";
 import type { WebSocket, WebSocketServer } from "ws";
 
@@ -31,7 +32,10 @@ import type {
   TerminalSession,
   TerminalSessionEndDetails,
   TerminalSessionStartDetails,
+  TerminalStateMessage,
 } from "./types";
+
+type SessionEndPayload = Extract<ConversationTranscriptEventPayload, { type: "session_end" }>;
 
 type CreateSessionRuntimeOptions = {
   websocketServer: WebSocketServer;
@@ -51,6 +55,15 @@ type CreateSessionRuntimeOptions = {
   onStateChange?: (terminalId: string, state: AgentRuntimeState, toolName?: string) => void;
   onSessionStart?: (terminalId: string, details: TerminalSessionStartDetails) => void;
   onSessionEnd?: (terminalId: string, details: TerminalSessionEndDetails) => void;
+  /** Signals the PTY's process group so descendants do not survive teardown. */
+  signalGroup?: (processGroupId: number, signal: NodeJS.Signals) => void;
+  onProcessSpawn?: (details: {
+    processId: number;
+    processGroupId: number;
+    sessionId: string;
+    coordinationId: string;
+  }) => void;
+  onProcessExit?: (sessionId: string) => void;
 };
 
 export const createSessionRuntime = ({
@@ -68,9 +81,13 @@ export const createSessionRuntime = ({
   onStateChange,
   onSessionStart,
   onSessionEnd,
+  signalGroup,
+  onProcessSpawn,
+  onProcessExit,
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
   const DEFAULT_PTY_ROWS = 35;
+
   const sessionLimit = Number.isFinite(maxConcurrentSessions)
     ? Math.max(1, Math.floor(maxConcurrentSessions))
     : TERMINAL_MAX_CONCURRENT_SESSIONS;
@@ -84,6 +101,7 @@ export const createSessionRuntime = ({
     }
 
     const shellFromEnvironment = process.env.SHELL?.trim();
+
     if (shellFromEnvironment && shellFromEnvironment.length > 0) {
       return {
         command: shellFromEnvironment,
@@ -104,6 +122,7 @@ export const createSessionRuntime = ({
 
     mkdirSync(ptyLogDir, { recursive: true });
     const filename = `${sessionId}-${Date.now()}.log`;
+
     return createWriteStream(join(ptyLogDir, filename), {
       flags: "a",
       encoding: "utf8",
@@ -117,13 +136,16 @@ export const createSessionRuntime = ({
   const createTranscriptLog = (sessionId: string) => {
     ensureTranscriptDirectory(transcriptDirectoryPath);
     const filename = transcriptFilenameForSession(sessionId);
+
     const stream = createWriteStream(join(transcriptDirectoryPath, filename), {
       flags: "a",
       encoding: "utf8",
     });
+
     stream.on("error", () => {
       // Keep terminal flow alive even if transcript writes fail.
     });
+
     return stream;
   };
 
@@ -138,12 +160,16 @@ export const createSessionRuntime = ({
 
     const nextEventCount = (session.transcriptEventCount ?? 0) + 1;
     session.transcriptEventCount = nextEventCount;
+
+    // SAFETY: event is a validated ConversationTranscriptEventPayload; adding the ids
+    // completes the same discriminated union with no field changes.
     const payload: ConversationTranscriptEvent = {
       ...event,
       eventId: `${sessionId}:${nextEventCount}`,
       sessionId,
       coordinationId: session.coordinationId,
     } as ConversationTranscriptEvent;
+
     session.transcriptLog.write(`${JSON.stringify(payload)}\n`);
   };
 
@@ -179,11 +205,13 @@ export const createSessionRuntime = ({
       timestamp: new Date().toISOString(),
     });
     onStateChange?.(sessionId, nextState, session.lastToolName);
-    broadcastMessage(session, {
-      type: "state",
-      state: nextState,
-      ...(session.lastToolName ? { toolName: session.lastToolName } : {}),
-    });
+    const stateMessage: TerminalStateMessage = { type: "state", state: nextState };
+
+    if (session.lastToolName) {
+      stateMessage.toolName = session.lastToolName;
+    }
+
+    broadcastMessage(session, stateMessage);
   };
 
   const resolveSession =
@@ -192,7 +220,9 @@ export const createSessionRuntime = ({
       if (!terminals.has(terminalId)) {
         return null;
       }
+
       const terminal = terminals.get(terminalId);
+
       return {
         sessionId: terminalId,
         coordinationId: terminal?.coordinationId ?? terminalId,
@@ -216,6 +246,7 @@ export const createSessionRuntime = ({
     for (const timer of session.promptTimers) {
       clearTimeout(timer);
     }
+
     session.promptTimers.clear();
   };
 
@@ -227,6 +258,7 @@ export const createSessionRuntime = ({
   ) => {
     const timer = setTimeout(() => {
       session.promptTimers?.delete(timer);
+
       if (session.isClosed || sessions.get(sessionId) !== session) {
         return;
       }
@@ -237,12 +269,14 @@ export const createSessionRuntime = ({
     if (!session.promptTimers) {
       session.promptTimers = new Set();
     }
+
     session.promptTimers.add(timer);
   };
 
   const appendScrollback = (session: TerminalSession, chunk: string) => {
     let nextChunk = chunk;
     let nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
+
     if (nextChunkBytes > scrollbackMaxBytes) {
       const chunkBuffer = Buffer.from(nextChunk, "utf8");
       nextChunk = chunkBuffer.subarray(chunkBuffer.length - scrollbackMaxBytes).toString("utf8");
@@ -253,8 +287,10 @@ export const createSessionRuntime = ({
 
     session.scrollbackChunks.push(nextChunk);
     session.scrollbackBytes += nextChunkBytes;
+
     while (session.scrollbackBytes > scrollbackMaxBytes && session.scrollbackChunks.length > 0) {
       const removedChunk = session.scrollbackChunks.shift();
+
       if (!removedChunk) {
         break;
       }
@@ -278,7 +314,7 @@ export const createSessionRuntime = ({
     sessionId: string,
     session: TerminalSession,
     event: Omit<SessionEndTranscriptEvent, "eventId" | "sessionId" | "coordinationId">,
-    options: { killPty: boolean; killSignal?: string },
+    options: { killPty: boolean; killSignal?: NodeJS.Signals },
   ): void => {
     if (session.isClosed) {
       return;
@@ -288,19 +324,26 @@ export const createSessionRuntime = ({
     clearIdleCloseTimer(session);
     clearPromptTimers(session);
     closeTranscript(session, sessionId, event);
-    onSessionEnd?.(sessionId, {
+
+    const endDetails: TerminalSessionEndDetails = {
       reason:
         event.reason === "pty_exit" ||
         event.reason === "operator_stop" ||
         event.reason === "operator_kill"
           ? event.reason
           : "session_close",
-      endedAt: typeof event.timestamp === "string" ? event.timestamp : new Date().toISOString(),
-      ...(typeof event.exitCode === "number" ? { exitCode: event.exitCode } : {}),
-      ...(typeof event.signal === "number" || typeof event.signal === "string"
-        ? { signal: event.signal }
-        : {}),
-    });
+      endedAt: isString(event.timestamp) ? event.timestamp : new Date().toISOString(),
+    };
+
+    if (isNumber(event.exitCode)) {
+      endDetails.exitCode = event.exitCode;
+    }
+
+    if (isNumber(event.signal) || isString(event.signal)) {
+      endDetails.signal = event.signal;
+    }
+
+    onSessionEnd?.(sessionId, endDetails);
 
     if (session.statePollTimer) {
       clearInterval(session.statePollTimer);
@@ -314,9 +357,23 @@ export const createSessionRuntime = ({
         // Ignore listener cleanup errors; the PTY teardown below is still required.
       }
     }
+
     session.ptyDisposables = [];
 
     if (options.killPty) {
+      const processId =
+        isNumber(session.pty.pid) && Number.isInteger(session.pty.pid) && session.pty.pid > 0
+          ? session.pty.pid
+          : undefined;
+
+      if (processId !== undefined) {
+        try {
+          signalGroup?.(processId, options.killSignal ?? "SIGKILL");
+        } catch {
+          // Ignore group-signal errors; pty.kill still tears down the leader.
+        }
+      }
+
       try {
         session.pty.kill(options.killSignal);
       } catch {
@@ -329,6 +386,7 @@ export const createSessionRuntime = ({
         client.close();
       }
     }
+
     session.clients.clear();
     session.directListeners.clear();
     session.debugLog?.end();
@@ -337,10 +395,13 @@ export const createSessionRuntime = ({
     if (sessions.get(sessionId) === session) {
       sessions.delete(sessionId);
     }
+
+    onProcessExit?.(sessionId);
   };
 
   const closeSession = (sessionId: string): boolean => {
     const session = sessions.get(sessionId);
+
     if (!session) {
       return false;
     }
@@ -355,11 +416,13 @@ export const createSessionRuntime = ({
       },
       { killPty: true },
     );
+
     return true;
   };
 
   const stopSession = (sessionId: string): boolean => {
     const session = sessions.get(sessionId);
+
     if (!session) {
       return false;
     }
@@ -374,11 +437,13 @@ export const createSessionRuntime = ({
       },
       { killPty: true },
     );
+
     return true;
   };
 
-  const killSession = (sessionId: string, signal = "SIGKILL"): boolean => {
+  const killSession = (sessionId: string, signal: NodeJS.Signals = "SIGKILL"): boolean => {
     const session = sessions.get(sessionId);
+
     if (!session) {
       return false;
     }
@@ -394,6 +459,7 @@ export const createSessionRuntime = ({
       },
       { killPty: true, killSignal: signal },
     );
+
     return true;
   };
 
@@ -433,14 +499,21 @@ export const createSessionRuntime = ({
 
     session.isBootstrapCommandSent = true;
     const terminal = terminals.get(session.terminalId);
+
+    // Plain shells stay a bare shell: no agent CLI, no initial prompt injection.
+    if (terminal?.plainShell) {
+      return;
+    }
+
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
 
     const bootstrapCommand =
       TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
+
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
 
-    // Schedule initial prompt injection after the Kiro CLI has had time to boot.
+    // Schedule initial prompt injection after the agent CLI has had time to boot.
     if (session.initialPrompt && !session.isInitialPromptSent) {
       schedulePromptTimer(
         session,
@@ -449,6 +522,7 @@ export const createSessionRuntime = ({
           if (session.isInitialPromptSent) {
             return;
           }
+
           session.isInitialPromptSent = true;
           appendDebugLog(session, `initial-prompt session=${sessionId}`);
           const prompt = session.initialPrompt ?? "";
@@ -475,6 +549,7 @@ export const createSessionRuntime = ({
           if (session.isInitialInputDraftSent) {
             return;
           }
+
           session.isInitialInputDraftSent = true;
           appendDebugLog(session, `initial-input-draft session=${sessionId}`);
           const draft = session.initialInputDraft ?? "";
@@ -487,6 +562,7 @@ export const createSessionRuntime = ({
 
   const ensureSession = (sessionId: string, coordinationId: string) => {
     const existingSession = sessions.get(sessionId);
+
     if (existingSession) {
       return existingSession;
     }
@@ -500,6 +576,7 @@ export const createSessionRuntime = ({
     const terminalRecord = terminals.get(sessionId);
 
     const orchestrationCwd = getOrchestrationWorkspaceCwd(coordinationId);
+
     if (!existsSync(orchestrationCwd)) {
       throw new Error(`Terminal working directory does not exist: ${orchestrationCwd}`);
     }
@@ -508,6 +585,7 @@ export const createSessionRuntime = ({
     const shellLaunch = getShellLaunch();
 
     let pty: IPty;
+
     try {
       pty = spawn(shellLaunch.command, shellLaunch.args, {
         cols: DEFAULT_PTY_COLS,
@@ -525,6 +603,7 @@ export const createSessionRuntime = ({
     const stateTracker = new AgentStateTracker();
     const debugLog = createDebugLog(sessionId);
     const transcriptLog = createTranscriptLog(sessionId);
+
     const session: TerminalSession = {
       terminalId: sessionId,
       coordinationId,
@@ -543,18 +622,31 @@ export const createSessionRuntime = ({
       hasTranscriptEnded: false,
       keepAliveWithoutClients: Boolean(terminalRecord?.initialPrompt),
     };
+
     if (debugLog) {
       session.debugLog = debugLog;
     }
+
     session.transcriptLog = transcriptLog;
 
     appendDebugLog(session, `session-start session=${sessionId} orchestration=${coordinationId}`);
+
     const processId =
-      typeof pty.pid === "number" && Number.isInteger(pty.pid) && pty.pid > 0 ? pty.pid : undefined;
-    onSessionStart?.(sessionId, {
+      isNumber(pty.pid) && Number.isInteger(pty.pid) && pty.pid > 0 ? pty.pid : undefined;
+
+    if (processId !== undefined) {
+      onProcessSpawn?.({ processId, processGroupId: processId, sessionId, coordinationId });
+    }
+
+    const startDetails: TerminalSessionStartDetails = {
       startedAt: new Date().toISOString(),
-      ...(processId ? { processId } : {}),
-    });
+    };
+
+    if (processId) {
+      startDetails.processId = processId;
+    }
+
+    onSessionStart?.(sessionId, startDetails);
     appendTranscriptEvent(session, sessionId, {
       type: "session_start",
       timestamp: new Date().toISOString(),
@@ -593,47 +685,58 @@ export const createSessionRuntime = ({
         session,
         `session-exit session=${sessionId} code=${exitCode} signal=${signal}`,
       );
-      teardownSession(
-        sessionId,
-        session,
-        {
-          type: "session_end",
-          reason: "pty_exit",
-          ...(Number.isFinite(exitCode) ? { exitCode } : {}),
-          ...(Number.isFinite(signal) ? { signal } : {}),
-          timestamp: new Date().toISOString(),
-        },
-        { killPty: false },
-      );
+
+      const endEvent: SessionEndPayload = {
+        type: "session_end",
+        reason: "pty_exit",
+        timestamp: new Date().toISOString(),
+      };
+
+      if (Number.isFinite(exitCode)) {
+        endEvent.exitCode = exitCode;
+      }
+
+      if (isNumber(signal) && Number.isFinite(signal)) {
+        endEvent.signal = signal;
+      }
+
+      teardownSession(sessionId, session, endEvent, { killPty: false });
     });
+
     session.ptyDisposables = [dataDisposable, exitDisposable];
 
     // Propagate initial prompt from the terminal definition, if set.
     if (terminalRecord?.initialPrompt) {
       session.initialPrompt = terminalRecord.initialPrompt;
     }
+
     if (terminalRecord?.initialInputDraft) {
       session.initialInputDraft = terminalRecord.initialInputDraft;
     }
 
     sessions.set(sessionId, session);
+
     return session;
   };
 
   const handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): boolean => {
     const terminalId = getTerminalId(request);
+
     if (!terminalId) {
       return false;
     }
 
     const resolvedSession = resolveSession(terminalId);
+
     if (!resolvedSession) {
       return false;
     }
+
     const { sessionId, coordinationId } = resolvedSession;
 
     websocketServer.handleUpgrade(request, socket, head, (websocket: WebSocket) => {
       let session: TerminalSession;
+
       try {
         session = ensureSession(sessionId, coordinationId);
       } catch (error) {
@@ -642,6 +745,7 @@ export const createSessionRuntime = ({
           data: `\r\n[terminal failed to start: ${toErrorMessage(error)}]\r\n`,
         });
         websocket.close();
+
         return;
       }
 
@@ -655,24 +759,27 @@ export const createSessionRuntime = ({
         state: session.agentState,
       });
 
-      websocket.on("message", (raw: unknown) => {
+      websocket.on("message", (raw) => {
         if (session.isClosed) {
           return;
         }
 
-        const text =
-          typeof raw === "string" ? raw : raw instanceof Buffer ? raw.toString() : String(raw);
+        const text = isString(raw) ? raw : raw instanceof Buffer ? raw.toString() : String(raw);
+
         try {
+          // SAFETY: websocket text is an input or resize command; the branches below
+          // validate data/cols/rows before using them.
           const payload = JSON.parse(text) as
             | { type: "input"; data: string }
             | { type: "resize"; cols: number; rows: number };
 
-          if (payload.type === "input" && typeof payload.data === "string") {
+          if (payload.type === "input" && isString(payload.data)) {
             appendDebugLog(
               session,
               `ws-input session=${sessionId} data=${JSON.stringify(payload.data)}`,
             );
             session.pty.write(payload.data);
+
             if (/[\r\n]/.test(payload.data)) {
               emitStateIfChanged(
                 session,
@@ -680,6 +787,7 @@ export const createSessionRuntime = ({
                 session.stateTracker.observeSubmit(Date.now()),
               );
             }
+
             return;
           }
 
@@ -690,6 +798,7 @@ export const createSessionRuntime = ({
           ) {
             const nextCols = Math.max(20, Math.floor(payload.cols));
             const nextRows = Math.max(10, Math.floor(payload.rows));
+
             if (session.cols === nextCols && session.rows === nextRows) {
               return;
             }
@@ -728,12 +837,15 @@ export const createSessionRuntime = ({
     listener: DirectSessionListener,
   ): (() => void) | null => {
     const resolvedSession = resolveSession(terminalId);
+
     if (!resolvedSession) {
       return null;
     }
+
     const { sessionId, coordinationId } = resolvedSession;
 
     let session: TerminalSession;
+
     try {
       session = ensureSession(sessionId, coordinationId);
     } catch {
@@ -748,6 +860,7 @@ export const createSessionRuntime = ({
     if (session.scrollbackChunks.length > 0) {
       listener({ type: "history", data: session.scrollbackChunks.join("") });
     }
+
     listener({ type: "state", state: session.agentState });
 
     return () => {
@@ -762,12 +875,14 @@ export const createSessionRuntime = ({
 
   const startSession = (terminalId: string): boolean => {
     const resolvedSession = resolveSession(terminalId);
+
     if (!resolvedSession) {
       return false;
     }
 
     const { sessionId, coordinationId } = resolvedSession;
     let session: TerminalSession;
+
     try {
       session = ensureSession(sessionId, coordinationId);
     } catch {
@@ -776,30 +891,36 @@ export const createSessionRuntime = ({
 
     clearIdleCloseTimer(session);
     ensureAgentBootstrapped(sessionId, session);
+
     return true;
   };
 
   const writeInput = (terminalId: string, data: string): boolean => {
     const session = sessions.get(terminalId);
+
     if (!session || session.isClosed) {
       return false;
     }
 
     session.pty.write(data);
+
     if (/[\r\n]/.test(data)) {
       emitStateIfChanged(session, terminalId, session.stateTracker.observeSubmit(Date.now()));
     }
+
     return true;
   };
 
   const resizeSession = (terminalId: string, cols: number, rows: number): boolean => {
     const session = sessions.get(terminalId);
+
     if (!session || session.isClosed) {
       return false;
     }
 
     const nextCols = Math.max(20, Math.floor(cols));
     const nextRows = Math.max(10, Math.floor(rows));
+
     if (session.cols === nextCols && session.rows === nextRows) {
       return true;
     }
@@ -807,17 +928,20 @@ export const createSessionRuntime = ({
     session.cols = nextCols;
     session.rows = nextRows;
     session.pty.resize(nextCols, nextRows);
+
     return true;
   };
 
   const releaseSessionKeepAlive = (terminalId: string): boolean => {
     const session = sessions.get(terminalId);
+
     if (!session || session.isClosed) {
       return false;
     }
 
     session.keepAliveWithoutClients = false;
     scheduleIdleCloseIfNeeded(session, terminalId);
+
     return true;
   };
 

@@ -1,7 +1,9 @@
 import type { AgentRuntimeState } from "@adadex/core";
+
 import { StatusBadge, type StatusBadgeTone } from "./ui/StatusBadge";
 
 export type { AgentRuntimeState } from "@adadex/core";
+
 export { isAgentRuntimeState } from "@adadex/core";
 
 type AgentStateBadgeProps = {

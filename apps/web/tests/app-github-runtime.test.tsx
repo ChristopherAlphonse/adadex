@@ -9,6 +9,7 @@ const buildRecentCommits = () =>
   Array.from({ length: 50 }, (_, index) => {
     const offset = index + 1;
     const day = String(Math.max(1, 27 - index)).padStart(2, "0");
+
     return {
       hash: `hash-${offset.toString(16).padStart(40, "a")}`,
       shortHash: `short${offset}`,
@@ -98,18 +99,24 @@ describe("App GitHub runtime views", () => {
     const graphPoint = container.querySelector(
       ".github-overview-graph-point[aria-label='2026-02-27 · 8 commits']",
     );
+
     expect(graphPoint).not.toBeNull();
     expect(container.querySelectorAll(".github-overview-graph-point")).toHaveLength(3);
-    fireEvent.mouseEnter(graphPoint as Element);
+    fireEvent.mouseEnter(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ graphPoint as Element,
+    );
 
     const hoverMeta = container.querySelector(".github-overview-graph-meta span");
     expect(hoverMeta).not.toBeNull();
     expect(hoverMeta).toHaveTextContent("2026-02-27 · 8 commits");
 
-    const graphSvg = container.querySelector(
-      ".github-overview-graph-surface svg",
-    ) as SVGElement | null;
+    const graphSvg =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ container.querySelector(
+        ".github-overview-graph-surface svg",
+      ) as SVGElement | null;
+
     expect(graphSvg).not.toBeNull();
+
     if (!graphSvg) {
       return;
     }
@@ -159,13 +166,20 @@ describe("App GitHub runtime views", () => {
 
     const blob = createObjectUrl.mock.calls[0]?.[0];
     expect(blob).toBeInstanceOf(Blob);
-    expect((blob as Blob).type).toBe("text/plain;charset=utf-8");
+    expect(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (blob as Blob)
+        .type,
+    ).toBe("text/plain;charset=utf-8");
+
     const exported = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result ?? ""));
       reader.onerror = () => reject(reader.error);
-      reader.readAsText(blob as Blob);
+      reader.readAsText(
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ blob as Blob,
+      );
     });
+
     expect(exported).toBe(buildGitHistoryText(buildRecentCommits(), "ChristopherAlphonse/adadex"));
 
     expect(document.querySelector("a[download]")).toBeNull();

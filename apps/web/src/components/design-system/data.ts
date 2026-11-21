@@ -73,10 +73,9 @@ export const CONSOLE_NAV = [
   { n: 1, label: "Agents" },
   { n: 2, label: "Deck" },
   { n: 3, label: "Activity" },
-  { n: 4, label: "Code Intel" },
-  { n: 5, label: "Conversations" },
-  { n: 6, label: "Prompts" },
-  { n: 7, label: "Settings" },
+  { n: 4, label: "Conversations" },
+  { n: 5, label: "Prompts" },
+  { n: 6, label: "Settings" },
 ] as const;
 
 export const CONSOLE_TOOLBAR = [

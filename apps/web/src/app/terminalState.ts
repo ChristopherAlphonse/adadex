@@ -3,6 +3,7 @@ export const retainActiveTerminalIds = (
   activeTerminalIds: ReadonlySet<string>,
 ) => {
   const nextTerminalIds = terminalIds.filter((terminalId) => activeTerminalIds.has(terminalId));
+
   return nextTerminalIds.length === terminalIds.length ? terminalIds : nextTerminalIds;
 };
 
@@ -13,6 +14,7 @@ export const retainActiveTerminalEntries = <TState>(
   const retainedStateEntries = Object.entries(state).filter(([terminalId]) =>
     activeTerminalIds.has(terminalId),
   );
+
   if (retainedStateEntries.length === Object.keys(state).length) {
     return state;
   }

@@ -44,12 +44,41 @@ export const OrchestrationGitActionsDialog = ({
   onCleanupWorktree,
 }: OrchestrationGitActionsDialogProps) => {
   const [isCommitMenuOpen, setIsCommitMenuOpen] = useState(false);
+  const isBusy = isLoading || isMutating;
+  const [wasBusy, setWasBusy] = useState(isBusy);
 
+  // Dismiss the commit menu the moment a git action starts, so no stale options remain visible.
+  if (isBusy !== wasBusy) {
+    setWasBusy(isBusy);
+
+    if (isBusy) setIsCommitMenuOpen(false);
+  }
+
+  // Escape handling lives on the document because a non-interactive section cannot own a
+  // keyboard handler; this also covers focus sitting on any control inside the dialog.
   useEffect(() => {
-    if (isLoading || isMutating) {
-      setIsCommitMenuOpen(false);
-    }
-  }, [isLoading, isMutating]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      if (isCommitMenuOpen) {
+        event.preventDefault();
+        setIsCommitMenuOpen(false);
+
+        return;
+      }
+
+      if (!isMutating) {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCommitMenuOpen, isMutating, onClose]);
 
   const globalDisabledReason = isLoading
     ? "Git lifecycle snapshot is loading."
@@ -60,6 +89,7 @@ export const OrchestrationGitActionsDialog = ({
   const commitDisabledReason =
     globalDisabledReason ??
     (gitCommitMessage.trim().length === 0 ? "Commit blocked: enter a commit message." : null);
+
   const commitAndPushDisabledReason = commitDisabledReason;
 
   const pushDisabledReason =
@@ -73,10 +103,12 @@ export const OrchestrationGitActionsDialog = ({
     (gitStatus?.isDirty ? "Sync blocked: worktree has uncommitted changes." : null);
 
   const hasOpenPullRequest = gitPullRequest?.status === "open";
+
   const canMergePullRequest =
     hasOpenPullRequest &&
     gitPullRequest?.isDraft !== true &&
     gitPullRequest?.mergeable !== "CONFLICTING";
+
   const mergePullRequestDisabledReason =
     globalDisabledReason ??
     (!hasOpenPullRequest
@@ -95,19 +127,6 @@ export const OrchestrationGitActionsDialog = ({
     <section
       aria-label={`Git actions for ${coordinationId}`}
       className="git-actions-dialog"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          if (isCommitMenuOpen) {
-            event.preventDefault();
-            setIsCommitMenuOpen(false);
-            return;
-          }
-          if (!isMutating) {
-            event.preventDefault();
-            onClose();
-          }
-        }
-      }}
       tabIndex={-1}
     >
       <header className="git-actions-header">
@@ -298,6 +317,7 @@ export const OrchestrationGitActionsDialog = ({
                 if (!gitPullRequest?.url) {
                   return;
                 }
+
                 globalThis.open?.(gitPullRequest.url, "_blank", "noopener,noreferrer");
               }}
               size="dense"

@@ -14,5 +14,6 @@ export const useAgentRuntimeStates = (
   columns: TerminalView,
 ): Map<string, AgentRuntimeStateInfo> => {
   const terminalIds = useMemo(() => columns.map((column) => column.terminalId), [columns]);
+
   return useTerminalRuntimeStates(runtimeStateStore, terminalIds);
 };

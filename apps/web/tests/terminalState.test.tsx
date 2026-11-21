@@ -26,6 +26,7 @@ describe("terminalState helpers", () => {
       "orchestration-1": "idle",
       "orchestration-2": "processing",
     };
+
     const activeTerminalIds = new Set(["orchestration-1", "orchestration-2"]);
 
     const nextState = retainActiveTerminalEntries(currentState, activeTerminalIds);
@@ -38,6 +39,7 @@ describe("terminalState helpers", () => {
       "orchestration-1": "idle",
       "orchestration-2": "processing",
     };
+
     const activeTerminalIds = new Set(["orchestration-2"]);
 
     const nextState = retainActiveTerminalEntries(currentState, activeTerminalIds);

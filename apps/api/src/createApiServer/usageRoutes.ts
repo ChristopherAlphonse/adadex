@@ -11,12 +11,14 @@ export const handleUsageHeatmapRoute: ApiRouteHandler = async (
 
   if (request.method !== "GET") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const scope = requestUrl.searchParams.get("scope") === "project" ? "project" : "all";
   const payload = await scanUsageHeatmap(scope);
   writeJson(response, 200, payload, corsOrigin);
+
   return true;
 };
 
@@ -30,10 +32,12 @@ export const handleGithubSummaryRoute: ApiRouteHandler = async (
 
   if (request.method !== "GET") {
     writeMethodNotAllowed(response, corsOrigin);
+
     return true;
   }
 
   const payload = await readGithubRepoSummary();
   writeJson(response, 200, payload, corsOrigin);
+
   return true;
 };

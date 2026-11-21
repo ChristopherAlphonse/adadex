@@ -1,3 +1,5 @@
+import { isFunctionValue, isNumber } from "@adadex/core";
+
 type ReplayViewport = Pick<HTMLElement, "clientHeight" | "scrollHeight" | "scrollTop">;
 
 type ReplayTerminal = {
@@ -17,6 +19,7 @@ const restoreViewportScroll = (
 ) => {
   if (wasNearBottom) {
     viewport.scrollTop = viewport.scrollHeight;
+
     return;
   }
 
@@ -32,6 +35,7 @@ export const replayTerminalHistory = (
   viewport: ReplayViewport | null,
 ) => {
   const previousScrollTop = viewport?.scrollTop ?? 0;
+
   const wasNearBottom =
     viewport !== null
       ? viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <=
@@ -43,11 +47,7 @@ export const replayTerminalHistory = (
   terminal.write(history, () => {
     terminal.clearSelection?.();
 
-    if (
-      typeof terminal.refresh === "function" &&
-      typeof terminal.rows === "number" &&
-      terminal.rows > 0
-    ) {
+    if (isFunctionValue(terminal.refresh) && isNumber(terminal.rows) && terminal.rows > 0) {
       terminal.refresh(0, terminal.rows - 1);
     }
 

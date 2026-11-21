@@ -25,6 +25,7 @@ export const readPromptTemplate = async (
 
   try {
     const content = await readFile(filePath, "utf-8");
+
     return content.trimEnd();
   } catch {
     return undefined;
@@ -41,9 +42,11 @@ export const resolvePrompt = async (
   variables: Record<string, string>,
 ): Promise<string | undefined> => {
   const template = await readPromptTemplate(promptsDir, name);
+
   if (template === undefined) {
     return undefined;
   }
+
   return interpolatePrompt(template, variables);
 };
 
@@ -53,6 +56,7 @@ export const resolvePrompt = async (
 export const listPromptTemplates = async (promptsDir: string): Promise<string[]> => {
   try {
     const entries = await readdir(promptsDir);
+
     return entries.filter((e) => e.endsWith(".md")).map((e) => e.replace(/\.md$/, ""));
   } catch {
     return [];
@@ -83,6 +87,7 @@ export const listAllPrompts = async (
     seen.add(name);
     result.push({ name, source: "user" });
   }
+
   for (const name of builtinNames) {
     if (!seen.has(name)) {
       result.push({ name, source: "builtin" });
@@ -101,13 +106,17 @@ export const readPromptFromDirs = async (
   name: string,
 ): Promise<{ name: string; source: "builtin" | "user"; content: string } | undefined> => {
   const userContent = await readPromptTemplate(userDir, name);
+
   if (userContent !== undefined) {
     return { name, source: "user", content: userContent };
   }
+
   const builtinContent = await readPromptTemplate(builtinDir, name);
+
   if (builtinContent !== undefined) {
     return { name, source: "builtin", content: builtinContent };
   }
+
   return undefined;
 };
 
@@ -124,8 +133,10 @@ export const writeUserPrompt = async (
   if (!VALID_PROMPT_NAME.test(name) || name.includes("..")) {
     return false;
   }
+
   await mkdir(userDir, { recursive: true });
   await writeFile(join(userDir, `${name}.md`), content, "utf-8");
+
   return true;
 };
 
@@ -136,8 +147,10 @@ export const deleteUserPrompt = async (userDir: string, name: string): Promise<b
   if (!VALID_PROMPT_NAME.test(name) || name.includes("..")) {
     return false;
   }
+
   try {
     await rm(join(userDir, `${name}.md`));
+
     return true;
   } catch {
     return false;

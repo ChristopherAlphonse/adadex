@@ -4,6 +4,7 @@ import {
   buildConversationExportUrl,
   buildConversationSessionUrl,
   buildConversationsUrl,
+  buildDeckVaultFileUrl,
   buildGithubSummaryUrl,
   buildOrchestrationGitCommitUrl,
   buildOrchestrationGitPullRequestMergeUrl,
@@ -103,6 +104,15 @@ describe("runtimeEndpoints", () => {
     );
   });
 
+  it("builds Deck vault file URLs with encoded path segments", () => {
+    expect(buildDeckVaultFileUrl("docs & knowledge", "todo.md")).toBe(
+      "/api/deck/coordinations/docs%20%26%20knowledge/files/todo.md",
+    );
+    expect(buildDeckVaultFileUrl("docs", "todo.md", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/deck/coordinations/docs/files/todo.md",
+    );
+  });
+
   it("builds orchestration rename URL on same origin by default", () => {
     expect(buildOrchestrationRenameUrl("orchestration-main")).toBe(
       "/api/coordinations/orchestration-main",
@@ -162,7 +172,7 @@ describe("runtimeEndpoints", () => {
       buildTerminalSocketUrl(
         "orchestration-main",
         undefined,
-        new URL("https://workspace.example.com/dashboard") as unknown as Location,
+        new URL("https://workspace.example.com/dashboard"),
       ),
     ).toBe("wss://workspace.example.com/api/terminals/orchestration-main/ws");
   });
@@ -172,17 +182,14 @@ describe("runtimeEndpoints", () => {
       buildTerminalSocketUrl(
         "orchestration-main",
         "http://127.0.0.1:8787",
-        new URL("https://workspace.example.com/dashboard") as unknown as Location,
+        new URL("https://workspace.example.com/dashboard"),
       ),
     ).toBe("ws://127.0.0.1:8787/api/terminals/orchestration-main/ws");
   });
 
   it("builds same-origin terminal events websocket URL by default", () => {
     expect(
-      buildTerminalEventsSocketUrl(
-        undefined,
-        new URL("https://workspace.example.com/dashboard") as unknown as Location,
-      ),
+      buildTerminalEventsSocketUrl(undefined, new URL("https://workspace.example.com/dashboard")),
     ).toBe("wss://workspace.example.com/api/terminal-events/ws");
   });
 
@@ -190,7 +197,7 @@ describe("runtimeEndpoints", () => {
     expect(
       buildTerminalEventsSocketUrl(
         "http://127.0.0.1:8787",
-        new URL("https://workspace.example.com/dashboard") as unknown as Location,
+        new URL("https://workspace.example.com/dashboard"),
       ),
     ).toBe("ws://127.0.0.1:8787/api/terminal-events/ws");
   });

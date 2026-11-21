@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { isNumber, isParsedRecord, isString } from "@adadex/core";
+
 export type RuntimeMetadata = {
   apiBaseUrl: string;
   host: string;
@@ -12,30 +14,29 @@ export type RuntimeMetadata = {
 
 const RUNTIME_METADATA_FILENAME = "runtime.json";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
-
 export const resolveRuntimeMetadataPath = (projectStateDir: string) =>
   join(projectStateDir, "state", RUNTIME_METADATA_FILENAME);
 
 export const readRuntimeMetadata = (projectStateDir: string): RuntimeMetadata | null => {
   const filePath = resolveRuntimeMetadataPath(projectStateDir);
+
   if (!existsSync(filePath)) {
     return null;
   }
 
   try {
-    const parsed = JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+    const parsed: unknown = JSON.parse(readFileSync(filePath, "utf8"));
+
     if (
-      !isRecord(parsed) ||
-      typeof parsed.apiBaseUrl !== "string" ||
-      typeof parsed.host !== "string" ||
-      typeof parsed.port !== "number" ||
+      !isParsedRecord(parsed) ||
+      !isString(parsed.apiBaseUrl) ||
+      !isString(parsed.host) ||
+      !isNumber(parsed.port) ||
       !Number.isFinite(parsed.port) ||
-      typeof parsed.pid !== "number" ||
+      !isNumber(parsed.pid) ||
       !Number.isFinite(parsed.pid) ||
-      typeof parsed.startedAt !== "string" ||
-      typeof parsed.workspaceCwd !== "string"
+      !isString(parsed.startedAt) ||
+      !isString(parsed.workspaceCwd)
     ) {
       return null;
     }
@@ -61,6 +62,7 @@ export const writeRuntimeMetadata = (projectStateDir: string, metadata: RuntimeM
 
 export const clearRuntimeMetadata = (projectStateDir: string) => {
   const filePath = resolveRuntimeMetadataPath(projectStateDir);
+
   if (!existsSync(filePath)) {
     return;
   }

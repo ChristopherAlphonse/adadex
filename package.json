@@ -1,6 +1,6 @@
 {
   "name": "adadex",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "description": "Web-first command surface for running multiple coding agents in parallel",
   "license": "MIT",
   "type": "module",
@@ -24,8 +24,9 @@
     "dev": "node scripts/dev.mjs",
     "build": "npm run build --workspace=@adadex/web && npm exec --workspace=@adadex/web -- vite build --config vite.api.bundle.config.mts && node scripts/build-package.mjs",
     "test": "npm run test --workspaces --if-present",
-    "lint": "biome check .",
-    "format": "biome format --write .",
+    "lint": "oxlint && oxfmt --check",
+    "format": "oxfmt",
+    "posters": "tsx scripts/generate-mascot-posters.mts",
     "prepare": "husky",
     "postinstall": "patch-package"
   },
@@ -34,12 +35,15 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
+    "@oxlint/plugins": "1.94.0",
     "@types/node": "^26.0.0",
     "husky": "^9.1.7",
     "knip": "^6.15.0",
     "lint-staged": "^17.0.5",
+    "oxfmt": "0.79.0",
+    "oxlint": "1.94.0",
     "patch-package": "8.0.1",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vitest": "^4.1.12"
   }

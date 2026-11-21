@@ -1,16 +1,77 @@
 export * from "./adapters/InMemoryTerminalSnapshotReader";
+
+export * from "./application/actionRegistry";
+
+export * from "./application/advanceJob";
+
 export * from "./application/buildTerminalList";
+
+export * from "./application/editWorkflow";
+
+export * from "./application/evaluatePolicy";
+
+export * from "./application/evaluateToolCall";
+
+export * from "./application/parseRole";
+
+export * from "./application/parseWorkflow";
+
+export * from "./application/planTick";
+
+export * from "./application/resolveSkills";
+
+export * from "./application/roleEnforcement";
+
+export * from "./application/runAgent";
+
+export * from "./application/workflowGraph";
+
+export * from "./domain/action";
+
 export * from "./domain/agentRuntime";
+
 export * from "./domain/channel";
+
 export * from "./domain/completionSound";
+
 export * from "./domain/conversation";
+
 export * from "./domain/deck";
+
 export * from "./domain/git";
+
 export * from "./domain/legacyProductKeys";
+
+export * from "./domain/policy";
+
+export * from "./domain/protectedPaths";
+
+export * from "./domain/role";
+
 export * from "./domain/runtimeLayout";
+
 export * from "./domain/setup";
+
 export * from "./domain/terminal";
+
 export * from "./domain/uiState";
+
 export * from "./domain/usage";
+
+export * from "./domain/workflow";
+
+export * from "./ports/ActionPorts";
+
+export * from "./ports/AgentProvider";
+
+export * from "./ports/SkillCatalog";
+
 export * from "./ports/TerminalSnapshotReader";
+
+export * from "./presets";
+
+export * from "./presets/defaultPolicy";
+
+export * from "./presets/roles";
+
 export * from "./util/typeCoercion";

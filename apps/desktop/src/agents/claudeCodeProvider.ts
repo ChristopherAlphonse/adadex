@@ -1,0 +1,211 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createInterface } from "node:readline";
+
+import type {
+  ActionOutcome,
+  AgentEvent,
+  AgentProvider,
+  AgentRunRequest,
+  AgentSession,
+} from "@adadex/core";
+import { isString } from "@adadex/core";
+
+import { createAsyncQueue } from "./asyncQueue";
+import { type BridgeHost, startBridgeHost } from "./bridgeHost";
+import { type GuardDecide, type GuardHost, guardSettings, startGuardHost } from "./guardHost";
+
+/** The few things the provider needs from a child process, so tests can fake it. */
+export interface AgentChild {
+  readonly stdout: NodeJS.ReadableStream;
+  onExit(cb: (code: number | null) => void): void;
+  kill(): void;
+}
+
+export type SpawnAgent = (command: string, args: readonly string[], cwd: string) => AgentChild;
+
+export interface ClaudeCodeOptions {
+  readonly spawn: SpawnAgent;
+  /** Path to the `claude` executable. */
+  readonly command: string;
+  /** Absolute path to `mcp-bridge.mjs`. */
+  readonly bridgePath: string;
+  readonly cwd: string;
+  /** Extra Claude Code flags the caller wants, such as `--settings <file>` to install the guard hooks. */
+  readonly extraArgs?: readonly string[];
+  /** Tools the agent may use besides the adadex tool. Empty by default: the agent can only call actions. */
+  readonly allowedTools?: readonly string[];
+  readonly tempDir?: () => Promise<string>;
+  /**
+   * Judges every tool call the agent makes, through a PreToolUse hook. Required whenever `allowedTools` lets the
+   * agent use its own tools, so a shell or editor is never available without the policy in front of it.
+   */
+  readonly guard?: {
+    readonly decide: GuardDecide;
+    readonly hookPath: string;
+    readonly timeoutSeconds?: number;
+  };
+}
+
+export const ADADEX_TOOL = "mcp__adadex__adadex_action";
+
+const INSTRUCTIONS =
+  "You work through the adadex app. To move a job or run a gate, call the adadex_action tool. " +
+  "Some actions need a person to click. When the result says needs-human-click, say so and stop.";
+
+export const buildPrompt = (request: AgentRunRequest): string =>
+  [
+    request.goal,
+    request.contextFiles.length > 0
+      ? `\nRead these files first for context:\n${request.contextFiles.map((f) => `- ${f}`).join("\n")}`
+      : "",
+  ].join("");
+
+const outcomeText = (outcome: ActionOutcome) => ({
+  text: JSON.stringify(outcome),
+  isError: outcome.status !== "ok",
+});
+
+/** An assistant text block whose type and content were checked while reading the stream. */
+interface MessageTextContent {
+  readonly type?: string;
+  readonly text: string;
+}
+
+/** Reads Claude Code's stream-json lines and turns them into agent events. */
+export const eventsFromLine = (line: string): AgentEvent[] => {
+  let msg: {
+    type?: string;
+    message?: { content?: { type?: string; text?: string }[] };
+    result?: string;
+  };
+
+  try {
+    msg = JSON.parse(line);
+  } catch {
+    return [];
+  }
+
+  if (msg.type === "assistant") {
+    const content = msg.message?.content ?? [];
+
+    return content
+      .filter(
+        (c): c is MessageTextContent => c.type === "text" && isString(c.text) && c.text !== "",
+      )
+      .map((c): AgentEvent => ({ type: "message", text: c.text }));
+  }
+
+  if (msg.type === "result")
+    return [{ type: "done", summary: isString(msg.result) ? msg.result : "" }];
+
+  return [];
+};
+
+/**
+ * Runs Claude Code headless. Its own tools are off unless the caller allows them, and every workflow
+ * action goes through one MCP tool back to the app, so the registry and policy decide.
+ */
+export const createClaudeCodeProvider = (options: ClaudeCodeOptions): AgentProvider => ({
+  id: "claude-code",
+  async start(request): Promise<AgentSession> {
+    const dir = await (options.tempDir ?? (() => mkdtemp(join(tmpdir(), "adadex-agent-"))))();
+    await mkdir(dir, { recursive: true });
+    const socketPath = join(dir, "bridge.sock");
+    const configPath = join(dir, "mcp.json");
+    const queue = createAsyncQueue<AgentEvent>();
+
+    const host: BridgeHost = await startBridgeHost(socketPath, (call) =>
+      queue.push({
+        type: "action",
+        callId: call.callId,
+        actionId: call.actionId,
+        input: call.input,
+      }),
+    );
+
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        mcpServers: {
+          adadex: { command: process.execPath, args: [options.bridgePath, socketPath] },
+        },
+      }),
+    );
+
+    if ((options.allowedTools?.length ?? 0) > 0 && !options.guard) {
+      await host.close();
+      await rm(dir, { recursive: true, force: true });
+      throw new Error(
+        "allowedTools needs a guard: an agent's own tools must go through the policy",
+      );
+    }
+
+    let guardHost: GuardHost | undefined;
+    const guardArgs: string[] = [];
+
+    if (options.guard) {
+      const guardSocket = join(dir, "guard.sock");
+      guardHost = await startGuardHost(guardSocket, options.guard.decide);
+      const settingsPath = join(dir, "settings.json");
+      await writeFile(
+        settingsPath,
+        JSON.stringify(
+          guardSettings(options.guard.hookPath, guardSocket, options.guard.timeoutSeconds ?? 600),
+        ),
+      );
+      guardArgs.push("--settings", settingsPath);
+    }
+
+    const args = [
+      "-p",
+      buildPrompt(request),
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--mcp-config",
+      configPath,
+      "--strict-mcp-config",
+      "--allowedTools",
+      [ADADEX_TOOL, ...(options.allowedTools ?? [])].join(","),
+      "--append-system-prompt",
+      INSTRUCTIONS,
+      ...guardArgs,
+      ...(options.extraArgs ?? []),
+    ];
+
+    const child = options.spawn(options.command, args, options.cwd);
+
+    let sawDone = false;
+    createInterface({ input: child.stdout }).on("line", (line) => {
+      for (const event of eventsFromLine(line)) {
+        if (event.type === "done") sawDone = true;
+        queue.push(event);
+      }
+    });
+    child.onExit(() => {
+      if (!sawDone) queue.push({ type: "done", summary: "" });
+      queue.close();
+    });
+
+    let stopped = false;
+
+    return {
+      events: () => queue,
+      async respond(callId, outcome) {
+        const { text, isError } = outcomeText(outcome);
+        host.reply(callId, text, isError);
+      },
+      async stop() {
+        if (stopped) return;
+        stopped = true;
+        child.kill();
+        queue.close();
+        await host.close();
+        await guardHost?.close();
+        await rm(dir, { recursive: true, force: true });
+      },
+    };
+  },
+});

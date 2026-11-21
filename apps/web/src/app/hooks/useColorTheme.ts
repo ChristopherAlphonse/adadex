@@ -30,6 +30,7 @@ export const useColorTheme = (): UseColorThemeResult => {
     setColorThemeState((current) => {
       const next: ColorTheme = current === "dark" ? "light" : "dark";
       writeColorThemePreference(next);
+
       return next;
     });
   }, []);

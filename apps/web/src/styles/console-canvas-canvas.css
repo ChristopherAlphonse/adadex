@@ -228,7 +228,7 @@
   align-items: stretch;
   gap: 2px;
   padding: 4px;
-  border: 1px solid #2b2f36;
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: #0d1017ee;
   backdrop-filter: blur(6px);
@@ -346,7 +346,7 @@
   width: 1px;
   align-self: stretch;
   margin: 4px 2px;
-  background: #2b2f36;
+  background: var(--border);
 }
 
 /* ─── Force tuner panel (top-left) ─────────────────────────────────────────── */
@@ -382,7 +382,7 @@
   z-index: 10;
   width: 240px;
   padding: 10px 12px;
-  border: 1px solid #2b2f36;
+  border: 1px solid var(--border);
   border-radius: 6px;
   background: #0d1017ee;
   display: flex;
@@ -600,7 +600,7 @@
     color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
     color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
   );
-  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--border) 35%, transparent);
   color: #121212;
   user-select: none;
 }
@@ -844,7 +844,7 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.3rem 0.45rem;
-  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--border) 35%, transparent);
   color: #121212;
   user-select: none;
   flex-shrink: 0;
@@ -1360,14 +1360,14 @@
 }
 
 .delete-all-toggle-switch[aria-checked="true"] {
-  border-color: color-mix(in srgb, var(--accent-primary) 60%, #333333);
-  background: color-mix(in srgb, var(--accent-primary) 12%, #0a0a0a);
+  border-color: color-mix(in srgb, var(--accent-primary) 60%, var(--border));
+  background: color-mix(in srgb, var(--accent-primary) 12%, var(--surface));
 }
 
 .delete-all-toggle-switch[aria-checked="true"] .delete-all-toggle-thumb {
   transform: translateX(1.08rem);
   background: var(--accent-primary);
-  border-color: color-mix(in srgb, var(--accent-primary) 80%, #3a3526);
+  border-color: color-mix(in srgb, var(--accent-primary) 80%, var(--border));
 }
 
 .delete-all-details div {
@@ -1387,7 +1387,7 @@
   border: 1px solid var(--accent-primary);
   background: #000000;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-primary) 30%, #000000),
+    0 0 0 1px color-mix(in srgb, var(--accent-primary) 30%, var(--surface)),
     0 0 16px color-mix(in srgb, var(--accent-primary) 12%, transparent);
 }
 
@@ -1397,7 +1397,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.42rem 0.56rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 50%, #1a1a1a);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 50%, var(--border));
   background: var(--accent-primary);
 }
 
@@ -1437,8 +1437,8 @@
 
 .delete-confirm-warning {
   margin: 0;
-  border: 1px solid color-mix(in srgb, #ff4444 40%, #333333);
-  background: color-mix(in srgb, #ff4444 8%, #0a0000);
+  border: 1px solid color-mix(in srgb, #ff4444 40%, var(--border));
+  background: color-mix(in srgb, #ff4444 8%, var(--surface));
   color: #ff6b6b;
   padding: 0.32rem 0.42rem;
   text-transform: uppercase;
@@ -1451,7 +1451,7 @@
   margin: 0;
   display: grid;
   gap: 0;
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, #1a1a1a);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border));
   background: #050505;
 }
 
@@ -1460,7 +1460,7 @@
   align-items: baseline;
   gap: 0.5rem;
   padding: 0.3rem 0.42rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 16%, #1a1a1a);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 16%, var(--border));
 }
 
 .delete-confirm-details div:last-child {
@@ -1500,7 +1500,7 @@
 }
 
 .delete-confirm-typed-check input {
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, #1a1a1a);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, var(--border));
   background: #050505;
   color: #ffffff;
   font-family: var(--font-main);
@@ -1535,7 +1535,7 @@
   border: 1px solid var(--accent-primary);
   background: #000000;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-primary) 30%, #000000),
+    0 0 0 1px color-mix(in srgb, var(--accent-primary) 30%, var(--surface)),
     0 0 16px color-mix(in srgb, var(--accent-primary) 12%, transparent);
 }
 
@@ -1545,7 +1545,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.42rem 0.56rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 50%, #1a1a1a);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 50%, var(--border));
   background: var(--accent-primary);
 }
 
@@ -1567,9 +1567,9 @@
 }
 
 .git-actions-worktree-badge {
-  border-color: color-mix(in srgb, var(--accent-primary) 60%, #333333);
-  background: color-mix(in srgb, var(--accent-primary) 80%, #1a1a1a);
-  color: #000000;
+  border-color: color-mix(in srgb, var(--accent-primary) 60%, var(--border));
+  background: color-mix(in srgb, var(--accent-primary) 80%, var(--surface));
+  color: var(--background);
 }
 
 .git-actions-body {
@@ -1601,7 +1601,7 @@
   margin: 0;
   display: grid;
   gap: 0;
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, #1a1a1a);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border));
   background: #050505;
 }
 
@@ -1610,7 +1610,7 @@
   align-items: baseline;
   gap: 0.5rem;
   padding: 0.3rem 0.42rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 16%, #1a1a1a);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 16%, var(--border));
 }
 
 .git-actions-status div:last-child {
@@ -1655,7 +1655,7 @@
 }
 
 .git-actions-metric-separator {
-  color: color-mix(in srgb, var(--accent-primary) 50%, #666666);
+  color: color-mix(in srgb, var(--accent-primary) 50%, var(--surface));
 }
 
 .git-actions-commit-label {
@@ -1674,13 +1674,13 @@
 .git-actions-commit-panel {
   display: grid;
   gap: 0.3rem;
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, #1a1a1a);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border));
   background: #050505;
   padding: 0.32rem 0.38rem;
 }
 
 .git-actions-message-input {
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, #1a1a1a);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border));
   background: #000000;
   color: #ffffff;
   font-family: var(--font-main);
@@ -1707,9 +1707,9 @@
 .console-shell .git-actions-commit-main.action-button {
   width: 100%;
   border-right: 0;
-  --action-button-border: color-mix(in srgb, var(--accent-primary) 70%, #333333);
-  --action-button-bg: color-mix(in srgb, var(--accent-primary) 82%, #1a1a1a);
-  --action-button-color: #000000;
+  --action-button-border: color-mix(in srgb, var(--accent-primary) 70%, var(--border));
+  --action-button-bg: color-mix(in srgb, var(--accent-primary) 82%, var(--surface));
+  --action-button-color: var(--background);
 }
 
 .console-shell .git-actions-commit-main.action-button:hover:not(:disabled) {
@@ -1717,10 +1717,10 @@
 }
 
 .git-actions-commit-toggle {
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 70%, #333333);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 70%, var(--border));
   border-left: 0;
-  background: color-mix(in srgb, var(--accent-primary) 82%, #1a1a1a);
-  color: #000000;
+  background: color-mix(in srgb, var(--accent-primary) 82%, var(--surface));
+  color: var(--background);
   font-family: var(--font-main);
   font-size: 0.7rem;
   letter-spacing: 0.06em;
@@ -1742,7 +1742,7 @@
   left: 0;
   right: 0;
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 45%, #1a1a1a);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 45%, var(--border));
   background: #050505;
   box-shadow: 0 0 0 1px #000000;
   z-index: 2;
@@ -1751,7 +1751,7 @@
 
 .git-actions-commit-menu-item {
   border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 16%, #1a1a1a);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 16%, var(--border));
   background: transparent;
   color: var(--accent-primary);
   font-family: var(--font-main);
@@ -1768,7 +1768,7 @@
 }
 
 .git-actions-commit-menu-item:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent-primary) 12%, #000000);
+  background: color-mix(in srgb, var(--accent-primary) 12%, var(--surface));
 }
 
 .git-actions-commit-menu-item:disabled {
@@ -1781,7 +1781,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: 0.44rem;
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, #1a1a1a);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border));
   background: #050505;
   padding: 0.32rem 0.38rem;
 }
@@ -1826,7 +1826,7 @@
 .git-actions-pr-section {
   display: grid;
   gap: 0.38rem;
-  border-top: 1px solid color-mix(in srgb, var(--accent-primary) 20%, #1a1a1a);
+  border-top: 1px solid color-mix(in srgb, var(--accent-primary) 20%, var(--border));
   margin-top: 0.22rem;
   padding-top: 0.52rem;
 }
@@ -1863,7 +1863,7 @@
 }
 
 .git-actions-pr-body-input {
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, #1a1a1a);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border));
   background: #000000;
   color: #ffffff;
   font-family: var(--font-main);
@@ -1888,8 +1888,8 @@
 
 .git-actions-error {
   margin: 0;
-  border: 1px solid color-mix(in srgb, #ff4444 40%, #333333);
-  background: color-mix(in srgb, #ff4444 8%, #0a0000);
+  border: 1px solid color-mix(in srgb, #ff4444 40%, var(--border));
+  background: color-mix(in srgb, #ff4444 8%, var(--surface));
   color: #ff6b6b;
   padding: 0.38rem 0.42rem;
   text-transform: uppercase;

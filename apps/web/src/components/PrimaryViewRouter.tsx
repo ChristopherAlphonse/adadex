@@ -3,9 +3,9 @@ import type { ComponentProps, ReactNode } from "react";
 import type { PrimaryNavIndex } from "../app/constants";
 import { ActivityPrimaryView } from "./ActivityPrimaryView";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
-import { CodeIntelPrimaryView } from "./CodeIntelPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
+import { FactoryPrimaryView } from "./factory/FactoryPrimaryView";
 import { PromptsPrimaryView } from "./PromptsPrimaryView";
 import { SettingsPrimaryView } from "./SettingsPrimaryView";
 
@@ -15,6 +15,7 @@ type PrimaryViewRouterProps = {
   activityPrimaryViewProps: ComponentProps<typeof ActivityPrimaryView>;
   settingsPrimaryViewProps: ComponentProps<typeof SettingsPrimaryView>;
   canvasPrimaryViewProps: ComponentProps<typeof CanvasPrimaryView>;
+  factoryPrimaryViewProps: ComponentProps<typeof FactoryPrimaryView>;
   conversationsEnabled: boolean;
   onConversationsSidebarContent: (content: ReactNode) => void;
   onConversationsActionPanel: (content: ReactNode) => void;
@@ -28,6 +29,7 @@ export const PrimaryViewRouter = ({
   activityPrimaryViewProps,
   settingsPrimaryViewProps,
   canvasPrimaryViewProps,
+  factoryPrimaryViewProps,
   conversationsEnabled,
   onConversationsSidebarContent,
   onConversationsActionPanel,
@@ -43,10 +45,6 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 4) {
-    return <CodeIntelPrimaryView enabled={activePrimaryNav === 4} />;
-  }
-
-  if (activePrimaryNav === 5) {
     return (
       <ConversationsPrimaryView
         enabled={conversationsEnabled}
@@ -56,14 +54,18 @@ export const PrimaryViewRouter = ({
     );
   }
 
-  if (activePrimaryNav === 6) {
+  if (activePrimaryNav === 5) {
     return (
       <PromptsPrimaryView enabled={promptsEnabled} onSidebarContent={onPromptsSidebarContent} />
     );
   }
 
-  if (activePrimaryNav === 7) {
+  if (activePrimaryNav === 6) {
     return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
+  }
+
+  if (activePrimaryNav === 7) {
+    return <FactoryPrimaryView {...factoryPrimaryViewProps} />;
   }
 
   return <CanvasPrimaryView {...canvasPrimaryViewProps} />;

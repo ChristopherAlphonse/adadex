@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+
 export class MockWebSocket {
   static instances = [];
   url;
@@ -19,16 +20,19 @@ export class MockWebSocket {
   }
   emit(type, data) {
     const event = { data };
+
     for (const listener of this.listeners.get(type) ?? []) {
       listener(event);
     }
   }
 }
+
 export const resetAppTestHarness = () => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   MockWebSocket.instances = [];
 };
+
 export const jsonResponse = (payload, status = 200) =>
   new Response(JSON.stringify(payload), {
     status,
@@ -36,4 +40,5 @@ export const jsonResponse = (payload, status = 200) =>
       "Content-Type": "application/json",
     },
   });
+
 export const notFoundResponse = () => new Response("not-found", { status: 404 });

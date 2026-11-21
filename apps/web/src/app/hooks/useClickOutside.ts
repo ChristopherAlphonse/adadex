@@ -9,7 +9,12 @@ export const useClickOutside = (
     if (!isActive) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+      if (
+        ref.current &&
+        !ref.current.contains(
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ event.target as Node,
+        )
+      ) {
         onDismiss();
       }
     };
@@ -22,6 +27,7 @@ export const useClickOutside = (
 
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);

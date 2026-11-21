@@ -34,6 +34,7 @@ export const AdadexConsoleHeader = (): React.ReactElement => (
     <nav className="mx-6 hidden h-full flex-1 items-center justify-center gap-1 lg:flex">
       {CONSOLE_NAV.map((item) => {
         const active = item.n === 1;
+
         return (
           <button
             key={item.n}
@@ -62,7 +63,7 @@ export const AdadexConsoleHeader = (): React.ReactElement => (
 
     <div className="ml-auto flex shrink-0 items-center gap-2">
       <div className="hidden items-center gap-3 pr-1 xl:flex">
-        <Meter label="Kiro" value={30} />
+        <Meter label="Session" value={30} />
         <Meter label="Weekly" value={7} muted />
       </div>
     </div>

@@ -1,22 +1,24 @@
 /* Scoped theme for the design-system console (apps/design.md tokens). */
 .design-console {
-  --background: oklch(0.16 0.005 264);
-  --foreground: oklch(0.96 0.003 247);
-  --surface: oklch(0.19 0.006 264);
-  --surface-2: oklch(0.22 0.007 264);
-  --muted-foreground: oklch(0.65 0.012 264);
-  --border: oklch(0.28 0.008 264);
-  --brand: oklch(0.82 0.18 138);
-  --primary: oklch(0.82 0.18 138);
-  --running: oklch(0.82 0.18 138);
-  --stopped: oklch(0.72 0.17 50);
-  --stale: oklch(0.78 0.15 70);
-  --idle: oklch(0.55 0.01 264);
-  --destructive: oklch(0.65 0.22 25);
-  --terminal-bg: oklch(0.14 0.008 264);
-  --terminal-fg: oklch(0.94 0.003 247);
+  --background: #0f0f0f;
+  --foreground: #ececec;
+  --surface: #191919;
+  --surface-2: #232323;
+  --muted-foreground: #8b8b8b;
+  --border: rgba(255, 255, 255, 0.1);
+  --brand: #4ade80;
+  --primary: #4ade80;
+  --running: #4ade80;
+  --stopped: #f5a66b;
+  --stale: #f0c36b;
+  --idle: #5c5c5c;
+  --destructive: #f28b8b;
+  --accent-2: #a78bfa;
+  --accent-2-soft: rgba(167, 139, 250, 0.14);
+  --terminal-bg: #0f0f0f;
+  --terminal-fg: #ececec;
   --terminal-cursor: var(--brand);
-  --grid-dot: oklch(1 0 0 / 0.05);
+  --grid-dot: rgba(255, 255, 255, 0.05);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -37,6 +39,8 @@
   --bg-surface-1: var(--surface);
   --bg-surface-2: var(--surface-2);
   --border-subtle: var(--border);
+  --control-bg-strong: var(--surface-2);
+  --control-border-strong: var(--border);
   --text-primary: var(--foreground);
   --text-secondary: var(--muted-foreground);
   --text-muted: var(--muted-foreground);
@@ -52,29 +56,34 @@
   --sidebar-border-strong: var(--border);
   --sidebar-text-muted: var(--muted-foreground);
 
+  --r-card: 20px;
+  --r-ctl: 12px;
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.035) inset, 0 12px 32px -20px rgba(0, 0, 0, 0.95);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   background: var(--background);
   color: var(--foreground);
 }
 
 .design-console.light {
-  --background: oklch(0.98 0.004 264);
-  --foreground: oklch(0.2 0.012 264);
-  --surface: oklch(0.96 0.005 264);
-  --surface-2: oklch(0.93 0.006 264);
-  --muted-foreground: oklch(0.48 0.014 264);
-  --border: oklch(0.88 0.008 264);
-  --brand: oklch(0.52 0.16 140);
-  --primary: oklch(0.52 0.16 140);
-  --running: oklch(0.52 0.16 140);
-  --stopped: oklch(0.58 0.17 50);
-  --stale: oklch(0.62 0.14 70);
-  --idle: oklch(0.58 0.01 264);
-  --destructive: oklch(0.55 0.22 25);
-  --terminal-bg: oklch(0.99 0.002 264);
-  --terminal-fg: oklch(0.22 0.012 264);
+  --background: #f3f3f1;
+  --foreground: #161616;
+  --surface: #ffffff;
+  --surface-2: #ebebe8;
+  --muted-foreground: #595959;
+  --border: rgba(0, 0, 0, 0.15);
+  --brand: #157a3a;
+  --primary: #157a3a;
+  --running: #157a3a;
+  --stopped: #b5541a;
+  --stale: #946000;
+  --idle: #666666;
+  --destructive: #c94a4a;
+  --accent-2: #6d4fd6;
+  --accent-2-soft: rgba(109, 79, 214, 0.1);
+  --terminal-bg: #ffffff;
+  --terminal-fg: #161616;
   --terminal-cursor: var(--brand);
-  --grid-dot: oklch(0 0 0 / 0.08);
+  --grid-dot: rgba(0, 0, 0, 0.08);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -94,6 +103,8 @@
   --bg-surface-1: var(--surface);
   --bg-surface-2: var(--surface-2);
   --border-subtle: var(--border);
+  --control-bg-strong: var(--surface-2);
+  --control-border-strong: var(--border);
   --text-primary: var(--foreground);
   --text-secondary: var(--muted-foreground);
   --text-muted: var(--muted-foreground);

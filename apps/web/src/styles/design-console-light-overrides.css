@@ -1,20 +1,20 @@
 /* Final light-theme pass for legacy console modules loaded after design-console-theme.css. */
 html.adadex-theme-light {
-  --background: oklch(0.98 0.004 264);
-  --foreground: oklch(0.2 0.012 264);
-  --surface: oklch(0.96 0.005 264);
-  --surface-2: oklch(0.93 0.006 264);
-  --muted-foreground: oklch(0.48 0.014 264);
-  --border: oklch(0.88 0.008 264);
-  --brand: oklch(0.52 0.16 140);
+  --background: #f3f3f1;
+  --foreground: #161616;
+  --surface: #ffffff;
+  --surface-2: #ebebe8;
+  --muted-foreground: #595959;
+  --border: rgba(0, 0, 0, 0.15);
+  --brand: #157a3a;
   --primary: var(--brand);
   --running: var(--brand);
-  --stopped: oklch(0.58 0.17 50);
-  --stale: oklch(0.62 0.14 70);
-  --idle: oklch(0.58 0.01 264);
-  --destructive: oklch(0.55 0.22 25);
-  --terminal-bg: oklch(0.99 0.002 264);
-  --terminal-fg: oklch(0.22 0.012 264);
+  --stopped: #b5541a;
+  --stale: #946000;
+  --idle: #666666;
+  --destructive: #c94a4a;
+  --terminal-bg: #ffffff;
+  --terminal-fg: #161616;
   --terminal-cursor: var(--brand);
   --bg-canvas: var(--background);
   --bg-surface-1: var(--surface);
@@ -63,7 +63,6 @@ html.adadex-theme-light {
   :is(
     .activity-view,
     .github-view,
-    .code-intel-view,
     .settings-view,
     .conversations-view,
     .prompts-view,
@@ -84,9 +83,6 @@ html.adadex-theme-light {
     .github-overview,
     .github-overview-graph,
     .github-overview-graph-surface,
-    .code-intel-view-header,
-    .code-intel-panel,
-    .code-intel-tooltip,
     .settings-panel,
     .settings-sound-option,
     .settings-saved-pill,
@@ -127,10 +123,6 @@ html.adadex-theme-light {
     .github-overview-header h2,
     .github-overview-stat dd,
     .github-overview-commit-subject,
-    .code-intel-panel-header h2,
-    .code-intel-treemap-label,
-    .code-intel-tooltip-path,
-    .code-intel-arc-label--active,
     .settings-panel-header h2,
     .conversations-header-copy h2,
     .conversations-transcript-header h3,
@@ -157,12 +149,6 @@ html.adadex-theme-light {
     .github-overview-graph-x-label,
     .github-overview-commit-meta,
     .github-overview-commit-sha,
-    .code-intel-stat,
-    .code-intel-stat-label,
-    .code-intel-panel-header p,
-    .code-intel-empty,
-    .code-intel-arc-label,
-    .code-intel-tooltip-coupling-partner,
     .settings-panel-header p,
     .settings-sound-option-description,
     .settings-saved-pill,
@@ -240,4 +226,222 @@ html.adadex-theme-light {
 
 .design-console.light .deck-add-form-color-swatch[data-selected="true"] {
   border-color: var(--foreground);
+}
+
+/* Recent commits (GitHub view): base styles hardcode dark colors, so restyle for light. */
+.design-console.light .github-overview-recent {
+  border-color: var(--border);
+  background: var(--surface-2);
+  --github-commit-chain-color: color-mix(in srgb, var(--brand) 55%, var(--border));
+}
+
+.design-console.light .github-overview-recent-header h3 {
+  color: color-mix(in srgb, var(--stale) 80%, var(--foreground));
+}
+
+.design-console.light .github-overview-recent-header span,
+.design-console.light .github-overview-recent-empty {
+  color: var(--muted-foreground);
+}
+
+.design-console.light .github-overview-recent-item {
+  border-bottom-color: var(--border);
+}
+
+.design-console.light .github-overview-recent-item:hover,
+.design-console.light .github-overview-recent-item:focus-visible {
+  background: color-mix(in srgb, var(--brand) 8%, var(--surface-2));
+}
+
+.design-console.light .github-overview-recent-item:focus-visible {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 54%, var(--border));
+}
+
+.design-console.light .github-overview-recent-item.is-selected {
+  background: color-mix(in srgb, var(--brand) 13%, var(--surface-2));
+}
+
+.design-console.light .github-overview-recent-item.is-selected .github-overview-recent-node {
+  background: color-mix(in srgb, var(--brand) 72%, var(--surface-2));
+  border-color: var(--brand);
+}
+
+.design-console.light .github-overview-recent-node {
+  background: color-mix(in srgb, var(--brand) 42%, var(--surface-2));
+  box-shadow: 0 0 0 2px var(--surface-2);
+}
+
+.design-console.light .github-overview-recent-sha {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.design-console.light .github-overview-recent-subject {
+  color: var(--brand);
+}
+
+.design-console.light .github-overview-recent-meta {
+  color: var(--muted-foreground);
+}
+
+.design-console.light .github-overview-recent-tooltip {
+  border-color: color-mix(in srgb, var(--brand) 46%, var(--border));
+  background: var(--background);
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.14);
+}
+
+.design-console.light .github-overview-recent-tooltip-hash,
+.design-console.light .github-overview-recent-tooltip-message {
+  color: var(--foreground);
+}
+
+.design-console.light .github-overview-recent-tooltip-author,
+.design-console.light .github-overview-recent-tooltip-copy {
+  color: var(--muted-foreground);
+}
+
+.design-console.light .github-overview-recent-tooltip-copy:hover {
+  color: var(--brand);
+}
+
+.design-console.light .github-overview-recent-tooltip-diff {
+  color: var(--muted-foreground);
+  border-top-color: var(--border);
+}
+
+.design-console.light .github-overview-recent-tooltip-ins {
+  color: oklch(0.52 0.16 145);
+}
+
+.design-console.light .github-overview-recent-tooltip-del {
+  color: var(--destructive);
+}
+
+/* Orchestration detail panel: base styles hardcode dark-theme text and surfaces. */
+.design-console.light .detail-name,
+.design-console.light .detail-value,
+.design-console.light .detail-todo,
+.design-console.light .detail-todo-edit-input,
+.design-console.light .detail-session-item,
+.design-console.light .detail-action-btn {
+  color: var(--foreground);
+}
+
+.design-console.light .detail-label,
+.design-console.light .detail-value--mono,
+.design-console.light .detail-section-title,
+.design-console.light .detail-progress-label,
+.design-console.light .detail-label-tag,
+.design-console.light .detail-empty,
+.design-console.light .detail-session-meta,
+.design-console.light .detail-todo-add-btn {
+  color: var(--muted-foreground);
+}
+
+.design-console.light .detail-section {
+  border-top-color: var(--border);
+}
+
+.design-console.light .detail-progress-bar {
+  background: var(--border);
+}
+
+.design-console.light .detail-todo:hover {
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+
+.design-console.light .detail-todo-edit-input,
+.design-console.light .detail-session-item,
+.design-console.light .detail-action-btn {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.design-console.light .detail-session-item:hover,
+.design-console.light .detail-action-btn:hover {
+  background: var(--surface-2);
+}
+
+.design-console.light .detail-session-item:hover {
+  border-color: var(--border);
+}
+
+.design-console.light .detail-action-btn:hover,
+.design-console.light .detail-todo-add-btn:hover {
+  color: var(--brand);
+  border-color: var(--brand);
+}
+
+.design-console.light .detail-todo-add-btn:hover {
+  border-color: transparent;
+}
+
+.design-console.light .detail-label-tag {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+/* Deck pods and detail view: surfaces are hardcoded dark while their text follows the theme. */
+.design-console.light .deck-pod,
+.design-console.light .deck-pod-skills-editor,
+.design-console.light .deck-detail-main-header,
+.design-console.light .deck-detail-markdown pre,
+.design-console.light .deck-detail-markdown th {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+.design-console.light .deck-pod-header,
+.design-console.light .deck-pods-container,
+.design-console.light .deck-pod-vault,
+.design-console.light .deck-pod-skills-new,
+.design-console.light .deck-pod-skills-actions,
+.design-console.light .deck-detail-main,
+.design-console.light .deck-detail-main-header,
+.design-console.light .deck-detail-markdown h1,
+.design-console.light .deck-detail-markdown td {
+  border-color: var(--border);
+}
+
+.design-console.light .deck-pod-status--idle {
+  color: var(--muted-foreground);
+  background: var(--surface-2);
+}
+
+.design-console.light .deck-pod-status--active {
+  color: oklch(0.45 0.1 180);
+}
+
+.design-console.light .deck-pod-progress-bar {
+  background: var(--border);
+}
+
+.design-console.light .deck-pod-todo-item--done,
+.design-console.light .deck-pod-vault-label,
+.design-console.light .deck-vault-tree-branch,
+.design-console.light .deck-pod-skills-new-input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.design-console.light .deck-pod-vault-file {
+  background: var(--surface-2);
+  color: var(--muted-foreground);
+}
+
+.design-console.light .deck-pod-vault-file:hover {
+  background: var(--border);
+  color: var(--foreground);
+}
+
+.design-console.light .deck-pod-skills-new-input {
+  background: var(--background);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+.design-console.light .deck-detail-markdown code {
+  background: var(--surface-2);
+  color: oklch(0.42 0.1 60);
 }

@@ -9,6 +9,7 @@ const HookProbe = ({ columns }: { columns: TerminalView }) => {
   const runtimeStateStore = createTerminalRuntimeStateStore();
   runtimeStateStore.syncFromTerminals(columns);
   const runtimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
+
   return (
     <output aria-label="runtime-states">
       {JSON.stringify(Array.from(runtimeStates.entries()))}
@@ -19,6 +20,7 @@ const HookProbe = ({ columns }: { columns: TerminalView }) => {
 describe("useAgentRuntimeStates", () => {
   it("derives per-terminal runtime state from snapshots without opening passive sockets", () => {
     const socketSpy = globalThis.WebSocket;
+
     const columns = [
       {
         terminalId: "orchestration-idle",

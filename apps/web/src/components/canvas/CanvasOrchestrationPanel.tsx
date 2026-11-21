@@ -1,6 +1,11 @@
-import type { CoordinationWorkspaceMode, DeckCoordinationSummary } from "@adadex/core";
+import type {
+  CoordinationWorkspaceMode,
+  DeckCoordinationStatus,
+  DeckCoordinationSummary,
+} from "@adadex/core";
 import { Terminal, X } from "lucide-react";
 import { type Ref, useCallback, useMemo, useState } from "react";
+
 import type { GraphNode } from "../../app/canvas/types";
 import type { ConversationSessionSummary } from "../../app/types";
 import {
@@ -10,8 +15,8 @@ import {
   buildDeckTodoSolveUrl,
   buildDeckTodoToggleUrl,
 } from "../../runtime/runtimeEndpoints";
-import { deriveMascotVisuals } from "../deck/mascotVisuals";
-import { MascotGlyph } from "../MascotSprite";
+import { CuteMascot } from "../deck/CuteMascot";
+import { deriveMascotVisuals, mascotStateForExpression } from "../deck/mascotVisuals";
 
 type CanvasOrchestrationPanelProps = {
   node: GraphNode;
@@ -30,12 +35,12 @@ type CanvasOrchestrationPanelProps = {
   onRefreshOrchestrationData?: (() => Promise<void>) | undefined;
 };
 
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS = {
   idle: "idle",
   active: "active",
   blocked: "blocked",
   "needs-review": "review",
-};
+} satisfies Record<DeckCoordinationStatus, string>;
 
 const formatTime = (isoString: string | null): string => {
   if (!isoString) return "—";
@@ -43,11 +48,15 @@ const formatTime = (isoString: string | null): string => {
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffMin = Math.floor(diffMs / 60000);
+
   if (diffMin < 1) return "just now";
+
   if (diffMin < 60) return `${diffMin}m ago`;
   const diffHr = Math.floor(diffMin / 60);
+
   if (diffHr < 24) return `${diffHr}h ago`;
   const diffDay = Math.floor(diffHr / 24);
+
   return `${diffDay}d ago`;
 };
 
@@ -69,15 +78,19 @@ export const CanvasOrchestrationPanel = ({
     () => (orchestration ? deriveMascotVisuals(orchestration) : null),
     [orchestration],
   );
+
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [addingTodo, setAddingTodo] = useState(false);
   const [addText, setAddText] = useState("");
   const [solvingTodoIndex, setSolvingTodoIndex] = useState<number | null>(null);
+
   const [spawningSwarmMode, setSpawningSwarmMode] = useState<CoordinationWorkspaceMode | null>(
     null,
   );
+
   const [spawnSwarmError, setSpawnSwarmError] = useState<string | null>(null);
+
   const refreshOrchestrationData = useCallback(async () => {
     await onRefreshOrchestrationData?.();
   }, [onRefreshOrchestrationData]);
@@ -105,6 +118,7 @@ export const CanvasOrchestrationPanel = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemIndex, done }),
         });
+
         if (!response.ok) return;
         await refreshOrchestrationData();
       } catch {
@@ -117,12 +131,14 @@ export const CanvasOrchestrationPanel = ({
   const handleTodoEdit = useCallback(
     async (itemIndex: number, text: string) => {
       if (text.trim().length === 0) return;
+
       try {
         const response = await fetch(buildDeckTodoEditUrl(node.coordinationId), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemIndex, text: text.trim() }),
         });
+
         if (!response.ok) return;
         setEditingIndex(null);
         await refreshOrchestrationData();
@@ -136,12 +152,14 @@ export const CanvasOrchestrationPanel = ({
   const handleTodoAdd = useCallback(
     async (text: string) => {
       if (text.trim().length === 0) return;
+
       try {
         const response = await fetch(buildDeckTodoAddUrl(node.coordinationId), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: text.trim() }),
         });
+
         if (!response.ok) return;
         setAddingTodo(false);
         setAddText("");
@@ -161,6 +179,7 @@ export const CanvasOrchestrationPanel = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemIndex }),
         });
+
         if (!response.ok) return;
         await refreshOrchestrationData();
       } catch {
@@ -174,11 +193,13 @@ export const CanvasOrchestrationPanel = ({
     async (itemIndex: number) => {
       try {
         setSolvingTodoIndex(itemIndex);
+
         const response = await fetch(buildDeckTodoSolveUrl(node.coordinationId), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemIndex }),
         });
+
         if (!response.ok) return;
         onSolveTodoItem?.(node.coordinationId, itemIndex);
       } catch {
@@ -226,15 +247,11 @@ export const CanvasOrchestrationPanel = ({
         <div className="detail-identity">
           {visuals && (
             <div className="detail-glyph">
-              <MascotGlyph
+              <CuteMascot
                 color={visuals.color}
-                animation={visuals.animation}
-                expression={visuals.expression}
-                accessory={visuals.accessory}
-                variant={visuals.variant}
-                identitySeed={visuals.identitySeed}
-                {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
-                scale={6}
+                size={96}
+                state={mascotStateForExpression(visuals.expression)}
+                title={`${orchestration?.displayName ?? node.label} mascot`}
               />
             </div>
           )}
@@ -305,7 +322,7 @@ export const CanvasOrchestrationPanel = ({
               <ul className="detail-todos">
                 {orchestration.todoItems.map((item, i) => (
                   <li
-                    key={`${i}-${item.text}`}
+                    key={item.text}
                     className={`detail-todo${item.done ? " detail-todo--done" : ""}`}
                   >
                     <div className="detail-todo-controls">
@@ -341,6 +358,7 @@ export const CanvasOrchestrationPanel = ({
                         onChange={(e) => setEditText(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") void handleTodoEdit(i, editText);
+
                           if (e.key === "Escape") setEditingIndex(null);
                         }}
                         onBlur={() => void handleTodoEdit(i, editText)}
@@ -370,6 +388,7 @@ export const CanvasOrchestrationPanel = ({
                   onChange={(e) => setAddText(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void handleTodoAdd(addText);
+
                     if (e.key === "Escape") {
                       setAddingTodo(false);
                       setAddText("");

@@ -5,7 +5,7 @@ Adadex exposes a local HTTP and WebSocket API.
 The API has two different kinds of state:
 
 - persisted project state, such as terminal records, Deck metadata, UI state, and transcripts
-- in-memory runtime state, such as live PTYs, attached WebSockets, scrollback, and channel queues
+- in-memory runtime state, such as live PTYs, attached WebSockets, and scrollback
 
 Most HTTP routes either read/write persisted files or create runtime records. WebSocket routes attach clients to live PTY sessions owned by the API process.
 
@@ -35,19 +35,23 @@ Creating a terminal registers metadata first. A PTY starts immediately only when
 
 ## Deck and coordinations
 
-- `GET /api/deck/skills` - lists available Kiro skills discovered from project-local `.kiro/skills/<skill>/SKILL.md` entries
+- `GET /api/deck/skills` - lists available skills discovered from project-local `.kiro/skills/<skill>/SKILL.md` entries
 - `GET /api/deck/coordinations` - lists coordinations with metadata, vault files, and todo progress
 - `POST /api/deck/coordinations` - creates a new coordination
+- `PATCH /api/deck/coordinations/:coordinationId` - updates Deck display metadata such as color and mascot
 - `DELETE /api/deck/coordinations/:coordinationId` - deletes a coordination and its stored files
-- `PATCH /api/deck/coordinations/:coordinationId/skills` - updates the coordination's suggested Kiro skills and rewrites the managed block in `CONTEXT.md`
+- `PATCH /api/deck/coordinations/:coordinationId/skills` - updates the coordination's suggested skills and rewrites the managed block in `CONTEXT.md`
+- `PATCH /api/deck/coordinations/:coordinationId/agent` - sets the agent provider (`claude`, `kiro`, or `opencode`) for the coordination's terminals
 - `POST /api/deck/coordinations/:coordinationId/todo` - adds a todo item to `todo.md`
 - `PATCH /api/deck/coordinations/:coordinationId/todo/toggle` - marks a todo item done or undone
 - `PATCH /api/deck/coordinations/:coordinationId/todo/edit` - edits the text of a todo item
 - `POST /api/deck/coordinations/:coordinationId/todo/delete` - deletes a todo item
+- `POST /api/deck/coordinations/:coordinationId/todo/solve` - starts one worker terminal for one todo item
 - `GET /api/deck/coordinations/:coordinationId/files/:filename` - reads one markdown file from the coordination vault
+- `PUT /api/deck/coordinations/:coordinationId/files/:filename` - overwrites `todo.md` with raw markdown from the Deck editor
 - `POST /api/deck/coordinations/:coordinationId/swarm` - spawns worker terminals from incomplete todo items
 
-Deck routes treat `.adadex/coordinations/<coordination-id>/` as the source of truth for agent-facing context. Todo operations update `todo.md` by parsed item index. Swarm operations derive worker assignments from incomplete parsed todo items.
+Deck routes treat `.adadex/coordinations/<coordination-id>/` as the source of truth for agent-facing context. Todo item operations update `todo.md` by parsed item index; the Deck editor can also replace the whole file with operator-authored markdown. Other vault files are read-only through the API. Swarm operations derive worker assignments from incomplete parsed todo items.
 
 ## Prompts
 
@@ -62,7 +66,7 @@ Deck routes treat `.adadex/coordinations/<coordination-id>/` as the source of tr
 - `GET /api/channels/:terminalId/messages` - lists messages for one terminal channel
 - `POST /api/channels/:terminalId/messages` - sends a message to one terminal channel
 
-Channel messages are queued in memory. The POST body provides `fromTerminalId` and `content`; delivery injects pending messages into the target terminal input when the target session is idle.
+Channel messages are queued and saved to disk. The POST body provides `fromTerminalId` and `content`; delivery injects pending messages into the target terminal input when the target session is idle.
 
 ## Code intel
 
@@ -71,7 +75,7 @@ Channel messages are queued in memory. The POST body provides `fromTerminalId` a
 
 ## Hooks
 
-- `POST /api/hooks/:hookName` - ingests lifecycle events coming from Kiro CLI hooks
+- `POST /api/hooks/:hookName` - ingests lifecycle events coming from agent hooks
 
 Current hook names:
 

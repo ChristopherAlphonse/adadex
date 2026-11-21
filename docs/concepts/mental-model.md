@@ -22,7 +22,7 @@ flowchart TD
 - a **terminal** is the runtime record plus, when active, one PTY-backed agent session
 - a **worker** is a terminal assigned to one narrower task, usually a todo item
 - a **parent** is a terminal that coordinates workers and performs final review or merge work
-- a **channel** is an in-memory queue used to inject short messages into live terminals
+- a **channel** is a persisted queue used to inject short messages into live terminals
 
 ## Coordination vs terminal
 
@@ -76,9 +76,9 @@ The runtime owns:
 - transcripts
 - message delivery state
 
-That data helps the app run, but it is not the same thing as the durable job context. Terminal records survive API restarts. PTY sessions, WebSocket clients, and channel queues do not.
+That data helps the app run, but it is not the same thing as the durable job context. Terminal records and channel queues survive API restarts. PTY sessions and WebSocket clients do not.
 
-On startup, Adadex reloads terminal records from `coordinations.json`. If a record says it was running, Adadex cannot reattach to the old in-memory PTY, so the record is reconciled to `stale` with a lifecycle reason.
+On startup, Adadex reloads terminal records from `coordinations.json`. A record that says it was running becomes `stopped` with reason `restart_pending`, and its session is launched again when a client attaches. If the old process is somehow still alive, the record is marked `stale` instead, so a second agent is not started.
 
 ## How delegation is supposed to work
 

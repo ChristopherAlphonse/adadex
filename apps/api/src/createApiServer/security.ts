@@ -1,7 +1,13 @@
+import { isString } from "@adadex/core";
+
 const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
+interface ResponseHeaders {
+  [name: string]: string;
+}
+
 export const withCors = (headers: Record<string, string>, corsOrigin: string | null) => {
-  const nextHeaders: Record<string, string> = {
+  const nextHeaders: ResponseHeaders = {
     ...headers,
     "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -20,6 +26,7 @@ const isLoopbackHostname = (hostname: string) => LOOPBACK_HOSTNAMES.has(hostname
 const parseHostname = (value: string, withScheme: boolean): string | null => {
   try {
     const url = new URL(withScheme ? value : `http://${value}`);
+
     return url.hostname;
   } catch {
     return null;
@@ -32,6 +39,7 @@ export const isAllowedOriginHeader = (origin: string | undefined, allowRemoteAcc
   }
 
   const hostname = parseHostname(origin, true);
+
   return hostname !== null && isLoopbackHostname(hostname);
 };
 
@@ -45,15 +53,17 @@ export const isAllowedHostHeader = (host: string | undefined, allowRemoteAccess:
   }
 
   const hostname = parseHostname(host, false);
+
   return hostname !== null && isLoopbackHostname(hostname);
 };
 
 export const readHeaderValue = (header: string | string[] | undefined): string | undefined => {
-  if (typeof header !== "string") {
+  if (!isString(header)) {
     return undefined;
   }
 
   const trimmed = header.trim();
+
   return trimmed.length > 0 ? trimmed : undefined;
 };
 

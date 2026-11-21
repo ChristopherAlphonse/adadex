@@ -1,15 +1,17 @@
-import { asNumber, asRecord, asString } from "@adadex/core";
+import { asNumber, asRecord, asString, type ParsedValue } from "@adadex/core";
 
 import type { GitHubCommitPoint, GitHubRecentCommit, GitHubRepoSummarySnapshot } from "./types";
 
-const normalizeGitHubCommitPoint = (value: unknown): GitHubCommitPoint | null => {
+const normalizeGitHubCommitPoint = (value: ParsedValue): GitHubCommitPoint | null => {
   const record = asRecord(value);
+
   if (!record) {
     return null;
   }
 
   const date = asString(record.date);
   const count = asNumber(record.count);
+
   if (!date || count === null) {
     return null;
   }
@@ -20,8 +22,9 @@ const normalizeGitHubCommitPoint = (value: unknown): GitHubCommitPoint | null =>
   };
 };
 
-const normalizeGitHubRecentCommit = (value: unknown): GitHubRecentCommit | null => {
+const normalizeGitHubRecentCommit = (value: ParsedValue): GitHubRecentCommit | null => {
   const record = asRecord(value);
+
   if (!record) {
     return null;
   }
@@ -36,6 +39,7 @@ const normalizeGitHubRecentCommit = (value: unknown): GitHubRecentCommit | null 
   const filesChanged = asNumber(record.filesChanged) ?? 0;
   const insertions = asNumber(record.insertions) ?? 0;
   const deletions = asNumber(record.deletions) ?? 0;
+
   if (!hash || !shortHash || !subject || !authorName || !authoredAt) {
     return null;
   }
@@ -55,23 +59,28 @@ const normalizeGitHubRecentCommit = (value: unknown): GitHubRecentCommit | null 
 };
 
 export const normalizeGitHubRepoSummarySnapshot = (
-  value: unknown,
+  value: ParsedValue,
 ): GitHubRepoSummarySnapshot | null => {
   const record = asRecord(value);
+
   if (!record) {
     return null;
   }
 
   const status = record.status;
+
   if (status !== "ok" && status !== "unavailable" && status !== "error") {
     return null;
   }
 
   const rawCommitsPerDay = Array.isArray(record.commitsPerDay) ? record.commitsPerDay : [];
+
   const commitsPerDay = rawCommitsPerDay
     .map((point) => normalizeGitHubCommitPoint(point))
     .filter((point): point is GitHubCommitPoint => point !== null);
+
   const rawRecentCommits = Array.isArray(record.recentCommits) ? record.recentCommits : [];
+
   const recentCommits = rawRecentCommits
     .map((commit) => normalizeGitHubRecentCommit(commit))
     .filter((commit): commit is GitHubRecentCommit => commit !== null);

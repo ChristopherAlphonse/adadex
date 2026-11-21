@@ -11,7 +11,7 @@ const persistedUiStateMock = {
   isAgentsSidebarVisible: false,
   isRuntimeStatusStripVisible: false,
   isUiStateHydrated: true,
-  minimizedTerminalIds: [] as string[],
+  minimizedTerminalIds: [],
   readUiState: vi.fn(),
   setIsActiveAgentsSectionExpanded: vi.fn(),
   setIsAgentsSidebarVisible: vi.fn(),
@@ -22,11 +22,11 @@ const persistedUiStateMock = {
   setTerminalCompletionSound: vi.fn(),
   sidebarWidth: 280,
   terminalCompletionSound: "pop" as const,
-  canvasOpenTerminalIds: [] as string[],
+  canvasOpenTerminalIds: [],
   setCanvasOpenTerminalIds: vi.fn(),
-  canvasOpenCoordinationIds: [] as string[],
+  canvasOpenCoordinationIds: [],
   setCanvasOpenCoordinationIds: vi.fn(),
-  canvasTerminalsPanelWidth: null as number | null,
+  canvasTerminalsPanelWidth: null,
   setCanvasTerminalsPanelWidth: vi.fn(),
 };
 
@@ -196,15 +196,17 @@ describe("App swarm actions", () => {
   });
 
   it("refreshes terminal snapshots after spawning a swarm", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.stubGlobal("WebSocket", MockWebSocket);
 
     let terminalSnapshotReads = 0;
+
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
       if (url.endsWith("/api/terminal-snapshots") && method === "GET") {
         terminalSnapshotReads += 1;
+
         return new Response("[]", {
           status: 200,
           headers: { "Content-Type": "application/json" },

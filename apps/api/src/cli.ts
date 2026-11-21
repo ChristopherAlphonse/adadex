@@ -4,6 +4,15 @@ import { createServer } from "node:net";
 import { basename, join, resolve } from "node:path";
 
 import {
+  type ChannelMessage,
+  type ParsedRecord,
+  type TerminalSnapshot,
+  isNumber,
+  isObjectValue,
+  isString,
+} from "@adadex/core";
+
+import {
   ensureAdadexGitignoreEntry,
   ensureProjectScaffold,
   loadProjectConfig,
@@ -20,10 +29,12 @@ import {
 } from "./startupPrerequisites";
 
 const args = process.argv.slice(2);
+
 const command = args[0];
 
 const resolvePackageRoot = () => {
   const envRoot = process.env.ADADEX_PACKAGE_ROOT?.trim();
+
   if (envRoot) {
     return resolve(envRoot);
   }
@@ -48,6 +59,7 @@ const PACKAGE_ROOT = resolvePackageRoot();
 const resolveRuntimeAssetPath = (...relativePathCandidates: [string[], ...string[][]]) => {
   for (const relativePath of relativePathCandidates) {
     const candidate = join(PACKAGE_ROOT, ...relativePath);
+
     if (existsSync(candidate)) {
       return candidate;
     }
@@ -57,6 +69,7 @@ const resolveRuntimeAssetPath = (...relativePathCandidates: [string[], ...string
 };
 
 const DEFAULT_START_PORT = 8787;
+
 const MAX_PORT_ATTEMPTS = 200;
 
 const initializeProject = (workspaceCwd: string, preferredName?: string) => {
@@ -67,6 +80,7 @@ const initializeProject = (workspaceCwd: string, preferredName?: string) => {
   registerProject(workspaceCwd, projectConfig.displayName);
   const projectStateDir = resolveProjectStateDir(workspaceCwd, projectConfig.displayName);
   migrateStateToGlobal(workspaceCwd, projectStateDir);
+
   return {
     created: !hadConfig,
     projectConfig,
@@ -76,10 +90,12 @@ const initializeProject = (workspaceCwd: string, preferredName?: string) => {
 
 const resolveStartupProjectContext = (workspaceCwd: string) => {
   const existingConfig = loadProjectConfig(workspaceCwd);
+
   if (existingConfig) {
     registerProject(workspaceCwd, existingConfig.displayName);
     const projectStateDir = resolveProjectStateDir(workspaceCwd, existingConfig.displayName);
     migrateStateToGlobal(workspaceCwd, projectStateDir);
+
     return {
       isInitialized: true,
       projectDisplayName: existingConfig.displayName,
@@ -89,6 +105,7 @@ const resolveStartupProjectContext = (workspaceCwd: string) => {
 
   const projectDisplayName = basename(workspaceCwd) || "adadex-project";
   const projectStateDir = resolveEphemeralProjectStateDir(workspaceCwd);
+
   return {
     isInitialized: false,
     projectDisplayName,
@@ -122,6 +139,7 @@ const canListenOnPort = (port: number): Promise<boolean> =>
 const findOpenPort = async (startPort: number): Promise<number> => {
   for (let offset = 0; offset < MAX_PORT_ATTEMPTS; offset += 1) {
     const port = startPort + offset;
+
     if (port > 65535) {
       break;
     }
@@ -137,11 +155,13 @@ const findOpenPort = async (startPort: number): Promise<number> => {
 
 const readPreferredStartPort = () => {
   const rawPort = process.env.ADADEX_API_PORT?.trim() ?? process.env.PORT;
+
   if (!rawPort) {
     return DEFAULT_START_PORT;
   }
 
   const parsed = Number.parseInt(rawPort, 10);
+
   if (!Number.isFinite(parsed) || parsed < 1 || parsed > 65535) {
     return DEFAULT_START_PORT;
   }
@@ -151,14 +171,17 @@ const readPreferredStartPort = () => {
 
 const resolveRuntimeApiBase = () => {
   const explicitBase = process.env.ADADEX_API_ORIGIN?.trim() ?? process.env.ADADEX_API_BASE?.trim();
+
   if (explicitBase) {
     return explicitBase;
   }
 
   const projectConfig = loadProjectConfig(process.cwd());
+
   if (projectConfig) {
     const projectStateDir = resolveProjectStateDir(process.cwd(), projectConfig.displayName);
     const runtimeMetadata = readRuntimeMetadata(projectStateDir);
+
     if (runtimeMetadata) {
       return runtimeMetadata.apiBaseUrl;
     }
@@ -191,6 +214,7 @@ const maybeOpenBrowser = (url: string) => {
       stdio: "ignore",
       detached: true,
     });
+
     child.unref();
   } catch {
     // Best-effort browser open.
@@ -200,6 +224,7 @@ const maybeOpenBrowser = (url: string) => {
 const startServer = async () => {
   const startupPrerequisiteReport = collectStartupPrerequisiteReport();
   const startupPrerequisiteLines = formatStartupPrerequisiteReport(startupPrerequisiteReport);
+
   if (startupPrerequisiteLines.length > 0) {
     for (const line of startupPrerequisiteLines) {
       if (startupPrerequisiteReport.errors.length > 0) {
@@ -208,15 +233,19 @@ const startServer = async () => {
         console.warn(line);
       }
     }
+
     if (startupPrerequisiteReport.errors.length > 0) {
       process.exit(1);
     }
+
     console.warn("");
   }
 
   const workspaceCwd = process.cwd();
+
   const { isInitialized, projectDisplayName, projectStateDir } =
     resolveStartupProjectContext(workspaceCwd);
+
   const promptsDir = resolveRuntimeAssetPath(["dist", "prompts"], ["prompts"]);
   const webDistDir = resolveRuntimeAssetPath(["dist", "web"], ["apps", "web", "dist"]);
   const port = await findOpenPort(readPreferredStartPort());
@@ -251,6 +280,7 @@ const startServer = async () => {
   });
 
   const hasWebDist = existsSync(webDistDir);
+
   if (hasWebDist) {
     maybeOpenBrowser(apiBaseUrl);
   }
@@ -260,14 +290,17 @@ const startServer = async () => {
   console.log(`  Project: ${workspaceCwd}`);
   console.log(`  Name:    ${projectDisplayName}`);
   console.log(`  API:     ${apiBaseUrl}`);
+
   if (hasWebDist) {
     console.log(`  UI:      ${apiBaseUrl}`);
   } else {
     console.log("  UI:      bundled web assets are missing from this install");
   }
+
   if (!isInitialized) {
     console.log("  Setup:   workspace is not initialized yet; use the in-app setup flow");
   }
+
   console.log();
 };
 
@@ -283,9 +316,13 @@ const COLORS = [
   "#00fff7",
   "#ff9500",
 ];
+
 const ANIMATIONS = ["sway", "walk", "jog", "float", "swim-up"];
+
 const EXPRESSIONS = ["normal", "happy", "angry", "surprised"];
+
 const ACCESSORIES = ["none", "none", "long", "mohawk", "side-sweep", "curly"];
+
 const HAIR_COLORS = [
   "#4a2c0a",
   "#1a1a1a",
@@ -297,7 +334,9 @@ const HAIR_COLORS = [
   "#1e90ff",
 ];
 
-const pick = <T>(items: T[]): T => items[Math.floor(Math.random() * items.length)] as T;
+const pick = <T>(items: T[]): T =>
+  // SAFETY: Math.floor keeps the index strictly below items.length, so the element exists.
+  items[Math.floor(Math.random() * items.length)] as T;
 
 const randomAppearance = () => ({
   color: pick(COLORS),
@@ -311,26 +350,31 @@ const randomAppearance = () => ({
 
 const parseFlag = (flag: string): string | undefined => {
   const index = args.indexOf(flag);
+
   if (index === -1 || index + 1 >= args.length) {
     return undefined;
   }
+
   return args[index + 1];
 };
 
 const parseJsonFlag = (flag: string): Record<string, string> | undefined => {
   const raw = parseFlag(flag);
+
   if (!raw) {
     return undefined;
   }
 
   try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    const parsed: unknown = JSON.parse(raw);
+
+    if (!parsed || !isObjectValue(parsed) || Array.isArray(parsed)) {
       console.error(`Error: ${flag} must be a JSON object.`);
       process.exit(1);
     }
 
-    const entries = Object.entries(parsed).filter(([, value]) => typeof value === "string");
+    const entries = Object.entries(parsed).filter(([, value]) => isString(value));
+
     return Object.fromEntries(entries);
   } catch {
     console.error(`Error: ${flag} must be valid JSON.`);
@@ -340,6 +384,7 @@ const parseJsonFlag = (flag: string): Record<string, string> | undefined => {
 
 const coordinationCreate = async () => {
   const name = args[2];
+
   if (!name || name.startsWith("-")) {
     console.error("Error: coordination name is required.");
     process.exit(1);
@@ -355,11 +400,15 @@ const coordinationCreate = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, description, color, mascot }),
     });
-    const data = (await response.json()) as Record<string, unknown>;
+
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
+
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
       process.exit(1);
     }
+
     console.log(`Created coordination "${String(data.coordinationId ?? "")}"`);
   } catch {
     apiError();
@@ -371,14 +420,18 @@ const coordinationList = async () => {
 
   try {
     const response = await fetch(`${apiBase}/api/deck/coordinations`);
+
     if (!response.ok) {
       console.error("Error: failed to fetch coordinations.");
       process.exit(1);
     }
 
-    const coordinations = (await response.json()) as Array<Record<string, unknown>>;
+    // SAFETY: the coordination list endpoint returns an array of JSON objects.
+    const coordinations = (await response.json()) as ParsedRecord[];
+
     if (coordinations.length === 0) {
       console.log("No coordinations found.");
+
       return;
     }
 
@@ -405,17 +458,28 @@ const terminalCreate = async () => {
   const promptVariables = parseJsonFlag("--prompt-variables");
   const apiBase = resolveRuntimeApiBase();
 
-  const body: Record<string, unknown> = {};
+  const body: ParsedRecord = {};
+
   if (name) body.name = name;
+
   if (initialPrompt) body.initialPrompt = initialPrompt;
+
   if (workspaceMode) body.workspaceMode = workspaceMode;
+
   if (terminalId) body.terminalId = terminalId;
+
   if (coordinationId) body.coordinationId = coordinationId;
+
   if (worktreeId) body.worktreeId = worktreeId;
+
   if (parentTerminalId) body.parentTerminalId = parentTerminalId;
+
   if (nameOrigin) body.nameOrigin = nameOrigin;
+
   if (autoRenamePromptContext) body.autoRenamePromptContext = autoRenamePromptContext;
+
   if (promptTemplate) body.promptTemplate = promptTemplate;
+
   if (promptVariables) body.promptVariables = promptVariables;
 
   try {
@@ -424,11 +488,15 @@ const terminalCreate = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = (await response.json()) as Record<string, unknown>;
+
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
+
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
       process.exit(1);
     }
+
     console.log(`Created terminal "${data.terminalId}"`);
   } catch {
     apiError();
@@ -442,14 +510,18 @@ const terminalList = async () => {
     const response = await fetch(`${apiBase}/api/terminal-snapshots`, {
       headers: { Accept: "application/json" },
     });
+
     if (!response.ok) {
       console.error("Error: failed to fetch terminals.");
       process.exit(1);
     }
 
-    const terminals = (await response.json()) as Array<Record<string, unknown>>;
+    // SAFETY: the snapshot endpoint returns the TerminalSnapshot[] contract exposed by the API.
+    const terminals = (await response.json()) as TerminalSnapshot[];
+
     if (terminals.length === 0) {
       console.log("No terminals found.");
+
       return;
     }
 
@@ -457,12 +529,16 @@ const terminalList = async () => {
       const terminalId = String(terminal.terminalId ?? "");
       const name = String(terminal.coordinationName ?? terminal.label ?? terminalId);
       const lifecycle = String(terminal.lifecycleState ?? terminal.state ?? "unknown");
+
       const pid =
-        typeof terminal.processId === "number" && Number.isFinite(terminal.processId)
+        isNumber(terminal.processId) && Number.isFinite(terminal.processId)
           ? ` pid=${terminal.processId}`
           : "";
-      const reason =
-        typeof terminal.lifecycleReason === "string" ? ` reason=${terminal.lifecycleReason}` : "";
+
+      const reason = isString(terminal.lifecycleReason)
+        ? ` reason=${terminal.lifecycleReason}`
+        : "";
+
       console.log(`  ${terminalId}  ${lifecycle}${pid}${reason}  ${name}`);
     }
   } catch {
@@ -472,12 +548,14 @@ const terminalList = async () => {
 
 const terminalAction = async (action: "stop" | "kill") => {
   const terminalId = args[2];
+
   if (!terminalId || terminalId.startsWith("-")) {
     console.error("Error: terminalId is required.");
     process.exit(1);
   }
 
   const apiBase = resolveRuntimeApiBase();
+
   try {
     const response = await fetch(
       `${apiBase}/api/terminals/${encodeURIComponent(terminalId)}/${action}`,
@@ -486,11 +564,15 @@ const terminalAction = async (action: "stop" | "kill") => {
         headers: { Accept: "application/json" },
       },
     );
-    const data = (await response.json()) as Record<string, unknown>;
+
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
+
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
       process.exit(1);
     }
+
     console.log(`${action === "kill" ? "Killed" : "Stopped"} terminal "${data.terminalId}"`);
   } catch {
     apiError();
@@ -505,20 +587,26 @@ const terminalPrune = async () => {
       method: "POST",
       headers: { Accept: "application/json" },
     });
+
+    // SAFETY: the prune endpoint returns this response shape; error is only read for non-OK replies.
     const data = (await response.json()) as {
       prunedTerminalIds?: string[];
       error?: unknown;
     };
+
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
       process.exit(1);
     }
 
     const prunedTerminalIds = data.prunedTerminalIds ?? [];
+
     if (prunedTerminalIds.length === 0) {
       console.log("No stale, stopped, or exited terminals to prune.");
+
       return;
     }
+
     console.log(`Pruned ${prunedTerminalIds.length} terminal(s): ${prunedTerminalIds.join(", ")}`);
   } catch {
     apiError();
@@ -527,6 +615,7 @@ const terminalPrune = async () => {
 
 const channelSend = async () => {
   const terminalId = args[2];
+
   if (!terminalId || terminalId.startsWith("-")) {
     console.error("Error: target terminalId is required.");
     process.exit(1);
@@ -534,12 +623,14 @@ const channelSend = async () => {
 
   const fromTerminalId = parseFlag("--from") ?? process.env.ADADEX_SESSION_ID?.trim() ?? "";
   const fromIndex = args.indexOf("--from");
+
   const message =
     fromIndex !== -1
       ? args
           .slice(3)
           .filter((_, index) => {
             const absoluteIndex = index + 3;
+
             return absoluteIndex !== fromIndex && absoluteIndex !== fromIndex + 1;
           })
           .join(" ")
@@ -556,6 +647,7 @@ const channelSend = async () => {
   }
 
   const apiBase = resolveRuntimeApiBase();
+
   try {
     const response = await fetch(
       `${apiBase}/api/channels/${encodeURIComponent(terminalId)}/messages`,
@@ -565,11 +657,15 @@ const channelSend = async () => {
         body: JSON.stringify({ fromTerminalId, content: message }),
       },
     );
-    const data = (await response.json()) as Record<string, unknown>;
+
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
+
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
       process.exit(1);
     }
+
     console.log(`Message sent (${data.messageId}) to ${terminalId}`);
   } catch {
     apiError();
@@ -578,25 +674,33 @@ const channelSend = async () => {
 
 const channelList = async () => {
   const terminalId = args[2];
+
   if (!terminalId || terminalId.startsWith("-")) {
     console.error("Error: terminalId is required.");
     process.exit(1);
   }
 
   const apiBase = resolveRuntimeApiBase();
+
   try {
     const response = await fetch(
       `${apiBase}/api/channels/${encodeURIComponent(terminalId)}/messages`,
     );
-    const data = (await response.json()) as Record<string, unknown>;
+
+    // SAFETY: the API returns a JSON object; ParsedRecord is the parsed-JSON shape of that payload.
+    const data = (await response.json()) as ParsedRecord;
+
     if (!response.ok) {
       console.error(`Error: ${data.error ?? "Failed"}`);
       process.exit(1);
     }
 
-    const messages = (data.messages ?? []) as Array<Record<string, unknown>>;
+    // SAFETY: the messages field is the ChannelMessage[] contract exposed by the API.
+    const messages = (data.messages ?? []) as ChannelMessage[];
+
     if (messages.length === 0) {
       console.log(`No messages for ${terminalId}.`);
+
       return;
     }
 
@@ -622,16 +726,19 @@ const main = async () => {
 
   if (command === "projects" || command === "project") {
     const projects = loadProjectsRegistry().projects;
+
     if (projects.length === 0) {
       console.log(
         "No projects registered yet. Run `adadex` or `adadex init` in a project directory.",
       );
+
       return;
     }
 
     for (const project of projects) {
       console.log(`  ${project.name}  ${project.id}  ${project.path}`);
     }
+
     return;
   }
 
@@ -644,6 +751,7 @@ const main = async () => {
     if (args[1] === "create") {
       return coordinationCreate();
     }
+
     if (args[1] === "list" || args[1] === "ls") {
       return coordinationList();
     }
@@ -653,15 +761,19 @@ const main = async () => {
     if (args[1] === "create") {
       return terminalCreate();
     }
+
     if (args[1] === "list" || args[1] === "ls") {
       return terminalList();
     }
+
     if (args[1] === "stop") {
       return terminalAction("stop");
     }
+
     if (args[1] === "kill") {
       return terminalAction("kill");
     }
+
     if (args[1] === "prune") {
       return terminalPrune();
     }
@@ -671,6 +783,7 @@ const main = async () => {
     if (args[1] === "send") {
       return channelSend();
     }
+
     if (args[1] === "list" || args[1] === "ls") {
       return channelList();
     }

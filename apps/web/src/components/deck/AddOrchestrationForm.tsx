@@ -2,9 +2,14 @@ import type { DeckAvailableSkill } from "@adadex/core";
 import { useEffect, useRef, useState } from "react";
 
 import { formatColorForDisplay } from "../../app/mascotPalette";
-import type { MascotAccessory, MascotAnimation, MascotExpression } from "../MascotSprite";
-import { MascotSprite } from "../MascotSprite";
-import { MASCOT_COLORS } from "./mascotVisuals";
+import { CuteMascot } from "./CuteMascot";
+import {
+  MASCOT_COLORS,
+  mascotStateForExpression,
+  type MascotAccessory,
+  type MascotAnimation,
+  type MascotExpression,
+} from "./mascotVisuals";
 
 export type MascotAppearancePayload = {
   animation: string;
@@ -53,9 +58,14 @@ export const AddOrchestrationForm = ({
 }: AddOrchestrationFormProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+
   const [selectedColor, setSelectedColor] = useState(
-    () => MASCOT_COLORS[Math.floor(Math.random() * MASCOT_COLORS.length)] as string,
+    () =>
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ MASCOT_COLORS[
+        Math.floor(Math.random() * MASCOT_COLORS.length)
+      ] as string,
   );
+
   const [selectedExpression, setSelectedExpression] = useState<MascotExpression>("neutral");
   const [selectedAccessory, setSelectedAccessory] = useState<MascotAccessory>("none");
   const [selectedAnimation] = useState<MascotAnimation>("idle");
@@ -68,6 +78,7 @@ export const AddOrchestrationForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (name.trim().length === 0) return;
     onSubmit(
       name.trim(),
@@ -132,6 +143,7 @@ export const AddOrchestrationForm = ({
                 <div className="deck-add-form-skills">
                   {availableSkills.map((skill) => {
                     const checked = selectedSkills.includes(skill.name);
+
                     return (
                       <label
                         key={`${skill.source}:${skill.name}`}
@@ -153,12 +165,10 @@ export const AddOrchestrationForm = ({
 
           <div className="deck-add-form-right">
             <div className="deck-add-form-preview">
-              <MascotSprite
+              <CuteMascot
                 color={selectedColor}
-                animation="idle"
-                expression={selectedExpression}
-                accessory={selectedAccessory}
-                size={192}
+                size={160}
+                state={mascotStateForExpression(selectedExpression)}
               />
             </div>
 

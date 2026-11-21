@@ -18,10 +18,12 @@ const resolveTerminalId = (node: GraphNode): string =>
 const formatUptime = (startedAt: string | undefined): string => {
   if (!startedAt) return "—";
   const elapsedMs = Date.now() - new Date(startedAt).getTime();
+
   if (Number.isNaN(elapsedMs) || elapsedMs < 0) return "—";
   const totalMinutes = Math.floor(elapsedMs / 60_000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
+
   return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
 };
 
@@ -34,11 +36,13 @@ export const ConsoleInspectorPanel = ({
   const title = terminal?.label ?? selectedNode?.label ?? "No selection";
   const id = selectedNode ? resolveTerminalId(selectedNode) : "—";
   const branchLabel = gitStatus?.branchName ?? "—";
+
   const worktreeLabel =
     gitStatus?.worktreePath ??
     (terminal?.workspaceMode === "shared" || selectedNode?.workspaceMode !== "worktree"
       ? "shared workspace"
       : "—");
+
   const commitLabel = gitStatus?.headCommit ?? "—";
   const changedFiles = gitStatus?.changedFiles ?? [];
 

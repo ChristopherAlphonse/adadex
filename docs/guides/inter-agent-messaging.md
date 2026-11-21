@@ -4,7 +4,7 @@ Adadex has a simple local channel system for messages between terminals.
 
 ## What channels are
 
-Channels are in-memory queues keyed by target terminal ID. Sending a message does not write to the target coordination files and does not create a persistent notification record.
+Channels are queues keyed by target terminal ID, saved to `channel-messages.json` in the project state folder. Sending a message does not write to the target coordination files and does not create a persistent notification record.
 
 Use them for short coordination:
 
@@ -20,7 +20,7 @@ It is not a replacement for proper context files.
 When a message is sent, Adadex:
 
 1. verifies the target terminal record exists
-2. appends the message to that terminal's in-memory queue
+2. appends the message to that terminal's queue
 3. marks it as undelivered
 4. injects pending messages into the target PTY when the target session is idle
 
@@ -30,7 +30,7 @@ Delivered messages are written into the terminal input as lines like:
 [Channel message from <from-terminal-id>]: <content>
 ```
 
-If the target terminal is not running, the message waits in memory until that session exists and becomes idle. If the API restarts first, the message is lost.
+If the target terminal is not running, the message waits until that session exists and becomes idle. It survives an API restart and is not delivered twice.
 
 ## CLI usage
 
@@ -61,12 +61,10 @@ adadex channel list <terminal-id>
 
 ## Current behavior
 
-- messages are stored in memory
-- messages do not persist across API restarts
-- delivery state is tracked by the API
+- messages and their delivery state persist across API restarts
 - idle and stop hook events can trigger delivery
-- listing messages shows queued and delivered messages for the current API process
+- listing messages shows queued and delivered messages
 
 ## Practical rule
 
-If a message needs to survive, write it into the coordination files. Use the channel for short-lived coordination only.
+If a message is context another agent will need later, write it into the coordination files. Use the channel for short coordination only.

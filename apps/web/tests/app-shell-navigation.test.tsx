@@ -66,7 +66,7 @@ describe("App shell and navigation", () => {
     fireEvent.keyDown(window, { key: "4" });
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Code Intel/i })).toHaveAttribute(
+      expect(screen.getByRole("button", { name: /Conversations/i })).toHaveAttribute(
         "aria-current",
         "page",
       );

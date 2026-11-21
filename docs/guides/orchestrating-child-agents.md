@@ -67,8 +67,7 @@ Worker terminal IDs are derived from the coordination ID and todo index. That ma
 
 ## Limits
 
-- PTY sessions do not survive API restarts
-- channel messages are in-memory only
+- PTY sessions do not survive API restarts; interrupted terminals relaunch when a client attaches
 - delegation quality depends on the quality of `CONTEXT.md` and `todo.md`
 - shared-mode workers can still collide in files, because shared mode is not git isolation
 - worktree-mode workers still need a human or parent merge step before their work reaches the base branch

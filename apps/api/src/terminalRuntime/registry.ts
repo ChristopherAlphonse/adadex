@@ -1,16 +1,20 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 
 import {
   LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY,
   LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY,
   LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY,
   LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY,
+  type ParsedRecord,
+  type ParsedValue,
+  asRecord,
+  isBoolean,
+  isNumber,
+  isString,
 } from "@adadex/core";
 
+import { writeTextFileAtomic, writeTextFileAtomicAsync } from "../atomicJsonFile";
 import { TERMINAL_REGISTRY_VERSION } from "./constants";
-
 import { toErrorMessage } from "./systemClients";
 import type {
   CoordinationWorkspaceMode,
@@ -28,9 +32,6 @@ type TerminalRegistryState = {
   terminals: Map<string, PersistedTerminal>;
   uiState: PersistedUiState;
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 
 const isTerminalNameOrigin = (value: unknown): value is TerminalNameOrigin =>
   value === "generated" || value === "user" || value === "prompt";
@@ -53,78 +54,86 @@ const inferTerminalNameOrigin = (
   return "user";
 };
 
-const parsePersistedUiState = (value: unknown): PersistedUiState => {
-  if (!isRecord(value)) {
+const parsePersistedUiState = (value: ParsedValue): PersistedUiState => {
+  const record = asRecord(value);
+
+  if (!record) {
     return {};
   }
 
   const nextState: PersistedUiState = {};
 
-  if (typeof value.isAgentsSidebarVisible === "boolean") {
-    nextState.isAgentsSidebarVisible = value.isAgentsSidebarVisible;
+  if (isBoolean(record.isAgentsSidebarVisible)) {
+    nextState.isAgentsSidebarVisible = record.isAgentsSidebarVisible;
   }
 
-  if (typeof value.sidebarWidth === "number" && Number.isFinite(value.sidebarWidth)) {
-    nextState.sidebarWidth = value.sidebarWidth;
+  if (isNumber(record.sidebarWidth) && Number.isFinite(record.sidebarWidth)) {
+    nextState.sidebarWidth = record.sidebarWidth;
   }
 
-  if (typeof value.isActiveAgentsSectionExpanded === "boolean") {
-    nextState.isActiveAgentsSectionExpanded = value.isActiveAgentsSectionExpanded;
+  if (isBoolean(record.isActiveAgentsSectionExpanded)) {
+    nextState.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
   }
 
-  if (typeof value.isRuntimeStatusStripVisible === "boolean") {
-    nextState.isRuntimeStatusStripVisible = value.isRuntimeStatusStripVisible;
+  if (isBoolean(record.isRuntimeStatusStripVisible)) {
+    nextState.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
   }
 
-  const completionSoundValue = value.terminalCompletionSound;
+  const completionSoundValue = record.terminalCompletionSound;
+
   if (isTerminalCompletionSoundId(completionSoundValue)) {
     nextState.terminalCompletionSound = completionSoundValue;
   }
 
-  const minimizedIds = value.minimizedTerminalIds;
+  const minimizedIds = record.minimizedTerminalIds;
+
   if (Array.isArray(minimizedIds)) {
-    const ids = minimizedIds.filter((id): id is string => typeof id === "string");
+    const ids = minimizedIds.filter((id): id is string => isString(id));
     nextState.minimizedTerminalIds = [...new Set(ids)];
   }
 
-  const widths = value.terminalWidths;
-  if (isRecord(widths)) {
+  const widths = asRecord(record.terminalWidths);
+
+  if (widths) {
     const terminalWidths = Object.entries(widths).reduce<Record<string, number>>(
       (acc, [id, width]) => {
-        if (typeof width === "number" && Number.isFinite(width)) {
+        if (isNumber(width) && Number.isFinite(width)) {
           acc[id] = width;
         }
+
         return acc;
       },
       {},
     );
+
     nextState.terminalWidths = terminalWidths;
   }
 
-  if (Array.isArray(value.canvasOpenTerminalIds)) {
-    nextState.canvasOpenTerminalIds = value.canvasOpenTerminalIds.filter(
-      (id): id is string => typeof id === "string",
+  if (Array.isArray(record.canvasOpenTerminalIds)) {
+    nextState.canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter((id): id is string =>
+      isString(id),
     );
   }
 
-  if (Array.isArray(value.canvasOpenCoordinationIds)) {
-    nextState.canvasOpenCoordinationIds = value.canvasOpenCoordinationIds.filter(
-      (id): id is string => typeof id === "string",
+  if (Array.isArray(record.canvasOpenCoordinationIds)) {
+    nextState.canvasOpenCoordinationIds = record.canvasOpenCoordinationIds.filter(
+      (id): id is string => isString(id),
     );
   } else {
-    const legacyCanvasOpen = value[LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY];
+    const legacyCanvasOpen = record[LEGACY_UI_CANVAS_OPEN_COORDINATION_IDS_KEY];
+
     if (Array.isArray(legacyCanvasOpen)) {
-      nextState.canvasOpenCoordinationIds = legacyCanvasOpen.filter(
-        (id): id is string => typeof id === "string",
+      nextState.canvasOpenCoordinationIds = legacyCanvasOpen.filter((id): id is string =>
+        isString(id),
       );
     }
   }
 
   if (
-    typeof value.canvasTerminalsPanelWidth === "number" &&
-    Number.isFinite(value.canvasTerminalsPanelWidth)
+    isNumber(record.canvasTerminalsPanelWidth) &&
+    Number.isFinite(record.canvasTerminalsPanelWidth)
   ) {
-    nextState.canvasTerminalsPanelWidth = value.canvasTerminalsPanelWidth;
+    nextState.canvasTerminalsPanelWidth = record.canvasTerminalsPanelWidth;
   }
 
   return nextState;
@@ -135,6 +144,7 @@ export const pruneUiStateTerminalReferences = (
   terminals: Map<string, PersistedTerminal>,
 ): PersistedUiState => {
   const activeTerminalIds = new Set(terminals.keys());
+
   const nextState: PersistedUiState = {
     ...uiState,
   };
@@ -152,6 +162,7 @@ export const pruneUiStateTerminalReferences = (
       if (activeTerminalIds.has(id)) {
         acc[id] = width;
       }
+
       return acc;
     }, {});
   }
@@ -165,44 +176,49 @@ export const pruneUiStateTerminalReferences = (
  * Child agents are dropped.
  */
 const migrateV2ToV3 = (
-  record: Record<string, unknown>,
+  record: ParsedRecord,
   registryPath: string,
 ): Map<string, PersistedTerminal> => {
   const rawList = record[LEGACY_REGISTRY_V2_COORDINATION_LIST_KEY];
+
   if (!Array.isArray(rawList)) {
     throw new Error(`Invalid registry coordination list (${registryPath}).`);
   }
 
   const terminals = new Map<string, PersistedTerminal>();
+
   for (const item of rawList) {
-    if (item === null || typeof item !== "object") {
+    const entry = asRecord(item);
+
+    if (!entry) {
       throw new Error(`Invalid registry coordination entry (${registryPath}).`);
     }
 
-    const entry = item as Record<string, unknown>;
     const legacyCoordinationId = entry[LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY];
     const legacyCoordinationName = entry[LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY];
-    const coordinationIdRaw =
-      typeof entry.coordinationId === "string"
-        ? entry.coordinationId
-        : typeof legacyCoordinationId === "string"
-          ? legacyCoordinationId
-          : null;
-    const coordinationNameRaw =
-      typeof entry.coordinationName === "string"
-        ? entry.coordinationName
-        : typeof legacyCoordinationName === "string"
-          ? legacyCoordinationName
-          : null;
+
+    const coordinationIdRaw = isString(entry.coordinationId)
+      ? entry.coordinationId
+      : isString(legacyCoordinationId)
+        ? legacyCoordinationId
+        : null;
+
+    const coordinationNameRaw = isString(entry.coordinationName)
+      ? entry.coordinationName
+      : isString(legacyCoordinationName)
+        ? legacyCoordinationName
+        : null;
+
     const coordinationId = coordinationIdRaw;
     const coordinationName = coordinationNameRaw;
-    const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
+    const createdAt = isString(entry.createdAt) ? entry.createdAt : null;
 
     if (!coordinationId || !coordinationName || !createdAt) {
       throw new Error(`Incomplete registry coordination entry (${registryPath}).`);
     }
 
     const rawWorkspaceMode = entry.workspaceMode;
+
     const workspaceMode: CoordinationWorkspaceMode =
       rawWorkspaceMode === "worktree" || rawWorkspaceMode === "shared"
         ? rawWorkspaceMode
@@ -226,43 +242,48 @@ const migrateV2ToV3 = (
 };
 
 const parseV3Terminals = (
-  record: Record<string, unknown>,
+  record: ParsedRecord,
   registryPath: string,
 ): Map<string, PersistedTerminal> => {
   const rawTerminals = record.terminals;
+
   if (!Array.isArray(rawTerminals)) {
     throw new Error(`Invalid registry terminals array (${registryPath}).`);
   }
 
   const terminals = new Map<string, PersistedTerminal>();
+
   for (const item of rawTerminals) {
-    if (item === null || typeof item !== "object") {
+    const entry = asRecord(item);
+
+    if (!entry) {
       throw new Error(`Invalid terminal entry in registry (${registryPath}).`);
     }
 
-    const entry = item as Record<string, unknown>;
-    const terminalId = typeof entry.terminalId === "string" ? entry.terminalId : null;
+    const terminalId = isString(entry.terminalId) ? entry.terminalId : null;
     const legacyCoordinationId = entry[LEGACY_PERSISTED_COORDINATION_ID_ALT_KEY];
     const legacyCoordinationName = entry[LEGACY_PERSISTED_COORDINATION_NAME_ALT_KEY];
-    const coordinationId =
-      typeof entry.coordinationId === "string"
-        ? entry.coordinationId
-        : typeof legacyCoordinationId === "string"
-          ? legacyCoordinationId
-          : null;
-    const coordinationName =
-      typeof entry.coordinationName === "string"
-        ? entry.coordinationName
-        : typeof legacyCoordinationName === "string"
-          ? legacyCoordinationName
-          : null;
-    const createdAt = typeof entry.createdAt === "string" ? entry.createdAt : null;
+
+    const coordinationId = isString(entry.coordinationId)
+      ? entry.coordinationId
+      : isString(legacyCoordinationId)
+        ? legacyCoordinationId
+        : null;
+
+    const coordinationName = isString(entry.coordinationName)
+      ? entry.coordinationName
+      : isString(legacyCoordinationName)
+        ? legacyCoordinationName
+        : null;
+
+    const createdAt = isString(entry.createdAt) ? entry.createdAt : null;
 
     if (!terminalId || !coordinationId || !coordinationName || !createdAt) {
       throw new Error(`Incomplete terminal entry in registry (${registryPath}).`);
     }
 
     const rawWorkspaceMode = entry.workspaceMode;
+
     const workspaceMode: CoordinationWorkspaceMode =
       rawWorkspaceMode === "worktree" || rawWorkspaceMode === "shared"
         ? rawWorkspaceMode
@@ -282,70 +303,79 @@ const parseV3Terminals = (
       createdAt,
       workspaceMode,
     };
-    if (typeof entry.worktreeId === "string") terminal.worktreeId = entry.worktreeId;
-    if (typeof entry.parentTerminalId === "string")
-      terminal.parentTerminalId = entry.parentTerminalId;
+
+    if (isString(entry.worktreeId)) terminal.worktreeId = entry.worktreeId;
+
+    if (isString(entry.parentTerminalId)) terminal.parentTerminalId = entry.parentTerminalId;
+
     if (isTerminalAgentProvider(entry.agentProvider)) terminal.agentProvider = entry.agentProvider;
-    if (typeof entry.initialPrompt === "string") terminal.initialPrompt = entry.initialPrompt;
-    if (typeof entry.initialInputDraft === "string") {
+
+    if (entry.plainShell === true) terminal.plainShell = true;
+
+    if (isString(entry.initialPrompt)) terminal.initialPrompt = entry.initialPrompt;
+
+    if (isString(entry.initialInputDraft)) {
       terminal.initialInputDraft = entry.initialInputDraft;
     }
-    if (typeof entry.autoRenamePromptContext === "string") {
+
+    if (isString(entry.autoRenamePromptContext)) {
       terminal.autoRenamePromptContext = entry.autoRenamePromptContext;
     }
-    if (typeof entry.lastActiveAt === "string") terminal.lastActiveAt = entry.lastActiveAt;
+
+    if (isString(entry.lastActiveAt)) terminal.lastActiveAt = entry.lastActiveAt;
+
     if (isTerminalLifecycleState(entry.lifecycleState)) {
       terminal.lifecycleState = entry.lifecycleState;
     }
-    if (typeof entry.lifecycleReason === "string") {
+
+    if (isString(entry.lifecycleReason)) {
       terminal.lifecycleReason = entry.lifecycleReason;
     }
-    if (typeof entry.lifecycleUpdatedAt === "string") {
+
+    if (isString(entry.lifecycleUpdatedAt)) {
       terminal.lifecycleUpdatedAt = entry.lifecycleUpdatedAt;
     }
-    if (
-      typeof entry.processId === "number" &&
-      Number.isInteger(entry.processId) &&
-      entry.processId > 0
-    ) {
+
+    if (isNumber(entry.processId) && Number.isInteger(entry.processId) && entry.processId > 0) {
       terminal.processId = entry.processId;
     }
-    if (typeof entry.startedAt === "string") terminal.startedAt = entry.startedAt;
-    if (typeof entry.endedAt === "string") terminal.endedAt = entry.endedAt;
-    if (typeof entry.exitCode === "number" && Number.isFinite(entry.exitCode)) {
+
+    if (isString(entry.startedAt)) terminal.startedAt = entry.startedAt;
+
+    if (isString(entry.endedAt)) terminal.endedAt = entry.endedAt;
+
+    if (isNumber(entry.exitCode) && Number.isFinite(entry.exitCode)) {
       terminal.exitCode = entry.exitCode;
     }
+
     if (
-      (typeof entry.exitSignal === "number" && Number.isFinite(entry.exitSignal)) ||
-      typeof entry.exitSignal === "string"
+      (isNumber(entry.exitSignal) && Number.isFinite(entry.exitSignal)) ||
+      isString(entry.exitSignal)
     ) {
       terminal.exitSignal = entry.exitSignal;
     }
+
     terminals.set(terminalId, terminal);
   }
 
   return terminals;
 };
 
-const parseRegistryDocument = (
-  raw: string,
-  registryPath: string,
-): {
-  terminals: Map<string, PersistedTerminal>;
-  uiState: PersistedUiState;
-} => {
+const parseRegistryDocument = (raw: string, registryPath: string): TerminalRegistryState => {
   let parsed: unknown;
+
   try {
     parsed = JSON.parse(raw);
   } catch (error) {
     throw new Error(`Invalid terminal registry JSON (${registryPath}): ${toErrorMessage(error)}`);
   }
 
-  if (parsed === null || typeof parsed !== "object") {
+  const record = asRecord(parsed);
+
+  if (!record) {
     throw new Error(`Invalid terminal registry shape (${registryPath}).`);
   }
 
-  const record = parsed as Record<string, unknown>;
   const version = record.version;
 
   if (version !== 1 && version !== 2 && version !== TERMINAL_REGISTRY_VERSION) {
@@ -359,19 +389,25 @@ const parseRegistryDocument = (
 
   return {
     terminals,
-    uiState: pruneUiStateTerminalReferences(parsePersistedUiState(record.uiState), terminals),
+    uiState: pruneUiStateTerminalReferences(
+      parsePersistedUiState(record.uiState ?? null),
+      terminals,
+    ),
   };
 };
 
-export const loadTerminalRegistry = (registryPath: string) => {
+export const loadTerminalRegistry = (registryPath: string): TerminalRegistryState => {
   if (!existsSync(registryPath)) {
+    const uiState: PersistedUiState = {};
+
     return {
       terminals: new Map<string, PersistedTerminal>(),
-      uiState: {} as PersistedUiState,
+      uiState,
     };
   }
 
   const raw = readFileSync(registryPath, "utf8");
+
   return parseRegistryDocument(raw, registryPath);
 };
 
@@ -386,13 +422,11 @@ const serializeTerminalRegistry = (state: TerminalRegistryState) => {
 };
 
 const writeSerializedRegistrySync = (registryPath: string, serialized: string) => {
-  mkdirSync(dirname(registryPath), { recursive: true });
-  writeFileSync(registryPath, serialized, "utf8");
+  writeTextFileAtomic(registryPath, serialized);
 };
 
 const writeSerializedRegistry = async (registryPath: string, serialized: string) => {
-  mkdirSync(dirname(registryPath), { recursive: true });
-  await writeFile(registryPath, serialized, "utf8");
+  await writeTextFileAtomicAsync(registryPath, serialized);
 };
 
 export const persistTerminalRegistry = (registryPath: string, state: TerminalRegistryState) => {
@@ -428,6 +462,7 @@ export const createTerminalRegistryPersistence = (registryPath: string) => {
       }
     })().finally(() => {
       writeLoopPromise = null;
+
       if (pendingSerialized !== null) {
         void runWriteLoop();
       }
@@ -451,6 +486,7 @@ export const createTerminalRegistryPersistence = (registryPath: string) => {
   return {
     schedulePersist(state: TerminalRegistryState) {
       const serialized = serializeTerminalRegistry(state);
+
       if (
         serialized === pendingSerialized ||
         (pendingSerialized === null &&

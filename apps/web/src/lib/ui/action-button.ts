@@ -20,4 +20,5 @@ export const actionButtonVariants = cva("action-button", {
 });
 
 export type ActionButtonVariant = NonNullable<VariantProps<typeof actionButtonVariants>["variant"]>;
+
 export type ActionButtonSize = NonNullable<VariantProps<typeof actionButtonVariants>["size"]>;

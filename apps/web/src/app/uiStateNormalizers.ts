@@ -1,4 +1,4 @@
-import { asRecord } from "@adadex/core";
+import { asRecord, isBoolean, isNumber, isString, type ParsedValue } from "@adadex/core";
 
 import { isPrimaryNavIndex, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from "./constants";
 import { isTerminalCompletionSoundId } from "./notificationSounds";
@@ -8,57 +8,63 @@ export const clampSidebarWidth = (width: number) =>
   Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width));
 
 export const normalizeFrontendUiStateSnapshot = (
-  value: unknown,
+  value: ParsedValue,
 ): FrontendUiStateSnapshot | null => {
   const record = asRecord(value);
+
   if (!record) {
     return null;
   }
 
   const nextState: FrontendUiStateSnapshot = {};
+
   if (
-    typeof record.activePrimaryNav === "number" &&
+    isNumber(record.activePrimaryNav) &&
     Number.isInteger(record.activePrimaryNav) &&
     isPrimaryNavIndex(record.activePrimaryNav)
   ) {
     nextState.activePrimaryNav = record.activePrimaryNav;
   }
 
-  if (typeof record.isAgentsSidebarVisible === "boolean") {
+  if (isBoolean(record.isAgentsSidebarVisible)) {
     nextState.isAgentsSidebarVisible = record.isAgentsSidebarVisible;
   }
 
-  if (typeof record.sidebarWidth === "number" && Number.isFinite(record.sidebarWidth)) {
+  if (isNumber(record.sidebarWidth) && Number.isFinite(record.sidebarWidth)) {
     nextState.sidebarWidth = clampSidebarWidth(record.sidebarWidth);
   }
 
-  if (typeof record.isActiveAgentsSectionExpanded === "boolean") {
+  if (isBoolean(record.isActiveAgentsSectionExpanded)) {
     nextState.isActiveAgentsSectionExpanded = record.isActiveAgentsSectionExpanded;
   }
 
-  if (typeof record.isRuntimeStatusStripVisible === "boolean") {
+  if (isBoolean(record.isRuntimeStatusStripVisible)) {
     nextState.isRuntimeStatusStripVisible = record.isRuntimeStatusStripVisible;
   }
 
   const completionSoundValue = record.terminalCompletionSound;
+
   if (isTerminalCompletionSoundId(completionSoundValue)) {
     nextState.terminalCompletionSound = completionSoundValue;
   }
 
   const minimizedIdsValue = record.minimizedTerminalIds;
+
   if (Array.isArray(minimizedIdsValue)) {
-    nextState.minimizedTerminalIds = [...new Set(minimizedIdsValue)].filter(
-      (id): id is string => typeof id === "string",
+    nextState.minimizedTerminalIds = [...new Set(minimizedIdsValue)].filter((id): id is string =>
+      isString(id),
     );
   }
 
   const rawTerminalWidths = asRecord(record.terminalWidths);
+
   if (rawTerminalWidths) {
     nextState.terminalWidths = Object.entries(rawTerminalWidths).reduce<Record<string, number>>(
       (acc, [terminalId, width]) => {
-        if (typeof width === "number" && Number.isFinite(width)) {
+        if (isNumber(width) && Number.isFinite(width)) {
           acc[terminalId] = width;
         }
+
         return acc;
       },
       {},
@@ -66,19 +72,19 @@ export const normalizeFrontendUiStateSnapshot = (
   }
 
   if (Array.isArray(record.canvasOpenTerminalIds)) {
-    nextState.canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter(
-      (id): id is string => typeof id === "string",
+    nextState.canvasOpenTerminalIds = record.canvasOpenTerminalIds.filter((id): id is string =>
+      isString(id),
     );
   }
 
   if (Array.isArray(record.canvasOpenCoordinationIds)) {
     nextState.canvasOpenCoordinationIds = record.canvasOpenCoordinationIds.filter(
-      (id): id is string => typeof id === "string",
+      (id): id is string => isString(id),
     );
   }
 
   if (
-    typeof record.canvasTerminalsPanelWidth === "number" &&
+    isNumber(record.canvasTerminalsPanelWidth) &&
     Number.isFinite(record.canvasTerminalsPanelWidth)
   ) {
     nextState.canvasTerminalsPanelWidth = record.canvasTerminalsPanelWidth;

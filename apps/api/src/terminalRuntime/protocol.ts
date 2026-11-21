@@ -10,6 +10,7 @@ export const getTerminalId = (request: IncomingMessage) => {
   }
 
   let url: URL;
+
   try {
     url = new URL(request.url, "http://localhost");
   } catch {
@@ -17,6 +18,7 @@ export const getTerminalId = (request: IncomingMessage) => {
   }
 
   const match = url.pathname.match(/^\/api\/terminals\/([^/]+)\/ws$/);
+
   if (!match) {
     return null;
   }
@@ -40,6 +42,7 @@ export const broadcastMessage = (session: TerminalSession, message: TerminalServ
   for (const client of session.clients) {
     sendMessage(client, message);
   }
+
   for (const listener of session.directListeners) {
     listener(message);
   }

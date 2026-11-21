@@ -1,35 +1,49 @@
+import { randomUUID } from "node:crypto";
+
 import { logVerbose } from "../logging";
+import { loadChannelMessages, persistChannelMessages } from "./channelMessageStore";
 import type { ChannelMessage, PersistedTerminal, TerminalSession } from "./types";
+
+/** Sender id used when the operator writes to an agent from the Conversations tab. */
+export const OPERATOR_SENDER = "operator";
 
 export const createChannelMessaging = (deps: {
   terminals: Map<string, PersistedTerminal>;
   sessions: Map<string, TerminalSession>;
   writeInput: (terminalId: string, data: string) => boolean;
+  messagesPath: string;
 }) => {
-  const { terminals, sessions, writeInput } = deps;
-  const channelQueues = new Map<string, ChannelMessage[]>();
-  let channelMessageCounter = 0;
+  const { terminals, sessions, writeInput, messagesPath } = deps;
+  const channelQueues = loadChannelMessages(messagesPath);
+  const persist = () => persistChannelMessages(messagesPath, channelQueues);
 
   const deliverChannelMessages = (terminalId: string): number => {
     const queue = channelQueues.get(terminalId);
+
     if (!queue || queue.length === 0) {
       return 0;
     }
 
     const session = sessions.get(terminalId);
+
     if (!session) {
       return 0;
     }
 
     const undelivered = queue.filter((m) => !m.delivered);
+
     if (undelivered.length === 0) {
       return 0;
     }
 
-    // Compose all pending messages into a single prompt injection.
-    const lines = undelivered.map(
-      (m) => `[Channel message from ${m.fromTerminalId}]: ${m.content}`,
+    // Messages typed by the operator reach the agent as a plain prompt; agent-to-agent messages
+    // keep their sender so the receiver knows who is talking.
+    const lines = undelivered.map((m) =>
+      m.fromTerminalId === OPERATOR_SENDER || m.fromTerminalId.length === 0
+        ? m.content
+        : `[Channel message from ${m.fromTerminalId}]: ${m.content}`,
     );
+
     const prompt = `${lines.join("\n")}\r`;
 
     logVerbose(`[Channel] Delivering ${undelivered.length} message(s) to ${terminalId}`);
@@ -39,6 +53,8 @@ export const createChannelMessaging = (deps: {
     }
 
     writeInput(terminalId, prompt);
+    persist();
+
     return undelivered.length;
   };
 
@@ -52,9 +68,8 @@ export const createChannelMessaging = (deps: {
         return null;
       }
 
-      channelMessageCounter += 1;
       const message: ChannelMessage = {
-        messageId: `msg-${channelMessageCounter}`,
+        messageId: `msg-${randomUUID()}`,
         fromTerminalId,
         toTerminalId,
         content,
@@ -65,6 +80,7 @@ export const createChannelMessaging = (deps: {
       const queue = channelQueues.get(toTerminalId) ?? [];
       queue.push(message);
       channelQueues.set(toTerminalId, queue);
+      persist();
 
       logVerbose(
         `[Channel] Queued message ${message.messageId} from=${fromTerminalId} to=${toTerminalId}`,
@@ -72,6 +88,7 @@ export const createChannelMessaging = (deps: {
 
       // If the target session is idle, deliver immediately.
       const targetSession = sessions.get(toTerminalId);
+
       if (targetSession && targetSession.agentState === "idle") {
         deliverChannelMessages(toTerminalId);
       }

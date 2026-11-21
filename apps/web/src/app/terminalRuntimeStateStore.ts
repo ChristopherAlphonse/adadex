@@ -1,5 +1,5 @@
 import type { AgentRuntimeState } from "@adadex/core";
-import { useEffect, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 import type { TerminalView } from "./types";
 
@@ -9,7 +9,10 @@ export type TerminalRuntimeStateInfo = {
 };
 
 type Listener = () => void;
-type TerminalRuntimeStateMap = Record<string, TerminalRuntimeStateInfo>;
+
+interface TerminalRuntimeStateMap {
+  [terminalId: string]: TerminalRuntimeStateInfo;
+}
 
 const areRuntimeStatesEqual = (
   left: TerminalRuntimeStateInfo | undefined,
@@ -40,18 +43,23 @@ const sanitizeRuntimeState = (
     return undefined;
   }
 
-  return {
-    state: state.state,
-    ...(state.toolName ? { toolName: state.toolName } : {}),
-  };
+  const next: TerminalRuntimeStateInfo = { state: state.state };
+
+  if (state.toolName) {
+    next.toolName = state.toolName;
+  }
+
+  return next;
 };
 
 const buildRuntimeStateMap = (terminals: TerminalView): TerminalRuntimeStateMap =>
   terminals.reduce<TerminalRuntimeStateMap>((acc, terminal) => {
     const state = getTerminalRuntimeStateInfo(terminal);
+
     if (state) {
       acc[terminal.terminalId] = state;
     }
+
     return acc;
   }, {});
 
@@ -63,14 +71,18 @@ export const getTerminalRuntimeStateInfo = (
     return undefined;
   }
 
-  return {
-    state: terminal.agentRuntimeState,
-    ...(toolName ? { toolName } : {}),
-  };
+  const next: TerminalRuntimeStateInfo = { state: terminal.agentRuntimeState };
+
+  if (toolName) {
+    next.toolName = toolName;
+  }
+
+  return next;
 };
 
 export const stripTerminalRuntimeState = (terminal: TerminalView[number]): TerminalView[number] => {
   const { agentRuntimeState: _agentRuntimeState, ...structuralTerminal } = terminal;
+
   return structuralTerminal;
 };
 
@@ -84,11 +96,14 @@ export const createTerminalRuntimeStateStore = () => {
 
   const notifyListeners = (terminalIds: Iterable<string>) => {
     const listeners = new Set(globalListeners);
+
     for (const terminalId of terminalIds) {
       const terminalListeners = listenersByTerminalId.get(terminalId);
+
       if (!terminalListeners) {
         continue;
       }
+
       for (const listener of terminalListeners) {
         listeners.add(listener);
       }
@@ -102,18 +117,21 @@ export const createTerminalRuntimeStateStore = () => {
   const subscribe = (listener: Listener, terminalIds?: Iterable<string>) => {
     if (!terminalIds) {
       globalListeners.add(listener);
+
       return () => {
         globalListeners.delete(listener);
       };
     }
 
     const trackedIds = [...terminalIds];
+
     if (trackedIds.length === 0) {
       return () => {};
     }
 
     for (const terminalId of trackedIds) {
       const listeners = listenersByTerminalId.get(terminalId);
+
       if (listeners) {
         listeners.add(listener);
         continue;
@@ -125,11 +143,13 @@ export const createTerminalRuntimeStateStore = () => {
     return () => {
       for (const terminalId of trackedIds) {
         const listeners = listenersByTerminalId.get(terminalId);
+
         if (!listeners) {
           continue;
         }
 
         listeners.delete(listener);
+
         if (listeners.size === 0) {
           listenersByTerminalId.delete(terminalId);
         }
@@ -141,12 +161,15 @@ export const createTerminalRuntimeStateStore = () => {
 
   const getRuntimeStates = (terminalIds: Iterable<string>) => {
     const next = new Map<string, TerminalRuntimeStateInfo>();
+
     for (const terminalId of terminalIds) {
       const state = stateByTerminalId[terminalId];
+
       if (state) {
         next.set(terminalId, state);
       }
     }
+
     return next;
   };
 
@@ -188,6 +211,7 @@ export const createTerminalRuntimeStateStore = () => {
 
     setRuntimeState(terminalId: string, state: TerminalRuntimeStateInfo | undefined) {
       const nextState = sanitizeRuntimeState(state);
+
       if (areRuntimeStatesEqual(stateByTerminalId[terminalId], nextState)) {
         return;
       }
@@ -209,6 +233,7 @@ export const createTerminalRuntimeStateStore = () => {
       const nextEntries = Object.entries(stateByTerminalId).filter(([terminalId]) =>
         activeTerminalIds.has(terminalId),
       );
+
       if (nextEntries.length === Object.keys(stateByTerminalId).length) {
         return;
       }
@@ -216,6 +241,7 @@ export const createTerminalRuntimeStateStore = () => {
       const removedTerminalIds = Object.keys(stateByTerminalId).filter(
         (terminalId) => !activeTerminalIds.has(terminalId),
       );
+
       stateByTerminalId = Object.fromEntries(nextEntries);
       notifyListeners(removedTerminalIds);
     },
@@ -234,27 +260,36 @@ export const createTerminalRuntimeStateStore = () => {
 
 export type TerminalRuntimeStateStore = ReturnType<typeof createTerminalRuntimeStateStore>;
 
+// getRuntimeStates builds a new Map on every call, so keep the last snapshot and reuse
+// it while its contents are unchanged: useSyncExternalStore requires a stable value.
+const createRuntimeStateSource = (
+  runtimeStateStore: TerminalRuntimeStateStore,
+  terminalIds: string[],
+) => {
+  let snapshot = runtimeStateStore.getRuntimeStates(terminalIds);
+
+  return {
+    subscribe: (onChange: () => void) => runtimeStateStore.subscribe(onChange, terminalIds),
+    getSnapshot: () => {
+      const next = runtimeStateStore.getRuntimeStates(terminalIds);
+
+      if (!areRuntimeStateMapsEqual(snapshot, next)) {
+        snapshot = next;
+      }
+
+      return snapshot;
+    },
+  };
+};
+
 export const useTerminalRuntimeStates = (
   runtimeStateStore: TerminalRuntimeStateStore,
   terminalIds: string[],
 ): Map<string, TerminalRuntimeStateInfo> => {
-  const [runtimeStates, setRuntimeStates] = useState(() =>
-    runtimeStateStore.getRuntimeStates(terminalIds),
+  const source = useMemo(
+    () => createRuntimeStateSource(runtimeStateStore, terminalIds),
+    [runtimeStateStore, terminalIds],
   );
 
-  useEffect(() => {
-    setRuntimeStates((current) => {
-      const next = runtimeStateStore.getRuntimeStates(terminalIds);
-      return areRuntimeStateMapsEqual(current, next) ? current : next;
-    });
-
-    return runtimeStateStore.subscribe(() => {
-      setRuntimeStates((current) => {
-        const next = runtimeStateStore.getRuntimeStates(terminalIds);
-        return areRuntimeStateMapsEqual(current, next) ? current : next;
-      });
-    }, terminalIds);
-  }, [runtimeStateStore, terminalIds]);
-
-  return runtimeStates;
+  return useSyncExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot);
 };

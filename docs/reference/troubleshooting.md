@@ -38,12 +38,8 @@ Verify:
 gh auth status
 ```
 
-## Messages disappear after restart
-
-That is expected. Channel messages are in-memory only and do not persist across API restarts.
-
 ## A terminal survived reload but not server restart
 
-That is also expected. PTY sessions can survive a reconnect window, but they do not survive an API restart.
+That is expected. PTY sessions can survive a reconnect window, but they do not survive an API restart.
 
-After restart, terminals that were persisted as running are marked `stale` when Adadex cannot reattach them to an in-memory PTY session. Use `adadex terminal list` to inspect lifecycle state, `adadex terminal stop <terminal-id>` or `adadex terminal kill <terminal-id>` for a recorded process, and `adadex terminal prune` to remove stale, stopped, or exited records from the UI.
+After restart, terminals that were running show as `stopped` with reason `restart_pending` and start again when you open them. A terminal whose old process is still alive is marked `stale` instead, so a second agent is not started. Use `adadex terminal list` to inspect lifecycle state, `adadex terminal stop <terminal-id>` or `adadex terminal kill <terminal-id>` for a recorded process, and `adadex terminal prune` to remove stale, stopped, or exited records from the UI.

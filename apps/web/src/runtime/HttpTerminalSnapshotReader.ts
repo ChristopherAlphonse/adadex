@@ -1,9 +1,16 @@
-import type { AgentState, TerminalSnapshot, TerminalSnapshotReader } from "@adadex/core";
+import type {
+  AgentState,
+  ParsedValue,
+  TerminalLifecycleState,
+  TerminalSnapshot,
+  TerminalSnapshotReader,
+} from "@adadex/core";
+import { asRecord } from "@adadex/core";
 
 type HttpResponse = {
   ok: boolean;
   status: number;
-  json: () => Promise<unknown>;
+  json: () => Promise<ParsedValue>;
 };
 
 type HttpRequestInit = {
@@ -20,7 +27,7 @@ type HttpTerminalSnapshotReaderOptions = {
   signal?: AbortSignal;
 };
 
-const isAgentState = (value: unknown): value is AgentState =>
+const isAgentState = (value: ParsedValue): value is AgentState =>
   value === "live" ||
   value === "idle" ||
   value === "queued" ||
@@ -29,24 +36,24 @@ const isAgentState = (value: unknown): value is AgentState =>
   value === "exited" ||
   value === "stale";
 
-const isLifecycleState = (value: unknown) =>
+const isLifecycleState = (value: ParsedValue): value is TerminalLifecycleState =>
   value === "registered" ||
   value === "running" ||
   value === "stopped" ||
   value === "exited" ||
   value === "stale";
 
-const isTerminalSnapshot = (value: unknown): value is TerminalSnapshot => {
-  if (typeof value !== "object" || value === null) {
+const isTerminalSnapshot = (value: ParsedValue): value is TerminalSnapshot => {
+  const snapshot = asRecord(value);
+
+  if (!snapshot) {
     return false;
   }
-
-  const snapshot = value as Record<string, unknown>;
 
   return (
     typeof snapshot.terminalId === "string" &&
     typeof snapshot.label === "string" &&
-    isAgentState(snapshot.state) &&
+    isAgentState(snapshot.state ?? null) &&
     typeof snapshot.coordinationId === "string" &&
     (snapshot.coordinationName === undefined || typeof snapshot.coordinationName === "string") &&
     (snapshot.workspaceMode === undefined ||
@@ -91,6 +98,7 @@ export class HttpTerminalSnapshotReader implements TerminalSnapshotReader {
         Accept: "application/json",
       },
     };
+
     if (this.signal) {
       requestInit.signal = this.signal;
     }
@@ -101,7 +109,8 @@ export class HttpTerminalSnapshotReader implements TerminalSnapshotReader {
       throw new Error(`Unable to load terminal snapshots (${response.status})`);
     }
 
-    const payload: unknown = await response.json();
+    const payload: ParsedValue = await response.json();
+
     if (!Array.isArray(payload)) {
       return [];
     }

@@ -1,10 +1,21 @@
 import {
+  asRecord,
   buildTerminalList,
+  type CoordinationWorkspaceMode,
   isAgentRuntimeState,
+  isString,
   type TerminalSnapshot,
   type WorkspaceSetupStepId,
 } from "@adadex/core";
-import { type ReactElement, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -27,6 +38,7 @@ import {
   getTerminalRuntimeStateInfo,
   stripTerminalRuntimeState,
   stripTerminalRuntimeStates,
+  type TerminalRuntimeStateInfo,
 } from "./app/terminalRuntimeStateStore";
 import type { TerminalView } from "./app/types";
 import { clampSidebarWidth } from "./app/uiStateNormalizers";
@@ -34,6 +46,7 @@ import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { ConsoleChromeHeader } from "./components/design-system/ConsoleChromeHeader";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
+import { createFactoryHost } from "./runtime/factoryHost";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import {
   buildTerminalEventsSocketUrl,
@@ -42,21 +55,25 @@ import {
 
 const AppShell = () => {
   const [terminals, setTerminals] = useState<TerminalView>([]);
+
   const [recentlyCreatedTerminal, setRecentlyCreatedTerminal] = useState<
     TerminalView[number] | null
   >(null);
+
   const [, setIsLoading] = useState(true);
   const [, setLoadError] = useState<string | null>(null);
+
   const [hoveredGitHubOverviewPointIndex, setHoveredGitHubOverviewPointIndex] = useState<
     number | null
   >(null);
+
   const [deckSidebarContent, setDeckSidebarContent] = useState<ReactNode>(null);
   const [conversationsSidebarContent, setConversationsSidebarContent] = useState<ReactNode>(null);
   const [conversationsActionPanel, setConversationsActionPanel] = useState<ReactNode>(null);
   const [promptsSidebarContent, setPromptsSidebarContent] = useState<ReactNode>(null);
   const terminalEventsRefreshTimerRef = useRef<number | null>(null);
-  const runtimeStateStoreRef = useRef(createTerminalRuntimeStateStore());
-  const runtimeStateStore = runtimeStateStoreRef.current;
+  const [runtimeStateStore] = useState(createTerminalRuntimeStateStore);
+  const factoryHost = useMemo(() => createFactoryHost(), []);
 
   const sortTerminalSnapshots = useCallback(
     (snapshots: TerminalView) =>
@@ -89,6 +106,7 @@ const AppShell = () => {
     canvasTerminalsPanelWidth,
     setCanvasTerminalsPanelWidth,
   } = usePersistedUiState({ columns: terminals });
+
   const {
     workspaceSetup,
     isWorkspaceSetupLoading,
@@ -96,20 +114,19 @@ const AppShell = () => {
     refreshWorkspaceSetup,
     runWorkspaceSetupStep,
   } = useWorkspaceSetup();
+
   const [runningWorkspaceSetupStepId, setRunningWorkspaceSetupStepId] =
     useState<WorkspaceSetupStepId | null>(null);
 
   const readColumns = useCallback(
     async (signal?: AbortSignal) => {
-      const readerOptions: { endpoint: string; signal?: AbortSignal } = {
-        endpoint: buildTerminalSnapshotsUrl(),
-      };
-      if (signal) {
-        readerOptions.signal = signal;
-      }
+      const endpoint = buildTerminalSnapshotsUrl();
+      const readerOptions = signal ? { endpoint, signal } : { endpoint };
+
       const reader = new HttpTerminalSnapshotReader(readerOptions);
       const nextColumns = await buildTerminalList(reader);
       runtimeStateStore.syncFromTerminals(nextColumns);
+
       return stripTerminalRuntimeStates(nextColumns);
     },
     [runtimeStateStore],
@@ -118,6 +135,7 @@ const AppShell = () => {
   const refreshColumns = useCallback(async () => {
     const nextColumns = await readColumns();
     setTerminals(nextColumns);
+
     return nextColumns;
   }, [readColumns]);
 
@@ -179,11 +197,12 @@ const AppShell = () => {
     const socket = new WebSocket(buildTerminalEventsSocketUrl());
 
     socket.addEventListener("message", (event) => {
-      if (typeof event.data !== "string") {
+      if (!isString(event.data)) {
         return;
       }
 
       try {
+        // SAFETY: JSON.parse yields JSON values; the guards below narrow every field before use.
         const payload = JSON.parse(event.data) as
           | {
               type?: unknown;
@@ -193,7 +212,8 @@ const AppShell = () => {
               toolName?: string;
             }
           | undefined;
-        if (!payload || typeof payload.type !== "string") {
+
+        if (!payload || !isString(payload.type)) {
           return;
         }
 
@@ -201,12 +221,15 @@ const AppShell = () => {
           if (!payload.snapshot) {
             return;
           }
+
           const runtimeState = getTerminalRuntimeStateInfo(payload.snapshot);
           runtimeStateStore.setRuntimeState(payload.snapshot.terminalId, runtimeState);
           const structuralSnapshot = stripTerminalRuntimeState(payload.snapshot);
+
           if (payload.type === "terminal-created") {
-            setRecentlyCreatedTerminal(structuralSnapshot as TerminalView[number]);
+            setRecentlyCreatedTerminal(structuralSnapshot);
           }
+
           setTerminals((current) =>
             sortTerminalSnapshots([
               ...current.filter(
@@ -215,6 +238,7 @@ const AppShell = () => {
               structuralSnapshot,
             ]),
           );
+
           return;
         }
 
@@ -222,10 +246,17 @@ const AppShell = () => {
           if (!payload.terminalId || !isAgentRuntimeState(payload.agentRuntimeState)) {
             return;
           }
-          runtimeStateStore.setRuntimeState(payload.terminalId, {
+
+          const runtimeState: TerminalRuntimeStateInfo = {
             state: payload.agentRuntimeState,
-            ...(payload.toolName ? { toolName: payload.toolName } : {}),
-          });
+          };
+
+          if (payload.toolName) {
+            runtimeState.toolName = payload.toolName;
+          }
+
+          runtimeStateStore.setRuntimeState(payload.terminalId, runtimeState);
+
           return;
         }
 
@@ -233,10 +264,12 @@ const AppShell = () => {
           if (!payload.terminalId) {
             return;
           }
+
           runtimeStateStore.removeTerminal(payload.terminalId);
           setTerminals((current) =>
             current.filter((terminal) => terminal.terminalId !== payload.terminalId),
           );
+
           return;
         }
 
@@ -250,6 +283,7 @@ const AppShell = () => {
       if (terminalEventsRefreshTimerRef.current !== null) {
         window.clearTimeout(terminalEventsRefreshTimerRef.current);
       }
+
       terminalEventsRefreshTimerRef.current = window.setTimeout(() => {
         terminalEventsRefreshTimerRef.current = null;
         void refreshColumns();
@@ -261,6 +295,7 @@ const AppShell = () => {
         window.clearTimeout(terminalEventsRefreshTimerRef.current);
         terminalEventsRefreshTimerRef.current = null;
       }
+
       if (socket.readyState === WebSocket.OPEN) {
         socket.close();
       } else if (socket.readyState === WebSocket.CONNECTING) {
@@ -271,8 +306,10 @@ const AppShell = () => {
 
   const { colorTheme, isLight, setColorTheme, toggleColorTheme } = useColorThemeContext();
   useBackendLivenessPolling();
+
   const { githubRepoSummary, isRefreshingGitHubSummary, refreshGitHubRepoSummary } =
     useGithubSummaryPolling();
+
   const handleActiveTerminalIdsChange = useCallback(
     (activeTerminalIds: ReadonlySet<string>) => {
       runtimeStateStore.retainTerminalIds(activeTerminalIds);
@@ -285,10 +322,12 @@ const AppShell = () => {
     setMinimizedTerminalIds,
     onActiveTerminalIdsChange: handleActiveTerminalIdsChange,
   });
+
   const { playCompletionSoundPreview } = useTerminalCompletionNotification(
     runtimeStateStore,
     terminalCompletionSound,
   );
+
   const { heatmapData, isLoadingHeatmap, refreshHeatmap } = useUsageHeatmapPolling({
     enabled: isUiStateHydrated && (activePrimaryNav === 3 || isRuntimeStatusStripVisible),
   });
@@ -311,6 +350,7 @@ const AppShell = () => {
     hoveredGitHubOverviewPointIndex,
     setHoveredGitHubOverviewPointIndex,
   });
+
   const hasSidebarActionPanel =
     conversationsActionPanel !== null ||
     pendingDeleteTerminal !== null ||
@@ -351,6 +391,7 @@ const AppShell = () => {
     if (!hasSidebarActionPanel || isAgentsSidebarVisible) {
       return;
     }
+
     setIsAgentsSidebarVisible(true);
   }, [isAgentsSidebarVisible, setIsAgentsSidebarVisible, hasSidebarActionPanel]);
 
@@ -371,6 +412,7 @@ const AppShell = () => {
   const handleRunWorkspaceSetupStep = useCallback(
     async (stepId: WorkspaceSetupStepId) => {
       setRunningWorkspaceSetupStepId(stepId);
+
       try {
         await runWorkspaceSetupStep(stepId);
       } finally {
@@ -383,18 +425,49 @@ const AppShell = () => {
   const hasPrimarySidebarContent =
     activePrimaryNav === 2
       ? deckSidebarContent !== null
-      : activePrimaryNav === 5
+      : activePrimaryNav === 4
         ? conversationsSidebarContent !== null
-        : activePrimaryNav === 6
+        : activePrimaryNav === 5
           ? promptsSidebarContent !== null
           : true;
+
   const showAgentsSidebar =
     isAgentsSidebarVisible &&
     activePrimaryNav !== 1 &&
     activePrimaryNav !== 3 &&
-    activePrimaryNav !== 4 &&
+    activePrimaryNav !== 6 &&
     activePrimaryNav !== 7 &&
     (hasPrimarySidebarContent || hasSidebarActionPanel);
+
+  const spawnSwarm = async (coordinationId: string, workspaceMode: CoordinationWorkspaceMode) => {
+    const response = await fetch(
+      `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/swarm`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceMode }),
+      },
+    );
+
+    if (!response.ok) {
+      let message = "Failed to spawn swarm.";
+
+      try {
+        const body = asRecord(await response.json());
+        const error = body?.error;
+
+        if (isString(error) && error.trim().length > 0) {
+          message = error;
+        }
+      } catch {
+        // Fall back to the generic message when the server returns a non-JSON error.
+      }
+
+      throw new Error(message);
+    }
+
+    await refreshColumns();
+  };
 
   return (
     <div className={cn("page console-shell design-console", isLight && "light")}>
@@ -417,9 +490,9 @@ const AppShell = () => {
               bodyContent={
                 activePrimaryNav === 2
                   ? (deckSidebarContent ?? undefined)
-                  : activePrimaryNav === 5
+                  : activePrimaryNav === 4
                     ? (conversationsSidebarContent ?? undefined)
-                    : activePrimaryNav === 6
+                    : activePrimaryNav === 5
                       ? (promptsSidebarContent ?? undefined)
                       : undefined
               }
@@ -436,6 +509,10 @@ const AppShell = () => {
               onRefreshWorkspaceSetup: refreshWorkspaceSetup,
               onRunWorkspaceSetupStep: runWorkspaceSetupStep,
               suppressWorkspaceSetupCard: true,
+              onCreateAgent: async (coordinationId) => {
+                return await createTerminal("shared", coordinationId);
+              },
+              onSpawnSwarm: spawnSwarm,
             }}
             activityPrimaryViewProps={{
               usageChartProps: {
@@ -494,15 +571,20 @@ const AppShell = () => {
                     promptTemplate: "coordination-planner",
                   }),
                 });
+
                 if (!response.ok) {
                   return undefined;
                 }
-                const snapshot = (await response.json()) as { terminalId?: string };
+
+                const snapshot = asRecord(await response.json());
                 await refreshColumns();
-                if (typeof snapshot.terminalId !== "string") {
+                const terminalId = snapshot?.terminalId;
+
+                if (!isString(terminalId)) {
                   return undefined;
                 }
-                return snapshot.terminalId;
+
+                return terminalId;
               },
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
               onCanvasOpenOrchestrationIdsChange: setCanvasOpenCoordinationIds,
@@ -511,43 +593,38 @@ const AppShell = () => {
                 return await createTerminal("shared", coordinationId);
               },
               onCreateTerminal: async () => {
-                return await createTerminal("shared", DECK_LEAD_ID);
+                return await createTerminal("shared", DECK_LEAD_ID, { plainShell: true });
               },
               onCreateWorktreeTerminal: async () => {
-                return await createTerminal("worktree", DECK_LEAD_ID);
+                return await createTerminal("worktree", DECK_LEAD_ID, { plainShell: true });
               },
               onCreateOrchestration: async () => {
-                const response = await fetch("/api/deck/coordinations", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ name: "", description: "" }),
-                });
-                if (!response.ok) return;
-                await refreshColumns();
-              },
-              onSpawnSwarm: async (coordinationId, workspaceMode) => {
-                const response = await fetch(
-                  `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/swarm`,
-                  {
+                // The API requires a unique, folder-safe name, so pick the first free "orchestration-N".
+                for (let index = 1; index <= 50; index += 1) {
+                  // eslint-disable-next-line no-await-in-loop
+                  const response = await fetch("/api/deck/coordinations", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ workspaceMode }),
-                  },
-                );
-                if (!response.ok) {
-                  let message = "Failed to spawn swarm.";
-                  try {
-                    const body = (await response.json()) as { error?: unknown };
-                    if (typeof body.error === "string" && body.error.trim().length > 0) {
-                      message = body.error;
-                    }
-                  } catch {
-                    // Fall back to the generic message when the server returns a non-JSON error.
+                    body: JSON.stringify({ name: `orchestration-${index}`, description: "" }),
+                  });
+
+                  if (response.ok) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await refreshColumns();
+
+                    return;
                   }
-                  throw new Error(message);
+
+                  // Only a name collision is worth retrying; anything else won't improve with a new name.
+                  // eslint-disable-next-line no-await-in-loop
+                  const failure = asRecord(await response.json().catch(() => null));
+
+                  if (!isString(failure?.error) || !failure.error.includes("already exists")) {
+                    return;
+                  }
                 }
-                await refreshColumns();
               },
+              onSpawnSwarm: spawnSwarm,
               onDeckLeadAction: async (action) => {
                 const response = await fetch("/api/terminals", {
                   method: "POST",
@@ -558,10 +635,13 @@ const AppShell = () => {
                     promptTemplate: action,
                   }),
                 });
+
                 if (!response.ok) return undefined;
-                const snapshot = (await response.json()) as { terminalId?: string };
+                const snapshot = asRecord(await response.json());
                 await refreshColumns();
-                return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
+                const terminalId = snapshot?.terminalId;
+
+                return isString(terminalId) ? terminalId : undefined;
               },
               onOrchestrationAction: async (coordinationId, action) => {
                 const response = await fetch("/api/terminals", {
@@ -576,13 +656,16 @@ const AppShell = () => {
                     },
                   }),
                 });
+
                 if (!response.ok) return undefined;
-                const snapshot = (await response.json()) as { terminalId?: string };
+                const snapshot = asRecord(await response.json());
                 await refreshColumns();
-                return typeof snapshot.terminalId === "string" ? snapshot.terminalId : undefined;
+                const terminalId = snapshot?.terminalId;
+
+                return isString(terminalId) ? terminalId : undefined;
               },
               onNavigateToConversation: (_sessionId) => {
-                setActivePrimaryNav(6);
+                setActivePrimaryNav(4);
               },
               onCloseActiveSession: (terminalId) => closeTerminal(terminalId),
               onDeleteActiveSession: (terminalId, terminalName, workspaceMode) => {
@@ -604,10 +687,11 @@ const AppShell = () => {
               },
               gitStatusByOrchestrationId,
             }}
-            conversationsEnabled={isUiStateHydrated && activePrimaryNav === 5}
+            factoryPrimaryViewProps={{ host: factoryHost }}
+            conversationsEnabled={isUiStateHydrated && activePrimaryNav === 4}
             onConversationsSidebarContent={setConversationsSidebarContent}
             onConversationsActionPanel={setConversationsActionPanel}
-            promptsEnabled={isUiStateHydrated && activePrimaryNav === 6}
+            promptsEnabled={isUiStateHydrated && activePrimaryNav === 5}
             onPromptsSidebarContent={setPromptsSidebarContent}
           />
         </div>

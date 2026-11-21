@@ -127,6 +127,8 @@ export type PersistedTerminal = {
   createdAt: string;
   workspaceMode: CoordinationWorkspaceMode;
   agentProvider?: TerminalAgentProvider;
+  /** Plain shell: never launches an agent CLI or installs agent hooks. */
+  plainShell?: boolean;
   initialPrompt?: string;
   initialInputDraft?: string;
   lastActiveAt?: string;

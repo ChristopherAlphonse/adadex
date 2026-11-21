@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { toPromptLabel } from "../app/promptLabel";
 import type { PromptDetail, PromptLibraryEntry } from "../app/types";
 import { buildPromptItemUrl, buildPromptsUrl } from "../runtime/runtimeEndpoints";
 
@@ -21,6 +22,16 @@ export const TerminalPromptPicker = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<React.CSSProperties>({});
 
+  // Show the loading state from the same render that opens the picker; the fetch effect below
+  // only synchronizes the result back once the request settles.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+
+    if (isOpen) setIsLoading(true);
+  }
+
   useEffect(() => {
     if (!isOpen || !anchorRef.current) return;
 
@@ -35,11 +46,15 @@ export const TerminalPromptPicker = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    setIsLoading(true);
     fetch(buildPromptsUrl())
       .then(async (res) => {
         if (!res.ok) return;
-        const data = (await res.json()) as { prompts: PromptLibraryEntry[] };
+
+        const data =
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as {
+            prompts: PromptLibraryEntry[];
+          };
+
         setPrompts(data.prompts);
       })
       .catch(() => {
@@ -56,15 +71,20 @@ export const TerminalPromptPicker = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (
         popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
+        !popoverRef.current.contains(
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as Node,
+        ) &&
         anchorRef.current &&
-        !anchorRef.current.contains(e.target as Node)
+        !anchorRef.current.contains(
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as Node,
+        )
       ) {
         onClose();
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -74,8 +94,12 @@ export const TerminalPromptPicker = ({
     async (name: string) => {
       try {
         const res = await fetch(buildPromptItemUrl(name));
+
         if (!res.ok) return;
-        const data = (await res.json()) as PromptDetail;
+
+        const data =
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as PromptDetail;
+
         onSelectPrompt(data.content);
         onClose();
       } catch {
@@ -111,7 +135,7 @@ export const TerminalPromptPicker = ({
                     void handleSelectPrompt(p.name);
                   }}
                 >
-                  {p.name}.md
+                  {toPromptLabel(p.name)}
                 </button>
               ))}
             </div>
@@ -128,7 +152,7 @@ export const TerminalPromptPicker = ({
                     void handleSelectPrompt(p.name);
                   }}
                 >
-                  {p.name}.md
+                  {toPromptLabel(p.name)}
                 </button>
               ))}
             </div>

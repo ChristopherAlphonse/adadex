@@ -7,6 +7,7 @@ describe("replayTerminalHistory", () => {
     const reset = vi.fn();
     const clearSelection = vi.fn();
     const refresh = vi.fn();
+
     const terminal = {
       reset,
       clearSelection,
@@ -16,15 +17,18 @@ describe("replayTerminalHistory", () => {
         callback?.();
       }),
     };
+
     const viewport = {
       clientHeight: 120,
       scrollHeight: 1_400,
       scrollTop: 360,
     };
+
     const requestAnimationFrameSpy = vi
       .spyOn(window, "requestAnimationFrame")
       .mockImplementation((callback: FrameRequestCallback) => {
         callback(0);
+
         return 1;
       });
 
@@ -49,16 +53,19 @@ describe("replayTerminalHistory", () => {
         callback?.();
       }),
     };
+
     const viewport = {
       clientHeight: 300,
       scrollHeight: 910,
       scrollTop: 604,
     };
+
     const requestAnimationFrameSpy = vi
       .spyOn(window, "requestAnimationFrame")
       .mockImplementation((callback: FrameRequestCallback) => {
         viewport.scrollHeight = 1_280;
         callback(0);
+
         return 1;
       });
 

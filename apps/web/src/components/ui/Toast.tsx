@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ export type Toast = {
 };
 
 let toastListeners: Array<(toasts: Toast[]) => void> = [];
+
 let toasts: Toast[] = [];
 
 const TOAST_DURATIONS: Record<ToastType, number> = {
@@ -22,6 +23,7 @@ const TOAST_DURATIONS: Record<ToastType, number> = {
 
 function notify() {
   const snapshot = [...toasts];
+
   for (const listener of toastListeners) {
     listener(snapshot);
   }
@@ -53,14 +55,12 @@ const toastToneClasses: Record<ToastType, string> = {
 
 export const ToastContainer = () => {
   const [currentToasts, setCurrentToasts] = useState<Toast[]>([]);
-  const listenerRef = useRef<(toasts: Toast[]) => void>(setCurrentToasts);
-  listenerRef.current = setCurrentToasts;
 
   useEffect(() => {
-    const listener: (toasts: Toast[]) => void = (t) => listenerRef.current(t);
-    toastListeners.push(listener);
+    toastListeners.push(setCurrentToasts);
+
     return () => {
-      toastListeners = toastListeners.filter((l) => l !== listener);
+      toastListeners = toastListeners.filter((l) => l !== setCurrentToasts);
     };
   }, []);
 
@@ -84,6 +84,7 @@ const ToastItem = ({ toast: toastItem }: { toast: Toast }) => {
       setExiting(true);
       setTimeout(() => setVisible(false), 300);
     }, 3500);
+
     return () => clearTimeout(timer);
   }, []);
 

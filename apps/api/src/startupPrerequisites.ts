@@ -1,5 +1,9 @@
 import { execFileSync } from "node:child_process";
 
+import type { TerminalAgentProvider } from "@adadex/core";
+
+import { TERMINAL_BOOTSTRAP_COMMANDS } from "./terminalRuntime/constants";
+
 export type StartupPrerequisiteSeverity = "error" | "warning";
 
 export type StartupPrerequisiteIssue = {
@@ -9,13 +13,40 @@ export type StartupPrerequisiteIssue = {
   guidance: string;
 };
 
-export type StartupPrerequisiteAvailability = Record<"kiro" | "git" | "gh" | "curl", boolean>;
+export type StartupPrerequisiteAvailability = Record<
+  TerminalAgentProvider | "git" | "gh" | "curl",
+  boolean
+>;
 
 export type StartupPrerequisiteReport = {
   availability: StartupPrerequisiteAvailability;
   errors: StartupPrerequisiteIssue[];
   warnings: StartupPrerequisiteIssue[];
 };
+
+const agentCli = (key: TerminalAgentProvider, name: string, install: string) => ({
+  key,
+  name,
+  install,
+  binary: TERMINAL_BOOTSTRAP_COMMANDS[key],
+});
+
+export const DEFAULT_AGENT_CLI = agentCli(
+  "claude",
+  "Claude Code",
+  "curl -fsSL https://claude.ai/install.sh | bash",
+);
+
+/** The agent CLIs Adadex can drive, in the order they are suggested. */
+export const AGENT_CLIS = [
+  DEFAULT_AGENT_CLI,
+  agentCli("opencode", "OpenCode", "curl -fsSL https://opencode.ai/install | bash"),
+  agentCli("kiro", "Kiro CLI", "curl -fsSL https://cli.kiro.dev/install | bash"),
+];
+
+export const AGENT_CLI_INSTALL_GUIDANCE = `Install at least one agent CLI: ${AGENT_CLIS.map(
+  (cli) => `${cli.name} (\`${cli.install}\`)`,
+).join(", ")}.`;
 
 type CommandAvailabilityChecker = (command: string) => boolean;
 
@@ -26,8 +57,14 @@ type CommandAvailabilityOptions = {
 
 const resolveLookupCommand = (platform: NodeJS.Platform) =>
   platform === "win32"
-    ? { file: "where", args: [] as string[] }
-    : { file: "which", args: [] as string[] };
+    ? {
+        file: "where",
+        args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
+      }
+    : {
+        file: "which",
+        args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [] as string[],
+      };
 
 export const isCommandAvailable = (
   command: string,
@@ -39,6 +76,7 @@ export const isCommandAvailable = (
     (options.execFileSyncImpl ?? execFileSync)(lookup.file, [...lookup.args, command], {
       stdio: "ignore",
     });
+
     return true;
   } catch {
     return false;
@@ -49,7 +87,9 @@ export const collectStartupPrerequisiteReport = (
   isAvailable: CommandAvailabilityChecker = (command) => isCommandAvailable(command),
 ): StartupPrerequisiteReport => {
   const availability: StartupPrerequisiteAvailability = {
-    kiro: isAvailable("kiro-cli"),
+    claude: isAvailable(TERMINAL_BOOTSTRAP_COMMANDS.claude),
+    opencode: isAvailable(TERMINAL_BOOTSTRAP_COMMANDS.opencode),
+    kiro: isAvailable(TERMINAL_BOOTSTRAP_COMMANDS.kiro),
     git: isAvailable("git"),
     gh: isAvailable("gh"),
     curl: isAvailable("curl"),
@@ -58,13 +98,12 @@ export const collectStartupPrerequisiteReport = (
   const errors: StartupPrerequisiteIssue[] = [];
   const warnings: StartupPrerequisiteIssue[] = [];
 
-  if (!availability.kiro) {
+  if (!AGENT_CLIS.some((cli) => availability[cli.key])) {
     warnings.push({
-      command: "kiro-cli",
+      command: DEFAULT_AGENT_CLI.binary,
       severity: "warning",
-      summary: "`kiro-cli` is not installed.",
-      guidance:
-        "Install Kiro CLI (curl -fsSL https://cli.kiro.dev/install | bash) to use it as the agent provider.",
+      summary: `No agent CLI found (${AGENT_CLIS.map((cli) => `\`${cli.binary}\``).join(", ")}).`,
+      guidance: AGENT_CLI_INSTALL_GUIDANCE,
     });
   }
 

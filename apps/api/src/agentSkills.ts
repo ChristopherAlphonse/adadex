@@ -6,8 +6,12 @@ import type { DeckAvailableSkill } from "@adadex/core";
 const SKILL_MARKERS = [
   { start: "<!-- adadex:suggested-skills:start -->", end: "<!-- adadex:suggested-skills:end -->" },
 ] as const;
+
 const FRONT_MATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?/;
+
 const H1_PATTERN = /^#\s+(.+)$/m;
+
+type SkillMetadata = { name: string; description: string; title: string | null };
 
 const normalizeSkillNames = (skills: readonly string[]): string[] => {
   const seen = new Set<string>();
@@ -15,6 +19,7 @@ const normalizeSkillNames = (skills: readonly string[]): string[] => {
 
   for (const skill of skills) {
     const trimmed = skill.trim();
+
     if (trimmed.length === 0 || seen.has(trimmed)) continue;
     seen.add(trimmed);
     normalized.push(trimmed);
@@ -23,13 +28,12 @@ const normalizeSkillNames = (skills: readonly string[]): string[] => {
   return normalized.sort((a, b) => a.localeCompare(b));
 };
 
-const readSkillMetadata = (
-  skillFilePath: string,
-): { name: string; description: string; title: string | null } => {
+const readSkillMetadata = (skillFilePath: string): SkillMetadata => {
   const fallbackName =
     basename(skillFilePath, ".md") === "SKILL"
       ? basename(dirname(skillFilePath))
       : basename(skillFilePath, ".md");
+
   try {
     const content = readFileSync(skillFilePath, "utf8");
     const frontMatterMatch = content.match(FRONT_MATTER_PATTERN);
@@ -39,11 +43,13 @@ const readSkillMetadata = (
     if (frontMatterMatch) {
       for (const line of (frontMatterMatch[1] ?? "").split("\n")) {
         const separatorIndex = line.indexOf(":");
+
         if (separatorIndex <= 0) continue;
 
         const key = line.slice(0, separatorIndex).trim();
         const rawValue = line.slice(separatorIndex + 1).trim();
         const value = rawValue.replace(/^['"]|['"]$/g, "");
+
         if (key === "name" && value.length > 0) {
           name = value;
         } else if (key === "description" && value.length > 0) {
@@ -53,6 +59,7 @@ const readSkillMetadata = (
     }
 
     const title = content.match(H1_PATTERN)?.[1]?.trim() ?? null;
+
     return {
       name: name ?? title ?? fallbackName,
       description,
@@ -73,6 +80,7 @@ const listSkillDefinitionFiles = (skillsRoot: string): string[] => {
   const definitions: string[] = [];
 
   let entries: string[] = [];
+
   try {
     entries = readdirSync(skillsRoot);
   } catch {
@@ -81,6 +89,7 @@ const listSkillDefinitionFiles = (skillsRoot: string): string[] => {
 
   for (const entry of entries) {
     const entryPath = join(skillsRoot, entry);
+
     try {
       if (!statSync(entryPath).isDirectory()) continue;
     } catch {
@@ -88,6 +97,7 @@ const listSkillDefinitionFiles = (skillsRoot: string): string[] => {
     }
 
     const skillFile = join(entryPath, "SKILL.md");
+
     if (existsSync(skillFile)) {
       definitions.push(skillFile);
     }
@@ -96,18 +106,30 @@ const listSkillDefinitionFiles = (skillsRoot: string): string[] => {
   return definitions;
 };
 
+/** Project skill folders for each supported agent CLI. When two folders hold a skill with the same name, the earlier one wins. */
+const PROJECT_SKILL_DIRS = [
+  [".claude", "skills"],
+  [".opencode", "skills"],
+  [".agents", "skills"],
+  [".kiro", "skills"],
+] as const;
+
 export const readAvailableAgentSkills = (workspaceCwd: string): DeckAvailableSkill[] => {
-  const roots: Array<{ path: string; source: DeckAvailableSkill["source"] }> = [
-    { path: join(workspaceCwd, ".kiro", "skills"), source: "project" },
-  ];
+  const roots: Array<{ path: string; source: DeckAvailableSkill["source"] }> =
+    PROJECT_SKILL_DIRS.map((segments) => ({
+      path: join(workspaceCwd, ...segments),
+      source: "project",
+    }));
 
   const seen = new Map<string, DeckAvailableSkill>();
 
   for (const root of roots) {
     const definitions = listSkillDefinitionFiles(root.path);
+
     for (const definition of definitions) {
       const metadata = readSkillMetadata(definition);
       const name = metadata.name.trim();
+
       if (name.length === 0 || seen.has(name)) continue;
       seen.set(name, {
         name,
@@ -121,6 +143,7 @@ export const readAvailableAgentSkills = (workspaceCwd: string): DeckAvailableSki
     if (a.source !== b.source) {
       return a.source === "project" ? -1 : 1;
     }
+
     return a.name.localeCompare(b.name);
   });
 };
@@ -129,12 +152,15 @@ export const parseSuggestedSkillsFromContext = (content: string): string[] => {
   for (const { start, end } of SKILL_MARKERS) {
     const blockStart = content.indexOf(start);
     const blockEnd = content.indexOf(end);
+
     if (blockStart >= 0 && blockEnd > blockStart) {
       const block = content.slice(blockStart, blockEnd);
+
       const skills = block
         .split("\n")
         .map((line) => {
           const match = line.trim().match(/^- `(.+)`$/);
+
           return match?.[1]?.trim() ?? null;
         })
         .filter((skill): skill is string => skill !== null);
@@ -142,17 +168,21 @@ export const parseSuggestedSkillsFromContext = (content: string): string[] => {
       return normalizeSkillNames(skills);
     }
   }
+
   return [];
 };
 
 const PRIMARY_SKILL_MARKER_START = SKILL_MARKERS[0].start;
+
 const PRIMARY_SKILL_MARKER_END = SKILL_MARKERS[0].end;
 
 const renderSuggestedSkillsBlock = (skills: readonly string[]): string => {
   const normalized = normalizeSkillNames(skills);
+
   if (normalized.length === 0) return "";
 
   const items = normalized.map((skill) => `- \`${skill}\``).join("\n");
+
   return [
     PRIMARY_SKILL_MARKER_START,
     "## Suggested Skills",
@@ -170,9 +200,11 @@ export const applySuggestedSkillsToContext = (
 ): string => {
   const trimmedContent = content.trimEnd();
   let withoutExistingBlock = trimmedContent;
+
   for (const { start, end } of SKILL_MARKERS) {
     const blockStart = withoutExistingBlock.indexOf(start);
     const blockEnd = withoutExistingBlock.indexOf(end);
+
     if (blockStart >= 0 && blockEnd > blockStart) {
       withoutExistingBlock =
         `${withoutExistingBlock.slice(0, blockStart).trimEnd()}\n${withoutExistingBlock
@@ -180,6 +212,7 @@ export const applySuggestedSkillsToContext = (
           .trimStart()}`.trimEnd();
     }
   }
+
   const block = renderSuggestedSkillsBlock(skills);
 
   if (block.length === 0) {
@@ -187,5 +220,6 @@ export const applySuggestedSkillsToContext = (
   }
 
   const base = withoutExistingBlock.length > 0 ? `${withoutExistingBlock}\n\n` : "";
+
   return `${base}${block}\n`;
 };

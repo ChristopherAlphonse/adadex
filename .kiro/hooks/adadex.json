@@ -1,0 +1,55 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "adadex-session-start",
+      "trigger": "SessionStart",
+      "matcher": "*",
+      "action": {
+        "type": "command",
+        "command": "curl -s -X POST \"http://127.0.0.1:8787/api/hooks/session-start?adadex_session=$ADADEX_SESSION_ID\" -H 'Content-Type: application/json' -d @- || true"
+      },
+      "timeout": 5
+    },
+    {
+      "name": "adadex-user-prompt-submit",
+      "trigger": "UserPromptSubmit",
+      "matcher": "*",
+      "action": {
+        "type": "command",
+        "command": "curl -s -X POST \"http://127.0.0.1:8787/api/hooks/user-prompt-submit?adadex_session=$ADADEX_SESSION_ID\" -H 'Content-Type: application/json' -d @- || true"
+      },
+      "timeout": 5
+    },
+    {
+      "name": "adadex-pre-tool-use",
+      "trigger": "PreToolUse",
+      "matcher": "*",
+      "action": {
+        "type": "command",
+        "command": "curl -s -X POST \"http://127.0.0.1:8787/api/hooks/pre-tool-use?adadex_session=$ADADEX_SESSION_ID\" -H 'Content-Type: application/json' -d @- ; exit 0"
+      },
+      "timeout": 5
+    },
+    {
+      "name": "adadex-post-tool-use",
+      "trigger": "PostToolUse",
+      "matcher": "fs_write",
+      "action": {
+        "type": "command",
+        "command": "curl -s -X POST \"http://127.0.0.1:8787/api/code-intel/events?adadex_session=$ADADEX_SESSION_ID\" -H 'Content-Type: application/json' -d @- || true"
+      },
+      "timeout": 5
+    },
+    {
+      "name": "adadex-stop",
+      "trigger": "Stop",
+      "matcher": "*",
+      "action": {
+        "type": "command",
+        "command": "curl -s -X POST \"http://127.0.0.1:8787/api/hooks/stop?adadex_session=$ADADEX_SESSION_ID\" -H 'Content-Type: application/json' -d @- || true"
+      },
+      "timeout": 15
+    }
+  ]
+}

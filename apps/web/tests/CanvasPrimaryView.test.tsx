@@ -168,6 +168,7 @@ describe("CanvasPrimaryView", () => {
       (callback: FrameRequestCallback) => {
         const id = ++rafId;
         setTimeout(() => callback(0), 0);
+
         return id;
       },
     );
@@ -195,6 +196,7 @@ describe("CanvasPrimaryView", () => {
 
     const [terminalButton] = screen.getAllByRole("button", { name: "terminal-1" });
     expect(terminalButton).toBeDefined();
+
     if (!terminalButton) throw new Error("Missing terminal button");
 
     fireEvent.click(terminalButton);
@@ -211,6 +213,7 @@ describe("CanvasPrimaryView", () => {
 
     const [terminalButton] = screen.getAllByRole("button", { name: "terminal-1" });
     expect(terminalButton).toBeDefined();
+
     if (!terminalButton) throw new Error("Missing terminal button");
 
     fireEvent.click(terminalButton);
@@ -250,6 +253,7 @@ describe("CanvasPrimaryView", () => {
 
     const [terminalButton] = screen.getAllByRole("button", { name: "terminal-1" });
     expect(terminalButton).toBeDefined();
+
     if (!terminalButton) throw new Error("Missing terminal button");
 
     fireEvent.click(terminalButton);
@@ -289,6 +293,7 @@ describe("CanvasPrimaryView", () => {
 
     const [terminalButton] = screen.getAllByRole("button", { name: "terminal-1" });
     expect(terminalButton).toBeDefined();
+
     if (!terminalButton) throw new Error("Missing terminal button");
 
     fireEvent.click(terminalButton);
@@ -375,6 +380,7 @@ describe("CanvasPrimaryView", () => {
 
     const [terminalButton] = screen.getAllByRole("button", { name: "terminal-1" });
     expect(terminalButton).toBeDefined();
+
     if (!terminalButton) throw new Error("Missing terminal button");
 
     fireEvent.click(terminalButton);
@@ -422,7 +428,10 @@ describe("CanvasPrimaryView", () => {
     const orchestrationNode = container.querySelector('[data-node-id="t:orchestration-a"]');
     expect(orchestrationNode).not.toBeNull();
 
-    fireEvent.contextMenu(orchestrationNode as Element, { clientX: 160, clientY: 120 });
+    fireEvent.contextMenu(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ orchestrationNode as Element,
+      { clientX: 160, clientY: 120 },
+    );
 
     expect(await screen.findByRole("button", { name: "Update To-Do List" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Update Orchestration" })).toBeInTheDocument();

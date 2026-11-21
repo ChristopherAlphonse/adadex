@@ -17,10 +17,16 @@ import {
   LEGACY_TERMINAL_REGISTRY_FILENAME,
   TERMINAL_REGISTRY_FILENAME,
   WORKSPACE_RUNTIME_DIR,
+  asRecord,
+  isParsedRecord,
+  isString,
+  type ParsedValue,
 } from "@adadex/core";
 
 export const GLOBAL_ADADEX_DIR = join(homedir(), GLOBAL_RUNTIME_DIR_NAME);
+
 export const PROJECTS_FILE = join(GLOBAL_ADADEX_DIR, "projects.json");
+
 export const PROJECT_CONFIG_RELATIVE_PATH = join(WORKSPACE_RUNTIME_DIR, "project.json");
 
 type ProjectConfigDocument = {
@@ -38,51 +44,45 @@ export type ProjectRegistryEntry = {
   lastOpenedAt?: string;
 };
 
-type LegacyProjectRegistryEntry = {
-  name?: unknown;
-  path?: unknown;
-  createdAt?: unknown;
-};
-
 export type ProjectsRegistry = { projects: ProjectRegistryEntry[] };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
-
 const toProjectRegistryEntry = (
-  value: unknown,
+  value: ParsedValue,
   workspaceCwd?: string,
 ): ProjectRegistryEntry | null => {
-  if (!isRecord(value)) {
+  if (!isParsedRecord(value)) {
     return null;
   }
 
   if (
-    typeof value.id === "string" &&
+    isString(value.id) &&
     value.id.trim().length > 0 &&
-    typeof value.name === "string" &&
+    isString(value.name) &&
     value.name.trim().length > 0 &&
-    typeof value.path === "string" &&
+    isString(value.path) &&
     value.path.trim().length > 0 &&
-    typeof value.createdAt === "string" &&
+    isString(value.createdAt) &&
     value.createdAt.trim().length > 0
   ) {
-    return {
+    const entry: ProjectRegistryEntry = {
       id: value.id,
       name: value.name,
       path: value.path,
       createdAt: value.createdAt,
-      ...(typeof value.lastOpenedAt === "string" && value.lastOpenedAt.trim().length > 0
-        ? { lastOpenedAt: value.lastOpenedAt }
-        : {}),
     };
+
+    if (isString(value.lastOpenedAt) && value.lastOpenedAt.trim().length > 0) {
+      entry.lastOpenedAt = value.lastOpenedAt;
+    }
+
+    return entry;
   }
 
   if (
     workspaceCwd &&
-    typeof value.name === "string" &&
+    isString(value.name) &&
     value.name.trim().length > 0 &&
-    typeof value.path === "string" &&
+    isString(value.path) &&
     value.path === workspaceCwd
   ) {
     return {
@@ -90,7 +90,7 @@ const toProjectRegistryEntry = (
       name: value.name,
       path: value.path,
       createdAt:
-        typeof value.createdAt === "string" && value.createdAt.trim().length > 0
+        isString(value.createdAt) && value.createdAt.trim().length > 0
           ? value.createdAt
           : new Date().toISOString(),
     };
@@ -99,15 +99,15 @@ const toProjectRegistryEntry = (
   return null;
 };
 
-const toProjectConfigDocument = (value: unknown): ProjectConfigDocument | null => {
+const toProjectConfigDocument = (value: ParsedValue): ProjectConfigDocument | null => {
   if (
-    !isRecord(value) ||
+    !isParsedRecord(value) ||
     value.version !== 1 ||
-    typeof value.projectId !== "string" ||
+    !isString(value.projectId) ||
     value.projectId.trim().length === 0 ||
-    typeof value.displayName !== "string" ||
+    !isString(value.displayName) ||
     value.displayName.trim().length === 0 ||
-    typeof value.createdAt !== "string" ||
+    !isString(value.createdAt) ||
     value.createdAt.trim().length === 0
   ) {
     return null;
@@ -121,9 +121,10 @@ const toProjectConfigDocument = (value: unknown): ProjectConfigDocument | null =
   };
 };
 
-const readJsonFile = (filePath: string): unknown | null => {
+const readJsonFile = (filePath: string): ParsedValue | null => {
   try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+    // SAFETY: JSON.parse can only produce JSON scalars, arrays, or plain objects.
+    return JSON.parse(readFileSync(filePath, "utf8")) as ParsedValue;
   } catch {
     return null;
   }
@@ -143,7 +144,8 @@ export const loadProjectsRegistry = (): ProjectsRegistry => {
   }
 
   const parsed = readJsonFile(PROJECTS_FILE);
-  if (!isRecord(parsed) || !Array.isArray(parsed.projects)) {
+
+  if (!isParsedRecord(parsed) || !Array.isArray(parsed.projects)) {
     return { projects: [] };
   }
 
@@ -167,13 +169,16 @@ export const deriveProjectIdFromWorkspace = (workspaceCwd: string) =>
 
 const inferLegacyProjectName = (workspaceCwd: string): string | null => {
   const parsed = readJsonFile(PROJECTS_FILE);
-  if (!isRecord(parsed) || !Array.isArray(parsed.projects)) {
+
+  if (!isParsedRecord(parsed) || !Array.isArray(parsed.projects)) {
     return null;
   }
 
-  for (const legacyEntry of parsed.projects as LegacyProjectRegistryEntry[]) {
-    if (legacyEntry.path === workspaceCwd && typeof legacyEntry.name === "string") {
-      return legacyEntry.name;
+  for (const legacyEntry of parsed.projects) {
+    const entry = asRecord(legacyEntry);
+
+    if (entry?.path === workspaceCwd && isString(entry.name)) {
+      return entry.name;
     }
   }
 
@@ -182,6 +187,7 @@ const inferLegacyProjectName = (workspaceCwd: string): string | null => {
 
 export const loadProjectConfig = (workspaceCwd: string): ProjectConfigDocument | null => {
   const configPath = resolveProjectConfigPath(workspaceCwd);
+
   if (!existsSync(configPath)) {
     return null;
   }
@@ -195,6 +201,7 @@ export const ensureProjectConfig = (
   preferredProjectId?: string,
 ): ProjectConfigDocument => {
   const existing = loadProjectConfig(workspaceCwd);
+
   if (existing) {
     return existing;
   }
@@ -204,6 +211,7 @@ export const ensureProjectConfig = (
     inferLegacyProjectName(workspaceCwd) ||
     basename(workspaceCwd) ||
     "adadex-project";
+
   const config: ProjectConfigDocument = {
     version: 1,
     projectId: preferredProjectId?.trim() || randomUUID(),
@@ -214,6 +222,7 @@ export const ensureProjectConfig = (
   const configPath = resolveProjectConfigPath(workspaceCwd);
   mkdirSync(join(workspaceCwd, WORKSPACE_RUNTIME_DIR), { recursive: true });
   writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+
   return config;
 };
 
@@ -231,6 +240,7 @@ export const registerProject = (
     existing.path = workspaceCwd;
     existing.lastOpenedAt = lastOpenedAt;
     saveProjectsRegistry(registry);
+
     return existing;
   }
 
@@ -245,8 +255,10 @@ export const registerProject = (
   const filteredProjects = registry.projects.filter(
     (entry) => entry.path !== workspaceCwd && entry.id !== projectConfig.projectId,
   );
+
   filteredProjects.push(nextEntry);
   saveProjectsRegistry({ projects: filteredProjects });
+
   return nextEntry;
 };
 
@@ -260,6 +272,7 @@ export const resolveProjectStateDir = (workspaceCwd: string, preferredName?: str
   const entry = registerProject(workspaceCwd, preferredName);
   const projectDir = resolveGlobalProjectDir(entry.id);
   mkdirSync(join(projectDir, "state"), { recursive: true });
+
   return projectDir;
 };
 
@@ -269,6 +282,7 @@ export const ensureProjectScaffold = (
   preferredProjectId?: string,
 ) => {
   const runtimeDir = join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
+
   for (const subdirectory of [COORDINATIONS_DIR_SEGMENT, "worktrees"]) {
     mkdirSync(join(runtimeDir, subdirectory), { recursive: true });
   }
@@ -278,14 +292,17 @@ export const ensureProjectScaffold = (
 
 export const hasAdadexGitignoreEntry = (workspaceCwd: string) => {
   const gitignorePath = join(workspaceCwd, ".gitignore");
+
   if (!existsSync(gitignorePath)) {
     return false;
   }
 
   const content = readFileSync(gitignorePath, "utf-8");
   const lines = content.split("\n").map((line) => line.trim());
+
   const hasRuntimeEntry =
     lines.includes(WORKSPACE_RUNTIME_DIR) || lines.includes(`${WORKSPACE_RUNTIME_DIR}/`);
+
   return hasRuntimeEntry && lines.includes(".planning/");
 };
 
@@ -303,21 +320,25 @@ export const ensureAdadexGitignoreEntry = (workspaceCwd: string) => {
     }
 
     appendFileSync(gitignorePath, `\n${missingEntries.join("\n")}\n`, "utf-8");
+
     return { changed: true };
   }
 
   writeFileSync(gitignorePath, `${requiredEntries.join("\n")}\n`, "utf-8");
+
   return { changed: true };
 };
 
 export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: string) => {
   const localRoot = join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
+
   if (projectStateDir === localRoot) {
     return;
   }
 
   const currentConfig = loadProjectConfig(workspaceCwd);
   const legacyProjectName = inferLegacyProjectName(workspaceCwd);
+
   const legacyGlobalProjectDir =
     legacyProjectName && currentConfig
       ? join(GLOBAL_ADADEX_DIR, "projects", legacyProjectName)
@@ -330,14 +351,17 @@ export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: stri
 
   const copyStateFile = (fileName: string, legacyNames: string[]) => {
     const destination = join(newStateDir, fileName);
+
     if (existsSync(destination)) {
       return false;
     }
 
     for (const legacyFile of legacyNames) {
       const localSource = join(oldStateDir, legacyFile);
+
       if (existsSync(localSource)) {
         copyFileSync(localSource, destination);
+
         return true;
       }
     }
@@ -348,8 +372,10 @@ export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: stri
 
     for (const legacyFile of legacyNames) {
       const legacySource = join(legacyGlobalProjectDir, "state", legacyFile);
+
       if (existsSync(legacySource)) {
         copyFileSync(legacySource, destination);
+
         return true;
       }
     }
@@ -365,11 +391,11 @@ export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: stri
     { name: "deck.json", legacy: ["deck.json"] },
     { name: "monitor-config.json", legacy: ["monitor-config.json"] },
     { name: "monitor-cache.json", legacy: ["monitor-cache.json"] },
-    { name: "code-intel-events.jsonl", legacy: ["code-intel-events.jsonl"] },
     { name: "runtime.json", legacy: ["runtime.json"] },
   ];
 
   let migrated = 0;
+
   for (const { name, legacy } of stateFiles) {
     if (copyStateFile(name, legacy)) {
       migrated += 1;
@@ -377,13 +403,16 @@ export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: stri
   }
 
   const transcriptDestination = join(newStateDir, "transcripts");
+
   if (!existsSync(transcriptDestination)) {
     const localTranscriptSource = join(oldStateDir, "transcripts");
+
     if (existsSync(localTranscriptSource)) {
       cpSync(localTranscriptSource, transcriptDestination, { recursive: true });
       migrated += 1;
     } else if (legacyGlobalProjectDir) {
       const legacyTranscriptSource = join(legacyGlobalProjectDir, "state", "transcripts");
+
       if (existsSync(legacyTranscriptSource)) {
         cpSync(legacyTranscriptSource, transcriptDestination, { recursive: true });
         migrated += 1;

@@ -1,5 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { createUpgradeHandler } from "../src/createApiServer/upgradeHandler";
@@ -15,16 +16,22 @@ describe("createUpgradeHandler", () => {
         throw new Error("boom");
       },
     };
+
     const handler = createUpgradeHandler({
+      // SAFETY: RuntimeLike is the exact slice of the runtime that upgrade handling invokes.
       runtime: runtime as never,
       allowRemoteAccess: true,
     });
+
+    // SAFETY: the handler only calls destroy on the failing-upgrade path; the intersection
+    // keeps the double as a single checked assertion.
     const socket = {
       destroy: vi.fn(),
-    } as unknown as Socket;
+    } as { destroy: ReturnType<typeof vi.fn> } & Socket;
 
     expect(() =>
       handler(
+        // SAFETY: the handler reads only host and origin from the request before delegating.
         {
           headers: {
             host: "127.0.0.1:8787",

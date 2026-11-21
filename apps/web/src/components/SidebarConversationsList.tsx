@@ -1,19 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { formatRelativeTime, toGist, toTitle } from "../app/conversationText";
 import type { ConversationSearchHit, ConversationSessionSummary } from "../app/types";
 
-const getSessionTitle = (session: ConversationSessionSummary): string => {
-  const preview = session.firstUserTurnPreview;
-  if (!preview) return session.sessionId;
-  const words = preview.split(/\s+/).slice(0, 8);
-  const title = words.join(" ");
-  return title.length < preview.length ? `${title}...` : title;
+const AVATAR_HUES = [210, 262, 152, 28, 340, 186];
+
+const getSessionTitle = (session: ConversationSessionSummary): string =>
+  toTitle(session.firstUserTurnPreview, session.sessionId, 40);
+
+const getAvatarHue = (sessionId: string): number => {
+  let hash = 0;
+
+  for (const char of sessionId) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 997;
+  }
+
+  return AVATAR_HUES[hash % AVATAR_HUES.length] ?? 210;
 };
 
 const getSessionSortTimestamp = (session: ConversationSessionSummary): number => {
   const raw = session.lastEventAt ?? session.endedAt ?? session.startedAt;
+
   if (!raw) return 0;
   const parsed = Date.parse(raw);
+
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
@@ -51,8 +61,11 @@ export const SidebarConversationsList = ({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSearchRef = useRef(onSearch);
   const onClearSearchRef = useRef(onClearSearch);
-  onSearchRef.current = onSearch;
-  onClearSearchRef.current = onClearSearch;
+
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+    onClearSearchRef.current = onClearSearch;
+  }, [onSearch, onClearSearch]);
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a)),
@@ -66,8 +79,10 @@ export const SidebarConversationsList = ({
     }
 
     const trimmed = inputValue.trim();
+
     if (trimmed.length === 0) {
       onClearSearchRef.current();
+
       return;
     }
 
@@ -88,10 +103,12 @@ export const SidebarConversationsList = ({
     (e: React.FormEvent) => {
       e.preventDefault();
       const trimmed = inputValue.trim();
+
       if (trimmed.length > 0) {
         if (debounceRef.current) {
           clearTimeout(debounceRef.current);
         }
+
         onSearch(trimmed);
       }
     },
@@ -243,7 +260,7 @@ export const SidebarConversationsList = ({
                     >
                       <span className="sidebar-search-hit-session">{hit.sessionId}</span>
                       <span className="sidebar-search-hit-role">{hit.role}</span>
-                      <span className="sidebar-search-hit-snippet">{hit.snippet}</span>
+                      <span className="sidebar-search-hit-snippet">{toGist(hit.snippet, 120)}</span>
                     </button>
                   </li>
                 ))}
@@ -265,9 +282,30 @@ export const SidebarConversationsList = ({
                   }}
                   type="button"
                 >
-                  <strong>{getSessionTitle(session)}</strong>
-                  <span>{`Orchestration ${session.coordinationId ?? "--"}`}</span>
-                  <span>{`${session.turnCount} turns`}</span>
+                  <span
+                    aria-hidden="true"
+                    className="sidebar-conversation-avatar"
+                    style={
+                      /* SAFETY: React passes custom properties through; "--avatar-hue" is a valid CSS variable name. */
+                      { "--avatar-hue": getAvatarHue(session.sessionId) } as React.CSSProperties
+                    }
+                  >
+                    {getSessionTitle(session).charAt(0).toUpperCase()}
+                  </span>
+                  <span className="sidebar-conversation-body">
+                    <span className="sidebar-conversation-top">
+                      <strong>{getSessionTitle(session)}</strong>
+                      <time>{formatRelativeTime(session.lastEventAt ?? session.endedAt)}</time>
+                    </span>
+                    <span className="sidebar-conversation-preview">
+                      {toGist(
+                        session.lastAssistantTurnPreview ??
+                          session.lastUserTurnPreview ??
+                          `${session.turnCount} messages`,
+                        90,
+                      )}
+                    </span>
+                  </span>
                 </button>
               </li>
             ))}

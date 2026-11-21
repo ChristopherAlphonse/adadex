@@ -17,6 +17,7 @@ export const useConsoleKeyboardShortcuts = ({
       }
 
       const nextPrimaryNav = parsePrimaryNavKey(event.key);
+
       if (nextPrimaryNav !== null) {
         setActivePrimaryNav(nextPrimaryNav);
         event.preventDefault();
@@ -24,6 +25,7 @@ export const useConsoleKeyboardShortcuts = ({
     };
 
     window.addEventListener("keydown", handleWindowKeyDown);
+
     return () => {
       window.removeEventListener("keydown", handleWindowKeyDown);
     };

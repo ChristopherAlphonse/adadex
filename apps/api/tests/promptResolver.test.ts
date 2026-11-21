@@ -1,7 +1,9 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import {
   interpolatePrompt,
   listPromptTemplates,
@@ -15,6 +17,7 @@ describe("interpolatePrompt", () => {
       name: "Alice",
       place: "Adadex",
     });
+
     expect(result).toBe("Hello Alice, welcome to Adadex.");
   });
 
@@ -73,9 +76,11 @@ describe("resolvePrompt", () => {
       join(promptsDir, "orchestration-init.md"),
       "You are the {{coordinationId}} agent.",
     );
+
     const result = await resolvePrompt(promptsDir, "orchestration-init", {
       coordinationId: "sandbox",
     });
+
     expect(result).toBe("You are the sandbox agent.");
   });
 

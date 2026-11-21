@@ -21,12 +21,14 @@ export const createGitOperations = (deps: {
   ): { terminal: PersistedTerminal; workspaceCwd: string } | null => {
     // Find any terminal belonging to this orchestration
     let terminal: PersistedTerminal | undefined;
+
     for (const t of terminals.values()) {
       if (t.coordinationId === coordinationId) {
         terminal = t;
         break;
       }
     }
+
     if (!terminal) {
       return null;
     }
@@ -52,12 +54,11 @@ export const createGitOperations = (deps: {
   ): CoordinationGitStatusSnapshot => {
     try {
       const status = gitClient.readWorktreeStatus({ cwd: workspaceCwd });
-      return {
+
+      const snapshot: CoordinationGitStatusSnapshot = {
         coordinationId,
         workspaceMode: terminal.workspaceMode,
         branchName: status.branchName,
-        ...(status.headCommit !== undefined ? { headCommit: status.headCommit } : {}),
-        ...(status.worktreePath !== undefined ? { worktreePath: status.worktreePath } : {}),
         upstreamBranchName: status.upstreamBranchName,
         isDirty: status.isDirty,
         aheadCount: status.aheadCount,
@@ -68,6 +69,16 @@ export const createGitOperations = (deps: {
         changedFiles: [...status.changedFiles],
         defaultBaseBranchName: status.defaultBaseBranchName,
       };
+
+      if (status.headCommit !== undefined) {
+        snapshot.headCommit = status.headCommit;
+      }
+
+      if (status.worktreePath !== undefined) {
+        snapshot.worktreePath = status.worktreePath;
+      }
+
+      return snapshot;
     } catch (error) {
       throw new RuntimeInputError(
         `Unable to read git status for ${coordinationId}: ${
@@ -104,6 +115,7 @@ export const createGitOperations = (deps: {
   ): CoordinationPullRequestSnapshot => {
     try {
       const pullRequest = gitClient.readCurrentBranchPullRequest({ cwd: workspaceCwd });
+
       if (!pullRequest) {
         return emptyPullRequestSnapshot(coordinationId, terminal);
       }
@@ -133,6 +145,7 @@ export const createGitOperations = (deps: {
   return {
     readOrchestrationGitStatus(coordinationId: string): CoordinationGitStatusSnapshot | null {
       const context = resolveWorktreeOrchestrationContext(coordinationId);
+
       if (!context) {
         return null;
       }
@@ -145,11 +158,13 @@ export const createGitOperations = (deps: {
       message: string,
     ): CoordinationGitStatusSnapshot | null {
       const context = resolveWorktreeOrchestrationContext(coordinationId);
+
       if (!context) {
         return null;
       }
 
       const trimmedMessage = message.trim();
+
       if (trimmedMessage.length === 0) {
         throw new RuntimeInputError("Commit message cannot be empty.");
       }
@@ -172,6 +187,7 @@ export const createGitOperations = (deps: {
 
     pushOrchestrationWorktree(coordinationId: string): CoordinationGitStatusSnapshot | null {
       const context = resolveWorktreeOrchestrationContext(coordinationId);
+
       if (!context) {
         return null;
       }
@@ -194,6 +210,7 @@ export const createGitOperations = (deps: {
       baseRef?: string,
     ): CoordinationGitStatusSnapshot | null {
       const context = resolveWorktreeOrchestrationContext(coordinationId);
+
       if (!context) {
         return null;
       }
@@ -203,16 +220,19 @@ export const createGitOperations = (deps: {
         context.terminal,
         context.workspaceCwd,
       );
+
       if (statusBeforeSync.isDirty) {
         throw new RuntimeInputError(
           "Sync requires a clean worktree. Commit or stash changes first.",
         );
       }
+
       if (statusBeforeSync.hasConflicts) {
         throw new RuntimeInputError("Resolve git conflicts before syncing with base.");
       }
 
       const normalizedBaseRef = baseRef?.trim();
+
       const effectiveBaseRef =
         normalizedBaseRef && normalizedBaseRef.length > 0
           ? normalizedBaseRef
@@ -234,6 +254,7 @@ export const createGitOperations = (deps: {
 
     readOrchestrationPullRequest(coordinationId: string): CoordinationPullRequestSnapshot | null {
       const context = resolveWorktreeOrchestrationContext(coordinationId);
+
       if (!context) {
         return null;
       }
@@ -246,11 +267,13 @@ export const createGitOperations = (deps: {
       input: { title: string; body?: string; baseRef?: string },
     ): CoordinationPullRequestSnapshot | null {
       const context = resolveWorktreeOrchestrationContext(coordinationId);
+
       if (!context) {
         return null;
       }
 
       const title = input.title.trim();
+
       if (title.length === 0) {
         throw new RuntimeInputError("Pull request title cannot be empty.");
       }
@@ -260,16 +283,19 @@ export const createGitOperations = (deps: {
         context.terminal,
         context.workspaceCwd,
       );
+
       if (existingPullRequest.status === "open") {
         throw new RuntimeInputError("An open pull request already exists for this branch.");
       }
 
       const status = readWorktreeGitStatus(coordinationId, context.terminal, context.workspaceCwd);
+
       if (status.hasConflicts) {
         throw new RuntimeInputError("Resolve git conflicts before creating a pull request.");
       }
 
       const normalizedBaseRef = input.baseRef?.trim();
+
       const effectiveBaseRef =
         normalizedBaseRef && normalizedBaseRef.length > 0
           ? normalizedBaseRef
@@ -283,6 +309,7 @@ export const createGitOperations = (deps: {
           baseRef: effectiveBaseRef,
           headRef: status.branchName,
         });
+
         if (!pullRequest) {
           return readWorktreePullRequest(coordinationId, context.terminal, context.workspaceCwd);
         }
@@ -311,6 +338,7 @@ export const createGitOperations = (deps: {
 
     mergeOrchestrationPullRequest(coordinationId: string): CoordinationPullRequestSnapshot | null {
       const context = resolveWorktreeOrchestrationContext(coordinationId);
+
       if (!context) {
         return null;
       }
@@ -320,12 +348,15 @@ export const createGitOperations = (deps: {
         context.terminal,
         context.workspaceCwd,
       );
+
       if (currentPullRequest.status !== "open") {
         throw new RuntimeInputError("No open pull request found for this branch.");
       }
+
       if (currentPullRequest.isDraft) {
         throw new RuntimeInputError("Draft pull requests cannot be merged.");
       }
+
       if (currentPullRequest.mergeable === "CONFLICTING") {
         throw new RuntimeInputError("Pull request has conflicts and cannot be merged.");
       }

@@ -35,15 +35,12 @@ npm run build                    # catch type/compile breakage
 
 ## 2. Known Breaking Points Per Package
 
-### Biome (any major version)
+### oxlint / oxfmt (oxc)
 
-- `$schema` URL must match the installed version exactly.
-- `organizeImports` moved: `organizeImports.enabled` → `assist.actions.source.organizeImports: "on"`.
-- `files.ignore` removed: use `files.includes` with `!!` negation patterns OR `.biomeignore`.
-- CSS linting added in v2 — existing CSS files will throw parse errors. Add to ignore: `"!!**/*.css"` if not actively linting CSS.
-- Worktree directories (`.adadex/worktrees/`) must be excluded: add `"!!.adadex"` to `files.includes`.
-- Run `npx biome migrate --write` first, then audit remaining errors.
-- New `recommended` rules in each major: downgrade pre-existing violations to `"warn"` in biome.json rather than fixing them all at once.
+- `$schema` in `.oxlintrc.json` and `.oxfmtrc.json` points at `./node_modules/<pkg>/configuration_schema.json`, so it follows the installed version.
+- Both are pinned exactly in `package.json`. oxfmt is pre-1.0: read its changelog before bumping, then run `npm run format` and review the diff.
+- New rules land in `correctness` over time. Downgrade pre-existing violations to `"warn"` in `.oxlintrc.json` rather than fixing them all at once.
+- Worktree directories (`.adadex/`) must stay in `ignorePatterns` of both configs.
 
 ### TypeScript (6.x+)
 
@@ -89,50 +86,13 @@ The strip component exists but is **NOT mounted** in the App layout. The sparkli
 
 ---
 
-## 4. Biome Config Template (current working state)
+## 4. Lint and Format Config (current working state)
 
-```json
-{
-  "$schema": "https://biomejs.dev/schemas/{VERSION}/schema.json",
-  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "style": {
-        "noNonNullAssertion": "warn",
-        "noDescendingSpecificity": "warn"
-      },
-      "correctness": {
-        "noUnusedVariables": "warn",
-        "noUnusedFunctionParameters": "warn"
-      },
-      "a11y": {
-        "noStaticElementInteractions": "warn",
-        "noSvgWithoutTitle": "warn",
-        "useSemanticElements": "warn",
-        "useAriaPropsForRole": "warn",
-        "useAriaPropsSupportedByRole": "warn"
-      },
-      "suspicious": { "noArrayIndexKey": "warn" }
-    }
-  },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
-  "css": { "parser": { "cssModules": true } },
-  "files": {
-    "includes": ["**", "!!**/dist", "!!**/coverage", "!!.adadex"]
-  },
-  "overrides": [
-    {
-      "includes": ["apps/web/src/styles/**"],
-      "linter": { "enabled": false },
-      "formatter": { "enabled": false }
-    }
-  ]
-}
-```
-
-**Key insight:** Excluding CSS via `files.includes` negation (`!!**/tailwind.css`) does NOT suppress parse errors. Use an `overrides` block that covers the entire styles directory.
+- `.oxlintrc.json`: plugins `typescript`, `unicorn`, `oxc`, `import`, `react`, `jsx-a11y`, `vitest`; the `correctness` category as errors. Pre-existing React Compiler, hooks-deps and a11y findings are downgraded to `"warn"`. `vitest/valid-expect` allows 2 args because `expect(value, message)` is valid in Vitest.
+- Anti-slop rules are vendored from reinvoice at `tools/oxlint/anti-slop/` and loaded as a local `jsPlugin`. All generic anti-slop rules are errors; `no-module-mocking` is off because the repo intentionally uses `vi.mock`. `no-runtime-typeof` sets `allowInTypeGuards: true` because adadex has no schema library; boundary narrowing belongs in the named predicates in `packages/core/src/util/typeCoercion.ts`. Do not add `oxlint-disable` comments or `any` to satisfy these rules.
+- `@oxlint/plugins` is pinned to the same exact version as `oxlint`; update both together.
+- Both configs ignore `tools/oxlint/anti-slop/**` so vendored rule source keeps its upstream style. `.oxfmtrc.json`: 2-space indent, 100 columns, double quotes, trailing commas, `sortImports` on, `sortPackageJson` off. It also ignores `dist`, `coverage`, `.adadex`, `apps/web/src/styles/**`, the Tailwind CSS files, `package-lock.json`, and all `*.md` / `*.html` (prompt templates and docs are not reformatted).
+- `npm run lint` runs `oxlint && oxfmt --check`. `npm run format` runs `oxfmt` (writes in place). `npx oxlint --fix` applies anti-slop spacing fixes.
 
 ---
 
@@ -144,33 +104,33 @@ Husky + lint-staged auto-fixes lint and formatting on every commit. Never skip w
 
 1. `npm install` runs `"prepare": "husky"` → installs git hooks automatically.
 2. On commit, `.husky/pre-commit` runs `npx lint-staged`.
-3. lint-staged applies `biome check --write --unsafe` to staged JS/TS/JSON files and `biome format --write` to CSS files.
+3. lint-staged runs `oxlint --fix` then `oxfmt` on staged JS/TS files, and `oxfmt` on staged JSON/CSS files.
 4. Fixed files are re-staged automatically before the commit completes.
 
 ### Config files
 
 - `.husky/pre-commit` — hook entry point
-- `.lintstagedrc` — maps file globs to Biome commands
+- `.lintstagedrc` — maps file globs to oxlint/oxfmt commands
 - `package.json` `"prepare": "husky"` — auto-installs hooks on `npm install`
 
 ### lint-staged config (`.lintstagedrc`)
 
 ```json
 {
-  "*.{js,ts,jsx,tsx,json,jsonc}": ["biome check --write --unsafe --no-errors-on-unmatched"],
-  "*.css": ["biome format --write --no-errors-on-unmatched"]
+  "*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}": ["oxlint --fix", "oxfmt --no-error-on-unmatched-pattern"],
+  "*.{json,jsonc,css}": ["oxfmt --no-error-on-unmatched-pattern"]
 }
 ```
 
 ### Key flags
 
-- `--write` — applies safe auto-fixes (formatting, import sorting) in place.
-- `--unsafe` — also applies unsafe lint fixes (e.g., removing unused variables, prefixing with `_`).
-- `--no-errors-on-unmatched` — prevents failure when staged files don't match Biome's include patterns.
+- `oxlint --fix` — applies safe lint fixes only.
+- `oxfmt` — writes formatting (including import sorting) in place; there is no separate `--write` needed.
+- `--no-error-on-unmatched-pattern` — prevents failure when a staged file is in oxfmt's `ignorePatterns`.
 
 ### Troubleshooting
 
-- If a commit is blocked, it means Biome found an error it cannot auto-fix (e.g., a parse error). Fix the source, don't skip the hook.
+- If a commit is blocked, it means oxlint found an error it cannot auto-fix (e.g., a parse error). Fix the source, don't skip the hook.
 - If hooks stop running after a fresh clone, run `npm install` — the `prepare` script re-installs husky.
 - Husky v9+ does not need shebangs in hook files.
 
@@ -182,7 +142,7 @@ Before every PR or after any refactor, run `npm run lint` and address issues. Th
 
 ### Unused variables and parameters
 
-Biome flags destructured values that are no longer referenced (often after removing a feature or commenting out JSX). Fix by:
+oxlint (`no-unused-vars`) flags destructured values that are no longer referenced (often after removing a feature or commenting out JSX). Fix by:
 - Removing the destructured binding entirely if nothing uses it.
 - Removing the import if the binding was the only consumer.
 - Prefixing with `_` only if the parameter is required by a callback signature.
@@ -191,27 +151,25 @@ Common locations: `App.tsx` (hook return values), component prop destructuring, 
 
 ### Duplicated logic in module-level functions
 
-`forEach` callbacks that implicitly return a value trigger `useIterableCallbackReturn`. Refactor to `for...of` loops or extract a `notify()` helper. Example: `Toast.tsx` had four identical toast methods — consolidate into a single `addToast(type, message)` function.
+`forEach` callbacks that implicitly return a value are worth avoiding. Refactor to `for...of` loops or extract a `notify()` helper. Example: `Toast.tsx` had four identical toast methods — consolidate into a single `addToast(type, message)` function.
 
 ### a11y rules on SVG and interactive visualizations
 
 This codebase has visualization-heavy components (treemaps, arc diagrams, heatmaps, canvas nodes) that legitimately use mouse handlers on `<div>`, `<g>`, and `<svg>` elements. These trigger:
-- `noStaticElementInteractions` — add `role="button"` or `role="img"` only when semantically correct; otherwise leave as warning.
-- `noSvgWithoutTitle` — decorative SVGs already have `aria-hidden`; Biome still flags them. Leave as warning.
-- `useAriaPropsSupportedByRole` — `aria-label` on plain `<div>` needs a `role` attribute to be valid. Add `role="region"` or `role="group"` when the label is meaningful.
+- `jsx-a11y/no-static-element-interactions` and `jsx-a11y/no-noninteractive-element-interactions` — add `role="button"` or `role="img"` only when semantically correct; otherwise leave as warning.
+- `jsx-a11y/control-has-associated-label` — give icon-only controls an `aria-label`.
+- `jsx-a11y/role-supports-aria-props` — `aria-label` on plain `<div>` needs a `role` attribute to be valid. Add `role="region"` or `role="group"` when the label is meaningful.
 
-These rules are set to `"warn"` in `biome.json` — they will not block commits but should be addressed when touching those files.
+These rules are set to `"warn"` in `.oxlintrc.json` — they will not block commits but should be addressed when touching those files.
 
-### CSS specificity and Tailwind parse errors
+### CSS and Tailwind
 
-- `noDescendingSpecificity` — fires when a less-specific selector appears after a more-specific one. Set to `"warn"`. Address during CSS migration to Tailwind.
-- Tailwind v4 uses `@source`, `source()`, `@theme`, and `@utility` directives that Biome's CSS parser cannot parse. These files (`tailwind.css`, `tailwind-components.css`) are excluded from Biome entirely via `files.includes` negation patterns (`!!**/tailwind.css`).
-- Biome overrides cannot suppress **parse** errors — only `files.includes` exclusion works.
+- oxlint does not lint CSS. oxfmt formats CSS, but `apps/web/src/styles/**` and the Tailwind files (`tailwind.css`, `tailwind-components.css`) are in `ignorePatterns` so Tailwind v4 directives are never touched.
 - Experimental CSS like `r: attr(r + 2)` (CSS Level 5 `attr()` with type coercion) is not browser-supported. Replace with `transform: scale()` or explicit values.
 
 ### Non-null assertions
 
-`noNonNullAssertion` is set to `"warn"`. When you see `array[0]!`, prefer a guard or `at(0)` with a fallback. In test files, `!` on known-populated arrays is acceptable.
+`typescript/no-non-null-assertion` is set to `"warn"`. When you see `array[0]!`, prefer a guard or `at(0)` with a fallback. In test files, `!` on known-populated arrays is acceptable.
 
 ---
 
@@ -229,9 +187,12 @@ Dependabot (`dependabot.yml`) auto-updates SHA pins weekly — review those PRs 
 
 ## 8. Release Workflow
 
-Releases are manual: **Actions → Release → Run workflow → pick patch/minor/major**.
+Releases are manual, from `main`: **Actions → Release → Run workflow → pick current/patch/minor/major**.
 
-The workflow: quality gate (via `_quality.yml`) → bump `package.json` → commit + tag → build → tarball → GitHub Release.
+- `patch`/`minor`/`major` bump `package.json` with `npm version`.
+- `current` releases the version already in `package.json` as is. Use it after setting a version by hand (for example a jump to `2.0.0`).
+
+The workflow: quality gate (via `_quality.yml`) → resolve version (fails if its tag already exists) → build → tarball → commit the bump (if any) + annotated tag → push to `main` → GitHub Release. Nothing is pushed until the build and tarball succeed. Tags must be annotated: `git push --follow-tags` skips lightweight tags.
 
 Users download from the Releases tab — not npm.
 
@@ -263,9 +224,9 @@ Before modifying any source file, verify:
 
 1. `npm run lint` exits 0 (only warnings, no errors).
 2. Remove unused destructured bindings — don't leave dead variables from prior refactors.
-3. Remove unused imports — Biome's `organizeImports` handles ordering but not removal of dead imports.
+3. Remove unused imports — oxfmt's `sortImports` handles ordering but not removal of dead imports.
 4. Check that commented-out JSX blocks don't reference variables that appear "used" to grep but are dead to the compiler.
-5. After editing, run `npx biome check --write --unsafe .` to auto-fix what you can before committing.
+5. After editing, run `npx oxlint --fix && npm run format` to auto-fix what you can before committing.
 6. The pre-commit hook handles staged files automatically, but catching issues earlier avoids noisy diffs.
 
 ---
@@ -315,32 +276,9 @@ Only do this for secrets. For internal docs, ignoring + untracking is sufficient
 
 ---
 
-## 13. CSS and Biome — Parse Errors vs Lint Warnings
+## 13. CSS and the Formatter
 
-### Root cause
-
-Biome's CSS parser cannot handle PostCSS / Tailwind v4 directives (`@source`, `@theme`, `@utility`, `@custom-variant`, `@apply`). These are **parse errors** (exit code 1), not lint warnings.
-
-### Fix
-
-Biome `overrides` with `"linter": { "enabled": false }` does NOT suppress parse errors. You must:
-
-- Exclude entire directories: `"includes": ["apps/web/src/styles/**"]` in an override block with both `linter` and `formatter` disabled, OR
-- Use `files.includes` with `!!` negation: `"!!**/tailwind.css"`.
-
-### Current working override
-
-```json
-"overrides": [
-  {
-    "includes": ["apps/web/src/styles/**"],
-    "linter": { "enabled": false },
-    "formatter": { "enabled": false }
-  }
-]
-```
-
-This exempts all legacy CSS and Tailwind files under `src/styles/` from biome processing entirely.
+oxlint only lints JS/TS. oxfmt formats CSS but skips everything under `apps/web/src/styles/**` and the Tailwind files via `ignorePatterns` in `.oxfmtrc.json`. To exempt another CSS file, add it there.
 
 ---
 
@@ -375,7 +313,7 @@ When a component (e.g., `RuntimeStatusStrip`) is removed from the render tree:
 
 ### requestAnimationFrame in tests
 
-Components using animation loops (`AgentGlyph`) call `requestAnimationFrame` recursively. A synchronous mock causes infinite recursion:
+Components using animation loops call `requestAnimationFrame` recursively. A synchronous mock causes infinite recursion:
 
 ```tsx
 // BAD — infinite loop

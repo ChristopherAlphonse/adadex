@@ -1,12 +1,16 @@
+import { isString } from "@adadex/core";
+
 type LocationLike = Pick<Location, "host" | "protocol">;
 
 const readRuntimeBaseUrl = (): string | null => {
   const value = import.meta.env.VITE_ADADEX_API_ORIGIN;
-  if (typeof value !== "string") {
+
+  if (!isString(value)) {
     return null;
   }
 
   const trimmed = value.trim();
+
   return trimmed.length > 0 ? trimmed : null;
 };
 
@@ -14,30 +18,38 @@ const withTrailingSlash = (value: string) => (value.endsWith("/") ? value : `${v
 
 const buildAbsoluteUrl = (baseUrl: string, pathname: string) => {
   const normalizedPath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
+
   return new URL(normalizedPath, withTrailingSlash(baseUrl)).toString();
 };
 
 const localWebSocketUrl = (location: LocationLike, coordinationId: string) => {
   const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+
   return `${protocol}//${location.host}/api/terminals/${coordinationId}/ws`;
 };
 
 const localRuntimeWebSocketUrl = (location: LocationLike, pathname: string) => {
   const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+
   return `${protocol}//${location.host}${pathname}`;
 };
 
 const toWebSocketBase = (runtimeBaseUrl: string): string | null => {
   try {
     const url = new URL(runtimeBaseUrl);
+
     if (url.protocol === "https:") {
       url.protocol = "wss:";
+
       return url.toString();
     }
+
     if (url.protocol === "http:") {
       url.protocol = "ws:";
+
       return url.toString();
     }
+
     return null;
   } catch {
     return null;
@@ -61,6 +73,7 @@ export const buildTerminalEventsSocketUrl = (
   }
 
   const websocketBase = toWebSocketBase(runtimeBaseUrl);
+
   if (!websocketBase) {
     return localRuntimeWebSocketUrl(location, "/api/terminal-events/ws");
   }
@@ -105,6 +118,7 @@ export const buildWorkspaceSetupStepUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/setup/steps/${encodeURIComponent(stepId)}`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -117,6 +131,7 @@ export const buildUsageHeatmapUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/analytics/usage-heatmap?scope=${scope}`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -137,6 +152,7 @@ export const buildConversationSearchUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/conversations/search?q=${encodeURIComponent(query)}`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -150,6 +166,20 @@ export const buildConversationSessionUrl = (
 ) => {
   const encodedSessionId = encodeURIComponent(sessionId);
   const path = `/api/conversations/${encodedSessionId}`;
+
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
+export const buildChannelMessagesUrl = (
+  terminalId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/channels/${encodeURIComponent(terminalId)}/messages`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -164,6 +194,7 @@ export const buildConversationExportUrl = (
 ) => {
   const encodedSessionId = encodeURIComponent(sessionId);
   const path = `/api/conversations/${encodedSessionId}/export?format=${format}`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -176,6 +207,7 @@ export const buildOrchestrationRenameUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const encodedOrchestrationId = encodeURIComponent(coordinationId);
+
   if (!runtimeBaseUrl) {
     return `/api/coordinations/${encodedOrchestrationId}`;
   }
@@ -190,6 +222,7 @@ const buildOrchestrationGitActionUrl = (
 ) => {
   const encodedOrchestrationId = encodeURIComponent(coordinationId);
   const path = `/api/coordinations/${encodedOrchestrationId}/git/${action}`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -223,6 +256,7 @@ export const buildOrchestrationGitPullRequestUrl = (
 ) => {
   const encodedOrchestrationId = encodeURIComponent(coordinationId);
   const path = `/api/coordinations/${encodedOrchestrationId}/git/pr`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -236,6 +270,7 @@ export const buildOrchestrationGitPullRequestMergeUrl = (
 ) => {
   const encodedOrchestrationId = encodeURIComponent(coordinationId);
   const path = `/api/coordinations/${encodedOrchestrationId}/git/pr/merge`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -265,6 +300,7 @@ export const buildDeckOrchestrationUrl = (
 ) => {
   const encodedOrchestrationId = encodeURIComponent(coordinationId);
   const path = `/api/deck/coordinations/${encodedOrchestrationId}`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -277,6 +313,7 @@ export const buildDeckOrchestrationSkillsUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/skills`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -292,6 +329,7 @@ export const buildDeckVaultFileUrl = (
   const encodedOrchestrationId = encodeURIComponent(coordinationId);
   const encodedFileName = encodeURIComponent(fileName);
   const path = `/api/deck/coordinations/${encodedOrchestrationId}/files/${encodedFileName}`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -304,7 +342,9 @@ export const buildDeckTodoToggleUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/todo/toggle`;
+
   if (!runtimeBaseUrl) return path;
+
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
@@ -313,7 +353,9 @@ export const buildDeckTodoEditUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/todo/edit`;
+
   if (!runtimeBaseUrl) return path;
+
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
@@ -322,7 +364,9 @@ export const buildDeckTodoAddUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/todo`;
+
   if (!runtimeBaseUrl) return path;
+
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
@@ -331,7 +375,9 @@ export const buildDeckTodoDeleteUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/todo/delete`;
+
   if (!runtimeBaseUrl) return path;
+
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
@@ -340,7 +386,9 @@ export const buildDeckTodoSolveUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/todo/solve`;
+
   if (!runtimeBaseUrl) return path;
+
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
@@ -349,7 +397,9 @@ export const buildDeckCoordinationAgentUrl = (
   runtimeBaseUrl = readRuntimeBaseUrl(),
 ) => {
   const path = `/api/deck/coordinations/${encodeURIComponent(coordinationId)}/agent`;
+
   if (!runtimeBaseUrl) return path;
+
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
@@ -364,6 +414,7 @@ export const buildPromptsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
 export const buildPromptItemUrl = (name: string, runtimeBaseUrl = readRuntimeBaseUrl()) => {
   const encodedName = encodeURIComponent(name);
   const path = `/api/prompts/${encodedName}`;
+
   if (!runtimeBaseUrl) {
     return path;
   }
@@ -377,11 +428,13 @@ export const buildTerminalSocketUrl = (
   location: LocationLike = window.location,
 ) => {
   const encodedOrchestrationId = encodeURIComponent(coordinationId);
+
   if (!runtimeBaseUrl) {
     return localWebSocketUrl(location, encodedOrchestrationId);
   }
 
   const webSocketBase = toWebSocketBase(runtimeBaseUrl);
+
   if (!webSocketBase) {
     return localWebSocketUrl(location, encodedOrchestrationId);
   }

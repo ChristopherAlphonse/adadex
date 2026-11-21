@@ -1,0 +1,14 @@
+body {
+  font:
+    14px system-ui,
+    sans-serif;
+  margin: 0;
+  padding: 1.5rem;
+  max-width: 40rem;
+}
+h1 {
+  margin-top: 0;
+}
+li {
+  margin: 0.25rem 0;
+}

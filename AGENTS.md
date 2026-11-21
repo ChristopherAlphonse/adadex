@@ -65,6 +65,11 @@
 - For narrow changes, run the most direct test or package-scoped test first, then widen verification as needed.
 - For changes that affect shared contracts, persistence, or cross-app behavior, run the relevant package tests and the root build before landing.
 
+## CodeGraph
+- The repo is indexed by CodeGraph (`.codegraph/`). Every agent (Claude, Codex, opencode, Kiro, subagents) uses it before grep/find or reading files: the `codegraph_explore` MCP tool from `.mcp.json`, or `codegraph explore "<symbols or question>"` in a shell.
+- Keep the index current. The MCP daemon re-syncs on file writes, the Claude `SessionStart` hook syncs, and the Husky `post-checkout`/`post-merge`/`post-rewrite` hooks sync after git operations. If you edit files without the daemon running, or results look stale, run `codegraph sync` before relying on them.
+- When delegating to a subagent, tell it to use CodeGraph first instead of re-reading files.
+
 ## Scoped Guides
 - `apps/api/AGENTS.md` expands server/runtime/worktree rules.
 - `apps/web/AGENTS.md` expands UI/component/style rules.
@@ -83,7 +88,7 @@
 - Prefer the product term "orchestration" over "tentacles" in user-facing copy and new identifiers.
 
 ## Maintenance Skill
-Before upgrading packages, changing CI workflows, or touching the prompt template system, read `.agents/skills/adadex-maintenance/SKILL.md`. It documents every known breaking point in this repo: Biome major upgrades, TypeScript deprecations, stale test patterns, prompt variable completeness, GitHub Actions SHA pinning, and the release workflow.
+Before upgrading packages, changing CI workflows, or touching the prompt template system, read `.agents/skills/adadex-maintenance/SKILL.md`. It documents every known breaking point in this repo: oxlint and oxfmt upgrades, TypeScript deprecations, stale test patterns, prompt variable completeness, GitHub Actions SHA pinning, and the release workflow.
 
 ## Learned Workspace Facts
 - On Windows, `scripts/dev.mjs` spawns `npm` with `shell: true` and resolves the monorepo root with `fileURLToPath(import.meta.url)` so `ADADEX_WORKSPACE_CWD` is a valid drive path (avoids `/D:/...` from `URL.pathname` and `spawn EINVAL` when Node resolves the npm shim).

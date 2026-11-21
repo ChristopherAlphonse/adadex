@@ -1,5 +1,7 @@
+import { asRecord, isNumber, isString, type ParsedValue } from "@adadex/core";
 import type { DeckCoordinationSummary } from "@adadex/core";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
 import { buildConversationsUrl, buildDeckOrchestrationsUrl } from "../../runtime/runtimeEndpoints";
 import type { GraphEdge, GraphNode } from "../canvas/types";
 import { normalizeConversationSessionSummary } from "../conversationNormalizers";
@@ -8,15 +10,21 @@ import type { ConversationSessionSummary, TerminalView } from "../types";
 import type { AgentRuntimeStateInfo } from "./useAgentRuntimeStates";
 
 const ORCHESTRATION_NODE_RADIUS = 40;
+
 const ACTIVE_SESSION_RADIUS = 12;
+
 const INACTIVE_SESSION_RADIUS = 10;
 
 const DECK_LEAD_RADIUS = 52;
+
 /** Synthetic coordination id for the canvas hub terminal; prefer this for new sessions. */
 export const DECK_LEAD_ID = "__deck_lead__";
+
 /** Legacy id from pre-rebrand builds; still accepted for persisted terminals and graph restore. */
 const LEGACY_DECK_LEAD_ID = "__octoboss__";
+
 const DECK_LEAD_NODE_ID = `t:${DECK_LEAD_ID}`;
+
 const LEGACY_DECK_LEAD_NODE_ID = `t:${LEGACY_DECK_LEAD_ID}`;
 
 const isDeckLeadCoordinationId = (id: string): boolean =>
@@ -29,16 +37,18 @@ const getAccentPrimary = (): string =>
 
 function hashString(str: string): number {
   let h = 0;
+
   for (let i = 0; i < str.length; i++) {
     h = ((h << 5) - h + str.charCodeAt(i)) | 0;
   }
+
   return Math.abs(h);
 }
 
 const orchestrationColor = (coordinationId: string, deckColor: string | null | undefined) =>
   deckColor && deckColor.length > 0
     ? deckColor
-    : (MASCOT_COLORS[hashString(coordinationId) % MASCOT_COLORS.length] as string);
+    : (MASCOT_COLORS[hashString(coordinationId) % MASCOT_COLORS.length] ?? "#a3e635");
 
 type UseCanvasGraphDataOptions = {
   columns: TerminalView;
@@ -56,28 +66,24 @@ type UseCanvasGraphDataResult = {
 };
 
 const buildOrchestrationNodeId = (coordinationId: string) => `t:${coordinationId}`;
+
 const buildActiveSessionNodeId = (agentId: string) => `a:${agentId}`;
+
 const buildInactiveSessionNodeId = (sessionId: string) => `i:${sessionId}`;
 
-const normalizeDeckCoordinationSummary = (value: unknown): DeckCoordinationSummary | null => {
-  if (value === null || typeof value !== "object") {
-    return null;
-  }
+const normalizeDeckCoordinationSummary = (value: ParsedValue): DeckCoordinationSummary | null => {
+  const record = asRecord(value);
 
-  const record = value as Record<string, unknown>;
-  if (typeof record.coordinationId !== "string") {
+  if (!record || !isString(record.coordinationId)) {
     return null;
   }
 
   const todoItems = Array.isArray(record.todoItems)
     ? record.todoItems
         .map((item) => {
-          if (item === null || typeof item !== "object") {
-            return null;
-          }
+          const todoRecord = asRecord(item);
 
-          const todoRecord = item as Record<string, unknown>;
-          if (typeof todoRecord.text !== "string") {
+          if (!todoRecord || !isString(todoRecord.text)) {
             return null;
           }
 
@@ -89,16 +95,9 @@ const normalizeDeckCoordinationSummary = (value: unknown): DeckCoordinationSumma
         .filter((item): item is { text: string; done: boolean } => item !== null)
     : [];
 
-  const scopeRecord =
-    record.scope !== null && typeof record.scope === "object"
-      ? (record.scope as Record<string, unknown>)
-      : null;
-  const appearanceRecord =
-    record.mascot !== null && typeof record.mascot === "object"
-      ? (record.mascot as Record<string, unknown>)
-      : record.octopus !== null && typeof record.octopus === "object"
-        ? (record.octopus as Record<string, unknown>)
-        : null;
+  const scopeRecord = asRecord(record.scope);
+
+  const appearanceRecord = asRecord(record.mascot) ?? asRecord(record.octopus);
 
   const status =
     record.status === "idle" ||
@@ -110,45 +109,97 @@ const normalizeDeckCoordinationSummary = (value: unknown): DeckCoordinationSumma
 
   return {
     coordinationId: record.coordinationId,
-    displayName:
-      typeof record.displayName === "string" ? record.displayName : record.coordinationId,
-    description: typeof record.description === "string" ? record.description : "",
+    displayName: isString(record.displayName) ? record.displayName : record.coordinationId,
+    description: isString(record.description) ? record.description : "",
     status,
-    color: typeof record.color === "string" ? record.color : null,
+    color: isString(record.color) ? record.color : null,
     mascot: {
-      animation:
-        typeof appearanceRecord?.animation === "string" ? appearanceRecord.animation : null,
-      expression:
-        typeof appearanceRecord?.expression === "string" ? appearanceRecord.expression : null,
-      accessory:
-        typeof appearanceRecord?.accessory === "string" ? appearanceRecord.accessory : null,
-      hairColor:
-        typeof appearanceRecord?.hairColor === "string" ? appearanceRecord.hairColor : null,
+      animation: isString(appearanceRecord?.animation) ? appearanceRecord.animation : null,
+      expression: isString(appearanceRecord?.expression) ? appearanceRecord.expression : null,
+      accessory: isString(appearanceRecord?.accessory) ? appearanceRecord.accessory : null,
+      hairColor: isString(appearanceRecord?.hairColor) ? appearanceRecord.hairColor : null,
     },
     scope: {
       paths: Array.isArray(scopeRecord?.paths)
-        ? scopeRecord.paths.filter((path): path is string => typeof path === "string")
+        ? scopeRecord.paths.filter((path): path is string => isString(path))
         : [],
       tags: Array.isArray(scopeRecord?.tags)
-        ? scopeRecord.tags.filter((tag): tag is string => typeof tag === "string")
+        ? scopeRecord.tags.filter((tag): tag is string => isString(tag))
         : [],
     },
     vaultFiles: Array.isArray(record.vaultFiles)
-      ? record.vaultFiles.filter((file): file is string => typeof file === "string")
+      ? record.vaultFiles.filter((file): file is string => isString(file))
       : [],
     todoTotal:
-      typeof record.todoTotal === "number" && Number.isFinite(record.todoTotal)
+      isNumber(record.todoTotal) && Number.isFinite(record.todoTotal)
         ? record.todoTotal
         : todoItems.length,
     todoDone:
-      typeof record.todoDone === "number" && Number.isFinite(record.todoDone)
+      isNumber(record.todoDone) && Number.isFinite(record.todoDone)
         ? record.todoDone
         : todoItems.filter((item) => item.done).length,
     todoItems,
     suggestedSkills: Array.isArray(record.suggestedSkills)
-      ? record.suggestedSkills.filter((skill): skill is string => typeof skill === "string")
+      ? record.suggestedSkills.filter((skill): skill is string => isString(skill))
       : [],
   };
+};
+
+const JITTER_SPREAD = 60;
+
+/**
+ * Stable pseudo-random offset in [-JITTER_SPREAD/2, JITTER_SPREAD/2) for a new node, derived
+ * from its id (FNV-1a), so render stays pure and a node lands in the same spot every time.
+ */
+const jitterFor = (nodeId: string, axis: "x" | "y"): number => {
+  let hash = 0x811c9dc5;
+
+  for (const char of `${nodeId}:${axis}`) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return ((hash >>> 0) / 0x100000000 - 0.5) * JITTER_SPREAD;
+};
+
+const requestDeckOrchestrations = async (): Promise<DeckCoordinationSummary[] | null> => {
+  try {
+    const response = await fetch(buildDeckOrchestrationsUrl(), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) return null;
+    const payload: ParsedValue = await response.json();
+
+    if (!Array.isArray(payload)) return null;
+
+    return payload
+      .map((entry) => normalizeDeckCoordinationSummary(entry))
+      .filter((entry): entry is DeckCoordinationSummary => entry !== null);
+  } catch {
+    return null;
+  }
+};
+
+const requestInactiveSessions = async (): Promise<ConversationSessionSummary[] | null> => {
+  try {
+    const response = await fetch(buildConversationsUrl(), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) return null;
+    const payload: ParsedValue = await response.json();
+
+    return Array.isArray(payload)
+      ? payload
+          .map((entry) => normalizeConversationSessionSummary(entry))
+          .filter((entry): entry is ConversationSessionSummary => entry !== null)
+      : [];
+  } catch {
+    return null;
+  }
 };
 
 export const useCanvasGraphData = ({
@@ -158,51 +209,39 @@ export const useCanvasGraphData = ({
 }: UseCanvasGraphDataOptions): UseCanvasGraphDataResult => {
   const [deckOrchestrations, setDeckOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [inactiveSessions, setInactiveSessions] = useState<ConversationSessionSummary[]>([]);
-  const prevNodesRef = useRef<Map<string, GraphNode>>(new Map());
+  // Last rendered nodes by id. The force simulation mutates these objects in place, so
+  // the next build reads positions from here. Read during render, written after commit.
+  const [renderedNodesById] = useState(() => new Map<string, GraphNode>());
+  const [previousEnabled, setPreviousEnabled] = useState(enabled);
 
-  const fetchDeckOrchestrations = useCallback(async () => {
-    try {
-      const response = await fetch(buildDeckOrchestrationsUrl(), {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) return;
-      const payload = (await response.json()) as unknown;
-      if (!Array.isArray(payload)) return;
-      const items = payload
-        .map((entry) => normalizeDeckCoordinationSummary(entry))
-        .filter((entry): entry is DeckCoordinationSummary => entry !== null);
-      setDeckOrchestrations(items);
-    } catch {
-      // silent
-    }
-  }, []);
+  if (previousEnabled !== enabled) {
+    setPreviousEnabled(enabled);
 
-  const fetchInactiveSessions = useCallback(async () => {
-    try {
-      const response = await fetch(buildConversationsUrl(), {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) return;
-      const payload = (await response.json()) as unknown;
-      const normalized = Array.isArray(payload)
-        ? payload
-            .map((entry) => normalizeConversationSessionSummary(entry))
-            .filter((entry): entry is ConversationSessionSummary => entry !== null)
-        : [];
-      setInactiveSessions(normalized);
-    } catch {
-      // silent
-    }
-  }, []);
-
-  useEffect(() => {
     if (!enabled) {
       setDeckOrchestrations([]);
       setInactiveSessions([]);
-      return;
     }
+  }
+
+  const fetchDeckOrchestrations = useCallback(
+    () =>
+      requestDeckOrchestrations().then((items) => {
+        if (items) setDeckOrchestrations(items);
+      }),
+    [],
+  );
+
+  const fetchInactiveSessions = useCallback(
+    () =>
+      requestInactiveSessions().then((sessions) => {
+        if (sessions) setInactiveSessions(sessions);
+      }),
+    [],
+  );
+
+  useEffect(() => {
+    if (!enabled) return;
+
     void fetchDeckOrchestrations();
     void fetchInactiveSessions();
   }, [enabled, fetchDeckOrchestrations, fetchInactiveSessions]);
@@ -210,6 +249,7 @@ export const useCanvasGraphData = ({
   const refresh = useCallback(async () => {
     await Promise.all([fetchDeckOrchestrations(), fetchInactiveSessions()]);
   }, [fetchDeckOrchestrations, fetchInactiveSessions]);
+
   const refreshDeckOrchestrations = useCallback(async () => {
     await fetchDeckOrchestrations();
   }, [fetchDeckOrchestrations]);
@@ -218,16 +258,20 @@ export const useCanvasGraphData = ({
 
   // Build a map of deck orchestrations for color/label lookup
   const deckMap = new Map<string, DeckCoordinationSummary>();
+
   for (const dt of deckOrchestrations) {
     deckMap.set(dt.coordinationId, dt);
   }
 
   const sessionsByOrchestrationId = new Map<string, ConversationSessionSummary[]>();
+
   for (const session of inactiveSessions) {
     if (!session.coordinationId) {
       continue;
     }
+
     const orchestrationSessions = sessionsByOrchestrationId.get(session.coordinationId);
+
     if (orchestrationSessions) {
       orchestrationSessions.push(session);
     } else {
@@ -237,14 +281,16 @@ export const useCanvasGraphData = ({
 
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
-  const prevNodes = prevNodesRef.current;
+  const prevNodes = renderedNodesById;
   const currentNodesById = new Map<string, GraphNode>();
   const seenOrchestrationIds = new Set<string>();
 
   // Build a map of active terminals by coordinationId (multiple terminals can share a orchestration)
   const activeTerminalsByOrchestration = new Map<string, TerminalView>();
+
   for (const terminal of columns) {
     const group = activeTerminalsByOrchestration.get(terminal.coordinationId);
+
     if (group) {
       group.push(terminal);
     } else {
@@ -255,6 +301,7 @@ export const useCanvasGraphData = ({
   // Build orchestration list: only deck orchestrations (sandbox and other non-deck
   // terminals are excluded from the graph).
   const allOrchestrationIds: string[] = [];
+
   for (const dt of deckOrchestrations) {
     allOrchestrationIds.push(dt.coordinationId);
     seenOrchestrationIds.add(dt.coordinationId);
@@ -264,6 +311,7 @@ export const useCanvasGraphData = ({
 
   for (let i = 0; i < allOrchestrationIds.length; i++) {
     const coordinationId = allOrchestrationIds[i];
+
     if (!coordinationId) continue;
     const orchestrationNodeId = buildOrchestrationNodeId(coordinationId);
     const prev = prevNodes.get(orchestrationNodeId);
@@ -288,9 +336,16 @@ export const useCanvasGraphData = ({
       coordinationId,
       label,
       color,
-      ...(firstActiveTerminal ? { workspaceMode: firstActiveTerminal.workspaceMode } : {}),
-      ...(deck?.mascot ? { mascot: deck.mascot } : {}),
     };
+
+    if (firstActiveTerminal?.workspaceMode !== undefined) {
+      node.workspaceMode = firstActiveTerminal.workspaceMode;
+    }
+
+    if (deck?.mascot) {
+      node.mascot = deck.mascot;
+    }
+
     nodes.push(node);
     currentNodesById.set(orchestrationNodeId, node);
 
@@ -299,18 +354,19 @@ export const useCanvasGraphData = ({
       for (const activeTerminal of activeTerminals) {
         const sessionNodeId = buildActiveSessionNodeId(activeTerminal.terminalId);
         const prevSession = prevNodes.get(sessionNodeId);
+
         const parentNodeId = activeTerminal.parentTerminalId
           ? buildActiveSessionNodeId(activeTerminal.parentTerminalId)
           : orchestrationNodeId;
-        const parentNode = currentNodesById.get(parentNodeId) ?? node;
-        const jitter = () => (Math.random() - 0.5) * 60;
 
+        const parentNode = currentNodesById.get(parentNodeId) ?? node;
         const runtimeInfo = agentRuntimeStates?.get(activeTerminal.terminalId);
+
         const sessionNode: GraphNode = {
           id: sessionNodeId,
           type: "active-session",
-          x: prevSession?.x ?? parentNode.x + jitter(),
-          y: prevSession?.y ?? parentNode.y + jitter(),
+          x: prevSession?.x ?? parentNode.x + jitterFor(sessionNodeId, "x"),
+          y: prevSession?.y ?? parentNode.y + jitterFor(sessionNodeId, "y"),
           vx: prevSession?.vx ?? 0,
           vy: prevSession?.vy ?? 0,
           pinned: prevSession?.pinned ?? false,
@@ -321,13 +377,24 @@ export const useCanvasGraphData = ({
           sessionId: activeTerminal.terminalId,
           agentState: activeTerminal.state,
           hasUserPrompt: activeTerminal.hasUserPrompt ?? false,
-          ...(activeTerminal.workspaceMode ? { workspaceMode: activeTerminal.workspaceMode } : {}),
-          ...(activeTerminal.parentTerminalId
-            ? { parentTerminalId: activeTerminal.parentTerminalId }
-            : {}),
-          ...(runtimeInfo ? { agentRuntimeState: runtimeInfo.state } : {}),
-          ...(runtimeInfo?.toolName ? { waitingToolName: runtimeInfo.toolName } : {}),
         };
+
+        if (activeTerminal.workspaceMode) {
+          sessionNode.workspaceMode = activeTerminal.workspaceMode;
+        }
+
+        if (activeTerminal.parentTerminalId) {
+          sessionNode.parentTerminalId = activeTerminal.parentTerminalId;
+        }
+
+        if (runtimeInfo) {
+          sessionNode.agentRuntimeState = runtimeInfo.state;
+        }
+
+        if (runtimeInfo?.toolName) {
+          sessionNode.waitingToolName = runtimeInfo.toolName;
+        }
+
         nodes.push(sessionNode);
         currentNodesById.set(sessionNodeId, sessionNode);
         edges.push({ source: parentNodeId, target: sessionNodeId });
@@ -338,7 +405,9 @@ export const useCanvasGraphData = ({
   // Deck lead — synthetic always-present hub node
   const prevBoss =
     prevNodes.get(DECK_LEAD_NODE_ID) ?? prevNodes.get(LEGACY_DECK_LEAD_NODE_ID) ?? null;
+
   const deckLeadColor = getAccentPrimary();
+
   const deckLeadNode: GraphNode = {
     id: DECK_LEAD_NODE_ID,
     type: "deck-lead",
@@ -352,6 +421,7 @@ export const useCanvasGraphData = ({
     label: "Deck lead",
     color: deckLeadColor,
   };
+
   nodes.push(deckLeadNode);
   currentNodesById.set(DECK_LEAD_NODE_ID, deckLeadNode);
 
@@ -365,14 +435,13 @@ export const useCanvasGraphData = ({
     if (!isDeckLeadCoordinationId(terminal.coordinationId)) continue;
     const sessionNodeId = buildActiveSessionNodeId(terminal.terminalId);
     const prevSession = prevNodes.get(sessionNodeId);
-    const jitter = () => (Math.random() - 0.5) * 60;
-
     const bossRuntimeInfo = agentRuntimeStates?.get(terminal.terminalId);
+
     const sessionNode: GraphNode = {
       id: sessionNodeId,
       type: "active-session",
-      x: prevSession?.x ?? deckLeadNode.x + jitter(),
-      y: prevSession?.y ?? deckLeadNode.y + jitter(),
+      x: prevSession?.x ?? deckLeadNode.x + jitterFor(sessionNodeId, "x"),
+      y: prevSession?.y ?? deckLeadNode.y + jitterFor(sessionNodeId, "y"),
       vx: prevSession?.vx ?? 0,
       vy: prevSession?.vy ?? 0,
       pinned: prevSession?.pinned ?? false,
@@ -383,11 +452,24 @@ export const useCanvasGraphData = ({
       sessionId: terminal.terminalId,
       agentState: terminal.state,
       hasUserPrompt: terminal.hasUserPrompt ?? false,
-      ...(terminal.workspaceMode ? { workspaceMode: terminal.workspaceMode } : {}),
-      ...(terminal.parentTerminalId ? { parentTerminalId: terminal.parentTerminalId } : {}),
-      ...(bossRuntimeInfo ? { agentRuntimeState: bossRuntimeInfo.state } : {}),
-      ...(bossRuntimeInfo?.toolName ? { waitingToolName: bossRuntimeInfo.toolName } : {}),
     };
+
+    if (terminal.workspaceMode) {
+      sessionNode.workspaceMode = terminal.workspaceMode;
+    }
+
+    if (terminal.parentTerminalId) {
+      sessionNode.parentTerminalId = terminal.parentTerminalId;
+    }
+
+    if (bossRuntimeInfo) {
+      sessionNode.agentRuntimeState = bossRuntimeInfo.state;
+    }
+
+    if (bossRuntimeInfo?.toolName) {
+      sessionNode.waitingToolName = bossRuntimeInfo.toolName;
+    }
+
     nodes.push(sessionNode);
     currentNodesById.set(sessionNodeId, sessionNode);
     edges.push({ source: DECK_LEAD_NODE_ID, target: sessionNodeId });
@@ -396,6 +478,7 @@ export const useCanvasGraphData = ({
   // Inactive sessions from conversations
   for (const session of inactiveSessions) {
     if (!session.coordinationId || !seenOrchestrationIds.has(session.coordinationId)) continue;
+
     if (activeTerminalIds.has(session.sessionId)) continue;
 
     const orchestrationNodeId = buildOrchestrationNodeId(session.coordinationId);
@@ -405,17 +488,17 @@ export const useCanvasGraphData = ({
     const parentNode = nodes.find((n) => n.id === orchestrationNodeId);
     const parentX = parentNode?.x ?? 0;
     const parentY = parentNode?.y ?? 0;
+
     const color = orchestrationColor(
       session.coordinationId,
       deckMap.get(session.coordinationId)?.color,
     );
-    const jitter = () => (Math.random() - 0.5) * 60;
 
     const sessionNode: GraphNode = {
       id: sessionNodeId,
       type: "inactive-session",
-      x: prevSession?.x ?? parentX + jitter(),
-      y: prevSession?.y ?? parentY + jitter(),
+      x: prevSession?.x ?? parentX + jitterFor(sessionNodeId, "x"),
+      y: prevSession?.y ?? parentY + jitterFor(sessionNodeId, "y"),
       vx: prevSession?.vx ?? 0,
       vy: prevSession?.vy ?? 0,
       pinned: prevSession?.pinned ?? false,
@@ -426,21 +509,25 @@ export const useCanvasGraphData = ({
         : session.sessionId.slice(0, 12),
       color,
       sessionId: session.sessionId,
-      ...(session.firstUserTurnPreview !== null
-        ? { firstPromptPreview: session.firstUserTurnPreview }
-        : {}),
     };
+
+    if (session.firstUserTurnPreview !== null) {
+      sessionNode.firstPromptPreview = session.firstUserTurnPreview;
+    }
+
     nodes.push(sessionNode);
     currentNodesById.set(sessionNodeId, sessionNode);
     edges.push({ source: orchestrationNodeId, target: sessionNodeId });
   }
 
-  // Update position cache
-  const nextMap = new Map<string, GraphNode>();
-  for (const n of nodes) {
-    nextMap.set(n.id, n);
-  }
-  prevNodesRef.current = nextMap;
+  // Remember the committed nodes so the next build keeps their simulated positions.
+  useEffect(() => {
+    renderedNodesById.clear();
+
+    for (const node of nodes) {
+      renderedNodesById.set(node.id, node);
+    }
+  });
 
   return {
     nodes,

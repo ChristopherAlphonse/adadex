@@ -1,62 +1,56 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { OrchestrationPod } from "../src/components/deck/OrchestrationPod";
 
-describe("OrchestrationPod skill editor", () => {
-  it("saves suggested skills from the deck pod", async () => {
-    const onSaveSuggestedSkills = vi.fn().mockResolvedValue(true);
+const orchestration = {
+  coordinationId: "docs",
+  displayName: "Docs",
+  description: "Docs and knowledge.",
+  status: "idle" as const,
+  color: "#ff6b2b",
+  mascot: { animation: null, expression: null, accessory: null, hairColor: null },
+  scope: { paths: [], tags: [] },
+  vaultFiles: ["todo.md"],
+  todoTotal: 2,
+  todoDone: 1,
+  todoItems: [
+    { text: "Write the intro", done: true },
+    { text: "Review the API page", done: false },
+  ],
+  suggestedSkills: ["docs-writer"],
+};
+
+const visuals = {
+  color: "#ff6b2b",
+  animation: "breathe" as const,
+  expression: "happy" as const,
+  accessory: "none" as const,
+};
+
+describe("OrchestrationPod card", () => {
+  it("shows a simple preview with progress and the next todo", () => {
+    render(<OrchestrationPod isFocused={false} orchestration={orchestration} visuals={visuals} />);
+
+    expect(screen.getByText("Docs")).toBeTruthy();
+    expect(screen.getByText("1 of 2")).toBeTruthy();
+    expect(screen.getByText("Review the API page")).toBeTruthy();
+  });
+
+  it("opens the agent panel when the card name is clicked", () => {
+    const onOpen = vi.fn();
 
     render(
       <OrchestrationPod
-        orchestration={{
-          coordinationId: "docs",
-          displayName: "Docs",
-          description: "Docs and knowledge.",
-          status: "idle",
-          color: "#ff6b2b",
-          mascot: {
-            animation: null,
-            expression: null,
-            accessory: null,
-            hairColor: null,
-          },
-          scope: { paths: [], tags: [] },
-          vaultFiles: ["todo.md"],
-          todoTotal: 0,
-          todoDone: 0,
-          todoItems: [],
-          suggestedSkills: ["docs-writer"],
-        }}
-        visuals={{
-          color: "#ff6b2b",
-          animation: "breathe",
-          expression: "happy",
-          accessory: "none",
-        }}
         isFocused={false}
-        availableSkills={[
-          {
-            name: "docs-writer",
-            description: "Keeps docs aligned with the product.",
-            source: "project",
-          },
-          {
-            name: "release-helper",
-            description: "Helps with release coordination.",
-            source: "user",
-          },
-        ]}
-        onSaveSuggestedSkills={onSaveSuggestedSkills}
+        onOpen={onOpen}
+        orchestration={orchestration}
+        visuals={visuals}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Skills" }));
-    fireEvent.click(screen.getByLabelText(/release-helper/i));
-    fireEvent.click(screen.getByRole("button", { name: /save skills/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Docs" }));
 
-    await waitFor(() => {
-      expect(onSaveSuggestedSkills).toHaveBeenCalledWith("docs", ["docs-writer", "release-helper"]);
-    });
+    expect(onOpen).toHaveBeenCalledTimes(1);
   });
 });

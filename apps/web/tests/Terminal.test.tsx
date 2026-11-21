@@ -1,3 +1,4 @@
+import type { ParsedValue } from "@adadex/core";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -29,8 +30,9 @@ class MockWebSocket {
     this.listeners.get(type)?.delete(listener);
   }
 
-  emit(type: string, data?: unknown) {
+  emit(type: string, data: ParsedValue) {
     const event = { data };
+
     for (const listener of this.listeners.get(type) ?? []) {
       listener(event);
     }
@@ -46,7 +48,7 @@ describe("Terminal", () => {
   });
 
   it("renders idle badge and updates it from websocket state events", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.stubGlobal("WebSocket", MockWebSocket);
 
     render(<Terminal terminalId="orchestration-a" />);
 
@@ -57,9 +59,11 @@ describe("Terminal", () => {
     });
 
     const socket = MockWebSocket.instances[0];
+
     if (!socket) {
       throw new Error("Expected websocket instance");
     }
+
     socket.emit("message", JSON.stringify({ type: "state", state: "processing" }));
 
     await waitFor(() => {
@@ -78,7 +82,7 @@ describe("Terminal", () => {
   });
 
   it("renders terminal with the provided terminal label", async () => {
-    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.stubGlobal("WebSocket", MockWebSocket);
 
     render(
       <Terminal terminalId="orchestration-a-agent-1" terminalLabel="orchestration-a-agent-1" />,

@@ -1,8 +1,8 @@
 ﻿:root {
-  --bg-canvas: #020403;
-  --bg-surface-1: #07120a;
-  --bg-surface-2: #07120a;
-  --border-subtle: #1a2e05;
+  --bg-canvas: var(--background);
+  --bg-surface-1: var(--surface-2);
+  --bg-surface-2: var(--surface-2);
+  --border-subtle: var(--border);
   --text-primary: #f0f0f0;
   --text-secondary: #d9f99d;
   --text-muted: #84cc16;
@@ -12,23 +12,23 @@
   --term-green: #33ff66;
   --term-blue: #1e59a3;
   --term-warning: #ffb020;
-  --control-border-strong: #1a2e05;
-  --control-bg-strong: #07120a;
-  --sidebar-canvas: color-mix(in srgb, var(--bg-surface-1) 84%, #131a23 16%);
-  --sidebar-panel: color-mix(in srgb, var(--bg-surface-1) 78%, #1b2430 22%);
-  --sidebar-card: color-mix(in srgb, var(--bg-surface-1) 82%, #16202a 18%);
-  --sidebar-header: color-mix(in srgb, var(--bg-surface-2) 72%, #212c3a 28%);
-  --sidebar-row: color-mix(in srgb, var(--bg-surface-1) 88%, #121a22 12%);
-  --sidebar-row-hover: color-mix(in srgb, var(--sidebar-row) 76%, #263445 24%);
-  --sidebar-row-active: color-mix(in srgb, var(--sidebar-row) 62%, #2c4055 38%);
-  --sidebar-border: color-mix(in srgb, var(--border-subtle) 72%, #313d4d 28%);
-  --sidebar-border-strong: color-mix(in srgb, var(--border-subtle) 48%, #3a4f66 52%);
+  --control-border-strong: var(--border);
+  --control-bg-strong: var(--surface-2);
+  --sidebar-canvas: color-mix(in srgb, var(--bg-surface-1) 84%, var(--surface) 16%);
+  --sidebar-panel: color-mix(in srgb, var(--bg-surface-1) 78%, var(--surface) 22%);
+  --sidebar-card: color-mix(in srgb, var(--bg-surface-1) 82%, var(--surface) 18%);
+  --sidebar-header: color-mix(in srgb, var(--bg-surface-2) 72%, var(--surface) 28%);
+  --sidebar-row: color-mix(in srgb, var(--bg-surface-1) 88%, var(--surface) 12%);
+  --sidebar-row-hover: color-mix(in srgb, var(--sidebar-row) 76%, var(--surface) 24%);
+  --sidebar-row-active: color-mix(in srgb, var(--sidebar-row) 62%, var(--surface) 38%);
+  --sidebar-border: color-mix(in srgb, var(--border-subtle) 72%, var(--surface) 28%);
+  --sidebar-border-strong: color-mix(in srgb, var(--border-subtle) 48%, var(--surface) 52%);
   --sidebar-text-muted: color-mix(in srgb, var(--text-secondary) 84%, #9eb2c8 16%);
   --terminal-bg: #101722;
   --terminal-header-bg-top: #4b607d;
   --terminal-header-bg-bottom: #3d516b;
   --terminal-header-text: #eef3fb;
-  --terminal-scrollbar-track: color-mix(in srgb, var(--terminal-bg) 88%, #0f1622 12%);
+  --terminal-scrollbar-track: color-mix(in srgb, var(--terminal-bg) 88%, var(--surface) 12%);
   --terminal-scrollbar-thumb: color-mix(in srgb, var(--accent-primary) 34%, var(--terminal-bg) 66%);
   --terminal-scrollbar-thumb-hover: color-mix(
     in srgb,
@@ -47,7 +47,7 @@
   --control-line-height: 1.2;
   --ui-base-font-size: 18px;
   --scrollbar-size: 10px;
-  --scrollbar-track: color-mix(in srgb, var(--bg-surface-1) 88%, #121212);
+  --scrollbar-track: color-mix(in srgb, var(--bg-surface-1) 88%, var(--surface));
   --scrollbar-thumb: color-mix(in srgb, var(--accent-primary) 38%, var(--border-subtle) 62%);
   --scrollbar-thumb-hover: color-mix(in srgb, var(--accent-primary) 54%, var(--border-subtle) 46%);
   --scrollbar-thumb-active: color-mix(in srgb, var(--accent-primary) 68%, var(--border-subtle) 32%);

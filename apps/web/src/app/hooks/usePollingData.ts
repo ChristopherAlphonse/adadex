@@ -1,9 +1,10 @@
+import type { ParsedValue } from "@adadex/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type UsePollingDataOptions<T> = {
   fetchUrl: string;
   intervalMs: number;
-  normalize: (raw: unknown) => T | null;
+  normalize: (raw: ParsedValue) => T | null;
   fallback: () => T;
   enabled?: boolean;
 };
@@ -17,29 +18,38 @@ export const usePollingData = <T>(options: UsePollingDataOptions<T>) => {
   const hasQueuedRefreshRef = useRef(false);
 
   const normalizeRef = useRef(options.normalize);
-  normalizeRef.current = options.normalize;
   const fallbackRef = useRef(options.fallback);
-  fallbackRef.current = options.fallback;
+
+  useEffect(() => {
+    normalizeRef.current = options.normalize;
+    fallbackRef.current = options.fallback;
+  }, [options.normalize, options.fallback]);
 
   const sync = useCallback(
-    async (force = false) => {
+    async function sync(force = false): Promise<void> {
       if (isDisposedRef.current) return;
+
       if (isInFlightRef.current) {
         if (force) {
           hasQueuedRefreshRef.current = true;
         }
+
         return;
       }
+
       isInFlightRef.current = true;
       setIsLoading(true);
+
       try {
         const response = await fetch(fetchUrl, {
           method: "GET",
           headers: { Accept: "application/json" },
           cache: "no-store",
         });
+
         if (!response.ok) throw new Error(`Request failed (${response.status})`);
         const parsed = normalizeRef.current(await response.json());
+
         if (!isDisposedRef.current) setData(parsed ?? fallbackRef.current());
       } catch (error) {
         if (!isDisposedRef.current) {
@@ -50,7 +60,9 @@ export const usePollingData = <T>(options: UsePollingDataOptions<T>) => {
         }
       } finally {
         isInFlightRef.current = false;
+
         if (!isDisposedRef.current) setIsLoading(false);
+
         if (hasQueuedRefreshRef.current) {
           hasQueuedRefreshRef.current = false;
           void sync();
@@ -65,6 +77,7 @@ export const usePollingData = <T>(options: UsePollingDataOptions<T>) => {
     isDisposedRef.current = false;
     void sync();
     const timerId = window.setInterval(() => void sync(), intervalMs);
+
     return () => {
       isDisposedRef.current = true;
       window.clearInterval(timerId);

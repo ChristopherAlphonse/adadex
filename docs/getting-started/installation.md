@@ -5,12 +5,10 @@ Adadex is a local Node.js project with a local API and web UI.
 ## Requirements
 
 - Node.js `22+`
-- Kiro CLI (`kiro-cli`) for the supported workflow
+- at least one agent CLI: Claude Code (`claude`, the default), Kiro CLI (`kiro-cli`) or OpenCode (`opencode`)
 - `git` for worktree terminals
 - `gh` for GitHub pull request features
 - `curl` for agent hook callbacks to this API
-
-Docs and defaults assume **Kiro CLI** as the terminal agent.
 
 ## Local development install
 
@@ -46,7 +44,7 @@ Running `adadex` inside a project directory will:
 
 ## Startup rules
 
-- startup fails if the `kiro-cli` CLI is not available
+- startup warns, but does not fail, when no agent CLI is found
 - startup warns when optional integrations like `git`, `gh`, or `curl` are missing
 
 ## Next step
