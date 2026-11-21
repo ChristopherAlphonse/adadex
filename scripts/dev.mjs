@@ -141,37 +141,58 @@ const workspaceCwd = process.env.ADADEX_WORKSPACE_CWD ?? monorepoRoot;
 
 const projectStateDir = resolveProjectStateDir(workspaceCwd);
 
-const child = spawn("npm", ["run", "dev", "--workspace=@adadex/api", "--workspace=@adadex/web"], {
-  stdio: "inherit",
-  shell: npmSpawnShell,
-  env: {
-    ...process.env,
-    ADADEX_API_PORT: String(apiPort),
-    ADADEX_API_ORIGIN: apiOrigin,
-    ADADEX_WORKSPACE_CWD: workspaceCwd,
-    ADADEX_PROJECT_STATE_DIR: projectStateDir,
-    ADADEX_PROMPTS_DIR: process.env.ADADEX_PROMPTS_DIR ?? `${monorepoRoot}/prompts`,
-  },
-});
+const childEnv = {
+  ...process.env,
+  ADADEX_API_PORT: String(apiPort),
+  ADADEX_API_ORIGIN: apiOrigin,
+  ADADEX_WORKSPACE_CWD: workspaceCwd,
+  ADADEX_PROJECT_STATE_DIR: projectStateDir,
+  ADADEX_PROMPTS_DIR: process.env.ADADEX_PROMPTS_DIR ?? `${monorepoRoot}/prompts`,
+};
+
+// npm runs multiple --workspace flags sequentially, and the API watcher never exits,
+// so start each workspace as its own process to run them concurrently.
+const children = ["@adadex/api", "@adadex/web"].map((workspace) =>
+  spawn("npm", ["run", "dev", `--workspace=${workspace}`], {
+    stdio: "inherit",
+    shell: npmSpawnShell,
+    cwd: monorepoRoot,
+    env: childEnv,
+  }),
+);
+
+let shuttingDown = false;
+
+let exitCode = 0;
 
 const forwardSignal = (signal) => {
-  if (child.killed) {
-    return;
-  }
+  shuttingDown = true;
 
-  child.kill(signal);
+  for (const child of children) {
+    if (!child.killed) {
+      child.kill(signal);
+    }
+  }
 };
 
 process.on("SIGINT", () => forwardSignal("SIGINT"));
 
 process.on("SIGTERM", () => forwardSignal("SIGTERM"));
 
-child.on("exit", (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal);
+let remaining = children.length;
 
-    return;
-  }
+for (const child of children) {
+  child.on("exit", (code) => {
+    remaining -= 1;
 
-  process.exit(code ?? 0);
-});
+    if (!shuttingDown) {
+      // One side died on its own: take the other down so dev never half-runs.
+      exitCode = code ?? 1;
+      forwardSignal("SIGTERM");
+    }
+
+    if (remaining === 0) {
+      process.exit(exitCode);
+    }
+  });
+}
