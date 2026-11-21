@@ -73,7 +73,9 @@ describe("sandbox profile", () => {
     expect(() => buildProfile({ ...plan, writable: ['/x")(allow default'] })).toThrow(
       "cannot go in a sandbox profile",
     );
-    expect(() => buildProfile({ ...plan, denyRead: ["/x\n(allow default)"] })).toThrow();
+    expect(() => buildProfile({ ...plan, denyRead: ["/x\n(allow default)"] })).toThrow(
+      "a path with a quote or a newline cannot go in a sandbox profile: /x\n(allow default)",
+    );
   });
 
   it("runs the agent through sandbox-exec with the profile first", () => {

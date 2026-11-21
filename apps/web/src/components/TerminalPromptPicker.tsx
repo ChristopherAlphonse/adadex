@@ -22,6 +22,16 @@ export const TerminalPromptPicker = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<React.CSSProperties>({});
 
+  // Show the loading state from the same render that opens the picker; the fetch effect below
+  // only synchronizes the result back once the request settles.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+
+    if (isOpen) setIsLoading(true);
+  }
+
   useEffect(() => {
     if (!isOpen || !anchorRef.current) return;
 
@@ -36,7 +46,6 @@ export const TerminalPromptPicker = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    setIsLoading(true);
     fetch(buildPromptsUrl())
       .then(async (res) => {
         if (!res.ok) return;

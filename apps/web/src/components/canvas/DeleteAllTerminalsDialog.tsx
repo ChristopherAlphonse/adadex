@@ -121,14 +121,16 @@ export const DeleteAllTerminalsDialog = ({
   }, [activeTargets, inactiveSessionIds, totalTargetCount, onDeleted]);
 
   return (
-    <section
+    <dialog
       aria-label="Delete all terminals"
+      aria-modal="true"
       className="delete-confirm-dialog"
       onKeyDown={(event) => {
         if (event.key !== "Escape" || isDeleting) return;
         event.preventDefault();
         onCancel();
       }}
+      open
       tabIndex={-1}
     >
       <header className="delete-confirm-header">
@@ -225,6 +227,6 @@ export const DeleteAllTerminalsDialog = ({
             : `Delete ${totalTargetCount}`}
         </ActionButton>
       </div>
-    </section>
+    </dialog>
   );
 };

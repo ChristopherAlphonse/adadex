@@ -60,7 +60,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
       translateX: rect.width / 2,
       translateY: rect.height / 2,
     });
-  });
+  }, []);
 
   // Re-center the graph when the SVG container resizes (e.g. split panel opens)
   const prevSizeRef = useRef<{ width: number; height: number } | null>(null);

@@ -11,6 +11,10 @@ type UsageChartSectionProps = {
 
 type BarSegmentMode = "project" | "model";
 
+const EMPTY_DAYS: UsageDayEntry[] = [];
+
+const EMPTY_KEYS: string[] = [];
+
 const SEGMENT_COLORS = [
   "var(--accent-primary, #a3e635)",
   "var(--accent-secondary, #eab308)",
@@ -556,13 +560,13 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
   const [segmentMode, setSegmentMode] = useState<BarSegmentMode>("project");
   const [hoveredBar, setHoveredBar] = useState<BarData | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const splitRef = useRef<HTMLDivElement>(null);
-  const barPanel = usePanelSize();
-  const heatmapPanel = usePanelSize();
+  const { ref: splitRef, width: splitWidth } = usePanelSize();
+  const { ref: barRef, width: barWidth, height: barHeight } = usePanelSize();
+  const { ref: heatmapRef, width: heatmapWidth, height: heatmapHeight } = usePanelSize();
 
-  const days = data?.days ?? [];
-  const projects = data?.projects ?? [];
-  const models = data?.models ?? [];
+  const days = data?.days ?? EMPTY_DAYS;
+  const projects = data?.projects ?? EMPTY_KEYS;
+  const models = data?.models ?? EMPTY_KEYS;
 
   const segmentKeys = segmentMode === "model" ? models : projects;
 
@@ -674,12 +678,12 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
           </button>
         </div>
         <div className="usage-chart-left-stack">
-          <div className="usage-chart-panel" ref={barPanel.ref}>
+          <div className="usage-chart-panel" ref={barRef}>
             <BarChartView
               bars={bars}
               maxTokens={maxTokens}
-              containerWidth={barPanel.width}
-              containerHeight={barPanel.height}
+              containerWidth={barWidth}
+              containerHeight={barHeight}
               hoveredBar={hoveredBar}
               setHoveredBar={setHoveredBar}
             />
@@ -699,11 +703,11 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
           )}
         </div>
         <div className="usage-chart-right-stack">
-          <div className="usage-chart-panel" ref={heatmapPanel.ref}>
+          <div className="usage-chart-panel" ref={heatmapRef}>
             <HeatmapView
               bars={heatmapBars}
-              containerWidth={heatmapPanel.width}
-              containerHeight={heatmapPanel.height}
+              containerWidth={heatmapWidth}
+              containerHeight={heatmapHeight}
               hoveredBar={hoveredBar}
               setHoveredBar={setHoveredBar}
             />
@@ -744,7 +748,7 @@ export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionP
             bar={hoveredBar}
             x={mousePos.x}
             y={mousePos.y}
-            containerWidth={splitRef.current?.clientWidth ?? 800}
+            containerWidth={splitWidth || 800}
           />
         )}
       </div>

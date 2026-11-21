@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
 import { ConfirmationDialog } from "./ui/ConfirmationDialog";
@@ -32,10 +32,14 @@ export const DeleteOrchestrationDialog = ({
   const isThisDeleting = isDeletingTerminalId === pendingDeleteTerminal.terminalId;
   const dialogResetKey = `${pendingDeleteTerminal.terminalId}:${pendingDeleteTerminal.intent}`;
 
-  useEffect(() => {
-    void dialogResetKey;
+  // Reset the confirmation field when the pending target changes, during render, so the field
+  // is already clear on the frame that displays the new dialog.
+  const [previousDialogResetKey, setPreviousDialogResetKey] = useState(dialogResetKey);
+
+  if (dialogResetKey !== previousDialogResetKey) {
+    setPreviousDialogResetKey(dialogResetKey);
     setCleanupConfirmationInput("");
-  }, [dialogResetKey]);
+  }
 
   return (
     <ConfirmationDialog

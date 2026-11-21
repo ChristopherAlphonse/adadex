@@ -2,7 +2,7 @@ import type { DeckCoordinationStatus } from "@adadex/core";
 import { useId } from "react";
 
 /**
- * Soft, rounded mascot with a few moods. The body colour is tinted from the agent's colour so
+ * Soft, rounded mascot with a few moods. The body color is tinted from the agent's color so
  * every agent stays recognisable, while the face plate and eyes stay constant.
  */
 export type CuteMascotState = "idle" | "working" | "happy" | "sleeping" | "worried";

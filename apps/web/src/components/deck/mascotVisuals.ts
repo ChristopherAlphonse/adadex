@@ -1,17 +1,70 @@
 import { isString, type DeckCoordinationSummary } from "@adadex/core";
 
 import { MASCOT_COLORS } from "../../app/mascotPalette";
-import type {
-  AgentGlyphAccessory,
-  AgentGlyphAnimation,
-  AgentGlyphMood,
-  AgentGlyphVariant,
-} from "../MascotSprite";
+import type { CuteMascotState } from "./CuteMascot";
 
 export { MASCOT_COLORS };
 
-export const AGENT_ANIMATIONS: AgentGlyphAnimation[] = [
+/** Persisted mascot values. Both the legacy and current vocabularies stay readable. */
+export type MascotAnimation =
+  | "idle"
+  | "sway"
+  | "walk"
+  | "jog"
+  | "swim-up"
+  | "float"
+  | "breathe"
+  | "pulse"
+  | "orbit"
+  | "typing"
+  | "thinking"
+  | "deploying";
+
+export type MascotExpression =
+  | "normal"
+  | "happy"
+  | "sleepy"
+  | "angry"
+  | "surprised"
+  | "neutral"
+  | "focused"
+  | "curious"
+  | "busy"
+  | "offline";
+
+export type MascotAccessory =
+  | "none"
+  | "long"
+  | "mohawk"
+  | "side-sweep"
+  | "curly"
+  | "afro"
+  | "glasses"
+  | "badge"
+  | "visor"
+  | "terminal"
+  | "node-ring"
+  | "shield";
+
+export type MascotVariant =
+  | "codex"
+  | "opencode"
+  | "reviewer"
+  | "planner"
+  | "builder"
+  | "debugger"
+  | "security"
+  | "custom";
+
+export type MascotDensity = "minimal" | "standard" | "detailed";
+
+export const ANIMATIONS: MascotAnimation[] = [
   "idle",
+  "sway",
+  "walk",
+  "jog",
+  "float",
+  "swim-up",
   "breathe",
   "pulse",
   "orbit",
@@ -20,17 +73,26 @@ export const AGENT_ANIMATIONS: AgentGlyphAnimation[] = [
   "deploying",
 ];
 
-export const AGENT_MOODS: AgentGlyphMood[] = [
+export const EXPRESSIONS: MascotExpression[] = [
+  "normal",
+  "happy",
+  "sleepy",
+  "angry",
+  "surprised",
   "neutral",
   "focused",
-  "happy",
   "curious",
   "busy",
   "offline",
 ];
 
-export const AGENT_ACCESSORIES: AgentGlyphAccessory[] = [
+export const ACCESSORIES: MascotAccessory[] = [
   "none",
+  "long",
+  "mohawk",
+  "side-sweep",
+  "curly",
+  "afro",
   "glasses",
   "badge",
   "visor",
@@ -39,7 +101,7 @@ export const AGENT_ACCESSORIES: AgentGlyphAccessory[] = [
   "shield",
 ];
 
-export const AGENT_VARIANTS: AgentGlyphVariant[] = [
+export const VARIANTS: MascotVariant[] = [
   "codex",
   "opencode",
   "reviewer",
@@ -50,11 +112,7 @@ export const AGENT_VARIANTS: AgentGlyphVariant[] = [
   "custom",
 ];
 
-export const ANIMATIONS = AGENT_ANIMATIONS;
-
-export const EXPRESSIONS = AGENT_MOODS;
-
-export const ACCESSORIES = AGENT_ACCESSORIES;
+const DENSITIES: MascotDensity[] = ["minimal", "standard", "detailed"];
 
 export function hashString(str: string): number {
   let h = 0;
@@ -66,24 +124,14 @@ export function hashString(str: string): number {
   return Math.abs(h);
 }
 
-export function seededRandom(seed: number): () => number {
-  let s = seed;
-
-  return () => {
-    s = (s * 16807 + 0) % 2147483647;
-
-    return (s - 1) / 2147483646;
-  };
-}
-
 export type MascotVisuals = {
   color: string;
-  animation: AgentGlyphAnimation;
-  expression: AgentGlyphMood;
-  accessory: AgentGlyphAccessory;
-  variant?: AgentGlyphVariant | undefined;
+  animation: MascotAnimation;
+  expression: MascotExpression;
+  accessory: MascotAccessory;
+  variant?: MascotVariant | undefined;
   identitySeed?: string | undefined;
-  density?: "minimal" | "standard" | "detailed" | undefined;
+  density?: MascotDensity | undefined;
   hairColor?: string | undefined;
 };
 
@@ -93,7 +141,7 @@ const legacyAnimationMap = {
   walk: "pulse",
   jog: "pulse",
   "swim-up": "orbit",
-} satisfies Record<string, AgentGlyphAnimation>;
+} satisfies Record<string, MascotAnimation>;
 
 type LegacyAnimationAlias = keyof typeof legacyAnimationMap;
 
@@ -106,7 +154,7 @@ const legacyExpressionMap = {
   sleepy: "offline",
   angry: "busy",
   surprised: "curious",
-} satisfies Record<string, AgentGlyphMood>;
+} satisfies Record<string, MascotExpression>;
 
 type LegacyMoodAlias = keyof typeof legacyExpressionMap;
 
@@ -119,74 +167,85 @@ const legacyAccessoryMap = {
   "side-sweep": "terminal",
   curly: "glasses",
   afro: "badge",
-} satisfies Record<string, AgentGlyphAccessory>;
+} satisfies Record<string, MascotAccessory>;
 
 type LegacyAccessoryAlias = keyof typeof legacyAccessoryMap;
 
 const isLegacyAccessoryAlias = (value: string): value is LegacyAccessoryAlias =>
   Object.hasOwn(legacyAccessoryMap, value);
 
-const isAgentAnimation = (value: string): value is AgentGlyphAnimation =>
-  AGENT_ANIMATIONS.some((candidate) => candidate === value);
+const isMascotAnimation = (value: string): value is MascotAnimation =>
+  ANIMATIONS.some((candidate) => candidate === value);
 
-const isAgentMood = (value: string): value is AgentGlyphMood =>
-  AGENT_MOODS.some((candidate) => candidate === value);
+const isMascotExpression = (value: string): value is MascotExpression =>
+  EXPRESSIONS.some((candidate) => candidate === value);
 
-const isAgentAccessory = (value: string): value is AgentGlyphAccessory =>
-  AGENT_ACCESSORIES.some((candidate) => candidate === value);
+const isMascotAccessory = (value: string): value is MascotAccessory =>
+  ACCESSORIES.some((candidate) => candidate === value);
 
-const isAgentVariant = (value: string): value is AgentGlyphVariant =>
-  AGENT_VARIANTS.some((candidate) => candidate === value);
-
-type MascotDensity = NonNullable<MascotVisuals["density"]>;
-
-const MASCOT_DENSITIES: readonly MascotDensity[] = ["minimal", "standard", "detailed"];
+const isMascotVariant = (value: string): value is MascotVariant =>
+  VARIANTS.some((candidate) => candidate === value);
 
 const isMascotDensity = (value: string): value is MascotDensity =>
-  MASCOT_DENSITIES.some((candidate) => candidate === value);
+  DENSITIES.some((candidate) => candidate === value);
 
-const toAgentAnimation = (val: string | null | undefined): AgentGlyphAnimation => {
+const toAnimation = (val: string | null | undefined): MascotAnimation => {
   if (!val) return "idle";
 
-  if (isAgentAnimation(val)) return val;
+  if (isMascotAnimation(val)) return val;
 
   return isLegacyAnimationAlias(val) ? legacyAnimationMap[val] : "idle";
 };
 
-const toAgentMood = (val: string | null | undefined): AgentGlyphMood => {
+const toExpression = (val: string | null | undefined): MascotExpression => {
   if (!val) return "neutral";
 
-  if (isAgentMood(val)) return val;
+  if (isMascotExpression(val)) return val;
 
   return isLegacyMoodAlias(val) ? legacyExpressionMap[val] : "neutral";
 };
 
-const toAgentAccessory = (val: string | null | undefined): AgentGlyphAccessory => {
+const toAccessory = (val: string | null | undefined): MascotAccessory => {
   if (!val) return "none";
 
-  if (isAgentAccessory(val)) return val;
+  if (isMascotAccessory(val)) return val;
 
   return isLegacyAccessoryAlias(val) ? legacyAccessoryMap[val] : "none";
 };
 
+/** Map any persisted expression vocabulary onto the moods CuteMascot can draw. */
+export const mascotStateForExpression = (
+  expression: string | null | undefined,
+): CuteMascotState => {
+  if (expression === "happy" || expression === "surprised") return "happy";
+
+  if (
+    expression === "focused" ||
+    expression === "curious" ||
+    expression === "busy" ||
+    expression === "angry"
+  ) {
+    return "working";
+  }
+
+  if (expression === "offline" || expression === "sleepy") return "sleeping";
+
+  return "idle";
+};
+
 export function deriveMascotVisuals(coordination: DeckCoordinationSummary): MascotVisuals {
-  const _rng = seededRandom(hashString(coordination.coordinationId));
   const stored = coordination.mascot;
 
-  const animation = stored?.variant
-    ? toAgentAnimation(stored.variant)
-    : toAgentAnimation(stored?.animation);
+  const animation = stored?.variant ? toAnimation(stored.variant) : toAnimation(stored?.animation);
 
-  const expression = stored?.mood ? toAgentMood(stored.mood) : toAgentMood(stored?.expression);
+  const expression = stored?.mood ? toExpression(stored.mood) : toExpression(stored?.expression);
 
-  const accessory = stored?.density
-    ? toAgentAccessory(stored.density)
-    : toAgentAccessory(stored?.accessory);
+  const accessory = stored?.density ? toAccessory(stored.density) : toAccessory(stored?.accessory);
 
   const storedVariant = stored?.variant;
 
   const variant =
-    isString(storedVariant) && isAgentVariant(storedVariant) ? storedVariant : undefined;
+    isString(storedVariant) && isMascotVariant(storedVariant) ? storedVariant : undefined;
 
   const storedDensity = stored?.density;
 

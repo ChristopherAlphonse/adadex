@@ -35,7 +35,7 @@ describe("CanvasOrchestrationPanel actions", () => {
   it("offers worktree and normal swarm options", async () => {
     const onSpawnSwarm = vi.fn();
 
-    render(
+    const { container } = render(
       <CanvasOrchestrationPanel
         node={{
           id: "docs-knowledge",
@@ -56,6 +56,9 @@ describe("CanvasOrchestrationPanel actions", () => {
         onSpawnSwarm={onSpawnSwarm}
       />,
     );
+
+    expect(container.querySelector(".cute-mascot")).not.toBeNull();
+    expect(container.querySelector("canvas")).toBeNull();
 
     const worktreeButton = await screen.findByRole("button", {
       name: /spawn swarm \(worktrees\)/i,
@@ -78,13 +81,10 @@ describe("CanvasOrchestrationPanel actions", () => {
   it("spawns a dedicated agent for an individual todo item", async () => {
     const onSolveTodoItem = vi.fn();
 
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
 
       if (url.endsWith("/api/deck/coordinations/docs-knowledge/todo/solve")) {
-        expect(init?.method).toBe("POST");
-        expect(init?.body).toBe(JSON.stringify({ itemIndex: 0 }));
-
         return new Response(JSON.stringify({ terminalId: "docs-knowledge-todo-0" }), {
           status: 201,
           headers: { "Content-Type": "application/json" },
@@ -127,18 +127,20 @@ describe("CanvasOrchestrationPanel actions", () => {
     await waitFor(() => {
       expect(onSolveTodoItem).toHaveBeenCalledWith("docs-knowledge", 0);
     });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/todo\/solve$/),
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ itemIndex: 0 }) }),
+    );
   });
 
   it("refreshes centralized orchestration data after mutating todo items", async () => {
     const onRefreshOrchestrationData = vi.fn().mockResolvedValue(undefined);
 
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
 
       if (url.endsWith("/api/deck/coordinations/docs-knowledge/todo/toggle")) {
-        expect(init?.method).toBe("PATCH");
-        expect(init?.body).toBe(JSON.stringify({ itemIndex: 0, done: true }));
-
         return new Response(null, { status: 200 });
       }
 
@@ -176,6 +178,14 @@ describe("CanvasOrchestrationPanel actions", () => {
     await waitFor(() => {
       expect(onRefreshOrchestrationData).toHaveBeenCalledTimes(1);
     });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/todo\/toggle$/),
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ itemIndex: 0, done: true }),
+      }),
+    );
   });
 
   it("shows suggested skills in the orchestration detail panel", async () => {

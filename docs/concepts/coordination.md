@@ -81,7 +81,7 @@ The runtime parses checkbox lines and computes progress.
 
 Only lines that match `- [ ] text` or `- [x] text` are treated as todo items. Their order matters because swarm creation uses the parsed item index when it creates worker terminal IDs such as `<coordination-id>-swarm-0`.
 
-When the UI toggles, edits, adds, or deletes todos, it rewrites `todo.md`. There is no hidden todo store.
+When the UI toggles, edits, adds, or deletes todos, it rewrites `todo.md`. Deck also offers a bottom-docked raw markdown editor for the whole `todo.md` file. There is no hidden todo store.
 
 ## Coordinations and delegation
 

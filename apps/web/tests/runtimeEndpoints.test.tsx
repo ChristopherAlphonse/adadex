@@ -4,6 +4,7 @@ import {
   buildConversationExportUrl,
   buildConversationSessionUrl,
   buildConversationsUrl,
+  buildDeckVaultFileUrl,
   buildGithubSummaryUrl,
   buildOrchestrationGitCommitUrl,
   buildOrchestrationGitPullRequestMergeUrl,
@@ -100,6 +101,15 @@ describe("runtimeEndpoints", () => {
     );
     expect(buildWorkspaceSetupStepUrl("ensure-gitignore", "https://runtime.example.com")).toBe(
       "https://runtime.example.com/api/setup/steps/ensure-gitignore",
+    );
+  });
+
+  it("builds Deck vault file URLs with encoded path segments", () => {
+    expect(buildDeckVaultFileUrl("docs & knowledge", "todo.md")).toBe(
+      "/api/deck/coordinations/docs%20%26%20knowledge/files/todo.md",
+    );
+    expect(buildDeckVaultFileUrl("docs", "todo.md", "https://runtime.example.com")).toBe(
+      "https://runtime.example.com/api/deck/coordinations/docs/files/todo.md",
     );
   });
 

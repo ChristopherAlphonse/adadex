@@ -140,32 +140,27 @@ export const ConversationsPrimaryView = ({
   const [pendingMessages, setPendingMessages] = useState<{ id: string; text: string }[]>([]);
   const [sendError, setSendError] = useState<string | null>(null);
   const threadRef = useRef<HTMLOListElement | null>(null);
+  const [previousSessionId, setPreviousSessionId] = useState(selectedSessionId);
 
   const isLiveSession =
     selectedSession !== null &&
     !selectedSession.events.some((event) => event.type === "session_end");
 
-  // A message stops being "pending" once the agent's transcript contains it.
-  useEffect(() => {
-    if (!selectedSession) {
-      return;
-    }
+  const isAcknowledged = (text: string) =>
+    selectedSession?.turns.some(
+      (turn) => turn.role === "user" && turn.content.trim() === text.trim(),
+    ) ?? false;
 
-    setPendingMessages((current) =>
-      current.filter(
-        (message) =>
-          !selectedSession.turns.some(
-            (turn) => turn.role === "user" && turn.content.trim() === message.text.trim(),
-          ),
-      ),
-    );
-  }, [selectedSession]);
-
-  // Each conversation starts with a clean composer state.
-  useEffect(() => {
+  // Reconcile composer state during render: React restarts the render before
+  // committing, so switching sessions or acknowledging a turn never needs an
+  // effect-driven second pass.
+  if (previousSessionId !== selectedSessionId) {
+    setPreviousSessionId(selectedSessionId);
     setPendingMessages([]);
     setSendError(null);
-  }, [selectedSessionId]);
+  } else if (pendingMessages.some((message) => isAcknowledged(message.text))) {
+    setPendingMessages((current) => current.filter((message) => !isAcknowledged(message.text)));
+  }
 
   // While a message is waiting for the agent, keep checking for the reply.
   const hasPendingMessages = pendingMessages.length > 0;

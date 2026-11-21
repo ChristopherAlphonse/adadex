@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { formatColorForDisplay, MASCOT_COLORS } from "../src/app/mascotPalette";
 import { AgentSheet } from "../src/components/deck/AgentSheet";
 
 const orchestration = {
@@ -50,7 +51,7 @@ describe("AgentSheet", () => {
     renderSheet({ onSaveSuggestedSkills });
 
     fireEvent.click(screen.getByRole("button", { name: "Edit skills" }));
-    fireEvent.click(screen.getByLabelText(/release-helper/i));
+    fireEvent.click(screen.getByRole("checkbox", { name: /release-helper/i }));
     fireEvent.click(screen.getByRole("button", { name: /save skills/i }));
 
     await waitFor(() => {
@@ -66,6 +67,47 @@ describe("AgentSheet", () => {
     fireEvent.click(screen.getByRole("button", { name: "Customize this agent" }));
 
     expect(screen.getByText("Preview a mood")).toBeTruthy();
+  });
+
+  it("saves the selected color from the customize panel", async () => {
+    const onSaveMascot = vi.fn().mockResolvedValue(true);
+    const onSaveAgent = vi.fn().mockResolvedValue(true);
+
+    renderSheet({ onSaveAgent, onSaveMascot });
+
+    fireEvent.click(screen.getByRole("button", { name: "Customize this agent" }));
+    const selected = MASCOT_COLORS[6] ?? MASCOT_COLORS[0];
+    const swatch = screen.getByLabelText(`Use color ${formatColorForDisplay(selected)}`);
+    fireEvent.click(swatch);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(onSaveMascot).toHaveBeenCalledWith(
+        "docs",
+        expect.objectContaining({ color: selected }),
+      );
+    });
+    expect(onSaveAgent).not.toHaveBeenCalled();
+  });
+
+  it("shows an error when the color save fails", async () => {
+    const onSaveMascot = vi.fn().mockResolvedValue(false);
+
+    renderSheet({ onSaveMascot });
+
+    fireEvent.click(screen.getByRole("button", { name: "Customize this agent" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Could not save the mascot color.")).toBeTruthy();
+  });
+
+  it("offers the expanded color palette with US spelling", () => {
+    renderSheet();
+
+    fireEvent.click(screen.getByRole("button", { name: "Customize this agent" }));
+
+    expect(screen.getAllByLabelText(/Use color /i).length).toBeGreaterThanOrEqual(12);
+    expect(screen.queryByLabelText(/Use colour/i)).toBeNull();
   });
 
   it("asks for confirmation before deleting", async () => {

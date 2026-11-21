@@ -75,7 +75,9 @@ const formatSparkDate = (date: string): string => {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-const buildCommitYTicks = (series: GitHubCommitSparkPoint[]): { count: number; y: number }[] => {
+const buildCommitYTicks = (
+  series: GitHubCommitSparkPoint[],
+): { id: string; count: number; y: number }[] => {
   if (series.length === 0) return [];
   const counts = series.map((p) => p.count);
   const maxCount = Math.max(...counts);
@@ -83,12 +85,12 @@ const buildCommitYTicks = (series: GitHubCommitSparkPoint[]): { count: number; y
   const range = Math.max(1, maxCount - minCount);
   const H = GITHUB_OVERVIEW_GRAPH_HEIGHT;
   const tickCount = 4;
-  const ticks: { count: number; y: number }[] = [];
+  const ticks: { id: string; count: number; y: number }[] = [];
 
   for (let i = 0; i <= tickCount; i++) {
     const count = Math.round(minCount + range * (i / tickCount));
     const y = H - ((count - minCount) / range) * H;
-    ticks.push({ count, y });
+    ticks.push({ id: `y-tick-${i}`, count, y });
   }
 
   return ticks;
@@ -308,8 +310,8 @@ export const GitHubPrimaryView = ({
                     </linearGradient>
                   </defs>
 
-                  {yTicks.map((tick, index) => (
-                    <g key={`${tick.count}-${index}`}>
+                  {yTicks.map((tick) => (
+                    <g key={tick.id}>
                       <line
                         x1={0}
                         y1={tick.y}
@@ -359,7 +361,7 @@ export const GitHubPrimaryView = ({
                       }`}
                       cx={point.x}
                       cy={point.y}
-                      key={`${point.date}-${index}`}
+                      key={point.date}
                       onFocus={() => {
                         onHoveredGitHubOverviewPointIndexChange(index);
                       }}
@@ -552,6 +554,7 @@ export const GitHubPrimaryView = ({
                         className="github-overview-recent-tooltip-copy"
                         type="button"
                         title="Copy full hash"
+                        aria-label="Copy full hash"
                         onClick={() => {
                           navigator.clipboard.writeText(activeCommit.hash);
                         }}

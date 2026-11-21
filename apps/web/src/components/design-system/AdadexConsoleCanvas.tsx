@@ -48,6 +48,7 @@ export const AdadexConsoleCanvas = ({
         <button
           key={a.id}
           type="button"
+          aria-label={`Select agent ${a.name}`}
           onClick={() => onSelect(a.id)}
           className="absolute -translate-x-1/2 -translate-y-1/2 outline-none"
           style={{ left: `${a.x}%`, top: `${a.y}%` }}

@@ -38,6 +38,7 @@ export const usePromptLibrary = ({
   const [editDraft, setEditDraft] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const detailRequestRef = useRef(0);
+  const wasEnabledRef = useRef(false);
 
   const refreshPrompts = useCallback(async () => {
     setIsLoadingPrompts(true);
@@ -192,8 +193,11 @@ export const usePromptLibrary = ({
   }, [selectedPromptName, editDraft, refreshPrompts]);
 
   useEffect(() => {
-    if (enabled) {
+    if (enabled && !wasEnabledRef.current) {
+      wasEnabledRef.current = true;
       void refreshPrompts();
+    } else if (!enabled) {
+      wasEnabledRef.current = false;
     }
   }, [enabled, refreshPrompts]);
 

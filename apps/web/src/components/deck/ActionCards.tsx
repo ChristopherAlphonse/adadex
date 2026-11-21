@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 
 import { AGENT_PROVIDER_OPTIONS } from "../../app/agentProviders";
 import type { TerminalAgentProvider } from "../../app/types";
-import { MascotSprite } from "../MascotSprite";
+import { CuteMascot } from "./CuteMascot";
 
 export type ActionCardsProps = {
   compact?: boolean;
@@ -30,7 +30,7 @@ export const ActionCards = ({
   <div className={`deck-empty-actions${compact ? " deck-empty-actions--compact" : ""}`}>
     <button type="button" className="deck-empty-card" onClick={onAdd}>
       <div className="deck-empty-card-icon">
-        <MascotSprite color="#a3e635" speedMs={16} size={compact ? 120 : 160} />
+        <CuteMascot color="#34d399" size={compact ? 96 : 120} state="happy" />
       </div>
       <div className="deck-empty-card-text">
         <span className="deck-empty-card-title">Add Orchestration</span>

@@ -18,12 +18,15 @@ export const usePollingData = <T>(options: UsePollingDataOptions<T>) => {
   const hasQueuedRefreshRef = useRef(false);
 
   const normalizeRef = useRef(options.normalize);
-  normalizeRef.current = options.normalize;
   const fallbackRef = useRef(options.fallback);
-  fallbackRef.current = options.fallback;
+
+  useEffect(() => {
+    normalizeRef.current = options.normalize;
+    fallbackRef.current = options.fallback;
+  }, [options.normalize, options.fallback]);
 
   const sync = useCallback(
-    async (force = false) => {
+    async function sync(force = false): Promise<void> {
       if (isDisposedRef.current) return;
 
       if (isInFlightRef.current) {

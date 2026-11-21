@@ -375,16 +375,21 @@ export const usePersistedUiState = ({
     [],
   );
 
-  useEffect(() => {
+  // Drop persisted entries for terminals/coordinations that no longer exist. Reconcile during
+  // render against the last seen columns so the pruned values are used on the very next paint.
+  const [reconciledColumns, setReconciledColumns] = useState(columns);
+
+  if (columns !== reconciledColumns) {
     const activeTerminalIds = new Set(columns.map((entry) => entry.terminalId));
     const activeOrchestrationIds = new Set(columns.map((entry) => entry.coordinationId));
+    setReconciledColumns(columns);
     setMinimizedTerminalIds((current) => retainActiveTerminalIds(current, activeTerminalIds));
     setTerminalWidths((current) => retainActiveTerminalEntries(current, activeTerminalIds));
     setCanvasOpenTerminalIds((current) => retainActiveTerminalIds(current, activeTerminalIds));
     setCanvasOpenCoordinationIds((current) =>
       retainActiveTerminalIds(current, activeOrchestrationIds),
     );
-  }, [columns]);
+  }
 
   useEffect(() => {
     if (!isUiStateHydrated) {

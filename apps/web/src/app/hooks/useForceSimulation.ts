@@ -81,9 +81,12 @@ export const useForceSimulation = ({
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const paramsRef = useRef(params);
-  nodesRef.current = nodes;
-  edgesRef.current = edges;
-  paramsRef.current = params;
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+    edgesRef.current = edges;
+    paramsRef.current = params;
+  }, [nodes, edges, params]);
 
   // Stable topology keys — effect only fires when graph structure actually changes
   const nodeIdKey = useMemo(() => nodes.map((n) => n.id).join("\0"), [nodes]);

@@ -122,8 +122,10 @@ export const Terminal = ({
   const rawTitle = terminalLabel && terminalLabel.length > 0 ? terminalLabel : terminalId;
   const terminalTitle = rawTitle.length > 24 ? `${rawTitle.slice(0, 24)}...` : rawTitle;
 
-  onTerminalActivityRef.current = onTerminalActivity;
-  onTerminalRenamedRef.current = onTerminalRenamed;
+  useEffect(() => {
+    onTerminalActivityRef.current = onTerminalActivity;
+    onTerminalRenamedRef.current = onTerminalRenamed;
+  }, [onTerminalActivity, onTerminalRenamed]);
 
   useEffect(() => {
     onAgentRuntimeStateChange?.(agentState);

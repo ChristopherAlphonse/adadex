@@ -60,6 +60,7 @@ export const useFactoryHost = (host: FactoryHost) => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const isMountedRef = useRef(false);
+  const loadedHostRef = useRef<FactoryHost | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -78,7 +79,12 @@ export const useFactoryHost = (host: FactoryHost) => {
 
   useEffect(() => {
     isMountedRef.current = true;
-    void refresh();
+
+    // Load once per host; the subscription below handles subsequent host events.
+    if (loadedHostRef.current !== host) {
+      loadedHostRef.current = host;
+      void refresh();
+    }
 
     const unsubscribe = host.subscribe(() => {
       void refresh();

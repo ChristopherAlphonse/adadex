@@ -88,15 +88,14 @@ export const FactoryJobCard = ({ entry, pendingKey, onAction, onVerify }: Factor
         </button>
       </div>
       {check !== null && (
-        <p
-          role="status"
+        <output
           className={cn(
-            "mt-2 text-[12px]",
+            "mt-2 block text-[12px]",
             check.ok ? "text-muted-foreground" : "text-destructive",
           )}
         >
           {describeCheck(check)}
-        </p>
+        </output>
       )}
     </article>
   );

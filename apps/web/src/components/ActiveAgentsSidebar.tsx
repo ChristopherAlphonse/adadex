@@ -1,4 +1,8 @@
-import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+} from "react";
 import { useRef } from "react";
 
 import { clampSidebarWidth } from "../app/uiStateNormalizers";
@@ -18,7 +22,7 @@ export const ActiveAgentsSidebar = ({
 }: ActiveAgentsSidebarProps) => {
   const sidebarRef = useRef<HTMLElement | null>(null);
 
-  const handleResizeMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
+  const handleResizeMouseDown = (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
 
@@ -35,6 +39,18 @@ export const ActiveAgentsSidebar = ({
     window.addEventListener("mouseup", stopResize);
   };
 
+  const handleResizeKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+    const step = event.shiftKey ? 48 : 16;
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      onSidebarWidthChange(clampSidebarWidth(sidebarWidth - step));
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      onSidebarWidthChange(clampSidebarWidth(sidebarWidth + step));
+    }
+  };
+
   return (
     <div className="dashboard-deck-shell">
       <aside
@@ -48,10 +64,13 @@ export const ActiveAgentsSidebar = ({
         ) : (
           <div className="active-agents-body">{bodyContent}</div>
         )}
-        <div
+        <button
+          aria-label="Resize Active Agents sidebar"
           className="active-agents-border-resizer"
           data-testid="active-agents-border-resizer"
+          onKeyDown={handleResizeKeyDown}
           onMouseDown={handleResizeMouseDown}
+          type="button"
         />
       </aside>
     </div>

@@ -5,6 +5,12 @@ export const MASCOT_COLORS = [
   "#f472b6",
   "#fb923c",
   "#818cf8",
+  "#f43f5e",
+  "#22c55e",
+  "#06b6d4",
+  "#facc15",
+  "#c084fc",
+  "#2dd4bf",
 ] as const;
 
 export type MascotPaletteColor = (typeof MASCOT_COLORS)[number];

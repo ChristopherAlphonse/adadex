@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -55,15 +55,12 @@ const toastToneClasses: Record<ToastType, string> = {
 
 export const ToastContainer = () => {
   const [currentToasts, setCurrentToasts] = useState<Toast[]>([]);
-  const listenerRef = useRef<(toasts: Toast[]) => void>(setCurrentToasts);
-  listenerRef.current = setCurrentToasts;
 
   useEffect(() => {
-    const listener: (toasts: Toast[]) => void = (t) => listenerRef.current(t);
-    toastListeners.push(listener);
+    toastListeners.push(setCurrentToasts);
 
     return () => {
-      toastListeners = toastListeners.filter((l) => l !== listener);
+      toastListeners = toastListeners.filter((l) => l !== setCurrentToasts);
     };
   }, []);
 

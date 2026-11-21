@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { buildFactoryBoard, type FactoryAction } from "../../app/factory/board";
 import { useFactoryHost } from "../../app/hooks/useFactoryHost";
@@ -31,7 +31,14 @@ export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
     [snapshot.jobs, snapshot.workflows],
   );
 
-  const nowMs = Date.now();
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const updateNow = () => setNowMs(Date.now());
+    const timerId = window.setInterval(updateNow, 1000);
+
+    return () => window.clearInterval(timerId);
+  }, []);
 
   const handleAction = (key: string, action: FactoryAction) => {
     void runAction(key, action.id, action.input);
@@ -76,12 +83,9 @@ export const FactoryPrimaryView = ({ host }: { host: FactoryHost }) => {
       </header>
 
       {!host.isAvailable() && (
-        <p
-          role="status"
-          className="rounded border border-border bg-surface p-3 text-[12px] text-muted-foreground"
-        >
+        <output className="block rounded border border-border bg-surface p-3 text-[12px] text-muted-foreground">
           Factory host is not connected. Start the desktop app to run actions.
-        </p>
+        </output>
       )}
       {error !== null && (
         <p

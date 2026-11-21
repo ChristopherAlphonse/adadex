@@ -1,6 +1,6 @@
 import { isString } from "@adadex/core";
 import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@adadex/core";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { buildWorkspaceSetupStepUrl, buildWorkspaceSetupUrl } from "../../runtime/runtimeEndpoints";
 
@@ -29,6 +29,7 @@ export const useWorkspaceSetup = (): UseWorkspaceSetupResult => {
   const [workspaceSetup, setWorkspaceSetup] = useState<WorkspaceSetupSnapshot | null>(null);
   const [isWorkspaceSetupLoading, setIsWorkspaceSetupLoading] = useState(true);
   const [workspaceSetupError, setWorkspaceSetupError] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
 
   const refreshWorkspaceSetup = useCallback(async () => {
     try {
@@ -86,7 +87,10 @@ export const useWorkspaceSetup = (): UseWorkspaceSetupResult => {
   }, []);
 
   useEffect(() => {
-    void refreshWorkspaceSetup();
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      void refreshWorkspaceSetup();
+    }
   }, [refreshWorkspaceSetup]);
 
   return {

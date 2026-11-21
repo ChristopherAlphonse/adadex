@@ -30,14 +30,16 @@ export const ConfirmationDialog = ({
   onConfirm,
   children,
 }: ConfirmationDialogProps) => (
-  <section
+  <dialog
     aria-label={ariaLabel}
+    aria-modal="true"
     className="delete-confirm-dialog w-full border border-primary bg-surface"
     onKeyDown={(event) => {
       if (event.key !== "Escape" || isBusy) return;
       event.preventDefault();
       onCancel();
     }}
+    open
     tabIndex={-1}
   >
     <header className="delete-confirm-header flex items-center justify-between gap-3 border-b border-border bg-primary px-3 py-2">
@@ -87,5 +89,5 @@ export const ConfirmationDialog = ({
         {confirmLabel}
       </ActionButton>
     </div>
-  </section>
+  </dialog>
 );

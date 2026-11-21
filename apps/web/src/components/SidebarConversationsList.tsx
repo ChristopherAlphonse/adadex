@@ -61,8 +61,11 @@ export const SidebarConversationsList = ({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSearchRef = useRef(onSearch);
   const onClearSearchRef = useRef(onClearSearch);
-  onSearchRef.current = onSearch;
-  onClearSearchRef.current = onClearSearch;
+
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+    onClearSearchRef.current = onClearSearch;
+  }, [onSearch, onClearSearch]);
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a)),

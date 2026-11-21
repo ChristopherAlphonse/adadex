@@ -1,13 +1,8 @@
 import { useMemo } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
-import {
-  type AgentGlyphVariant,
-  type MascotAccessory,
-  type MascotAnimation,
-  type MascotExpression,
-  MascotGlyph,
-} from "../MascotSprite";
+import { CuteMascot, type CuteMascotState } from "../deck/CuteMascot";
+import { mascotStateForExpression } from "../deck/mascotVisuals";
 
 const LINE_MAX = 22;
 
@@ -37,105 +32,20 @@ const splitLabel = (label: string): [string] | [string, string] => {
   ];
 };
 
-const ANIMATIONS: MascotAnimation[] = [
-  "sway",
-  "walk",
-  "jog",
-  "float",
-  "swim-up",
-  "breathe",
-  "pulse",
-  "orbit",
-  "typing",
-  "thinking",
-  "deploying",
-];
+const mascotStateForNode = (node: GraphNode): CuteMascotState => {
+  const storedExpression = node.mascot?.expression;
 
-const EXPRESSIONS: MascotExpression[] = [
-  "normal",
-  "happy",
-  "angry",
-  "surprised",
-  "neutral",
-  "focused",
-  "happy",
-  "curious",
-  "busy",
-  "offline",
-];
+  if (storedExpression) return mascotStateForExpression(storedExpression);
 
-const ACCESSORIES: MascotAccessory[] = [
-  "none",
-  "none",
-  "long",
-  "mohawk",
-  "side-sweep",
-  "curly",
-  "afro",
-  "glasses",
-  "badge",
-  "visor",
-  "terminal",
-  "node-ring",
-  "shield",
-];
-
-function hashString(str: string): number {
-  let h = 0;
-
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  if (
+    node.type === "active-session" ||
+    (node.agentRuntimeState && node.agentRuntimeState !== "idle")
+  ) {
+    return "working";
   }
 
-  return Math.abs(h);
-}
-
-function seededRandom(seed: number): () => number {
-  let s = seed;
-
-  return () => {
-    s = (s * 16807 + 0) % 2147483647;
-
-    return (s - 1) / 2147483646;
-  };
-}
-
-type LocalMascotVisuals = {
-  animation: MascotAnimation;
-  expression: MascotExpression;
-  accessory: MascotAccessory;
-  variant?: AgentGlyphVariant | undefined;
-  identitySeed?: string | undefined;
-  hairColor?: string | undefined;
+  return node.type === "deck-lead" ? "idle" : "sleeping";
 };
-
-function deriveNodeMascotVisuals(node: GraphNode): LocalMascotVisuals {
-  const rng = seededRandom(hashString(node.coordinationId));
-  const stored = node.mascot;
-
-  return {
-    animation:
-      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (stored?.animation as MascotAnimation | null) ??
-      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (ANIMATIONS[
-        Math.floor(rng() * ANIMATIONS.length)
-      ] as MascotAnimation),
-    expression:
-      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (stored?.expression as MascotExpression | null) ??
-      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (EXPRESSIONS[
-        Math.floor(rng() * EXPRESSIONS.length)
-      ] as MascotExpression),
-    accessory:
-      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (stored?.accessory as MascotAccessory | null) ??
-      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (ACCESSORIES[
-        Math.floor(rng() * ACCESSORIES.length)
-      ] as MascotAccessory),
-    variant:
-      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (stored?.variant as AgentGlyphVariant | null) ??
-      undefined,
-    identitySeed: stored?.identitySeed ?? node.coordinationId,
-    hairColor: stored?.hairColor ?? undefined,
-  };
-}
 
 type MascotNodeProps = {
   node: GraphNode;
@@ -143,8 +53,6 @@ type MascotNodeProps = {
   isSelected: boolean;
   selectedNodeId: string | null;
   selectedNodeColor: string | null;
-  /** SVG parent `scale(...)` from canvas zoom — keeps raster mascot sharp when > 1. */
-  graphScale: number;
   onPointerDown: (e: React.PointerEvent, nodeId: string) => void;
   onClick: (nodeId: string) => void;
 };
@@ -185,16 +93,11 @@ const buildEdgePath = (
   return `M ${cx} ${cy} Q ${cpx} ${cpy} ${etx} ${ety}`;
 };
 
-const GLYPH_SCALE = 4;
+const MASCOT_SIZE = 112;
 
-const GLYPH_W = 112;
+const DECK_LEAD_MASCOT_SIZE = 168;
 
-const GLYPH_H = 120;
-
-/** Ground shadow ellipse in `MascotSprite` drawMark: cy = unit * 3.2, ry = unit * 1.35 */
-const MASCOT_SHADOW_BOTTOM_IN_UNITS = 3.2 + 1.35;
-
-const LABEL_BELOW_SHADOW_PX = 8;
+const LABEL_BELOW_MASCOT_PX = 6;
 
 const LABEL_OFFSET_X_PX = 7;
 
@@ -262,7 +165,6 @@ export const MascotNode = ({
   isSelected,
   selectedNodeId,
   selectedNodeColor,
-  graphScale,
   onPointerDown,
   onClick,
 }: MascotNodeProps) => {
@@ -270,22 +172,9 @@ export const MascotNode = ({
   const isDeckLead = node.type === "deck-lead";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);
 
-  // SAFETY: the literal holds only valid LocalMascotVisuals members.
-  const visuals = useMemo(
-    () =>
-      isDeckLead
-        ? ({
-            animation: "sway",
-            expression: "normal",
-            accessory: "none",
-          } as LocalMascotVisuals)
-        : deriveNodeMascotVisuals(node),
-    [node, isDeckLead],
-  );
-
-  const glyphScale = isDeckLead ? 6 : GLYPH_SCALE;
-  const glyphW = Math.round(GLYPH_W * (glyphScale / GLYPH_SCALE));
-  const glyphH = Math.round(GLYPH_H * (glyphScale / GLYPH_SCALE));
+  const mascotSize = isDeckLead ? DECK_LEAD_MASCOT_SIZE : MASCOT_SIZE;
+  const glyphW = mascotSize;
+  const glyphH = mascotSize;
   const color = node.color;
 
   return (
@@ -366,26 +255,19 @@ export const MascotNode = ({
             pointerEvents: "none",
           }}
         >
-          <MascotGlyph
-            {...(isDeckLead ? {} : { color })}
-            animation={visuals.animation}
-            expression={visuals.expression}
-            accessory={visuals.accessory}
-            variant={visuals.variant}
-            identitySeed={visuals.identitySeed}
-            {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
-            scale={glyphScale}
-            graphScale={graphScale}
+          <CuteMascot
+            color={color}
+            size={mascotSize}
+            state={mascotStateForNode(node)}
+            title={`${node.label} mascot`}
           />
         </div>
       </foreignObject>
 
-      {/* Label — just below sprite shadow; glyph box is taller than the square canvas */}
+      {/* Label sits below the mascot's built-in shadow */}
       <text
         x={LABEL_OFFSET_X_PX}
-        y={Math.round(
-          glyphScale * MASCOT_SHADOW_BOTTOM_IN_UNITS + LABEL_BELOW_SHADOW_PX + LABEL_OFFSET_Y_PX,
-        )}
+        y={Math.round(glyphH / 2 + LABEL_BELOW_MASCOT_PX + LABEL_OFFSET_Y_PX)}
         textAnchor="middle"
         className="canvas-node-label canvas-node-label--orchestration canvas-node-label--always"
         fill={

@@ -148,6 +148,59 @@ const buildCanvasEdgePath = (
   return `M ${sx} ${sy} Q ${cpx} ${cpy} ${tx} ${ty}`;
 };
 
+const reconcileOpenTerminalNodes = (
+  current: Map<string, GraphNode>,
+  columns: TerminalView,
+): Map<string, GraphNode> => {
+  let didChange = false;
+  const next = new Map<string, GraphNode>();
+
+  for (const [nodeId, node] of current) {
+    if (!node.sessionId) {
+      next.set(nodeId, node);
+      continue;
+    }
+
+    const terminal = columns.find((entry) => entry.terminalId === node.sessionId);
+
+    if (!terminal) {
+      didChange = true;
+      continue;
+    }
+
+    const nextLabel = terminal.coordinationName || terminal.label || terminal.terminalId;
+
+    const nextNode: GraphNode = {
+      ...node,
+      coordinationId: terminal.coordinationId,
+      label: nextLabel,
+      agentState: terminal.state,
+      hasUserPrompt: terminal.hasUserPrompt ?? false,
+    };
+
+    if (terminal.workspaceMode) nextNode.workspaceMode = terminal.workspaceMode;
+
+    if (terminal.parentTerminalId) nextNode.parentTerminalId = terminal.parentTerminalId;
+
+    if (
+      node.label !== nextNode.label ||
+      node.coordinationId !== nextNode.coordinationId ||
+      node.agentState !== nextNode.agentState ||
+      node.hasUserPrompt !== nextNode.hasUserPrompt ||
+      node.workspaceMode !== nextNode.workspaceMode ||
+      node.parentTerminalId !== nextNode.parentTerminalId
+    ) {
+      didChange = true;
+      next.set(nodeId, nextNode);
+      continue;
+    }
+
+    next.set(nodeId, node);
+  }
+
+  return didChange ? next : current;
+};
+
 const isEdgeActivityVisible = (target: GraphNode): boolean =>
   target.type === "active-session" &&
   target.hasUserPrompt !== false &&
@@ -241,27 +294,32 @@ export const CanvasPrimaryView = ({
   onRefreshColumns,
   gitStatusByOrchestrationId = {},
 }: CanvasPrimaryViewProps) => {
-  const runtimeStateStoreRef = useRef<TerminalRuntimeStateStore | null>(null);
+  // Lazy state keeps one store for the component lifetime without reading a ref during render.
+  const [initialRuntimeStateStore] = useState(
+    () => providedRuntimeStateStore ?? createTerminalRuntimeStateStore(),
+  );
 
-  if (runtimeStateStoreRef.current === null) {
-    runtimeStateStoreRef.current = providedRuntimeStateStore ?? createTerminalRuntimeStateStore();
-  }
-
-  const runtimeStateStore = providedRuntimeStateStore ?? runtimeStateStoreRef.current;
+  const runtimeStateStore = providedRuntimeStateStore ?? initialRuntimeStateStore;
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [openTerminals, setOpenTerminals] = useState<Map<string, GraphNode>>(new Map());
   const [openOrchestrations, setOpenOrchestrations] = useState<Map<string, GraphNode>>(new Map());
+  const [hasTerminalHydrationSettled, setHasTerminalHydrationSettled] = useState(false);
+  const [hasRestoredPersistedTerminals, setHasRestoredPersistedTerminals] = useState(false);
+  const [hasHydratedOrchestrations, setHasHydratedOrchestrations] = useState(false);
+  const [reconciledColumns, setReconciledColumns] = useState(columns);
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [terminalsPanelWidth, setTerminalsPanelWidth] = useState<number | null>(null);
   const [pendingOpenAgentId, setPendingOpenAgentId] = useState<string | null>(null);
   const [hideIdleTerminals, setHideIdleTerminals] = useState(false);
   const [isLaunchingWorkspaceSetupPlanner, setIsLaunchingWorkspaceSetupPlanner] = useState(false);
+
+  const [lastHandledCreatedTerminalId, setLastHandledCreatedTerminalId] = useState<string | null>(
+    null,
+  );
+
   const hasHydratedTerminals = useRef(false);
-  const hasRestoredFromPersistedIds = useRef(false);
-  const hasHydratedOrchestrations = useRef(false);
-  const lastHandledCreatedTerminalIdRef = useRef<string | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const nodeClickedRef = useRef(false);
   const dividerDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -274,7 +332,7 @@ export const CanvasPrimaryView = ({
   const [workspaceSetupOverlay, setWorkspaceSetupOverlay] = useState<
     "expanded" | "minimized" | "hidden"
   >(() => {
-    if (typeof sessionStorage === "undefined") {
+    if (!shouldShowWorkspaceSetupCard || typeof sessionStorage === "undefined") {
       return "expanded";
     }
 
@@ -287,6 +345,20 @@ export const CanvasPrimaryView = ({
     return "expanded";
   });
 
+  const [wasSetupCardVisible, setWasSetupCardVisible] = useState(shouldShowWorkspaceSetupCard);
+
+  if (wasSetupCardVisible !== shouldShowWorkspaceSetupCard) {
+    setWasSetupCardVisible(shouldShowWorkspaceSetupCard);
+
+    if (!shouldShowWorkspaceSetupCard) {
+      setWorkspaceSetupOverlay("expanded");
+    }
+  }
+
+  const visibleWorkspaceSetupOverlay = shouldShowWorkspaceSetupCard
+    ? workspaceSetupOverlay
+    : "expanded";
+
   const incompleteWorkspaceSetupSteps = useMemo(
     () => (workspaceSetup?.steps ?? []).filter((step) => !step.complete).length,
     [workspaceSetup],
@@ -295,13 +367,12 @@ export const CanvasPrimaryView = ({
   useEffect(() => {
     if (!shouldShowWorkspaceSetupCard) {
       sessionStorage.removeItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY);
-      setWorkspaceSetupOverlay("expanded");
 
       return;
     }
 
-    sessionStorage.setItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY, workspaceSetupOverlay);
-  }, [shouldShowWorkspaceSetupCard, workspaceSetupOverlay]);
+    sessionStorage.setItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY, visibleWorkspaceSetupOverlay);
+  }, [shouldShowWorkspaceSetupCard, visibleWorkspaceSetupOverlay]);
 
   const agentRuntimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
 
@@ -395,52 +466,31 @@ export const CanvasPrimaryView = ({
 
   // Hydrate open terminals after a settling delay so all async data (columns,
   // graph nodes, simulation) has time to land before we attempt the lookup.
-  const [isHydratingTerminals, setIsHydratingTerminals] = useState(false);
+  const hasPersistedTerminalIds = Boolean(
+    canvasOpenTerminalIds && canvasOpenTerminalIds.length > 0,
+  );
 
-  useEffect(() => {
-    if (hasHydratedTerminals.current) return;
+  const isHydratingTerminals = Boolean(
+    isUiStateHydrated && hasPersistedTerminalIds && !hasTerminalHydrationSettled,
+  );
 
-    if (!isUiStateHydrated) return;
-
-    if (!canvasOpenTerminalIds || canvasOpenTerminalIds.length === 0) {
-      hasHydratedTerminals.current = true;
-
-      return;
-    }
-
-    setIsHydratingTerminals(true);
-
-    const timer = window.setTimeout(() => {
-      setIsHydratingTerminals(false);
-      hasHydratedTerminals.current = true;
-    }, 800);
-
-    return () => window.clearTimeout(timer);
-  }, [isUiStateHydrated, canvasOpenTerminalIds]);
-
-  // Once the settling timer fires, perform the actual hydration from the
-  // simulation graph which should now be fully populated.
   const openTerminalCount = openTerminals.size;
-  useEffect(() => {
-    if (isHydratingTerminals) return;
 
-    if (!hasHydratedTerminals.current) return;
-
-    if (hasRestoredFromPersistedIds.current) return;
-
-    if (openTerminalCount > 0) return;
-
-    if (!canvasOpenTerminalIds || canvasOpenTerminalIds.length === 0) {
-      hasRestoredFromPersistedIds.current = true;
-
-      return;
-    }
-
-    hasRestoredFromPersistedIds.current = true;
+  // Once the settling timer fires, restore from the simulation graph which
+  // should now be fully populated. Adjusting state during render keeps this
+  // one-shot reconciliation out of an effect.
+  if (
+    !hasRestoredPersistedTerminals &&
+    isUiStateHydrated &&
+    hasPersistedTerminalIds &&
+    hasTerminalHydrationSettled &&
+    openTerminalCount === 0
+  ) {
+    setHasRestoredPersistedTerminals(true);
 
     const restoredMap = new Map<string, GraphNode>();
 
-    for (const nodeId of canvasOpenTerminalIds) {
+    for (const nodeId of canvasOpenTerminalIds ?? []) {
       const node = nodesById.get(nodeId);
 
       if (node && node.type === "active-session") {
@@ -455,13 +505,27 @@ export const CanvasPrimaryView = ({
     if (persistedTerminalsPanelWidth != null && persistedTerminalsPanelWidth > 0) {
       setTerminalsPanelWidth(persistedTerminalsPanelWidth);
     }
-  }, [
-    isHydratingTerminals,
-    openTerminalCount,
-    canvasOpenTerminalIds,
-    persistedTerminalsPanelWidth,
-    nodesById,
-  ]);
+  }
+
+  useEffect(() => {
+    if (hasHydratedTerminals.current) return;
+
+    if (!isUiStateHydrated) return;
+
+    if (!canvasOpenTerminalIds || canvasOpenTerminalIds.length === 0) {
+      hasHydratedTerminals.current = true;
+
+      return;
+    }
+
+    // Only the timer completion updates state; the "hydrating" value is derived.
+    const timer = window.setTimeout(() => {
+      hasHydratedTerminals.current = true;
+      setHasTerminalHydrationSettled(true);
+    }, 800);
+
+    return () => window.clearTimeout(timer);
+  }, [isUiStateHydrated, canvasOpenTerminalIds]);
 
   // Persist open terminal IDs when they change
   useEffect(() => {
@@ -469,68 +533,19 @@ export const CanvasPrimaryView = ({
     onCanvasOpenTerminalIdsChange?.(Array.from(openTerminals.keys()));
   }, [openTerminals, onCanvasOpenTerminalIdsChange]);
 
-  useEffect(() => {
-    setOpenTerminals((current) => {
-      let didChange = false;
-      const next = new Map<string, GraphNode>();
-
-      for (const [nodeId, node] of current) {
-        if (!node.sessionId) {
-          next.set(nodeId, node);
-          continue;
-        }
-
-        const terminal = columns.find((entry) => entry.terminalId === node.sessionId);
-
-        if (!terminal) {
-          didChange = true;
-          continue;
-        }
-
-        const nextLabel = terminal.coordinationName || terminal.label || terminal.terminalId;
-
-        const nextNode: GraphNode = {
-          ...node,
-          coordinationId: terminal.coordinationId,
-          label: nextLabel,
-          agentState: terminal.state,
-          hasUserPrompt: terminal.hasUserPrompt ?? false,
-        };
-
-        if (terminal.workspaceMode) nextNode.workspaceMode = terminal.workspaceMode;
-
-        if (terminal.parentTerminalId) nextNode.parentTerminalId = terminal.parentTerminalId;
-
-        if (
-          node.label !== nextNode.label ||
-          node.coordinationId !== nextNode.coordinationId ||
-          node.agentState !== nextNode.agentState ||
-          node.hasUserPrompt !== nextNode.hasUserPrompt ||
-          node.workspaceMode !== nextNode.workspaceMode ||
-          node.parentTerminalId !== nextNode.parentTerminalId
-        ) {
-          didChange = true;
-          next.set(nodeId, nextNode);
-          continue;
-        }
-
-        next.set(nodeId, node);
-      }
-
-      return didChange ? next : current;
-    });
-  }, [columns]);
+  // Keep open terminal nodes in step with incoming column data.
+  if (reconciledColumns !== columns) {
+    setReconciledColumns(columns);
+    setOpenTerminals((current) => reconcileOpenTerminalNodes(current, columns));
+  }
 
   // Hydrate open orchestrations from persisted IDs.
   // Gate on orchestration-type nodes being present (deck API fetch is async).
   const hasOrchestrationNodes = simulatedNodes.some((n) => n.type === "orchestration");
   const openOrchestrationCount = openOrchestrations.size;
-  useEffect(() => {
-    if (hasHydratedOrchestrations.current) return;
 
-    if (!isUiStateHydrated) return;
-
-    if (!hasOrchestrationNodes) return;
+  if (!hasHydratedOrchestrations && isUiStateHydrated && hasOrchestrationNodes) {
+    setHasHydratedOrchestrations(true);
 
     if (canvasOpenCoordinationIds && canvasOpenCoordinationIds.length > 0) {
       const restoredMap = new Map<string, GraphNode>();
@@ -547,15 +562,13 @@ export const CanvasPrimaryView = ({
         setOpenOrchestrations(restoredMap);
       }
     }
-
-    hasHydratedOrchestrations.current = true;
-  }, [isUiStateHydrated, canvasOpenCoordinationIds, hasOrchestrationNodes, nodesById]);
+  }
 
   // Persist open orchestration IDs when they change
   useEffect(() => {
-    if (!hasHydratedOrchestrations.current) return;
+    if (!hasHydratedOrchestrations) return;
     onCanvasOpenOrchestrationIdsChange?.(Array.from(openOrchestrations.keys()));
-  }, [openOrchestrations, onCanvasOpenOrchestrationIdsChange]);
+  }, [openOrchestrations, hasHydratedOrchestrations, onCanvasOpenOrchestrationIdsChange]);
 
   // Persist terminals panel width only when user has explicitly dragged the divider
   useEffect(() => {
@@ -801,13 +814,14 @@ export const CanvasPrimaryView = ({
     }
   }, []);
 
-  // Stable ref for nodesById so native listener always sees latest data
+  // Stable refs so the native listener always sees the latest data and callbacks
   const nodesByIdRef = useRef(nodesById);
-  nodesByIdRef.current = nodesById;
-
-  // Stable refs so the native listener always sees the latest callbacks
   const onNavigateRef = useRef(onNavigateToConversation);
-  onNavigateRef.current = onNavigateToConversation;
+
+  useEffect(() => {
+    nodesByIdRef.current = nodesById;
+    onNavigateRef.current = onNavigateToConversation;
+  }, [nodesById, onNavigateToConversation]);
 
   // Native contextmenu listener — must be native to reliably preventDefault
   useEffect(() => {
@@ -951,59 +965,48 @@ export const CanvasPrimaryView = ({
   );
 
   // Auto-open terminal for newly created agent once it appears in the graph
-  useEffect(() => {
-    if (!pendingOpenAgentId) return;
+  if (pendingOpenAgentId) {
     const nodeId = buildActiveSessionNodeId(pendingOpenAgentId);
     const node = resolveActiveSessionNode(pendingOpenAgentId);
 
-    if (!node) return;
-    setPendingOpenAgentId(null);
-    setSelectedNodeId(nodeId);
-    setOpenTerminals((prev) => {
-      const next = new Map(prev);
-      next.set(nodeId, { ...node });
+    if (node) {
+      setPendingOpenAgentId(null);
+      setSelectedNodeId(nodeId);
+      setOpenTerminals((prev) => {
+        const next = new Map(prev);
+        next.set(nodeId, { ...node });
 
-      return next;
-    });
-  }, [pendingOpenAgentId, resolveActiveSessionNode]);
-
-  useEffect(() => {
-    if (!isUiStateHydrated || !recentlyCreatedTerminal) {
-      return;
+        return next;
+      });
     }
+  }
 
-    if (lastHandledCreatedTerminalIdRef.current === recentlyCreatedTerminal.terminalId) {
-      return;
+  if (isUiStateHydrated && recentlyCreatedTerminal) {
+    const terminalId = recentlyCreatedTerminal.terminalId;
+
+    if (lastHandledCreatedTerminalId !== terminalId) {
+      if (
+        !recentlyCreatedTerminal.parentTerminalId ||
+        !openTerminals.has(buildActiveSessionNodeId(recentlyCreatedTerminal.parentTerminalId))
+      ) {
+        setLastHandledCreatedTerminalId(terminalId);
+      } else {
+        const nodeId = buildActiveSessionNodeId(terminalId);
+        const node = resolveActiveSessionNode(terminalId);
+
+        if (node) {
+          setLastHandledCreatedTerminalId(terminalId);
+          setSelectedNodeId(nodeId);
+          setOpenTerminals((prev) => {
+            const next = new Map(prev);
+            next.set(nodeId, { ...node });
+
+            return next;
+          });
+        }
+      }
     }
-
-    if (!recentlyCreatedTerminal.parentTerminalId) {
-      lastHandledCreatedTerminalIdRef.current = recentlyCreatedTerminal.terminalId;
-
-      return;
-    }
-
-    if (!openTerminals.has(buildActiveSessionNodeId(recentlyCreatedTerminal.parentTerminalId))) {
-      lastHandledCreatedTerminalIdRef.current = recentlyCreatedTerminal.terminalId;
-
-      return;
-    }
-
-    const nodeId = buildActiveSessionNodeId(recentlyCreatedTerminal.terminalId);
-    const node = resolveActiveSessionNode(recentlyCreatedTerminal.terminalId);
-
-    if (!node) {
-      return;
-    }
-
-    lastHandledCreatedTerminalIdRef.current = recentlyCreatedTerminal.terminalId;
-    setSelectedNodeId(nodeId);
-    setOpenTerminals((prev) => {
-      const next = new Map(prev);
-      next.set(nodeId, { ...node });
-
-      return next;
-    });
-  }, [isUiStateHydrated, openTerminals, recentlyCreatedTerminal, resolveActiveSessionNode]);
+  }
 
   useEffect(() => {
     if (!selectedNodeId) {
@@ -1214,7 +1217,7 @@ export const CanvasPrimaryView = ({
             });
           }
         }}
-        showSetup={shouldShowWorkspaceSetupCard && workspaceSetupOverlay === "hidden"}
+        showSetup={shouldShowWorkspaceSetupCard && visibleWorkspaceSetupOverlay === "hidden"}
         onShowSetup={() => setWorkspaceSetupOverlay("expanded")}
       />
 
@@ -1224,6 +1227,8 @@ export const CanvasPrimaryView = ({
         >
           <svg
             aria-label="Canvas graph"
+            role="grid"
+            tabIndex={0}
             ref={svgRef}
             className={`canvas-svg${isPanning || dragNodeId ? " canvas-svg--panning" : ""}`}
             onWheel={handleWheel}
@@ -1314,7 +1319,6 @@ export const CanvasPrimaryView = ({
                     isSelected={selectedNodeId === node.id}
                     selectedNodeId={selectedNodeId}
                     selectedNodeColor={selectedColor}
-                    graphScale={transform.scale}
                     onPointerDown={handleNodePointerDown}
                     onClick={handleNodeClick}
                   />
@@ -1385,7 +1389,7 @@ export const CanvasPrimaryView = ({
             </div>
           )}
 
-          {shouldShowWorkspaceSetupCard && workspaceSetupOverlay === "expanded" ? (
+          {shouldShowWorkspaceSetupCard && visibleWorkspaceSetupOverlay === "expanded" ? (
             <div className="canvas-setup-overlay">
               <WorkspaceSetupCard
                 workspaceSetup={workspaceSetup}
@@ -1404,7 +1408,7 @@ export const CanvasPrimaryView = ({
               />
             </div>
           ) : null}
-          {shouldShowWorkspaceSetupCard && workspaceSetupOverlay === "minimized" ? (
+          {shouldShowWorkspaceSetupCard && visibleWorkspaceSetupOverlay === "minimized" ? (
             <div className="canvas-setup-overlay canvas-setup-overlay--minimized">
               <button
                 type="button"
@@ -1440,11 +1444,10 @@ export const CanvasPrimaryView = ({
 
         {hasPanels && (
           <>
-            <div
-              className="canvas-panel-divider"
-              role="separator"
+            <hr
+              className="canvas-panel-divider h-auto border-t-0"
+              aria-label="Resize terminal panels"
               aria-orientation="vertical"
-              tabIndex={0}
               onPointerDown={handleDividerPointerDown}
               onPointerMove={handleDividerPointerMove}
               onPointerUp={handleDividerPointerUp}
@@ -1520,7 +1523,8 @@ export const CanvasPrimaryView = ({
       {/* Context menu */}
       {contextMenu && (
         <>
-          <div
+          <button
+            type="button"
             aria-label="Close canvas context menu"
             className="canvas-context-menu-backdrop"
             onClick={() => setContextMenu(null)}
@@ -1549,8 +1553,6 @@ export const CanvasPrimaryView = ({
               e.preventDefault();
               setContextMenu(null);
             }}
-            role="button"
-            tabIndex={0}
           />
           <div
             className="canvas-context-menu"

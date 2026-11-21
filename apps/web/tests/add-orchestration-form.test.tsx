@@ -46,6 +46,21 @@ describe("AddOrchestrationForm", () => {
     );
   });
 
+  it("previews the new mascot instead of the legacy canvas glyph", () => {
+    const { container } = render(
+      <AddOrchestrationForm
+        onSubmit={vi.fn()}
+        onCancel={() => {}}
+        isSubmitting={false}
+        error={null}
+        availableSkills={[]}
+      />,
+    );
+
+    expect(container.querySelector(".cute-mascot")).not.toBeNull();
+    expect(container.querySelector("canvas")).toBeNull();
+  });
+
   it("submits the selected accent color", () => {
     const onSubmit = vi.fn();
 
@@ -61,7 +76,10 @@ describe("AddOrchestrationForm", () => {
 
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "docs" } });
     const swatches = screen.getAllByLabelText(/Select color/i);
-    fireEvent.click(swatches[0]!);
+    const [swatch] = swatches;
+
+    if (!swatch) throw new Error("expected at least one color swatch");
+    fireEvent.click(swatch);
     fireEvent.click(screen.getByRole("button", { name: /create coordination/i }));
 
     expect(onSubmit).toHaveBeenCalledWith(

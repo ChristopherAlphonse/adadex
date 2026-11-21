@@ -54,7 +54,7 @@ describe("job store", () => {
     expect((await store.load("j1")).stage).toBe("shape");
     expect((await store.list()).map((j) => j.id)).toEqual(["j1"]);
     await expect(store.create(factoryBuildPreset, "j1", "x", 3)).rejects.toThrow("j1 exists");
-    await expect(store.load("../evil")).rejects.toThrow();
+    await expect(store.load("../evil")).rejects.toThrow("no job ../evil");
   });
 
   it("writes an audit line for every create", async () => {

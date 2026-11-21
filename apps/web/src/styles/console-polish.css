@@ -182,12 +182,11 @@
   background: var(--surface-2);
 }
 
-.design-console .deck-sidebar-content .deck-empty-card-icon canvas {
+.design-console .deck-sidebar-content .deck-empty-card-icon .cute-mascot {
   flex: 0 0 auto;
-  width: 84px !important;
+  width: 36px !important;
   height: auto !important;
   max-width: none;
-  image-rendering: auto;
 }
 
 .design-console .deck-sidebar-content .deck-empty-card-icon--terminal {

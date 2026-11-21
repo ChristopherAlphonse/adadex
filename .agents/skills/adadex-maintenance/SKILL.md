@@ -313,7 +313,7 @@ When a component (e.g., `RuntimeStatusStrip`) is removed from the render tree:
 
 ### requestAnimationFrame in tests
 
-Components using animation loops (`AgentGlyph`) call `requestAnimationFrame` recursively. A synchronous mock causes infinite recursion:
+Components using animation loops call `requestAnimationFrame` recursively. A synchronous mock causes infinite recursion:
 
 ```tsx
 // BAD — infinite loop

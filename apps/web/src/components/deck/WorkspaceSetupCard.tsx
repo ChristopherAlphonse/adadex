@@ -1,7 +1,7 @@
 import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@adadex/core";
 import { Minimize2, X } from "lucide-react";
 
-import { MascotSprite } from "../MascotSprite";
+import { CuteMascot } from "./CuteMascot";
 
 type WorkspaceSetupCardProps = {
   compact?: boolean;
@@ -66,7 +66,7 @@ export const WorkspaceSetupCard = ({
     ) : null}
     <header className="workspace-setup-card-header">
       <div className="workspace-setup-card-glyph">
-        <MascotSprite color="#a3e635" speedMs={16} size={compact ? 96 : 112} />
+        <CuteMascot color="#60a5fa" size={compact ? 80 : 96} state="working" />
       </div>
       <div className="workspace-setup-card-copy">
         <h2 className="workspace-setup-card-title">Workspace Setup</h2>

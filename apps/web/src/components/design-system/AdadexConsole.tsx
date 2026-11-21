@@ -11,7 +11,7 @@ export const AdadexConsole = (): React.ReactElement => {
   const [selectedId, setSelectedId] = useState("deck-lead");
   const [hideIdle, setHideIdle] = useState(false);
 
-  const lead = DEMO_AGENTS[0]!;
+  const lead = DEMO_AGENTS[0];
 
   const visible = useMemo(
     () => (hideIdle ? DEMO_AGENTS.filter((a) => a.status !== "idle") : DEMO_AGENTS),
@@ -28,6 +28,10 @@ export const AdadexConsole = (): React.ReactElement => {
       document.title = previousTitle;
     };
   }, []);
+
+  if (!lead || !agent) {
+    return <></>;
+  }
 
   return (
     <div className="design-console flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">

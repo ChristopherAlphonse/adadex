@@ -127,7 +127,7 @@
   min-width: 0;
 }
 
-.deck-empty-card-icon canvas {
+.deck-empty-card-icon .cute-mascot {
   pointer-events: none;
 }
 
@@ -223,8 +223,7 @@
   font-size: 1rem;
 }
 
-.deck-sidebar-content .deck-empty-card-icon canvas {
-  image-rendering: pixelated;
+.deck-sidebar-content .deck-empty-card-icon .cute-mascot {
   width: 20px;
   height: auto;
 }
@@ -452,8 +451,8 @@
   padding: 0.25rem 0 0.75rem;
 }
 
-.deck-add-form-preview canvas {
-  image-rendering: auto;
+.deck-add-form-preview .cute-mascot {
+  max-width: 100%;
 }
 
 .deck-add-form-label {

@@ -2,9 +2,14 @@ import type { DeckAvailableSkill } from "@adadex/core";
 import { useEffect, useRef, useState } from "react";
 
 import { formatColorForDisplay } from "../../app/mascotPalette";
-import type { MascotAccessory, MascotAnimation, MascotExpression } from "../MascotSprite";
-import { MascotSprite } from "../MascotSprite";
-import { MASCOT_COLORS } from "./mascotVisuals";
+import { CuteMascot } from "./CuteMascot";
+import {
+  MASCOT_COLORS,
+  mascotStateForExpression,
+  type MascotAccessory,
+  type MascotAnimation,
+  type MascotExpression,
+} from "./mascotVisuals";
 
 export type MascotAppearancePayload = {
   animation: string;
@@ -160,12 +165,10 @@ export const AddOrchestrationForm = ({
 
           <div className="deck-add-form-right">
             <div className="deck-add-form-preview">
-              <MascotSprite
+              <CuteMascot
                 color={selectedColor}
-                animation="idle"
-                expression={selectedExpression}
-                accessory={selectedAccessory}
-                size={192}
+                size={160}
+                state={mascotStateForExpression(selectedExpression)}
               />
             </div>
 

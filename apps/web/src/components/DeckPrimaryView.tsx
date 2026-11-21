@@ -28,6 +28,7 @@ import { AgentSheet } from "./deck/AgentSheet";
 import { DeckBottomActions } from "./deck/DeckBottomActions";
 import { deriveMascotVisuals, type MascotVisuals } from "./deck/mascotVisuals";
 import { OrchestrationPod } from "./deck/OrchestrationPod";
+import { VaultFileEditor } from "./deck/VaultFileEditor";
 import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
 import { Terminal } from "./Terminal";
 import { MarkdownContent } from "./ui/MarkdownContent";
@@ -72,9 +73,14 @@ type DeckPrimaryViewProps = {
 
 type LoadedVaultFile = { focus: FocusState; content: string | null };
 
+const EDITABLE_VAULT_FILE_NAMES: ReadonlySet<string> = new Set(["todo.md"]);
+
+const canEditVaultFile = (fileName: string) => EDITABLE_VAULT_FILE_NAMES.has(fileName);
+
 const requestDeckOrchestrations = async (): Promise<DeckCoordinationSummary[] | null> => {
   try {
     const response = await fetch(buildDeckOrchestrationsUrl(), {
+      cache: "no-store",
       headers: { Accept: "application/json" },
     });
 
@@ -101,6 +107,10 @@ export const DeckPrimaryView = ({
   const [focus, setFocus] = useState<FocusState | null>(null);
   const [sheetCoordinationId, setSheetCoordinationId] = useState<string | null>(null);
   const [loadedVault, setLoadedVault] = useState<LoadedVaultFile | null>(null);
+  const [editingVaultFocus, setEditingVaultFocus] = useState<FocusState | null>(null);
+  const [vaultDraft, setVaultDraft] = useState("");
+  const [vaultSaveError, setVaultSaveError] = useState<string | null>(null);
+  const [isSavingVault, setIsSavingVault] = useState(false);
   const [emptyViewMode, setEmptyViewMode] = useState<EmptyViewMode>("idle");
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -234,6 +244,8 @@ export const DeckPrimaryView = ({
   const isVaultFocused = focus?.type === "vault";
   const vaultContent = isVaultFocused && loadedVault?.focus === focus ? loadedVault.content : null;
   const loadingVault = isVaultFocused && loadedVault?.focus !== focus;
+  const isEditingVault = isVaultFocused && editingVaultFocus === focus;
+  const isVaultEditable = focus?.type === "vault" && canEditVaultFile(focus.fileName);
 
   // Agent menu click-outside/escape
   const handleDismissAgentMenu = useCallback(() => setAgentMenuOpen(false), []);
@@ -243,8 +255,59 @@ export const DeckPrimaryView = ({
     setFocus({ type: "vault", coordinationId, fileName });
   }, []);
 
+  const handleStartVaultEdit = useCallback(() => {
+    if (focus?.type !== "vault" || vaultContent === null) return;
+
+    setVaultDraft(vaultContent);
+    setVaultSaveError(null);
+    setEditingVaultFocus(focus);
+  }, [focus, vaultContent]);
+
+  const handleCancelVaultEdit = useCallback(() => {
+    setEditingVaultFocus(null);
+    setVaultSaveError(null);
+  }, []);
+
+  const handleSaveVault = useCallback(async () => {
+    if (focus?.type !== "vault" || vaultContent === null) return;
+
+    setIsSavingVault(true);
+    setVaultSaveError(null);
+
+    try {
+      const response = await fetch(buildDeckVaultFileUrl(focus.coordinationId, focus.fileName), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/markdown",
+        },
+        body: JSON.stringify({ content: vaultDraft }),
+      });
+
+      if (!response.ok) {
+        const payload: ParsedValue = await response.json().catch(() => null);
+        const message = asRecord(payload)?.error;
+
+        setVaultSaveError(isString(message) ? message : "Could not save file.");
+
+        return;
+      }
+
+      const savedContent = await response.text();
+
+      setLoadedVault({ focus, content: savedContent });
+      setEditingVaultFocus(null);
+      await fetchOrchestrations();
+    } catch {
+      setVaultSaveError("Could not save file.");
+    } finally {
+      setIsSavingVault(false);
+    }
+  }, [fetchOrchestrations, focus, vaultContent, vaultDraft]);
+
   const handleClose = useCallback(() => {
     setFocus(null);
+    setEditingVaultFocus(null);
   }, []);
 
   const handleLaunchAgent = useCallback(async () => {
@@ -375,6 +438,11 @@ export const DeckPrimaryView = ({
         });
 
         if (!response.ok) return false;
+
+        const updated: DeckCoordinationSummary = await response.json();
+        setOrchestrations((current) =>
+          current.map((item) => (item.coordinationId === coordinationId ? updated : item)),
+        );
         await fetchOrchestrations();
 
         return true;
@@ -735,18 +803,29 @@ export const DeckPrimaryView = ({
               <span className="deck-detail-main-path">
                 {focusedOrchestration.displayName} / <strong>{focus.fileName}</strong>
               </span>
+              {isVaultEditable && !isEditingVault && !loadingVault && vaultContent !== null ? (
+                <button
+                  className="ml-auto cursor-pointer rounded-lg border border-border bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-surface-2"
+                  onClick={handleStartVaultEdit}
+                  type="button"
+                >
+                  Edit
+                </button>
+              ) : null}
             </header>
             <div
               className="deck-detail-main-content"
               key={`${focus.coordinationId}/${focus.fileName}`}
             >
-              {loadingVault ? (
-                <span className="deck-detail-loading">Loading…</span>
-              ) : vaultContent !== null ? (
-                <MarkdownContent content={vaultContent} className="deck-detail-markdown" />
-              ) : (
-                <span className="deck-detail-loading">File not found.</span>
-              )}
+              <div className={isEditingVault ? "pb-72" : undefined}>
+                {loadingVault ? (
+                  <span className="deck-detail-loading">Loading…</span>
+                ) : vaultContent !== null ? (
+                  <MarkdownContent content={vaultContent} className="deck-detail-markdown" />
+                ) : (
+                  <span className="deck-detail-loading">File not found.</span>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -764,6 +843,20 @@ export const DeckPrimaryView = ({
           </div>
         )}
       </div>
+
+      {isEditingVault && vaultContent !== null ? (
+        <div className="absolute inset-x-0 bottom-0 z-30 border-t border-border bg-surface px-6 py-4 shadow-[0_-8px_24px_rgba(0,0,0,0.12)]">
+          <VaultFileEditor
+            error={vaultSaveError}
+            fileName={focus?.type === "vault" ? focus.fileName : ""}
+            isSaving={isSavingVault}
+            onChange={setVaultDraft}
+            onCancel={handleCancelVaultEdit}
+            onSave={() => void handleSaveVault()}
+            value={vaultDraft}
+          />
+        </div>
+      ) : null}
 
       <AgentSheet
         orchestration={

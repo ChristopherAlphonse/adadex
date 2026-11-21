@@ -1823,6 +1823,185 @@ describe("createApiServer", () => {
     );
   });
 
+  it("overwrites todo.md with raw markdown from the Deck editor", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const orchestrationDir = join(workspaceCwd, ".adadex", "coordinations", "docs");
+    mkdirSync(orchestrationDir, { recursive: true });
+    writeFileSync(join(orchestrationDir, "CONTEXT.md"), "# Docs\n\nDocumentation team\n", "utf8");
+    writeFileSync(join(orchestrationDir, "todo.md"), "# Todo\n\n- [ ] Old item\n", "utf8");
+
+    const baseUrl = await startServer({ workspaceCwd });
+    const updated = "# Todo\n\n- [x] Ship it\n- [ ] Document it\n";
+
+    const saveResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/files/todo.md`, {
+      method: "PUT",
+      headers: {
+        Accept: "text/markdown",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content: updated }),
+    });
+
+    expect(saveResponse.status).toBe(200);
+    await expect(saveResponse.text()).resolves.toBe(updated);
+    expect(readFileSync(join(orchestrationDir, "todo.md"), "utf8")).toBe(updated);
+
+    const readResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/files/todo.md`, {
+      headers: { Accept: "text/markdown" },
+    });
+
+    expect(readResponse.status).toBe(200);
+    await expect(readResponse.text()).resolves.toBe(updated);
+
+    const listResponse = await fetch(`${baseUrl}/api/deck/coordinations`, {
+      headers: { Accept: "application/json" },
+    });
+
+    expect(listResponse.status).toBe(200);
+
+    const coordinations: Array<{ coordinationId: string; todoTotal: number; todoDone: number }> =
+      await listResponse.json();
+
+    expect(coordinations.find((entry) => entry.coordinationId === "docs")).toEqual(
+      expect.objectContaining({ todoTotal: 2, todoDone: 1 }),
+    );
+  });
+
+  it("rejects raw writes to read-only vault files and invalid payloads", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const orchestrationDir = join(workspaceCwd, ".adadex", "coordinations", "docs");
+    mkdirSync(orchestrationDir, { recursive: true });
+    writeFileSync(join(orchestrationDir, "CONTEXT.md"), "# Docs\n", "utf8");
+    writeFileSync(join(orchestrationDir, "todo.md"), "# Todo\n\n- [ ] Keep me\n", "utf8");
+
+    const baseUrl = await startServer({ workspaceCwd });
+    const contextPath = join(orchestrationDir, "CONTEXT.md");
+    const todoPath = join(orchestrationDir, "todo.md");
+    const contextBefore = readFileSync(contextPath, "utf8");
+    const todoBefore = readFileSync(todoPath, "utf8");
+
+    const readOnlyResponse = await fetch(
+      `${baseUrl}/api/deck/coordinations/docs/files/CONTEXT.md`,
+      {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: "# Replaced\n" }),
+      },
+    );
+
+    expect(readOnlyResponse.status).toBe(403);
+    expect(readFileSync(contextPath, "utf8")).toBe(contextBefore);
+
+    const invalidResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/files/todo.md`, {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+
+    expect(invalidResponse.status).toBe(400);
+    expect(readFileSync(todoPath, "utf8")).toBe(todoBefore);
+  });
+
+  it("persists mascot color updates from the Deck sheet", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const baseUrl = await startServer({ workspaceCwd });
+
+    const createResponse = await fetch(`${baseUrl}/api/deck/coordinations`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Docs",
+        description: "Documentation team",
+        color: "#7c3aed",
+        mascot: { expression: "happy", accessory: "none", hairColor: "#7c3aed" },
+      }),
+    });
+
+    expect(createResponse.status).toBe(201);
+    const created: { coordinationId: string } = await createResponse.json();
+    const coordinationId = created.coordinationId;
+
+    const patchResponse = await fetch(`${baseUrl}/api/deck/coordinations/${coordinationId}`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        color: "#f43f5e",
+        mascot: { expression: "happy", accessory: "none", hairColor: "#f43f5e" },
+      }),
+    });
+
+    expect(patchResponse.status).toBe(200);
+
+    const listResponse = await fetch(`${baseUrl}/api/deck/coordinations`, {
+      headers: { Accept: "application/json" },
+    });
+
+    const coordinations: Array<{ coordinationId: string; color: string }> =
+      await listResponse.json();
+
+    expect(coordinations.find((entry) => entry.coordinationId === coordinationId)?.color).toBe(
+      "#f43f5e",
+    );
+
+    // SAFETY: deck.json is written by the API with this coordination color shape.
+    const deckState = JSON.parse(
+      readFileSync(join(workspaceCwd, ".adadex", "state", "deck.json"), "utf8"),
+    ) as { coordinations: Record<string, { color: string }> };
+
+    expect(deckState.coordinations[coordinationId]?.color).toBe("#f43f5e");
+  });
+
+  it("initializes missing Deck state when patching an existing coordination", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
+    const projectStateDir = mkdtempSync(join(tmpdir(), "adadex-api-state-test-"));
+    temporaryDirectories.push(workspaceCwd, projectStateDir);
+
+    const coordinationDir = join(workspaceCwd, ".adadex", "coordinations", "web-ui");
+    mkdirSync(coordinationDir, { recursive: true });
+    writeFileSync(join(coordinationDir, "CONTEXT.md"), "# Web UI\n\nFrontend work.\n");
+    writeFileSync(join(coordinationDir, "todo.md"), "# Todo\n");
+
+    const baseUrl = await startServer({ workspaceCwd, projectStateDir });
+
+    const patchResponse = await fetch(`${baseUrl}/api/deck/coordinations/web-ui`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        color: "#f43f5e",
+        mascot: { expression: "neutral", accessory: "none", hairColor: "#f43f5e" },
+      }),
+    });
+
+    expect(patchResponse.status).toBe(200);
+    const updated: { color: string } = await patchResponse.json();
+    expect(updated.color).toBe("#f43f5e");
+
+    // SAFETY: the test wrote this deck state through the API, so its shape is known here.
+    const deckState = JSON.parse(
+      readFileSync(join(projectStateDir, "state", "deck.json"), "utf8"),
+    ) as { coordinations: Record<string, { color: string }> };
+
+    expect(deckState.coordinations["web-ui"]?.color).toBe("#f43f5e");
+  });
+
   it("creates isolated worktree terminals with dedicated cwd", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);

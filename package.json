@@ -26,6 +26,7 @@
     "test": "npm run test --workspaces --if-present",
     "lint": "oxlint && oxfmt --check",
     "format": "oxfmt",
+    "posters": "tsx scripts/generate-mascot-posters.mts",
     "prepare": "husky",
     "postinstall": "patch-package"
   },
@@ -42,6 +43,7 @@
     "oxfmt": "0.79.0",
     "oxlint": "1.94.0",
     "patch-package": "8.0.1",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vitest": "^4.1.7"
   }

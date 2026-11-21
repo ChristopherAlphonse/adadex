@@ -15,8 +15,8 @@ import {
   buildDeckTodoSolveUrl,
   buildDeckTodoToggleUrl,
 } from "../../runtime/runtimeEndpoints";
-import { deriveMascotVisuals } from "../deck/mascotVisuals";
-import { MascotGlyph } from "../MascotSprite";
+import { CuteMascot } from "../deck/CuteMascot";
+import { deriveMascotVisuals, mascotStateForExpression } from "../deck/mascotVisuals";
 
 type CanvasOrchestrationPanelProps = {
   node: GraphNode;
@@ -247,15 +247,11 @@ export const CanvasOrchestrationPanel = ({
         <div className="detail-identity">
           {visuals && (
             <div className="detail-glyph">
-              <MascotGlyph
+              <CuteMascot
                 color={visuals.color}
-                animation={visuals.animation}
-                expression={visuals.expression}
-                accessory={visuals.accessory}
-                variant={visuals.variant}
-                identitySeed={visuals.identitySeed}
-                {...(visuals.hairColor ? { hairColor: visuals.hairColor } : {})}
-                scale={6}
+                size={96}
+                state={mascotStateForExpression(visuals.expression)}
+                title={`${orchestration?.displayName ?? node.label} mascot`}
               />
             </div>
           )}
@@ -326,7 +322,7 @@ export const CanvasOrchestrationPanel = ({
               <ul className="detail-todos">
                 {orchestration.todoItems.map((item, i) => (
                   <li
-                    key={`${i}-${item.text}`}
+                    key={item.text}
                     className={`detail-todo${item.done ? " detail-todo--done" : ""}`}
                   >
                     <div className="detail-todo-controls">

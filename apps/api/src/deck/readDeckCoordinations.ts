@@ -109,17 +109,17 @@ const writeDeckState = (projectStateDir: string, state: DeckStateDocument): void
   writeFileSync(filePath, `${JSON.stringify(state, null, 2)}\n`);
 };
 
-const parseCoordinationState = (raw: CoordinationStateInput): DeckCoordinationState => {
-  const defaults: DeckCoordinationState = {
-    color: null,
-    status: "idle",
-    mascot: { animation: null, expression: null, accessory: null, hairColor: null },
-    scope: { paths: [], tags: [] },
-  };
+const createDefaultCoordinationState = (): DeckCoordinationState => ({
+  color: null,
+  status: "idle",
+  mascot: { animation: null, expression: null, accessory: null, hairColor: null },
+  scope: { paths: [], tags: [] },
+});
 
+const parseCoordinationState = (raw: CoordinationStateInput): DeckCoordinationState => {
   const rec = asRecord(raw);
 
-  if (!rec) return defaults;
+  if (!rec) return createDefaultCoordinationState();
 
   const color = isString(rec.color) && rec.color.trim().length > 0 ? rec.color.trim() : null;
 
@@ -164,6 +164,31 @@ const parseCoordinationState = (raw: CoordinationStateInput): DeckCoordinationSt
   }
 
   return result;
+};
+
+/**
+ * Coordination folders are project-local files, but their Deck metadata lives in global
+ * state. A folder can exist without a state entry (manually added coordinations, a
+ * migrated or lost state file), so initialize defaults instead of treating the PATCH as
+ * a missing coordination.
+ */
+const ensureDeckCoordinationState = (
+  workspaceCwd: string,
+  deckState: DeckStateDocument,
+  coordinationId: string,
+): DeckCoordinationState | null => {
+  const existing = deckState.coordinations[coordinationId];
+
+  if (existing) return existing;
+
+  const contextPath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "CONTEXT.md");
+
+  if (!existsSync(contextPath)) return null;
+
+  const created = createDefaultCoordinationState();
+  deckState.coordinations[coordinationId] = created;
+
+  return created;
 };
 
 // ─── Parse CONTEXT.md for title and description ───────────────────────────────
@@ -352,6 +377,42 @@ export const readDeckVaultFile = (
     return readFileSync(filePath, "utf-8");
   } catch {
     return null;
+  }
+};
+
+/** Vault files the Deck UI may overwrite as raw markdown. */
+export const EDITABLE_DECK_VAULT_FILES: ReadonlySet<string> = new Set(["todo.md"]);
+
+/**
+ * Overwrite an existing coordination markdown file with operator-authored content.
+ */
+export const writeDeckVaultFile = (
+  workspaceCwd: string,
+  coordinationId: string,
+  fileName: string,
+  content: string,
+): boolean => {
+  if (!EDITABLE_DECK_VAULT_FILES.has(fileName)) return false;
+
+  // Prevent path traversal, including Windows separators.
+  if (
+    coordinationId.includes("..") ||
+    coordinationId.includes("/") ||
+    coordinationId.includes("\\")
+  ) {
+    return false;
+  }
+
+  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, fileName);
+
+  try {
+    if (!statSync(filePath).isFile()) return false;
+
+    writeFileSync(filePath, content, "utf-8");
+
+    return true;
+  } catch {
+    return false;
   }
 };
 
@@ -646,7 +707,7 @@ export const updateDeckCoordinationAgent = (
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
   const stateDir = projectStateDir ?? join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
   const deckState = readDeckState(stateDir);
-  const entry = deckState.coordinations[coordinationId];
+  const entry = ensureDeckCoordinationState(workspaceCwd, deckState, coordinationId);
 
   if (!entry) return null;
 
@@ -710,7 +771,7 @@ export const updateDeckCoordinationMascot = (
 
   const stateDir = projectStateDir ?? join(workspaceCwd, WORKSPACE_RUNTIME_DIR);
   const deckState = readDeckState(stateDir);
-  const entry = deckState.coordinations[coordinationId];
+  const entry = ensureDeckCoordinationState(workspaceCwd, deckState, coordinationId);
 
   if (!entry) return null;
 

@@ -48,9 +48,10 @@ Creating a terminal registers metadata first. A PTY starts immediately only when
 - `POST /api/deck/coordinations/:coordinationId/todo/delete` - deletes a todo item
 - `POST /api/deck/coordinations/:coordinationId/todo/solve` - starts one worker terminal for one todo item
 - `GET /api/deck/coordinations/:coordinationId/files/:filename` - reads one markdown file from the coordination vault
+- `PUT /api/deck/coordinations/:coordinationId/files/:filename` - overwrites `todo.md` with raw markdown from the Deck editor
 - `POST /api/deck/coordinations/:coordinationId/swarm` - spawns worker terminals from incomplete todo items
 
-Deck routes treat `.adadex/coordinations/<coordination-id>/` as the source of truth for agent-facing context. Todo operations update `todo.md` by parsed item index. Swarm operations derive worker assignments from incomplete parsed todo items.
+Deck routes treat `.adadex/coordinations/<coordination-id>/` as the source of truth for agent-facing context. Todo item operations update `todo.md` by parsed item index; the Deck editor can also replace the whole file with operator-authored markdown. Other vault files are read-only through the API. Swarm operations derive worker assignments from incomplete parsed todo items.
 
 ## Prompts
 

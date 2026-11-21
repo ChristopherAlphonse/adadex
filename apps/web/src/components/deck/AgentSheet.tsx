@@ -5,7 +5,7 @@ import {
   TERMINAL_AGENT_PROVIDERS,
   type TerminalAgentProvider,
 } from "@adadex/core";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { formatColorForDisplay } from "../../app/mascotPalette";
 import { cn } from "../../lib/utils";
@@ -131,16 +131,18 @@ export const AgentSheet = ({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const coordinationId = orchestration?.coordinationId ?? null;
+  const [previousCoordinationId, setPreviousCoordinationId] = useState(coordinationId);
 
-  // Start every agent from a clean panel.
-  useEffect(() => {
+  // Start every agent from a clean panel when a different one is selected.
+  if (previousCoordinationId !== coordinationId) {
+    setPreviousCoordinationId(coordinationId);
     setMessage(null);
     setIsCustomizing(false);
     setIsEditingSkills(false);
     setConfirmingDelete(false);
     setMoodPreview(null);
     setNewSkill("");
-  }, [coordinationId]);
+  }
 
   const run = async (key: string, task: () => Promise<string | undefined>) => {
     setBusyAction(key);
@@ -181,20 +183,36 @@ export const AgentSheet = ({
     }
 
     setIsSavingLook(true);
+    setMessage(null);
 
     try {
-      const [savedMascot, savedAgent] = await Promise.all([
-        onSaveMascot?.(orchestration.coordinationId, {
-          color: editColor,
-          expression: visuals.expression,
-          accessory: visuals.accessory,
-        }),
-        onSaveAgent?.(orchestration.coordinationId, editProvider || null),
-      ]);
+      const savedMascot = await onSaveMascot?.(orchestration.coordinationId, {
+        color: editColor,
+        expression: visuals.expression,
+        accessory: visuals.accessory,
+      });
 
-      if (savedMascot || savedAgent) {
-        setIsCustomizing(false);
+      if (savedMascot === false) {
+        setMessage({ tone: "error", text: "Could not save the mascot color." });
+
+        return;
       }
+
+      const agentChanged = editProvider !== (orchestration.agentProvider ?? "");
+
+      if (agentChanged) {
+        const savedAgent = await onSaveAgent?.(orchestration.coordinationId, editProvider || null);
+
+        if (savedAgent === false) {
+          setMessage({ tone: "error", text: "Could not save the agent CLI." });
+
+          return;
+        }
+      }
+
+      setIsCustomizing(false);
+    } catch {
+      setMessage({ tone: "error", text: "Could not save changes." });
     } finally {
       setIsSavingLook(false);
     }
@@ -287,11 +305,11 @@ export const AgentSheet = ({
                   <SectionTitle>Customize</SectionTitle>
 
                   <div className="flex flex-col gap-2">
-                    <span className="text-sm font-medium">Colour</span>
+                    <span className="text-sm font-medium">Color</span>
                     <div className="flex flex-wrap items-center gap-2">
                       {MASCOT_COLORS.map((color) => (
                         <button
-                          aria-label={`Use colour ${formatColorForDisplay(color)}`}
+                          aria-label={`Use color ${formatColorForDisplay(color)}`}
                           aria-pressed={color === editColor}
                           className={cn(
                             "size-8 rounded-full border-2 transition-transform hover:scale-105 cursor-pointer",

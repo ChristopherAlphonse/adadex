@@ -96,6 +96,7 @@ export const SheetContent = ({
           className,
         )}
         ref={panelRef}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- native dialog changes deck sheet layout/focus behavior
         role="dialog"
         tabIndex={-1}
         {...props}
