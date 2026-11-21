@@ -2,6 +2,7 @@ import { asRecord, asString, type ParsedValue } from "@adadex/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  buildChannelMessagesUrl,
   buildConversationExportUrl,
   buildConversationSearchUrl,
   buildConversationSessionUrl,
@@ -43,6 +44,8 @@ type UseConversationsRuntimeResult = {
   highlightedTurnId: string | null;
   errorMessage: string | null;
   selectSession: (sessionId: string) => void;
+  refreshSelectedSession: () => Promise<void>;
+  sendMessage: (sessionId: string, content: string) => Promise<void>;
   refreshSessions: () => Promise<void>;
   clearAllSessions: () => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
@@ -444,6 +447,42 @@ export const useConversationsRuntime = ({
     void loadSelectedSession();
   }, [activeSessionId]);
 
+  const refreshSelectedSession = useCallback(async () => {
+    if (!activeSessionId) return;
+
+    try {
+      const response = await fetch(buildConversationSessionUrl(activeSessionId), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) return;
+
+      const payload = normalizeConversationSessionDetail(await response.json());
+
+      if (payload && payload.sessionId === activeSessionId) {
+        setSelectedSession(payload);
+      }
+    } catch {
+      // A failed background refresh keeps what is already on screen.
+    }
+  }, [activeSessionId]);
+
+  const sendMessage = useCallback(async (sessionId: string, content: string) => {
+    const response = await fetch(buildChannelMessagesUrl(sessionId), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ fromTerminalId: "operator", content }),
+    });
+
+    if (!response.ok) {
+      const failure = asRecord(await response.json().catch(() => null));
+      const reason = asString(failure?.error);
+
+      throw new Error(reason ?? `Unable to send message (${response.status})`);
+    }
+  }, []);
+
   return {
     sessions,
     selectedSessionId,
@@ -458,6 +497,8 @@ export const useConversationsRuntime = ({
     highlightedTurnId,
     errorMessage,
     selectSession,
+    refreshSelectedSession,
+    sendMessage,
     refreshSessions,
     clearAllSessions,
     deleteSession,

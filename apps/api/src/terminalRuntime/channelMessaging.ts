@@ -4,6 +4,9 @@ import { logVerbose } from "../logging";
 import { loadChannelMessages, persistChannelMessages } from "./channelMessageStore";
 import type { ChannelMessage, PersistedTerminal, TerminalSession } from "./types";
 
+/** Sender id used when the operator writes to an agent from the Conversations tab. */
+export const OPERATOR_SENDER = "operator";
+
 export const createChannelMessaging = (deps: {
   terminals: Map<string, PersistedTerminal>;
   sessions: Map<string, TerminalSession>;
@@ -33,9 +36,12 @@ export const createChannelMessaging = (deps: {
       return 0;
     }
 
-    // Compose all pending messages into a single prompt injection.
-    const lines = undelivered.map(
-      (m) => `[Channel message from ${m.fromTerminalId}]: ${m.content}`,
+    // Messages typed by the operator reach the agent as a plain prompt; agent-to-agent messages
+    // keep their sender so the receiver knows who is talking.
+    const lines = undelivered.map((m) =>
+      m.fromTerminalId === OPERATOR_SENDER || m.fromTerminalId.length === 0
+        ? m.content
+        : `[Channel message from ${m.fromTerminalId}]: ${m.content}`,
     );
 
     const prompt = `${lines.join("\n")}\r`;

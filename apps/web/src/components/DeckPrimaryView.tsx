@@ -650,22 +650,9 @@ export const DeckPrimaryView = ({
                     fileName,
                   })
                 }
-                onVaultBrowse={() =>
-                  setFocus({
-                    type: "vault-browser",
-                    coordinationId: t.coordinationId,
-                  })
-                }
                 onClose={handleClose}
                 onOpen={() => setSheetCoordinationId(t.coordinationId)}
-                onDelete={() => handleDeleteOrchestration(t.coordinationId)}
-                isDeleting={deletingOrchestrationId === t.coordinationId}
                 onTodoToggle={handleTodoToggle}
-                availableSkills={availableSkills}
-                isSavingSkills={savingOrchestrationSkillsId === t.coordinationId}
-                onSaveSuggestedSkills={handleOrchestrationSkillsSave}
-                onSaveMascot={handleMascotSave}
-                onSaveAgent={handleSaveCoordinationAgent}
               />
             </div>
           );
@@ -788,6 +775,14 @@ export const DeckPrimaryView = ({
         onVaultFileClick={(coordinationId, fileName) =>
           setFocus({ type: "vault", coordinationId, fileName })
         }
+        onVaultBrowse={(coordinationId) => setFocus({ type: "vault-browser", coordinationId })}
+        availableSkills={availableSkills}
+        isSavingSkills={savingOrchestrationSkillsId === sheetCoordinationId}
+        isDeleting={deletingOrchestrationId === sheetCoordinationId}
+        onSaveSuggestedSkills={handleOrchestrationSkillsSave}
+        onSaveMascot={handleMascotSave}
+        onSaveAgent={handleSaveCoordinationAgent}
+        onDelete={handleDeleteOrchestration}
         onCreateAgent={onCreateAgent}
         onSpawnSwarm={onSpawnSwarm}
       />

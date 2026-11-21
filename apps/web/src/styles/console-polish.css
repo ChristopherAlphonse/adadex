@@ -350,3 +350,162 @@
 .design-console .deck-pod-progress {
   gap: 10px;
 }
+
+/* ─── Cute mascot: moods and motion ─────────────────────────────────────── */
+
+.cute-mascot {
+  display: block;
+  overflow: visible;
+}
+
+.cute-mascot .cm-figure {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.cute-mascot .cm-bob {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: cm-bob 3.4s ease-in-out infinite;
+}
+
+.cute-mascot--sleeping .cm-bob {
+  animation: cm-breathe 4.2s ease-in-out infinite;
+}
+
+.cute-mascot--working .cm-bob {
+  animation-duration: 1.8s;
+}
+
+.cute-mascot .cm-eyes {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: cm-blink 5s infinite;
+}
+
+.cute-mascot--working .cm-antenna-ball {
+  animation: cm-glow 1.2s ease-in-out infinite;
+}
+
+.cute-mascot .cm-wave {
+  transform-box: fill-box;
+  transform-origin: 20% 90%;
+  animation: cm-wave 1.1s ease-in-out infinite;
+}
+
+.cute-mascot .cm-sparkle {
+  animation: cm-pop 1.1s ease-in-out infinite;
+}
+
+.cute-mascot .cm-zzz {
+  animation: cm-float 3s ease-in-out infinite;
+}
+
+.cute-mascot .cm-dots circle {
+  animation: cm-dot 1.2s ease-in-out infinite;
+}
+
+.cute-mascot .cm-dots circle:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.cute-mascot .cm-dots circle:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes cm-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes cm-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+
+  50% {
+    transform: scale(1.02, 1.04);
+  }
+}
+
+@keyframes cm-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes cm-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes cm-wave {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+
+  50% {
+    transform: rotate(14deg);
+  }
+}
+
+@keyframes cm-pop {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes cm-float {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes cm-dot {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cute-mascot * {
+    animation: none !important;
+  }
+}

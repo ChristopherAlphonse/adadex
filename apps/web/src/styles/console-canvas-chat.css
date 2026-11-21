@@ -340,3 +340,95 @@
 .chat-toggle:hover {
   text-decoration: underline;
 }
+
+/* Composer: message the agent */
+
+.design-console .chat-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px max(24px, calc((100% - 760px) / 2)) 14px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.chat-composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 6px 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--background);
+  transition: border-color 0.15s;
+}
+
+.chat-composer-row:focus-within {
+  border-color: var(--brand);
+}
+
+.chat-composer-row[data-disabled="true"] {
+  opacity: 0.6;
+}
+
+.chat-composer-input {
+  flex: 1;
+  min-height: 24px;
+  max-height: 140px;
+  padding: 6px 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--foreground);
+  font: 400 14px/1.45 "Inter", ui-sans-serif, system-ui, sans-serif;
+  field-sizing: content;
+}
+
+.chat-composer-send {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--chat-user);
+  color: var(--chat-user-text);
+  cursor: pointer;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+
+.chat-composer-send svg {
+  width: 16px;
+  height: 16px;
+}
+
+.chat-composer-send:hover:not(:disabled) {
+  transform: scale(1.06);
+}
+
+.chat-composer-send:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.chat-composer-hint {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.chat-composer-error {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--destructive);
+  font-size: 12px;
+}
+
+.chat-turn[data-pending="true"] .chat-bubble {
+  opacity: 0.7;
+}

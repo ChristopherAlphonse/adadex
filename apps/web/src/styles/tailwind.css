@@ -5,6 +5,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@layer base {
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 /* Map Tailwind color utilities to the app's existing CSS variables (foundation.css). */
 @theme inline {
   --radius-sm: calc(var(--radius, 0.5rem) - 4px);

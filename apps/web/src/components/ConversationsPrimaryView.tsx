@@ -3,6 +3,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { formatClock, formatDay, toTitle } from "../app/conversationText";
 import { useConversationsRuntime } from "../app/hooks/useConversationsRuntime";
 import { ClearAllConversationsDialog } from "./ClearAllConversationsDialog";
+import { ConversationComposer } from "./ConversationComposer";
 import { ConversationTurnBubble } from "./ConversationTurnBubble";
 import { SidebarConversationsList } from "./SidebarConversationsList";
 
@@ -31,6 +32,8 @@ export const ConversationsPrimaryView = ({
     highlightedTurnId,
     errorMessage,
     selectSession,
+    refreshSelectedSession,
+    sendMessage,
     refreshSessions,
     clearAllSessions,
     deleteSession,
@@ -134,6 +137,90 @@ export const ConversationsPrimaryView = ({
     }
   }, [highlightedTurnId]);
 
+  const [pendingMessages, setPendingMessages] = useState<{ id: string; text: string }[]>([]);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const threadRef = useRef<HTMLOListElement | null>(null);
+
+  const isLiveSession =
+    selectedSession !== null &&
+    !selectedSession.events.some((event) => event.type === "session_end");
+
+  // A message stops being "pending" once the agent's transcript contains it.
+  useEffect(() => {
+    if (!selectedSession) {
+      return;
+    }
+
+    setPendingMessages((current) =>
+      current.filter(
+        (message) =>
+          !selectedSession.turns.some(
+            (turn) => turn.role === "user" && turn.content.trim() === message.text.trim(),
+          ),
+      ),
+    );
+  }, [selectedSession]);
+
+  // Each conversation starts with a clean composer state.
+  useEffect(() => {
+    setPendingMessages([]);
+    setSendError(null);
+  }, [selectedSessionId]);
+
+  // While a message is waiting for the agent, keep checking for the reply.
+  const hasPendingMessages = pendingMessages.length > 0;
+
+  useEffect(() => {
+    if (!hasPendingMessages) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void refreshSelectedSession();
+    }, 3000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [hasPendingMessages, refreshSelectedSession]);
+
+  // Keep the newest message in view.
+  const turnCount = selectedSession?.turns.length ?? 0;
+
+  useEffect(() => {
+    if (highlightedTurnId || !threadRef.current) {
+      return;
+    }
+
+    threadRef.current.scrollTop = threadRef.current.scrollHeight;
+  }, [selectedSessionId, turnCount, pendingMessages.length, highlightedTurnId]);
+
+  const onSendMessage = useCallback(
+    async (text: string): Promise<boolean> => {
+      if (!selectedSessionId) {
+        return false;
+      }
+
+      const id = `pending-${Date.now()}`;
+
+      setSendError(null);
+      setPendingMessages((current) => [...current, { id, text }]);
+
+      try {
+        await sendMessage(selectedSessionId, text);
+        void refreshSelectedSession();
+
+        return true;
+      } catch (error) {
+        setPendingMessages((current) => current.filter((message) => message.id !== id));
+        setSendError(error instanceof Error ? error.message : "Unable to send the message.");
+
+        return false;
+      }
+    },
+    [selectedSessionId, sendMessage, refreshSelectedSession],
+  );
+
   return (
     <section className="conversations-view" aria-label="Conversations primary view">
       {errorMessage ? <p className="conversations-error">{errorMessage}</p> : null}
@@ -207,7 +294,7 @@ export const ConversationsPrimaryView = ({
                 </button>
               </div>
             </header>
-            <ol className="chat-thread">
+            <ol className="chat-thread" ref={threadRef}>
               {selectedSession.turns.map((turn, index) => {
                 const isHighlighted = turn.turnId === highlightedTurnId;
 
@@ -226,7 +313,22 @@ export const ConversationsPrimaryView = ({
                   />
                 );
               })}
+              {pendingMessages.map((message) => (
+                <li className="chat-turn" data-pending="true" data-role="user" key={message.id}>
+                  <div className="chat-bubble">
+                    <p className="chat-bubble-gist">{message.text}</p>
+                  </div>
+                  <div className="chat-meta">Sent · the agent will reply when it is free</div>
+                </li>
+              ))}
             </ol>
+            <ConversationComposer
+              disabled={!isLiveSession}
+              disabledReason="This session has ended. Start the agent again to keep talking."
+              error={sendError}
+              onSend={onSendMessage}
+              key={selectedSession.sessionId}
+            />
           </>
         ) : (
           <p className="conversations-empty">Select a conversation from the sidebar.</p>

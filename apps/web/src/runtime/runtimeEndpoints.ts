@@ -174,6 +174,19 @@ export const buildConversationSessionUrl = (
   return buildAbsoluteUrl(runtimeBaseUrl, path);
 };
 
+export const buildChannelMessagesUrl = (
+  terminalId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/channels/${encodeURIComponent(terminalId)}/messages`;
+
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildConversationExportUrl = (
   sessionId: string,
   format: "json" | "md",

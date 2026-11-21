@@ -80,6 +80,27 @@ describe("createChannelMessaging", () => {
     expect(h.writeInput).toHaveBeenCalledTimes(1);
   });
 
+  it("delivers a message typed by the operator as a plain prompt", () => {
+    const h = harness();
+    h.sessions.set("agent-2", session("idle"));
+
+    h.create().sendChannelMessage("agent-2", "operator", "please run the tests");
+
+    expect(h.writeInput).toHaveBeenCalledWith("agent-2", "please run the tests\r");
+  });
+
+  it("keeps the sender on messages that come from another agent", () => {
+    const h = harness();
+    h.sessions.set("agent-2", session("idle"));
+
+    h.create().sendChannelMessage("agent-2", "agent-1", "please review");
+
+    expect(h.writeInput).toHaveBeenCalledWith(
+      "agent-2",
+      "[Channel message from agent-1]: please review\r",
+    );
+  });
+
   it("delivers all pending messages as one prompt injection", () => {
     const h = harness();
     h.sessions.set("agent-2", session("processing"));
