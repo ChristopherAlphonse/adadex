@@ -37,6 +37,7 @@ type SidebarConversationsListProps = {
   onSelectSession: (sessionId: string) => void;
   onRefresh: () => void;
   onClearAll: () => void;
+  onDeleteSession: (sessionId: string) => void;
   onSearch: (query: string) => void;
   onClearSearch: () => void;
   onNavigateToHit: (hit: ConversationSearchHit) => void;
@@ -52,6 +53,7 @@ export const SidebarConversationsList = ({
   onSelectSession,
   onRefresh,
   onClearAll,
+  onDeleteSession,
   onSearch,
   onClearSearch,
   onNavigateToHit,
@@ -272,7 +274,7 @@ export const SidebarConversationsList = ({
         ) : (
           <ol className="sidebar-conversations-list">
             {sortedSessions.map((session) => (
-              <li key={session.sessionId}>
+              <li className="sidebar-conversation-row" key={session.sessionId}>
                 <button
                   aria-current={session.sessionId === selectedSessionId ? "page" : undefined}
                   className="sidebar-conversation-item"
@@ -306,6 +308,31 @@ export const SidebarConversationsList = ({
                       )}
                     </span>
                   </span>
+                </button>
+                <button
+                  aria-label={`Delete conversation ${getSessionTitle(session)}`}
+                  className="sidebar-conversation-delete"
+                  onClick={() => {
+                    onDeleteSession(session.sessionId);
+                  }}
+                  type="button"
+                >
+                  <svg
+                    aria-hidden="true"
+                    focusable="false"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 4h10" />
+                    <path d="M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1" />
+                    <path d="M4.5 4l.5 9a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l.5-9" />
+                    <path d="M6.5 7v4" />
+                    <path d="M9.5 7v4" />
+                  </svg>
                 </button>
               </li>
             ))}

@@ -1,10 +1,11 @@
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { formatClock, formatDay, toTitle } from "../app/conversationText";
 import { useConversationsRuntime } from "../app/hooks/useConversationsRuntime";
 import { ClearAllConversationsDialog } from "./ClearAllConversationsDialog";
 import { ConversationComposer } from "./ConversationComposer";
 import { ConversationTurnBubble } from "./ConversationTurnBubble";
+import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { SidebarConversationsList } from "./SidebarConversationsList";
 
 type ConversationsPrimaryViewProps = {
@@ -12,6 +13,18 @@ type ConversationsPrimaryViewProps = {
   onSidebarContent?: (content: ReactNode) => void;
   onActionPanel?: (content: ReactNode) => void;
 };
+
+type ComposerState = {
+  sessionId: string | null;
+  pendingMessages: { id: string; text: string }[];
+  sendError: string | null;
+};
+
+const emptyComposerStateFor = (sessionId: string | null): ComposerState => ({
+  sessionId,
+  pendingMessages: [],
+  sendError: null,
+});
 
 export const ConversationsPrimaryView = ({
   enabled,
@@ -26,6 +39,7 @@ export const ConversationsPrimaryView = ({
     isLoadingSelectedSession,
     isExporting,
     isClearing: isClearingConversations,
+    isDeleting: isDeletingConversation,
     isSearching: isSearchingConversations,
     searchQuery,
     searchHits: conversationsSearchHits,
@@ -44,12 +58,19 @@ export const ConversationsPrimaryView = ({
   } = useConversationsRuntime({ enabled });
 
   const [isPendingClearAll, setIsPendingClearAll] = useState(false);
+  const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
 
-  const onDeleteSession = useCallback(() => {
-    if (selectedSessionId) {
-      void deleteSession(selectedSessionId);
-    }
-  }, [selectedSessionId, deleteSession]);
+  const onRequestDeleteSession = useCallback((sessionId: string) => {
+    setPendingDeleteSessionId(sessionId);
+  }, []);
+
+  const pendingDeleteSession = pendingDeleteSessionId
+    ? sessions.find((session) => session.sessionId === pendingDeleteSessionId)
+    : undefined;
+
+  const pendingDeleteTitle = pendingDeleteSession
+    ? toTitle(pendingDeleteSession.firstUserTurnPreview, pendingDeleteSession.sessionId, 64)
+    : (pendingDeleteSessionId ?? "this conversation");
 
   const onExport = useCallback(
     (format: "json" | "md") => {
@@ -76,59 +97,123 @@ export const ConversationsPrimaryView = ({
     [selectedSessionId, exportSession],
   );
 
-  // Push sidebar content
-  const sidebarContent = (
-    <SidebarConversationsList
-      sessions={sessions}
-      selectedSessionId={selectedSessionId}
-      isLoadingSessions={isLoadingConversationSessions}
-      isSearching={isSearchingConversations}
-      searchQuery={searchQuery}
-      searchHits={conversationsSearchHits}
-      onSelectSession={selectSession}
-      onRefresh={() => {
-        void refreshSessions();
-      }}
-      onClearAll={() => {
-        setIsPendingClearAll(true);
-      }}
-      onSearch={(query) => {
-        void searchConversations(query);
-      }}
-      onClearSearch={clearConversationsSearch}
-      onNavigateToHit={navigateToConversationSearchHit}
-    />
+  const handleRefreshSessions = useCallback(() => {
+    void refreshSessions();
+  }, [refreshSessions]);
+
+  const handleRequestClearAll = useCallback(() => {
+    setIsPendingClearAll(true);
+  }, []);
+
+  const handleSearchConversations = useCallback(
+    (query: string) => {
+      void searchConversations(query);
+    },
+    [searchConversations],
+  );
+
+  // Pushed content must keep a stable identity: the parent stores it in state, so a
+  // fresh element on every render would re-render this view in an endless loop.
+  const sidebarContent = useMemo(
+    () => (
+      <SidebarConversationsList
+        sessions={sessions}
+        selectedSessionId={selectedSessionId}
+        isLoadingSessions={isLoadingConversationSessions}
+        isSearching={isSearchingConversations}
+        searchQuery={searchQuery}
+        searchHits={conversationsSearchHits}
+        onSelectSession={selectSession}
+        onRefresh={handleRefreshSessions}
+        onClearAll={handleRequestClearAll}
+        onDeleteSession={onRequestDeleteSession}
+        onSearch={handleSearchConversations}
+        onClearSearch={clearConversationsSearch}
+        onNavigateToHit={navigateToConversationSearchHit}
+      />
+    ),
+    [
+      sessions,
+      selectedSessionId,
+      isLoadingConversationSessions,
+      isSearchingConversations,
+      searchQuery,
+      conversationsSearchHits,
+      selectSession,
+      handleRefreshSessions,
+      handleRequestClearAll,
+      onRequestDeleteSession,
+      handleSearchConversations,
+      clearConversationsSearch,
+      navigateToConversationSearchHit,
+    ],
   );
 
   useEffect(() => {
     onSidebarContent?.(sidebarContent);
 
     return () => onSidebarContent?.(null);
-  });
+  }, [onSidebarContent, sidebarContent]);
 
-  // Push action panel for clear-all dialog
-  const actionPanelContent = isPendingClearAll ? (
-    <ClearAllConversationsDialog
-      sessionCount={sessions.length}
-      isClearing={isClearingConversations}
-      onCancel={() => {
-        setIsPendingClearAll(false);
-      }}
-      onConfirm={() => {
-        void clearAllSessions().then(() => {
-          setIsPendingClearAll(false);
-        });
-      }}
-    />
-  ) : null;
+  const handleCancelDelete = useCallback(() => {
+    setPendingDeleteSessionId(null);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!pendingDeleteSessionId) return;
+    void deleteSession(pendingDeleteSessionId).then(() => {
+      setPendingDeleteSessionId(null);
+    });
+  }, [deleteSession, pendingDeleteSessionId]);
+
+  const handleCancelClearAll = useCallback(() => {
+    setIsPendingClearAll(false);
+  }, []);
+
+  const handleConfirmClearAll = useCallback(() => {
+    void clearAllSessions().then(() => {
+      setIsPendingClearAll(false);
+    });
+  }, [clearAllSessions]);
+
+  // Push action panel for single or bulk delete confirmations
+  const actionPanelContent = useMemo(
+    () =>
+      pendingDeleteSessionId ? (
+        <DeleteConversationDialog
+          title={pendingDeleteTitle}
+          isDeleting={isDeletingConversation}
+          onCancel={handleCancelDelete}
+          onConfirm={handleConfirmDelete}
+        />
+      ) : isPendingClearAll ? (
+        <ClearAllConversationsDialog
+          sessionCount={sessions.length}
+          isClearing={isClearingConversations}
+          onCancel={handleCancelClearAll}
+          onConfirm={handleConfirmClearAll}
+        />
+      ) : null,
+    [
+      pendingDeleteSessionId,
+      pendingDeleteTitle,
+      isDeletingConversation,
+      handleCancelDelete,
+      handleConfirmDelete,
+      isPendingClearAll,
+      sessions.length,
+      isClearingConversations,
+      handleCancelClearAll,
+      handleConfirmClearAll,
+    ],
+  );
 
   useEffect(() => {
     onActionPanel?.(actionPanelContent);
 
     return () => onActionPanel?.(null);
-  });
+  }, [onActionPanel, actionPanelContent]);
 
-  const isDeletingSession = false;
   const highlightedRef = useRef<HTMLLIElement | null>(null);
 
   useEffect(() => {
@@ -137,10 +222,31 @@ export const ConversationsPrimaryView = ({
     }
   }, [highlightedTurnId]);
 
-  const [pendingMessages, setPendingMessages] = useState<{ id: string; text: string }[]>([]);
-  const [sendError, setSendError] = useState<string | null>(null);
+  const [storedComposerState, setComposerState] = useState<ComposerState>(() =>
+    emptyComposerStateFor(selectedSessionId),
+  );
+
   const threadRef = useRef<HTMLOListElement | null>(null);
-  const [previousSessionId, setPreviousSessionId] = useState(selectedSessionId);
+
+  // A session change makes the stored state stale, so read it as empty instead
+  // of resetting it from an effect.
+  const composerState =
+    storedComposerState.sessionId === selectedSessionId
+      ? storedComposerState
+      : emptyComposerStateFor(selectedSessionId);
+
+  const updateComposerState = useCallback(
+    (update: (current: ComposerState) => ComposerState) => {
+      setComposerState((current) =>
+        update(
+          current.sessionId === selectedSessionId
+            ? current
+            : emptyComposerStateFor(selectedSessionId),
+        ),
+      );
+    },
+    [selectedSessionId],
+  );
 
   const isLiveSession =
     selectedSession !== null &&
@@ -151,16 +257,9 @@ export const ConversationsPrimaryView = ({
       (turn) => turn.role === "user" && turn.content.trim() === text.trim(),
     ) ?? false;
 
-  // Reconcile composer state during render: React restarts the render before
-  // committing, so switching sessions or acknowledging a turn never needs an
-  // effect-driven second pass.
-  if (previousSessionId !== selectedSessionId) {
-    setPreviousSessionId(selectedSessionId);
-    setPendingMessages([]);
-    setSendError(null);
-  } else if (pendingMessages.some((message) => isAcknowledged(message.text))) {
-    setPendingMessages((current) => current.filter((message) => !isAcknowledged(message.text)));
-  }
+  const pendingMessages = composerState.pendingMessages.filter(
+    (message) => !isAcknowledged(message.text),
+  );
 
   // While a message is waiting for the agent, keep checking for the reply.
   const hasPendingMessages = pendingMessages.length > 0;
@@ -198,8 +297,11 @@ export const ConversationsPrimaryView = ({
 
       const id = `pending-${Date.now()}`;
 
-      setSendError(null);
-      setPendingMessages((current) => [...current, { id, text }]);
+      updateComposerState((current) => ({
+        ...current,
+        sendError: null,
+        pendingMessages: [...current.pendingMessages, { id, text }],
+      }));
 
       try {
         await sendMessage(selectedSessionId, text);
@@ -207,13 +309,16 @@ export const ConversationsPrimaryView = ({
 
         return true;
       } catch (error) {
-        setPendingMessages((current) => current.filter((message) => message.id !== id));
-        setSendError(error instanceof Error ? error.message : "Unable to send the message.");
+        updateComposerState((current) => ({
+          ...current,
+          sendError: error instanceof Error ? error.message : "Unable to send the message.",
+          pendingMessages: current.pendingMessages.filter((message) => message.id !== id),
+        }));
 
         return false;
       }
     },
-    [selectedSessionId, sendMessage, refreshSelectedSession],
+    [selectedSessionId, sendMessage, refreshSelectedSession, updateComposerState],
   );
 
   return (
@@ -266,8 +371,12 @@ export const ConversationsPrimaryView = ({
                 <button
                   aria-label="Delete this conversation"
                   className="chat-ghost-btn chat-ghost-btn--icon chat-ghost-btn--danger"
-                  disabled={isDeletingSession}
-                  onClick={onDeleteSession}
+                  disabled={isDeletingConversation || !selectedSessionId}
+                  onClick={() => {
+                    if (selectedSessionId) {
+                      onRequestDeleteSession(selectedSessionId);
+                    }
+                  }}
                   type="button"
                 >
                   <svg
@@ -320,7 +429,7 @@ export const ConversationsPrimaryView = ({
             <ConversationComposer
               disabled={!isLiveSession}
               disabledReason="This session has ended. Start the agent again to keep talking."
-              error={sendError}
+              error={composerState.sendError}
               onSend={onSendMessage}
               key={selectedSession.sessionId}
             />

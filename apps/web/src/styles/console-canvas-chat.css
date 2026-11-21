@@ -131,6 +131,57 @@
   opacity: 0.85;
 }
 
+/* Per-conversation delete stays reachable without hiding the row's title and timestamp. */
+.design-console .sidebar-conversation-row {
+  position: relative;
+}
+
+.design-console .sidebar-conversation-row .sidebar-conversation-item {
+  padding-right: 34px;
+}
+
+.design-console .sidebar-conversation-delete {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.design-console .sidebar-conversation-row:hover .sidebar-conversation-delete,
+.design-console .sidebar-conversation-delete:focus-visible {
+  opacity: 1;
+}
+
+.design-console .sidebar-conversation-delete:hover {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
+}
+
+.design-console .sidebar-conversation-delete svg {
+  width: 14px;
+  height: 14px;
+}
+
+.design-console .sidebar-conversation-delete:focus-visible {
+  outline: 2px solid var(--destructive);
+  outline-offset: 1px;
+}
+
 /* Transcript */
 
 .design-console .conversations-view {

@@ -38,6 +38,7 @@ type UseConversationsRuntimeResult = {
   isLoadingSelectedSession: boolean;
   isExporting: boolean;
   isClearing: boolean;
+  isDeleting: boolean;
   isSearching: boolean;
   searchQuery: string;
   searchHits: ConversationSearchHit[];
@@ -134,6 +135,7 @@ export const useConversationsRuntime = ({
   const [isLoadingSelectedSession, setIsLoadingSelectedSession] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHits, setSearchHits] = useState<ConversationSearchHit[]>([]);
@@ -208,6 +210,8 @@ export const useConversationsRuntime = ({
         return;
       }
 
+      setIsDeleting(true);
+
       try {
         const response = await fetch(buildConversationSessionUrl(sessionId), {
           method: "DELETE",
@@ -241,6 +245,8 @@ export const useConversationsRuntime = ({
         setErrorMessage(null);
       } catch (error) {
         setErrorMessage(buildErrorMessage("Unable to delete conversation.", error));
+      } finally {
+        setIsDeleting(false);
       }
     },
     [enabled, selectedSessionId],
@@ -377,6 +383,7 @@ export const useConversationsRuntime = ({
       setSelectedSessionId(null);
       setIsExporting(false);
       setIsClearing(false);
+      setIsDeleting(false);
       setIsSearching(false);
       setSearchQuery("");
       setSearchHits([]);
@@ -491,6 +498,7 @@ export const useConversationsRuntime = ({
     isLoadingSelectedSession,
     isExporting,
     isClearing,
+    isDeleting,
     isSearching,
     searchQuery,
     searchHits,

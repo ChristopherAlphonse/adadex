@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
@@ -61,12 +61,12 @@ describe("App shell and navigation", () => {
     mockShellRequests();
 
     render(<App />);
-    await screen.findByRole("navigation", { name: "Primary navigation" });
+    const primaryNav = await screen.findByRole("navigation", { name: "Primary navigation" });
 
     fireEvent.keyDown(window, { key: "4" });
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Conversations/i })).toHaveAttribute(
+      expect(within(primaryNav).getByRole("button", { name: /Conversations/i })).toHaveAttribute(
         "aria-current",
         "page",
       );

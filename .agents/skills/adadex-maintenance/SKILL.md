@@ -57,6 +57,21 @@ npm run build                    # catch type/compile breakage
 
 After any source refactor, tests go stale silently. Check these:
 
+### Infinite render loop from pushed sidebar content
+
+`ConversationsPrimaryView` and `DeckPrimaryView` push JSX into `AppShell` state via
+`onSidebarContent` / `onActionPanel`. An effect with no dependency array (or deps that change
+identity every render) loops forever: push content → parent re-renders → child re-renders →
+cleanup clears it → push again. Symptom: a Vitest worker sits at ~100% CPU indefinitely and
+`npm test` never finishes, often after a nav key press.
+
+- Memoize pushed JSX with `useMemo` and give the push effect `[onSidebarContent, sidebarContent]`
+  (and the matching action-panel deps), as `DeckPrimaryView` does.
+- Keep every callback passed into the memoized JSX in `useCallback`, or the memo changes on every
+  render anyway.
+- `tests/conversation-sidebar-handoff.test.tsx` guards this by throwing from the parent callback
+  after 10 pushes, so a regression fails fast instead of hanging the suite.
+
 ### Startup prerequisites (`apps/api/tests/startupPrerequisites.test.ts`)
 
 This project uses `collectStartupPrerequisiteReport`. When agent providers change (e.g., codex + claude multi-provider), update:

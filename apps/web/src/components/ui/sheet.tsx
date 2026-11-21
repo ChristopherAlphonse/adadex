@@ -48,9 +48,9 @@ export const SheetContent = ({
   className,
   children,
   ...props
-}: ComponentProps<"div"> & { children: ReactNode }) => {
+}: ComponentProps<"dialog"> & { children: ReactNode }) => {
   const { open, onOpenChange } = useSheetContext();
-  const panelRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -89,15 +89,14 @@ export const SheetContent = ({
           onOpenChange(false);
         }}
       />
-      <div
+      <dialog
         aria-modal="true"
         className={cn(
-          "animate-in slide-in-from-right fixed inset-y-0 right-0 z-[210] flex h-full w-[min(760px,94vw)] flex-col border-l border-border bg-background text-foreground shadow-2xl outline-none duration-200",
+          "m-0 max-h-none max-w-none animate-in slide-in-from-right fixed inset-y-0 right-0 left-auto z-[210] flex h-full w-[min(760px,94vw)] flex-col border-l border-border bg-background p-0 text-foreground shadow-2xl outline-none duration-200",
           className,
         )}
+        open
         ref={panelRef}
-        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- native dialog changes deck sheet layout/focus behavior
-        role="dialog"
         tabIndex={-1}
         {...props}
       >
@@ -112,7 +111,7 @@ export const SheetContent = ({
         >
           <X size={16} />
         </button>
-      </div>
+      </dialog>
     </>,
     getPortalTarget(),
   );
