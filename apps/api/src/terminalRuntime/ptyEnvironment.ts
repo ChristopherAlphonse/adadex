@@ -1,7 +1,8 @@
-import { isString } from "@adadex/core";
 import { chmodSync, existsSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
+
+import { isString } from "@adadex/core";
 
 const require = createRequire(import.meta.url);
 

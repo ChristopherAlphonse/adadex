@@ -14,7 +14,10 @@ type UseWorkspaceSetupResult = {
 
 const readErrorMessage = async (response: Response, fallback: string) => {
   try {
-    const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as { error?: unknown };
+    const payload =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as {
+        error?: unknown;
+      };
 
     return isString(payload.error) ? payload.error : fallback;
   } catch {
@@ -39,7 +42,9 @@ export const useWorkspaceSetup = (): UseWorkspaceSetupResult => {
         throw new Error(await readErrorMessage(response, "Unable to load workspace setup."));
       }
 
-      const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as WorkspaceSetupSnapshot;
+      const payload =
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as WorkspaceSetupSnapshot;
+
       setWorkspaceSetup(payload);
 
       return payload;
@@ -66,7 +71,9 @@ export const useWorkspaceSetup = (): UseWorkspaceSetupResult => {
         throw new Error(await readErrorMessage(response, `Unable to run ${stepId}.`));
       }
 
-      const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as WorkspaceSetupSnapshot;
+      const payload =
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as WorkspaceSetupSnapshot;
+
       setWorkspaceSetup(payload);
 
       return payload;

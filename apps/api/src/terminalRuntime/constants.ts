@@ -13,9 +13,9 @@ export const COORDINATION_WORKTREE_BRANCH_PREFIX = "adadex/";
 export const DEFAULT_AGENT_PROVIDER = "claude" as const;
 
 export const TERMINAL_BOOTSTRAP_COMMANDS = {
-  kiro: "kiro-cli",
   claude: "claude",
   opencode: "opencode",
+  kiro: "kiro-cli",
 } as const;
 
 export const TERMINAL_SESSION_IDLE_GRACE_MS = 5 * 60 * 1000;

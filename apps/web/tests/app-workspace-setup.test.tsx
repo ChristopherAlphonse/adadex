@@ -38,13 +38,14 @@ const buildSetupSnapshot = (
       command: "printf '.adadex/\\n.planning/\\n' >> .gitignore",
     },
     {
-      id: "check-kiro",
-      title: "Check Kiro",
-      description: "Verify the Kiro CLI workflow is available on this machine.",
+      id: "check-agent-cli",
+      title: "Check agent CLI",
+      description:
+        "Verify an agent CLI (Claude Code, OpenCode, or Kiro) is available on this machine.",
       complete: true,
       required: false,
-      actionLabel: "Check Kiro",
-      statusText: "Kiro is available.",
+      actionLabel: "Check agent CLI",
+      statusText: "Found: Claude Code.",
       guidance: null,
       command: null,
     },
@@ -196,7 +197,11 @@ describe("App workspace setup", () => {
         .closest(".workspace-setup-step");
 
       expect(gitignoreStep).not.toBeNull();
-      expect(within(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ gitignoreStep as HTMLElement).getByText("Done")).toBeInTheDocument();
+      expect(
+        within(
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ gitignoreStep as HTMLElement,
+        ).getByText("Done"),
+      ).toBeInTheDocument();
     });
   });
 

@@ -182,7 +182,8 @@ export const GitHubPrimaryView = ({
     if (pinnedCommitHash === null) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ event.target as Node;
+      const target =
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ event.target as Node;
 
       if (recentSectionRef.current?.contains(target) || tooltipRef.current?.contains(target)) {
         return;

@@ -39,7 +39,12 @@ export const TerminalPromptPicker = ({
     fetch(buildPromptsUrl())
       .then(async (res) => {
         if (!res.ok) return;
-        const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as { prompts: PromptLibraryEntry[] };
+
+        const data =
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as {
+            prompts: PromptLibraryEntry[];
+          };
+
         setPrompts(data.prompts);
       })
       .catch(() => {
@@ -56,9 +61,13 @@ export const TerminalPromptPicker = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (
         popoverRef.current &&
-        !popoverRef.current.contains(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as Node) &&
+        !popoverRef.current.contains(
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as Node,
+        ) &&
         anchorRef.current &&
-        !anchorRef.current.contains(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as Node)
+        !anchorRef.current.contains(
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as Node,
+        )
       ) {
         onClose();
       }
@@ -77,7 +86,10 @@ export const TerminalPromptPicker = ({
         const res = await fetch(buildPromptItemUrl(name));
 
         if (!res.ok) return;
-        const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as PromptDetail;
+
+        const data =
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as PromptDetail;
+
         onSelectPrompt(data.content);
         onClose();
       } catch {

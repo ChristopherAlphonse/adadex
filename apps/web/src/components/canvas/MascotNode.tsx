@@ -115,15 +115,23 @@ function deriveNodeMascotVisuals(node: GraphNode): LocalMascotVisuals {
 
   return {
     animation:
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ stored?.animation as MascotAnimation | null) ??
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ ANIMATIONS[Math.floor(rng() * ANIMATIONS.length)] as MascotAnimation),
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (stored?.animation as MascotAnimation | null) ??
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (ANIMATIONS[
+        Math.floor(rng() * ANIMATIONS.length)
+      ] as MascotAnimation),
     expression:
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ stored?.expression as MascotExpression | null) ??
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ EXPRESSIONS[Math.floor(rng() * EXPRESSIONS.length)] as MascotExpression),
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (stored?.expression as MascotExpression | null) ??
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (EXPRESSIONS[
+        Math.floor(rng() * EXPRESSIONS.length)
+      ] as MascotExpression),
     accessory:
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ stored?.accessory as MascotAccessory | null) ??
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ ACCESSORIES[Math.floor(rng() * ACCESSORIES.length)] as MascotAccessory),
-    variant: (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ stored?.variant as AgentGlyphVariant | null) ?? undefined,
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (stored?.accessory as MascotAccessory | null) ??
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (ACCESSORIES[
+        Math.floor(rng() * ACCESSORIES.length)
+      ] as MascotAccessory),
+    variant:
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (stored?.variant as AgentGlyphVariant | null) ??
+      undefined,
     identitySeed: stored?.identitySeed ?? node.coordinationId,
     hairColor: stored?.hairColor ?? undefined,
   };
@@ -262,10 +270,15 @@ export const MascotNode = ({
   const isDeckLead = node.type === "deck-lead";
   const lines = useMemo(() => splitLabel(node.label), [node.label]);
 
+  // SAFETY: the literal holds only valid LocalMascotVisuals members.
   const visuals = useMemo(
     () =>
       isDeckLead
-        ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { animation: "sway", expression: "normal", accessory: "none" } as LocalMascotVisuals)
+        ? ({
+            animation: "sway",
+            expression: "normal",
+            accessory: "none",
+          } as LocalMascotVisuals)
         : deriveNodeMascotVisuals(node),
     [node, isDeckLead],
   );

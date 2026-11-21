@@ -19,7 +19,12 @@ import {
   registerProject,
 } from "./projectPersistence";
 import { readSetupState } from "./setupState";
-import { collectStartupPrerequisiteReport } from "./startupPrerequisites";
+import {
+  AGENT_CLI_INSTALL_GUIDANCE,
+  AGENT_CLIS,
+  DEFAULT_AGENT_CLI,
+  collectStartupPrerequisiteReport,
+} from "./startupPrerequisites";
 
 export const initializeWorkspaceFiles = (workspaceCwd: string, projectStateDir: string) => {
   const projectName = loadProjectConfig(workspaceCwd)?.displayName;
@@ -61,10 +66,12 @@ export const readWorkspaceSetupSnapshot = (
   const setupState = readSetupState(projectStateDir);
   const isFirstRun = !hasAnyCoordinations && !setupState.coordinationsInitializedAt;
   const verifiedSteps = setupState.verifiedSteps ?? {};
-  const isKiroVerified = Boolean(verifiedSteps["check-kiro"]);
+  const isAgentCliVerified = Boolean(verifiedSteps["check-agent-cli"]);
   const isGitVerified = Boolean(verifiedSteps["check-git"]);
   const isCurlVerified = Boolean(verifiedSteps["check-curl"]);
-  const hasKiro = prerequisites.availability.kiro;
+  const installedAgentClis = AGENT_CLIS.filter((cli) => prerequisites.availability[cli.key]);
+  const hasAgentCli = installedAgentClis.length > 0;
+  const installedAgentCliNames = installedAgentClis.map((cli) => cli.name).join(", ");
   const hasGit = prerequisites.availability.git;
   const hasCurl = prerequisites.availability.curl;
 
@@ -101,23 +108,24 @@ export const readWorkspaceSetupSnapshot = (
       command: hasGitignore ? null : "printf '.adadex/\\n.planning/\\n' >> .gitignore",
     },
     {
-      id: "check-kiro",
-      title: "Check Kiro CLI",
-      description: "Verify the Kiro CLI is available on this machine.",
-      complete: hasKiro && isKiroVerified,
+      id: "check-agent-cli",
+      title: "Check agent CLI",
+      description:
+        "Verify an agent CLI (Claude Code, OpenCode, or Kiro) is available on this machine.",
+      complete: hasAgentCli && isAgentCliVerified,
       required: false,
-      actionLabel: "Check Kiro CLI",
-      statusText: hasKiro
-        ? isKiroVerified
-          ? "Kiro CLI is available."
-          : "Confirm Kiro CLI before using it as your agent provider."
-        : "Kiro CLI is not installed.",
-      guidance: hasKiro
-        ? isKiroVerified
+      actionLabel: "Check agent CLI",
+      statusText: hasAgentCli
+        ? isAgentCliVerified
+          ? `Found: ${installedAgentCliNames}.`
+          : `Found ${installedAgentCliNames}. Confirm before using it as your agent provider.`
+        : "No agent CLI is installed.",
+      guidance: hasAgentCli
+        ? isAgentCliVerified
           ? null
-          : "Click to verify the Kiro CLI workflow on this machine."
-        : "Run `curl -fsSL https://cli.kiro.dev/install | bash` to install Kiro CLI.",
-      command: hasKiro ? null : "curl -fsSL https://cli.kiro.dev/install | bash",
+          : "Click to verify the agent CLI workflow on this machine."
+        : AGENT_CLI_INSTALL_GUIDANCE,
+      command: hasAgentCli ? null : DEFAULT_AGENT_CLI.install,
     },
     {
       id: "check-git",

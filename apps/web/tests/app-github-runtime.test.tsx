@@ -102,15 +102,18 @@ describe("App GitHub runtime views", () => {
 
     expect(graphPoint).not.toBeNull();
     expect(container.querySelectorAll(".github-overview-graph-point")).toHaveLength(3);
-    fireEvent.mouseEnter(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ graphPoint as Element);
+    fireEvent.mouseEnter(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ graphPoint as Element,
+    );
 
     const hoverMeta = container.querySelector(".github-overview-graph-meta span");
     expect(hoverMeta).not.toBeNull();
     expect(hoverMeta).toHaveTextContent("2026-02-27 · 8 commits");
 
-    const graphSvg = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ container.querySelector(
-      ".github-overview-graph-surface svg",
-    ) as SVGElement | null;
+    const graphSvg =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ container.querySelector(
+        ".github-overview-graph-surface svg",
+      ) as SVGElement | null;
 
     expect(graphSvg).not.toBeNull();
 
@@ -163,13 +166,18 @@ describe("App GitHub runtime views", () => {
 
     const blob = createObjectUrl.mock.calls[0]?.[0];
     expect(blob).toBeInstanceOf(Blob);
-    expect((/* SAFETY: preceding checks establish the invariant this assertion encodes. */ blob as Blob).type).toBe("text/plain;charset=utf-8");
+    expect(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (blob as Blob)
+        .type,
+    ).toBe("text/plain;charset=utf-8");
 
     const exported = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result ?? ""));
       reader.onerror = () => reject(reader.error);
-      reader.readAsText(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ blob as Blob);
+      reader.readAsText(
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ blob as Blob,
+      );
     });
 
     expect(exported).toBe(buildGitHistoryText(buildRecentCommits(), "ChristopherAlphonse/adadex"));

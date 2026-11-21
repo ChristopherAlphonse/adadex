@@ -1199,44 +1199,47 @@ describe("createApiServer", () => {
     });
   });
 
-  it("lists Kiro skills from the project skills folder", async () => {
-    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
-    temporaryDirectories.push(workspaceCwd);
-    const projectSkillDir = join(workspaceCwd, ".kiro", "skills", "docs-writer");
-    mkdirSync(projectSkillDir, { recursive: true });
-    writeFileSync(
-      join(projectSkillDir, "SKILL.md"),
-      [
-        "---",
-        "name: docs-writer",
-        "description: Helps keep docs aligned with product changes.",
-        "---",
-        "",
-        "# Docs Writer",
-        "",
-        "Writes and updates docs.",
-        "",
-      ].join("\n"),
-      "utf8",
-    );
+  it.each([".claude", ".opencode", ".agents", ".kiro"])(
+    "lists project skills from the %s/skills folder",
+    async (agentDir) => {
+      const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
+      temporaryDirectories.push(workspaceCwd);
+      const projectSkillDir = join(workspaceCwd, agentDir, "skills", "docs-writer");
+      mkdirSync(projectSkillDir, { recursive: true });
+      writeFileSync(
+        join(projectSkillDir, "SKILL.md"),
+        [
+          "---",
+          "name: docs-writer",
+          "description: Helps keep docs aligned with product changes.",
+          "---",
+          "",
+          "# Docs Writer",
+          "",
+          "Writes and updates docs.",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
 
-    const baseUrl = await startServer({ workspaceCwd });
+      const baseUrl = await startServer({ workspaceCwd });
 
-    const response = await fetch(`${baseUrl}/api/deck/skills`, {
-      headers: { Accept: "application/json" },
-    });
+      const response = await fetch(`${baseUrl}/api/deck/skills`, {
+        headers: { Accept: "application/json" },
+      });
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: "docs-writer",
-          description: "Helps keep docs aligned with product changes.",
-          source: "project",
-        }),
-      ]),
-    );
-  });
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: "docs-writer",
+            description: "Helps keep docs aligned with product changes.",
+            source: "project",
+          }),
+        ]),
+      );
+    },
+  );
 
   it("ignores a root project skills SKILL.md file and only lists folder-based skills", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));

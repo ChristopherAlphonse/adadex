@@ -507,7 +507,7 @@ export const createSessionRuntime = ({
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
 
-    // Schedule initial prompt injection after the Kiro CLI has had time to boot.
+    // Schedule initial prompt injection after the agent CLI has had time to boot.
     if (session.initialPrompt && !session.isInitialPromptSent) {
       schedulePromptTimer(
         session,

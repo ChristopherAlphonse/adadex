@@ -619,7 +619,10 @@ export const createTerminalRuntime = ({
         ? worktreeManager.getOrchestrationWorkspaceCwd(effectiveWorktreeId)
         : workspaceCwd;
 
-      hookProcessor.installHooksInDirectory(hookTargetCwd, terminal.agentProvider ?? "kiro");
+      hookProcessor.installHooksInDirectory(
+        hookTargetCwd,
+        terminal.agentProvider ?? DEFAULT_AGENT_PROVIDER,
+      );
     } catch {
       // Best-effort: hook installation should not block terminal creation.
     }

@@ -1,4 +1,4 @@
-/** Token usage heatmap: legacy integration removed; returns empty series until a Kiro session export is wired. */
+/** Token usage heatmap: legacy integration removed; returns empty series until an agent session export is wired. */
 
 export type UsageSlice = {
   key: string;

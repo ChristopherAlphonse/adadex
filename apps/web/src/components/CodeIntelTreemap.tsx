@@ -57,7 +57,10 @@ export const CodeIntelTreemap = ({ root }: CodeIntelTreemapProps) => {
   }, [rects]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const rect = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.currentTarget as HTMLElement).getBoundingClientRect();
+    const rect = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+      e.currentTarget as HTMLElement
+    ).getBoundingClientRect();
+
     setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   }, []);
 

@@ -47,7 +47,12 @@ export const usePromptLibrary = ({
       const res = await fetch(buildPromptsUrl());
 
       if (!res.ok) throw new Error("Failed to load prompts");
-      const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as { prompts: PromptLibraryEntry[] };
+
+      const data =
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as {
+          prompts: PromptLibraryEntry[];
+        };
+
       setPrompts(data.prompts);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Failed to load prompts");
@@ -69,7 +74,10 @@ export const usePromptLibrary = ({
         if (requestId !== detailRequestRef.current) return;
 
         if (!res.ok) throw new Error("Prompt not found");
-        const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as PromptDetail;
+
+        const data =
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as PromptDetail;
+
         setSelectedPromptDetail(data);
       })
       .catch((err) => {
@@ -96,7 +104,11 @@ export const usePromptLibrary = ({
         });
 
         if (!res.ok) {
-          const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as { error?: string };
+          const data =
+            /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as {
+              error?: string;
+            };
+
           throw new Error(data.error ?? "Failed to save prompt");
         }
 
@@ -162,7 +174,10 @@ export const usePromptLibrary = ({
       });
 
       if (!res.ok) throw new Error("Failed to update prompt");
-      const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as PromptDetail;
+
+      const data =
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as PromptDetail;
+
       setSelectedPromptDetail(data);
       setIsEditing(false);
       setEditDraft("");

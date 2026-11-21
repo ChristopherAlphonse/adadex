@@ -35,7 +35,11 @@ export const useCodeIntelRuntime = (enabled: boolean): CodeIntelRuntimeResult =>
         return;
       }
 
-      const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as { events: CodeIntelEvent[] };
+      const data =
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as {
+          events: CodeIntelEvent[];
+        };
+
       setEvents(data.events);
     } catch {
       setError("Failed to connect to API");

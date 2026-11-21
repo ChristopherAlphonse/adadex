@@ -14,7 +14,10 @@ type DeleteAllTerminalsDialogProps = {
 
 const readDeleteFailureMessage = async (response: Response, fallback: string) => {
   try {
-    const payload = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as { error?: unknown };
+    const payload =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await response.json()) as {
+        error?: unknown;
+      };
 
     if (isString(payload.error) && payload.error.trim().length > 0) {
       return payload.error;

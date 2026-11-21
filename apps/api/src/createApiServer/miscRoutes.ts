@@ -30,7 +30,7 @@ const WORKSPACE_SETUP_STEP_PATH_PATTERN = /^\/api\/setup\/steps\/([^/]+)$/;
 const isWorkspaceSetupStepId = (value: string): value is WorkspaceSetupStepId =>
   value === "initialize-workspace" ||
   value === "ensure-gitignore" ||
-  value === "check-kiro" ||
+  value === "check-agent-cli" ||
   value === "check-git" ||
   value === "check-curl" ||
   value === "create-coordinations";
@@ -75,7 +75,7 @@ export const handleWorkspaceSetupRoute: ApiRouteHandler = async (
     initializeWorkspaceFiles(workspaceCwd, projectStateDir);
   } else if (stepId === "ensure-gitignore") {
     ensureWorkspaceGitignore(workspaceCwd);
-  } else if (stepId === "check-kiro" || stepId === "check-git" || stepId === "check-curl") {
+  } else if (stepId === "check-agent-cli" || stepId === "check-git" || stepId === "check-curl") {
     markSetupStepVerified(projectStateDir, stepId);
   }
 

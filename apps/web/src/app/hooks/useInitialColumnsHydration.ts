@@ -40,7 +40,11 @@ export const useInitialColumnsHydration = ({
         setColumns(nextColumns);
         applyHydratedUiState(nextUiState, nextColumns);
       } catch (error) {
-        if ((/* SAFETY: preceding checks establish the invariant this assertion encodes. */ error as Error).name !== "AbortError") {
+        if (
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+            error as Error
+          ).name !== "AbortError"
+        ) {
           setColumns([]);
           setLoadError("Agent data is currently unavailable.");
         }

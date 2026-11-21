@@ -1,4 +1,5 @@
 import { isString } from "@adadex/core";
+
 import type {
   AgentGlyphAccessory,
   AgentGlyphAnimation,
@@ -131,19 +132,22 @@ const resolveLegacyGlyph = ({
     afro: "badge",
   };
 
+  // SAFETY: the `in` check against the map's keys establishes the legacy key type.
   const legacyAnimation =
     isString(animation) && animation in animationMap
-      ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ animation as LegacyMascotAnimation)
+      ? (animation as LegacyMascotAnimation)
       : "sway";
 
+  // SAFETY: the `in` check against the map's keys establishes the legacy key type.
   const legacyExpression =
     isString(expression) && expression in expressionMap
-      ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ expression as LegacyMascotExpression)
+      ? (expression as LegacyMascotExpression)
       : "normal";
 
+  // SAFETY: the `in` check against the map's keys establishes the legacy key type.
   const legacyAccessory =
     isString(accessory) && accessory in accessoryMap
-      ? (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ accessory as LegacyMascotAccessory)
+      ? (accessory as LegacyMascotAccessory)
       : "none";
 
   const resolvedAnimation = isAgentAnimation(animation) ? animation : animationMap[legacyAnimation];

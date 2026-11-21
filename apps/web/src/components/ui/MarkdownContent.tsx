@@ -33,7 +33,11 @@ type MarkdownContentProps = {
 
 export const MarkdownContent = ({ content, className, highlightTerm }: MarkdownContentProps) => {
   const html = useMemo(() => {
-    const rendered = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ marked.parse(content, { async: false }) as string;
+    const rendered =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ marked.parse(
+        content,
+        { async: false },
+      ) as string;
 
     if (highlightTerm && highlightTerm.length > 0) {
       return highlightHtml(rendered, highlightTerm);

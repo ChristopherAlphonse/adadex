@@ -55,7 +55,10 @@ export const AddOrchestrationForm = ({
   const [description, setDescription] = useState("");
 
   const [selectedColor, setSelectedColor] = useState(
-    () => /* SAFETY: preceding checks establish the invariant this assertion encodes. */ MASCOT_COLORS[Math.floor(Math.random() * MASCOT_COLORS.length)] as string,
+    () =>
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ MASCOT_COLORS[
+        Math.floor(Math.random() * MASCOT_COLORS.length)
+      ] as string,
   );
 
   const [selectedExpression, setSelectedExpression] = useState<MascotExpression>("neutral");

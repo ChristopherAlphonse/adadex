@@ -9,7 +9,12 @@ export const useClickOutside = (
     if (!isActive) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ event.target as Node)) {
+      if (
+        ref.current &&
+        !ref.current.contains(
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ event.target as Node,
+        )
+      ) {
         onDismiss();
       }
     };

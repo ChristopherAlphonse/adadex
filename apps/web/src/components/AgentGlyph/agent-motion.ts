@@ -1,4 +1,5 @@
 import { isFunctionValue } from "@adadex/core";
+
 import type { AgentGlyphAnimation, AgentGlyphMood, Motion } from "./agent-types";
 
 export const getMotion = (

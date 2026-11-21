@@ -38,7 +38,11 @@ export const createCodeIntelStore = (projectStateDir: string): CodeIntelStore =>
         if (line.trim().length === 0) continue;
 
         try {
-          events.push(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(line) as CodeIntelEvent);
+          events.push(
+            /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(
+              line,
+            ) as CodeIntelEvent,
+          );
         } catch {
           // skip malformed lines
         }

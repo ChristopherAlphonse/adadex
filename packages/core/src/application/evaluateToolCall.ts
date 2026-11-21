@@ -1,5 +1,10 @@
 import type { PolicyDecision, PolicyRules } from "../domain/policy";
-import { isParsedRecord, isString, type ParsedValue } from "../util/typeCoercion";
+import {
+  isParsedRecord,
+  isString,
+  type ParsedRecord,
+  type ParsedValue,
+} from "../util/typeCoercion";
 import { evaluateShell, evaluateWrite } from "./evaluatePolicy";
 
 const SHELL_TOOLS = new Set(["Bash", "bash", "execute_bash"]);
@@ -24,6 +29,20 @@ const PATH_KEYS = ["path", "file_path", "filePath", "notebook_path"] as const;
 const PATCH_FILE = /^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm;
 
 const deny = (reason: string): PolicyDecision => ({ kind: "deny", reason });
+
+/** The files a tool call names, whichever CLI sent it: Claude Code, OpenCode or Kiro keys, or an OpenCode patch. */
+export const toolCallPaths = (input: ParsedRecord): string[] => {
+  const paths = PATH_KEYS.flatMap((k) => {
+    const value = input[k];
+
+    return isString(value) ? [value] : [];
+  });
+
+  if (isString(input.patchText))
+    paths.push(...[...input.patchText.matchAll(PATCH_FILE)].map((m) => m[1] ?? ""));
+
+  return paths;
+};
 
 /**
  * Judge one tool call an agent is about to make, in the shape Claude Code, OpenCode and Kiro hooks send:
@@ -51,14 +70,7 @@ export const evaluateToolCall = (
 
   if (!WRITE_TOOLS.has(tool)) return { kind: "allow" };
 
-  const paths = PATH_KEYS.flatMap((k) => {
-    const value = input[k];
-
-    return isString(value) ? [value] : [];
-  });
-
-  if (isString(input.patchText))
-    paths.push(...[...input.patchText.matchAll(PATCH_FILE)].map((m) => m[1] ?? ""));
+  const paths = toolCallPaths(input);
 
   if (paths.length === 0) return deny("a write whose target file it cannot see");
 

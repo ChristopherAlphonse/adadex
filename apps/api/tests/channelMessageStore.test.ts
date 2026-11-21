@@ -66,10 +66,13 @@ describe("channel message persistence", () => {
     expect(loaded.get("agent-2")).toEqual(queues.get("agent-2"));
     expect(loaded.get("agent-3")).toEqual(queues.get("agent-3"));
 
-    const document = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(readFileSync(path, "utf8")) as {
-      version: number;
-      messages: ChannelMessage[];
-    };
+    const document =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(
+        readFileSync(path, "utf8"),
+      ) as {
+        version: number;
+        messages: ChannelMessage[];
+      };
 
     expect(document.version).toBe(CHANNEL_MESSAGES_VERSION);
     expect(document.messages).toHaveLength(3);

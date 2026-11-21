@@ -96,8 +96,17 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
       });
 
       if (!res.ok) throw new Error("Failed to create terminal");
-      const data = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as { terminalId?: string; coordinationId?: string };
-      const agentId = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (data.terminalId ?? data.coordinationId) as string;
+
+      const data =
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await res.json()) as {
+          terminalId?: string;
+          coordinationId?: string;
+        };
+
+      const agentId =
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (data.terminalId ??
+          data.coordinationId) as string;
+
       setNewPromptMode({ terminalId: agentId });
       setShowTerminal(true);
       onTerminalIdChange(agentId);

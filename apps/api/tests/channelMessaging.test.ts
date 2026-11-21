@@ -16,7 +16,9 @@ const terminal = (terminalId: string): PersistedTerminal => ({
 });
 
 const session = (agentState: TerminalSession["agentState"]): TerminalSession =>
-  /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ({ agentState }) as TerminalSession;
+  /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ({
+    agentState,
+  }) as TerminalSession;
 
 describe("createChannelMessaging", () => {
   const temporaryDirectories: string[] = [];

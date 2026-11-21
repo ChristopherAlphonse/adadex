@@ -120,7 +120,9 @@ describe("CanvasOrchestrationPanel actions", () => {
       name: /spawn agent for todo item/i,
     });
 
-    fireEvent.click(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ solveButtons[0] as HTMLElement);
+    fireEvent.click(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ solveButtons[0] as HTMLElement,
+    );
 
     await waitFor(() => {
       expect(onSolveTodoItem).toHaveBeenCalledWith("docs-knowledge", 0);
@@ -165,7 +167,11 @@ describe("CanvasOrchestrationPanel actions", () => {
       />,
     );
 
-    fireEvent.click(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await screen.findAllByRole("checkbox"))[0] as HTMLElement);
+    fireEvent.click(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        await screen.findAllByRole("checkbox")
+      )[0] as HTMLElement,
+    );
 
     await waitFor(() => {
       expect(onRefreshOrchestrationData).toHaveBeenCalledTimes(1);

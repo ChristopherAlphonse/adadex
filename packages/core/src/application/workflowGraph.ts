@@ -1,4 +1,3 @@
-import { isString } from "../util/typeCoercion";
 import {
   type Condition,
   type Effect,
@@ -6,9 +5,9 @@ import {
   type SkillRef,
   type WorkflowDefinition,
 } from "../domain/workflow";
+import { isString } from "../util/typeCoercion";
 
-const list = (v: string | readonly string[]): string =>
-  isString(v) ? v : v.join(" or ");
+const list = (v: string | readonly string[]): string => (isString(v) ? v : v.join(" or "));
 
 /** A condition in plain words, for the side panel and the edge labels. */
 export const describeCondition = (c: Condition): string => {

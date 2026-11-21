@@ -165,7 +165,12 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     (e: React.PointerEvent<SVGSVGElement>) => {
       if (e.button !== 0) return;
 
-      if (e.target !== svgRef.current && (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as SVGElement).closest?.(".canvas-node")) {
+      if (
+        e.target !== svgRef.current &&
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+          e.target as SVGElement
+        ).closest?.(".canvas-node")
+      ) {
         return;
       }
 
@@ -176,7 +181,9 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
         startTy: transform.translateY,
       };
       setIsPanning(true);
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ e.target as SVGSVGElement).setPointerCapture?.(e.pointerId);
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        e.target as SVGSVGElement
+      ).setPointerCapture?.(e.pointerId);
     },
     [transform.translateX, transform.translateY],
   );

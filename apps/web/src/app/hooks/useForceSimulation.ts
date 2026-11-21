@@ -156,7 +156,10 @@ export const useForceSimulation = ({
 
         if (!source || !target) return null;
 
-        return /* SAFETY: preceding checks establish the invariant this assertion encodes. */ { source, target } as SimLink;
+        return /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
+          source,
+          target,
+        } as SimLink;
       })
       .filter((l): l is SimLink => l !== null);
 
@@ -166,14 +169,16 @@ export const useForceSimulation = ({
           "link",
           forceLink<SimNode, SimLink>(simLinks)
             .distance((link: SimLink) => {
-              const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
+              const target =
+                /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
 
               return target._gn.type === "inactive-session"
                 ? p.linkDistance * 0.35
                 : p.linkDistance;
             })
             .strength((link: SimLink) => {
-              const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
+              const target =
+                /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
 
               return target._gn.type === "inactive-session" ? p.linkStrength * 1.5 : p.linkStrength;
             }),
@@ -256,19 +261,24 @@ export const useForceSimulation = ({
 
     sim.velocityDecay(params.velocityDecay).alphaDecay(params.alphaDecay);
 
-    const linkForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("link") as ReturnType<typeof forceLink<SimNode, SimLink>> | null;
+    const linkForce =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force(
+        "link",
+      ) as ReturnType<typeof forceLink<SimNode, SimLink>> | null;
 
     if (linkForce) {
       linkForce
         .distance((link: SimLink) => {
-          const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
+          const target =
+            /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
 
           return target._gn.type === "inactive-session"
             ? params.linkDistance * 0.35
             : params.linkDistance;
         })
         .strength((link: SimLink) => {
-          const target = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
+          const target =
+            /* SAFETY: preceding checks establish the invariant this assertion encodes. */ link.target as SimNode;
 
           return target._gn.type === "inactive-session"
             ? params.linkStrength * 1.5
@@ -276,21 +286,33 @@ export const useForceSimulation = ({
         });
     }
 
-    const chargeForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("charge") as ReturnType<typeof forceManyBody<SimNode>> | null;
+    const chargeForce =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force(
+        "charge",
+      ) as ReturnType<typeof forceManyBody<SimNode>> | null;
 
     if (chargeForce) {
       chargeForce.strength(params.repelStrength).distanceMax(params.repelDistanceMax);
     }
 
-    const xForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("x") as ReturnType<typeof forceX<SimNode>> | null;
+    const xForce =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force(
+        "x",
+      ) as ReturnType<typeof forceX<SimNode>> | null;
 
     if (xForce) xForce.strength(params.positionStrength);
 
-    const yForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("y") as ReturnType<typeof forceY<SimNode>> | null;
+    const yForce =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force(
+        "y",
+      ) as ReturnType<typeof forceY<SimNode>> | null;
 
     if (yForce) yForce.strength(params.positionStrength);
 
-    const collideForce = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force("collide") as ReturnType<typeof forceCollide<SimNode>> | null;
+    const collideForce =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ sim.force(
+        "collide",
+      ) as ReturnType<typeof forceCollide<SimNode>> | null;
 
     if (collideForce) {
       collideForce.radius(params.collisionPadding);

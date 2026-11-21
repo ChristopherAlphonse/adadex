@@ -308,43 +308,49 @@ export const OrchestrationPod = ({
               <div className="deck-pod-mascot-editor-group">
                 <span className="deck-pod-mascot-editor-label">Expression</span>
                 <div className="deck-pod-mascot-editor-chips">
-                  {(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ ["neutral", "happy", "focused", "curious"] as AgentGlyphMood[]).map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      className="deck-add-form-chip"
-                      data-selected={opt === editExpression ? "true" : "false"}
-                      onClick={() => setEditExpression(opt)}
-                    >
-                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                    </button>
-                  ))}
+                  {
+                    /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+                      ["neutral", "happy", "focused", "curious"] as AgentGlyphMood[]
+                    ).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        className="deck-add-form-chip"
+                        data-selected={opt === editExpression ? "true" : "false"}
+                        onClick={() => setEditExpression(opt)}
+                      >
+                        {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                      </button>
+                    ))
+                  }
                 </div>
               </div>
               <div className="deck-pod-mascot-editor-group">
                 <span className="deck-pod-mascot-editor-label">Accessory</span>
                 <div className="deck-pod-mascot-editor-chips">
-                  {(
-                    /* SAFETY: preceding checks establish the invariant this assertion encodes. */ [
-                      { value: "none" as const, label: "None" },
-                      { value: "glasses" as const, label: "Glasses" },
-                      { value: "badge" as const, label: "Badge" },
-                      { value: "visor" as const, label: "Visor" },
-                      { value: "terminal" as const, label: "Terminal" },
-                      { value: "node-ring" as const, label: "Node Ring" },
-                      { value: "shield" as const, label: "Shield" },
-                    ] as { value: AgentGlyphAccessory; label: string }[]
-                  ).map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className="deck-add-form-chip"
-                      data-selected={opt.value === editAccessory ? "true" : "false"}
-                      onClick={() => setEditAccessory(opt.value)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                  {
+                    /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+                      [
+                        { value: "none" as const, label: "None" },
+                        { value: "glasses" as const, label: "Glasses" },
+                        { value: "badge" as const, label: "Badge" },
+                        { value: "visor" as const, label: "Visor" },
+                        { value: "terminal" as const, label: "Terminal" },
+                        { value: "node-ring" as const, label: "Node Ring" },
+                        { value: "shield" as const, label: "Shield" },
+                      ] as { value: AgentGlyphAccessory; label: string }[]
+                    ).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className="deck-add-form-chip"
+                        data-selected={opt.value === editAccessory ? "true" : "false"}
+                        onClick={() => setEditAccessory(opt.value)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))
+                  }
                 </div>
               </div>
             </div>
@@ -401,7 +407,8 @@ export const OrchestrationPod = ({
             <div className="deck-pod-skills-editor">
               {skillNames.length === 0 ? (
                 <span className="deck-pod-skills-empty">
-                  No project skills found (.kiro/skills).
+                  No project skills found (.claude/skills, .opencode/skills, .agents/skills,
+                  .kiro/skills).
                 </span>
               ) : (
                 <div className="deck-pod-skills-options">

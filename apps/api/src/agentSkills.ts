@@ -106,10 +106,20 @@ const listSkillDefinitionFiles = (skillsRoot: string): string[] => {
   return definitions;
 };
 
+/** Project skill folders for each supported agent CLI. When two folders hold a skill with the same name, the earlier one wins. */
+const PROJECT_SKILL_DIRS = [
+  [".claude", "skills"],
+  [".opencode", "skills"],
+  [".agents", "skills"],
+  [".kiro", "skills"],
+] as const;
+
 export const readAvailableAgentSkills = (workspaceCwd: string): DeckAvailableSkill[] => {
-  const roots: Array<{ path: string; source: DeckAvailableSkill["source"] }> = [
-    { path: join(workspaceCwd, ".kiro", "skills"), source: "project" },
-  ];
+  const roots: Array<{ path: string; source: DeckAvailableSkill["source"] }> =
+    PROJECT_SKILL_DIRS.map((segments) => ({
+      path: join(workspaceCwd, ...segments),
+      source: "project",
+    }));
 
   const seen = new Map<string, DeckAvailableSkill>();
 

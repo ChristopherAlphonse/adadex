@@ -15,18 +15,29 @@ describe("startup prerequisites", () => {
     expect(formatStartupPrerequisiteReport(report)).toEqual([]);
   });
 
-  it("warns when kiro-cli is not installed", () => {
+  it("warns when no agent CLI is installed", () => {
     const report = collectStartupPrerequisiteReport((command) => command === "git");
 
     expect(report.errors).toEqual([]);
-    expect(report.warnings.map((issue) => issue.command)).toEqual(["kiro-cli", "gh", "curl"]);
+    expect(report.warnings.map((issue) => issue.command)).toEqual(["claude", "gh", "curl"]);
+    expect(report.warnings[0]?.summary).toBe(
+      "No agent CLI found (`claude`, `opencode`, `kiro-cli`).",
+    );
   });
 
-  it("passes cleanly for optional integrations when kiro-cli is available", () => {
-    const report = collectStartupPrerequisiteReport((command) => command === "kiro-cli");
+  it.each(["claude", "opencode", "kiro-cli"])(
+    "does not warn about the agent CLI when only %s is installed",
+    (agentBinary) => {
+      const report = collectStartupPrerequisiteReport((command) => command === agentBinary);
 
-    expect(report.errors).toEqual([]);
-    expect(report.warnings.map((issue) => issue.command)).toEqual(["git", "gh", "curl"]);
+      expect(report.errors).toEqual([]);
+      expect(report.warnings.map((issue) => issue.command)).toEqual(["git", "gh", "curl"]);
+    },
+  );
+
+  it("formats the remaining warnings for optional integrations", () => {
+    const report = collectStartupPrerequisiteReport((command) => command === "claude");
+
     expect(formatStartupPrerequisiteReport(report)).toEqual([
       "Adadex startup preflight:",
       "  Warning: `git` is not installed.",
@@ -43,20 +54,34 @@ describe("startup prerequisites", () => {
 
     const windowsAvailable = isCommandAvailable("kiro-cli", {
       platform: "win32",
-      execFileSyncImpl: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ((file, args) => {
-        calls.push({ file, args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ args as string[] });
+      execFileSyncImpl:
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ((
+          file,
+          args,
+        ) => {
+          calls.push({
+            file,
+            args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ args as string[],
+          });
 
-        return Buffer.from("");
-      }) as typeof import("node:child_process").execFileSync,
+          return Buffer.from("");
+        }) as typeof import("node:child_process").execFileSync,
     });
 
     const unixAvailable = isCommandAvailable("kiro-cli", {
       platform: "linux",
-      execFileSyncImpl: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ((file, args) => {
-        calls.push({ file, args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ args as string[] });
+      execFileSyncImpl:
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ ((
+          file,
+          args,
+        ) => {
+          calls.push({
+            file,
+            args: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ args as string[],
+          });
 
-        return Buffer.from("");
-      }) as typeof import("node:child_process").execFileSync,
+          return Buffer.from("");
+        }) as typeof import("node:child_process").execFileSync,
     });
 
     expect(windowsAvailable).toBe(true);

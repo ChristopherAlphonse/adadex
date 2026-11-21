@@ -1,4 +1,4 @@
-import { isObjectValue, isString, type ParsedRecord } from "@adadex/core";
+import { TERMINAL_AGENT_PROVIDERS, isObjectValue, isString, type ParsedRecord } from "@adadex/core";
 
 import {
   type CoordinationWorkspaceMode,
@@ -155,7 +155,7 @@ export const parseTerminalAgentProvider = (
   if (!isTerminalAgentProvider(rawAgentProvider)) {
     return {
       agentProvider: undefined,
-      error: "Terminal agent provider must be 'kiro'.",
+      error: `Terminal agent provider must be one of: ${TERMINAL_AGENT_PROVIDERS.join(", ")}.`,
     };
   }
 

@@ -1,4 +1,4 @@
-import { asRecord, isString, type ParsedRecord } from "@adadex/core";
+import { asRecord, isString, toolCallPaths, type ParsedRecord } from "@adadex/core";
 
 import type { ApiRouteHandler } from "./routeHelpers";
 import { readJsonBodyOrWriteError, writeJson, writeMethodNotAllowed } from "./routeHelpers";
@@ -22,7 +22,7 @@ export const handleCodeIntelEventsRoute: ApiRouteHandler = async (
 
     const toolInput = payload ? (asRecord(payload.tool_input) ?? {}) : {};
 
-    const filePath = isString(toolInput.file_path) ? toolInput.file_path : "";
+    const filePath = toolCallPaths(toolInput)[0] ?? "";
 
     if (filePath.length === 0) {
       writeJson(response, 200, { ok: true, skipped: true }, corsOrigin);

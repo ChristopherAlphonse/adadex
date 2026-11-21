@@ -6,7 +6,7 @@ import type { WorkspaceSetupStepId } from "@adadex/core";
 
 const SETUP_STATE_RELATIVE_PATH = join("state", "setup.json");
 
-const VERIFIED_SETUP_STEP_IDS = ["check-kiro", "check-git", "check-curl"] as const;
+const VERIFIED_SETUP_STEP_IDS = ["check-agent-cli", "check-git", "check-curl"] as const;
 
 type VerifiedSetupStepId = (typeof VERIFIED_SETUP_STEP_IDS)[number];
 
@@ -35,7 +35,10 @@ export const readSetupState = (stateDir: string): SetupState => {
 
     if (verifiedStepRecords) {
       for (const stepId of VERIFIED_SETUP_STEP_IDS) {
-        const checkedAt = verifiedStepRecords[stepId];
+        // Older versions called the agent CLI check "check-kiro".
+        const checkedAt =
+          verifiedStepRecords[stepId] ??
+          (stepId === "check-agent-cli" ? verifiedStepRecords["check-kiro"] : undefined);
 
         if (isString(checkedAt)) {
           verifiedSteps[stepId] = checkedAt;

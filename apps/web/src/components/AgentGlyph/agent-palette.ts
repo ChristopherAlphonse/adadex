@@ -1,4 +1,5 @@
 import { isNumber } from "@adadex/core";
+
 import type { AgentGlyphMood, Palette } from "./agent-types";
 
 export const DEFAULT_SIZE = 224;

@@ -428,7 +428,10 @@ describe("CanvasPrimaryView", () => {
     const orchestrationNode = container.querySelector('[data-node-id="t:orchestration-a"]');
     expect(orchestrationNode).not.toBeNull();
 
-    fireEvent.contextMenu(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ orchestrationNode as Element, { clientX: 160, clientY: 120 });
+    fireEvent.contextMenu(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ orchestrationNode as Element,
+      { clientX: 160, clientY: 120 },
+    );
 
     expect(await screen.findByRole("button", { name: "Update To-Do List" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Update Orchestration" })).toBeInTheDocument();

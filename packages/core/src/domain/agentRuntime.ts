@@ -10,12 +10,10 @@ export const isAgentRuntimeState = (value: unknown): value is AgentRuntimeState 
   value === "waiting_for_permission" ||
   value === "waiting_for_user";
 
-// Kiro CLI is the only supported agent provider. The type stays a union (rather
-// than a bare string literal) so callers that persist/validate it keep doing so
-// explicitly, and so a future provider can be added without reshaping callers.
-export type TerminalAgentProvider = "kiro" | "claude" | "opencode";
+/** The agent CLIs Adadex can launch in a terminal. Each gets its own hook install (see hookProcessor). */
+export type TerminalAgentProvider = "claude" | "opencode" | "kiro";
 
-export const TERMINAL_AGENT_PROVIDERS: TerminalAgentProvider[] = ["kiro", "claude", "opencode"];
+export const TERMINAL_AGENT_PROVIDERS: TerminalAgentProvider[] = ["claude", "opencode", "kiro"];
 
 export const isTerminalAgentProvider = (value: unknown): value is TerminalAgentProvider =>
-  value === "kiro" || value === "claude" || value === "opencode";
+  value === "claude" || value === "opencode" || value === "kiro";
