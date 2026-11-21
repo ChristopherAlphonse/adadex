@@ -30,6 +30,25 @@
   pointer-events: none;
 }
 
+.canvas-edge-flow {
+  stroke-dasharray: 5 14;
+  animation: canvas-edge-flow 1.6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes canvas-edge-flow {
+  to {
+    stroke-dashoffset: -19;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-edge-flow {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 .canvas-edge-activity-dot {
   pointer-events: none;
   filter: drop-shadow(0 0 4px rgba(255, 232, 168, 0.95))

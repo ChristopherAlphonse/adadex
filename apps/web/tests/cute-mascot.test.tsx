@@ -21,6 +21,14 @@ const node: GraphNode = {
   color: "#7c3aed",
 };
 
+const connectedNode: GraphNode = {
+  ...node,
+  id: "api",
+  coordinationId: "api",
+  label: "API",
+  x: 180,
+};
+
 describe("CuteMascot", () => {
   it("renders every mood as SVG without a canvas", () => {
     const { container } = render(
@@ -62,5 +70,23 @@ describe("CuteMascot", () => {
 
     expect(container.querySelector(".cute-mascot")).not.toBeNull();
     expect(container.querySelector("canvas")).toBeNull();
+  });
+
+  it("adds a flowing animation to edges between mascot nodes", () => {
+    const { container } = render(
+      <svg>
+        <MascotNode
+          node={node}
+          connectedNodes={[connectedNode]}
+          isSelected={false}
+          selectedNodeId={null}
+          selectedNodeColor={null}
+          onPointerDown={vi.fn()}
+          onClick={vi.fn()}
+        />
+      </svg>,
+    );
+
+    expect(container.querySelector(".canvas-edge-flow")).not.toBeNull();
   });
 });

@@ -1275,6 +1275,14 @@ export const CanvasPrimaryView = ({
                         strokeWidth={active ? 2 : 1.5}
                         strokeOpacity={1}
                       />
+                      <path
+                        className="canvas-edge-flow"
+                        d={path}
+                        fill="none"
+                        stroke={active ? (selectedColor ?? source.color) : "#C0C0C0"}
+                        strokeWidth={active ? 2 : 1.5}
+                        strokeOpacity={active ? 0.85 : 0.4}
+                      />
                       {isEdgeActivityVisible(target)
                         ? renderEdgeActivityDots(
                             path,

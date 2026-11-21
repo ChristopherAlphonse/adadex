@@ -12,6 +12,8 @@ const MIN_SCALE = 0.1;
 
 const MAX_SCALE = 3.0;
 
+const FIT_MAX_SCALE = 1.0;
+
 const ZOOM_FACTOR = 0.1;
 
 type UseCanvasTransformResult = {
@@ -26,7 +28,7 @@ type UseCanvasTransformResult = {
   graphToScreen: (graphX: number, graphY: number) => { x: number; y: number };
   zoomIn: () => void;
   zoomOut: () => void;
-  fitAll: (nodes: { x: number; y: number }[]) => void;
+  fitAll: (nodes: { x: number; y: number; radius?: number }[]) => void;
 };
 
 export const useCanvasTransform = (): UseCanvasTransformResult => {
@@ -150,7 +152,9 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     setTransform((prev) => {
       const direction = e.deltaY < 0 ? 1 : -1;
       const factor = 1 + direction * ZOOM_FACTOR;
+
       const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale * factor));
+
       const scaleRatio = nextScale / prev.scale;
 
       return {
@@ -243,7 +247,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     });
   }, []);
 
-  const fitAll = useCallback((nodes: { x: number; y: number }[]) => {
+  const fitAll = useCallback((nodes: { x: number; y: number; radius?: number }[]) => {
     const svg = svgRef.current;
 
     if (!svg || nodes.length === 0) return;
@@ -257,21 +261,29 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
     let maxY = Number.NEGATIVE_INFINITY;
 
     for (const n of nodes) {
-      if (n.x < minX) minX = n.x;
+      const radius = n.radius ?? 0;
+      const left = n.x - radius;
+      const top = n.y - radius;
+      const right = n.x + radius;
+      const bottom = n.y + radius;
 
-      if (n.y < minY) minY = n.y;
+      if (left < minX) minX = left;
 
-      if (n.x > maxX) maxX = n.x;
+      if (top < minY) minY = top;
 
-      if (n.y > maxY) maxY = n.y;
+      if (right > maxX) maxX = right;
+
+      if (bottom > maxY) maxY = bottom;
     }
 
     const graphW = maxX - minX || 1;
     const graphH = maxY - minY || 1;
-    const padding = 80;
+    const padding = 200;
     const scaleX = (rect.width - padding * 2) / graphW;
     const scaleY = (rect.height - padding * 2) / graphH;
-    const scale = Math.min(Math.max(Math.min(scaleX, scaleY), MIN_SCALE), MAX_SCALE);
+
+    const scale = Math.min(Math.max(Math.min(scaleX, scaleY), MIN_SCALE), FIT_MAX_SCALE);
+
     const centerGx = (minX + maxX) / 2;
     const centerGy = (minY + maxY) / 2;
 

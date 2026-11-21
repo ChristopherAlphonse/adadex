@@ -27,10 +27,10 @@ type ForceParams = {
 export const DEFAULT_FORCE_PARAMS: ForceParams = {
   repelStrength: -400,
   repelDistanceMax: 600,
-  linkDistance: 100,
+  linkDistance: 140,
   linkStrength: 0.25,
   positionStrength: 0.04,
-  collisionPadding: 50,
+  collisionPadding: 96,
   velocityDecay: 0.4,
   alphaDecay: 0.0228,
 };
