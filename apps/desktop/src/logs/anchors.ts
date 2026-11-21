@@ -40,7 +40,10 @@ export const createFileAnchors = (path: string): AnchorSink => ({
       if (line === "") continue;
 
       try {
-        const a = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(line) as Anchor;
+        const a =
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(
+            line,
+          ) as Anchor;
 
         if (a.project === project && a.jobId === jobId && (found === null || a.seq > found.seq))
           found = a;

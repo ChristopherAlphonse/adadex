@@ -38,7 +38,11 @@ process.stdin.on("end", () => {
       const reply = JSON.parse(line);
 
       if (reply.allow === true) process.exit(0);
-      block(Object.prototype.toString.call(reply.reason) === "[object String]" ? reply.reason : "not allowed");
+      block(
+        Object.prototype.toString.call(reply.reason) === "[object String]"
+          ? reply.reason
+          : "not allowed",
+      );
     } catch {
       block("the answer could not be read");
     }

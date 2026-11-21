@@ -109,8 +109,9 @@ describe("the unattended loop is turned on only by a person", () => {
     const declined = await boot(false);
 
     const status = async (w: typeof declined) =>
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await w.app.api.handle({ kind: "scheduler.status" })) as { data: { enabled: boolean } })
-        .data.enabled;
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        (await w.app.api.handle({ kind: "scheduler.status" })) as { data: { enabled: boolean } }
+      ).data.enabled;
 
     expect(await status(declined)).toBe(false);
     expect(await declined.app.api.handle({ kind: "scheduler.set", enabled: true })).toEqual({
@@ -138,8 +139,9 @@ describe("the checks command is set only by a person", () => {
     const declined = await boot(false, "true");
 
     const checks = async (w: typeof declined) =>
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await w.app.api.handle({ kind: "project.get" })) as { data: { checks: string } }).data
-        .checks;
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        (await w.app.api.handle({ kind: "project.get" })) as { data: { checks: string } }
+      ).data.checks;
 
     expect(await checks(declined)).toBe("true");
     expect(await declined.app.api.handle({ kind: "project.set", checks: "npm test" })).toEqual({
@@ -180,9 +182,9 @@ describe("roles through the request layer", () => {
     const { app } = await boot(true);
 
     const ids = async () =>
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "roles.list" })) as { data: { id: string }[] }).data.map(
-        (r) => r.id,
-      );
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        (await app.api.handle({ kind: "roles.list" })) as { data: { id: string }[] }
+      ).data.map((r) => r.id);
 
     expect((await ids()).slice(0, 2)).toEqual(["shaper", "planner"]);
     expect((await app.api.handle({ kind: "roles.save", role: mine })).ok).toBe(true);
@@ -205,7 +207,12 @@ describe("roles through the request layer", () => {
       errors: ["declined"],
     });
     expect(confirmed).toEqual(["Save this role?"]);
-    const listed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "roles.list" })) as { data: { id: string }[] };
+
+    const listed =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle(
+        { kind: "roles.list" },
+      )) as { data: { id: string }[] };
+
     expect(listed.data.map((r) => r.id)).not.toContain("my-role");
   });
 });
@@ -226,7 +233,9 @@ describe("processes the app starts show up and can be stopped", () => {
     let listed: { processId: string; label: string; endedAt?: string }[] = [];
 
     for (let i = 0; i < 100 && listed.length === 0; i++) {
-      listed = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "processes.list" })) as { data: typeof listed }).data;
+      listed = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        (await app.api.handle({ kind: "processes.list" })) as { data: typeof listed }
+      ).data;
 
       if (listed.length === 0) await new Promise((r) => setTimeout(r, 20));
     }
@@ -237,8 +246,9 @@ describe("processes the app starts show up and can be stopped", () => {
     ).toEqual({ ok: true, data: null });
     expect(await gate).toEqual({ ok: true, data: { gate: "FAIL" } });
 
-    const after = (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "processes.list" })) as { data: typeof listed })
-      .data;
+    const after = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+      (await app.api.handle({ kind: "processes.list" })) as { data: typeof listed }
+    ).data;
 
     expect(after[0]?.endedAt).toBeDefined();
     expect((await app.api.handle({ kind: "process.kill", processId: "nope" })).ok).toBe(false);
@@ -259,7 +269,9 @@ describe("processes the app starts show up and can be stopped", () => {
     for (
       let i = 0;
       i < 100 &&
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "processes.list" })) as { data: unknown[] }).data.length === 0;
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        (await app.api.handle({ kind: "processes.list" })) as { data: unknown[] }
+      ).data.length === 0;
       i++
     )
       await new Promise((r) => setTimeout(r, 20));

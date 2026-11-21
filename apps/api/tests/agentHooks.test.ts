@@ -39,7 +39,7 @@ describe("agent hook install", () => {
 
     expect(hooks.Stop).toHaveLength(1);
     expect(hooks.Notification).toHaveLength(1);
-    expect(hooks.PostToolUse[0].matcher).toBe("Write|Edit|MultiEdit");
+    expect(hooks.PostToolUse).toBeUndefined();
     expect(existsSync(join(dir, ".kiro"))).toBe(false);
   });
 
@@ -73,13 +73,9 @@ describe("agent hook install", () => {
       "SessionStart",
       "UserPromptSubmit",
       "PreToolUse",
-      "PostToolUse",
       "Stop",
     ]);
     expect(JSON.stringify(hooks)).not.toContain("127.0.0.1:1");
-    expect(hooks.find((hook: { trigger: string }) => hook.trigger === "PostToolUse").matcher).toBe(
-      "fs_write",
-    );
   });
 
   it("writes an OpenCode plugin that targets the API and only acts inside Adadex sessions", () => {

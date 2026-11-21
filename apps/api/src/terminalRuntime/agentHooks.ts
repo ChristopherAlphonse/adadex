@@ -18,24 +18,21 @@ import { writeTextFileAtomic } from "../atomicJsonFile";
  * - OpenCode: `.opencode/plugins/adadex.ts` (OpenCode hooks are plugins, not shell commands)
  * - Kiro: `.kiro/hooks/adadex.json`
  */
-type HookEvent =
-  | "SessionStart"
-  | "UserPromptSubmit"
-  | "PreToolUse"
-  | "PostToolUse"
-  | "Notification"
-  | "Stop";
+type HookEvent = "SessionStart" | "UserPromptSubmit" | "PreToolUse" | "Notification" | "Stop";
 
 type AdadexHook = {
   name: string;
   event: HookEvent;
   path: string;
-  /** Only fire for tools that write files. */
-  fileWritesOnly?: true;
   timeout?: number;
 };
 
 const DEFAULT_HOOK_TIMEOUT_SECONDS = 5;
+
+// The PostToolUse hook was removed with Code Intel; reinstalling clears copies earlier installs left behind.
+const LEGACY_POST_TOOL_USE_PATH = "/api/code-intel/events";
+
+const LEGACY_POST_TOOL_USE_NAME = "adadex-post-tool-use";
 
 const ADADEX_HOOKS: readonly AdadexHook[] = [
   { name: "adadex-session-start", event: "SessionStart", path: "/api/hooks/session-start" },
@@ -45,12 +42,6 @@ const ADADEX_HOOKS: readonly AdadexHook[] = [
     path: "/api/hooks/user-prompt-submit",
   },
   { name: "adadex-pre-tool-use", event: "PreToolUse", path: "/api/hooks/pre-tool-use" },
-  {
-    name: "adadex-post-tool-use",
-    event: "PostToolUse",
-    path: "/api/code-intel/events",
-    fileWritesOnly: true,
-  },
   { name: "adadex-notification", event: "Notification", path: "/api/hooks/notification" },
   { name: "adadex-stop", event: "Stop", path: "/api/hooks/stop", timeout: 15 },
 ];
@@ -106,7 +97,7 @@ const installClaudeHooks = (targetCwd: string, apiBaseUrl: string) => {
       : [];
 
     groups.push({
-      matcher: hook.fileWritesOnly ? "Write|Edit|MultiEdit" : "*",
+      matcher: "*",
       hooks: [
         {
           type: "command",
@@ -116,6 +107,18 @@ const installClaudeHooks = (targetCwd: string, apiBaseUrl: string) => {
       ],
     });
     hooks[hook.event] = groups;
+  }
+
+  if (Array.isArray(hooks.PostToolUse)) {
+    const remaining = hooks.PostToolUse.filter(
+      (group) => !JSON.stringify(group).includes(LEGACY_POST_TOOL_USE_PATH),
+    );
+
+    if (remaining.length > 0) {
+      hooks.PostToolUse = remaining;
+    } else {
+      delete hooks.PostToolUse;
+    }
   }
 
   writeJsonFile(file, { ...settings, hooks });
@@ -132,7 +135,7 @@ const installKiroHooks = (targetCwd: string, apiBaseUrl: string) => {
           {
             name: hook.name,
             trigger: hook.event,
-            matcher: hook.fileWritesOnly ? "fs_write" : "*",
+            matcher: "*",
             action: { type: "command", command: curlCommand(apiBaseUrl, hook) },
             timeout: hook.timeout ?? DEFAULT_HOOK_TIMEOUT_SECONDS,
           },
@@ -147,7 +150,7 @@ const installKiroHooks = (targetCwd: string, apiBaseUrl: string) => {
   const keptHooks = existingHooks.filter((hook) => {
     const name = asRecord(hook)?.name;
 
-    return !isString(name) || !nextNames.has(name);
+    return !isString(name) || (!nextNames.has(name) && name !== LEGACY_POST_TOOL_USE_NAME);
   });
 
   writeJsonFile(file, { version: "v1", hooks: [...keptHooks, ...nextHooks] });
@@ -163,7 +166,6 @@ export const renderOpenCodePlugin = (
 // It does nothing unless Adadex started OpenCode (ADADEX_SESSION_ID is set). Adadex rewrites this file.
 const API_BASE_URL = ${JSON.stringify(apiBaseUrl)};
 const ADADEX_SESSION_ID = process.env.ADADEX_SESSION_ID ?? "";
-const FILE_WRITE_TOOLS = new Set(["write", "edit", "multiedit", "patch"]);
 // OpenCode tool names the API knows under their Claude Code name.
 const CANONICAL_TOOL_NAMES: Record<string, string> = { question: "AskUserQuestion" };
 
@@ -193,20 +195,6 @@ export default {
         session_id: call.sessionID,
         cwd,
         tool_name: CANONICAL_TOOL_NAMES[call.tool] ?? call.tool,
-      });
-    });
-
-    ctx.tool.hook("execute.after", (call: any) => {
-      if (call.status !== "completed" || !FILE_WRITE_TOOLS.has(call.tool)) return;
-
-      const filePath = call.input?.filePath;
-
-      if (typeof filePath !== "string") return;
-      post("/api/code-intel/events", {
-        session_id: call.sessionID,
-        cwd,
-        tool_name: call.tool,
-        tool_input: { file_path: filePath },
       });
     });
 

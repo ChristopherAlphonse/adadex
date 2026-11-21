@@ -55,7 +55,7 @@
   border-bottom: 1px solid var(--sidebar-border);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--sidebar-header) 92%, #2a3647 8%) 0%,
+    color-mix(in srgb, var(--sidebar-header) 92%, var(--surface) 8%) 0%,
     var(--sidebar-header) 100%
   );
   color: var(--text-primary);
@@ -100,7 +100,7 @@
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--accent-primary) 16%, var(--sidebar-header) 84%) 0%,
-    color-mix(in srgb, var(--sidebar-header) 82%, #2a394c 18%) 100%
+    color-mix(in srgb, var(--sidebar-header) 82%, var(--surface) 18%) 100%
   );
 }
 
@@ -137,7 +137,7 @@
 
 .active-agents-codex-usage {
   border: 1px solid var(--sidebar-border);
-  background: color-mix(in srgb, var(--sidebar-row) 90%, #131922 10%);
+  background: color-mix(in srgb, var(--sidebar-row) 90%, var(--surface) 10%);
   padding: 0.36rem 0.4rem;
   display: grid;
   gap: 0.34rem;
@@ -189,11 +189,11 @@
   border: 1px solid var(--sidebar-border-strong);
   background: repeating-linear-gradient(
     90deg,
-    color-mix(in srgb, #111922 80%, #0a0d12 20%) 0 13px,
-    color-mix(in srgb, #090c10 78%, #121923 22%) 13px 15px
+    color-mix(in srgb, var(--surface) 80%, var(--surface) 20%) 0 13px,
+    color-mix(in srgb, var(--surface) 78%, var(--surface) 22%) 13px 15px
   );
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000000 56%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface) 56%, transparent);
 }
 
 .active-agents-codex-usage-rail-fill {
@@ -203,13 +203,13 @@
     repeating-linear-gradient(
       90deg,
       color-mix(in srgb, var(--accent-primary) 52%, #e1b56a) 0 13px,
-      color-mix(in srgb, var(--accent-primary) 22%, #1c2632) 13px 15px
+      color-mix(in srgb, var(--accent-primary) 22%, var(--surface)) 13px 15px
     ),
     linear-gradient(
       180deg,
       color-mix(in srgb, #ffffff 12%, transparent) 0%,
       transparent 55%,
-      color-mix(in srgb, #000000 22%, transparent) 100%
+      color-mix(in srgb, var(--surface) 22%, transparent) 100%
     );
 }
 
@@ -262,13 +262,13 @@
     repeating-linear-gradient(
       90deg,
       #d9952a 0 13px,
-      color-mix(in srgb, #d9952a 35%, #191919) 13px 15px
+      color-mix(in srgb, #d9952a 35%, var(--surface)) 13px 15px
     ),
     linear-gradient(
       180deg,
       color-mix(in srgb, #ffffff 12%, transparent) 0%,
       transparent 55%,
-      color-mix(in srgb, #000000 22%, transparent) 100%
+      color-mix(in srgb, var(--surface) 22%, transparent) 100%
     );
 }
 
@@ -277,13 +277,13 @@
     repeating-linear-gradient(
       90deg,
       #a83a3a 0 13px,
-      color-mix(in srgb, #a83a3a 35%, #191919) 13px 15px
+      color-mix(in srgb, var(--surface) 35%, var(--surface)) 13px 15px
     ),
     linear-gradient(
       180deg,
       color-mix(in srgb, #ffffff 12%, transparent) 0%,
       transparent 55%,
-      color-mix(in srgb, #000000 22%, transparent) 100%
+      color-mix(in srgb, var(--surface) 22%, transparent) 100%
     );
 }
 
@@ -308,7 +308,7 @@
 
 .console-shell *::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
-  border: 1px solid color-mix(in srgb, var(--bg-surface-1) 78%, #000000);
+  border: 1px solid color-mix(in srgb, var(--bg-surface-1) 78%, var(--border));
 }
 
 .console-shell *::-webkit-scrollbar-thumb:hover {
@@ -336,8 +336,8 @@
   padding: 0.42rem 0.52rem;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--sidebar-header) 92%, #2a3647 8%) 0%,
-    color-mix(in srgb, var(--sidebar-header) 88%, #2a394b 12%) 100%
+    color-mix(in srgb, var(--sidebar-header) 92%, var(--surface) 8%) 0%,
+    color-mix(in srgb, var(--sidebar-header) 88%, var(--surface) 12%) 100%
   );
   border-bottom: 1px solid var(--sidebar-border);
 }
@@ -366,7 +366,7 @@
 
 .active-agents-maximize {
   --action-button-border: var(--sidebar-border-strong);
-  --action-button-bg: color-mix(in srgb, var(--sidebar-row) 86%, #11161d 14%);
+  --action-button-bg: color-mix(in srgb, var(--sidebar-row) 86%, var(--surface-2) 14%);
   --action-button-color: var(--text-primary);
 }
 
@@ -408,7 +408,7 @@
 }
 
 .active-agents-agent-row--root {
-  background: color-mix(in srgb, var(--sidebar-row) 78%, #243446 22%);
+  background: color-mix(in srgb, var(--sidebar-row) 78%, var(--surface) 22%);
   border-left: 3px solid color-mix(in srgb, var(--accent-primary) 44%, #90b6e4 56%);
   font-weight: 600;
   padding-left: 0.42rem;

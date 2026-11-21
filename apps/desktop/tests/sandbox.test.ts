@@ -81,7 +81,12 @@ describe("sandbox profile", () => {
     sandboxSpawn((command, args) => {
       seen = { command, args };
 
-      return { stdout: /* SAFETY: preceding checks establish the invariant this assertion encodes. */ null as never, onExit: () => {}, kill: () => {} };
+      return {
+        stdout:
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ null as never,
+        onExit: () => {},
+        kill: () => {},
+      };
     }, "P")("claude", ["-p", "hi"], "/w");
     expect(seen).toEqual({
       command: "/usr/bin/sandbox-exec",

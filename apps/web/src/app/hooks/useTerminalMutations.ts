@@ -14,6 +14,7 @@ export type PendingDeleteTerminal = {
 type CreateTerminalRequest = {
   workspaceMode: TerminalWorkspaceMode;
   coordinationId?: string;
+  plainShell?: boolean;
 };
 
 type UseTerminalMutationsOptions = {
@@ -36,6 +37,7 @@ type UseTerminalMutationsResult = {
   createTerminal: (
     workspaceMode: TerminalWorkspaceMode,
     coordinationId?: string,
+    options?: { plainShell?: boolean },
   ) => Promise<string | undefined>;
   requestDeleteTerminal: (
     terminalId: string,
@@ -127,7 +129,11 @@ export const useTerminalMutations = ({
   );
 
   const createTerminal = useCallback(
-    async (workspaceMode: TerminalWorkspaceMode, coordinationId?: string) => {
+    async (
+      workspaceMode: TerminalWorkspaceMode,
+      coordinationId?: string,
+      options?: { plainShell?: boolean },
+    ) => {
       try {
         setIsCreatingTerminal(true);
         setLoadError(null);
@@ -136,6 +142,10 @@ export const useTerminalMutations = ({
 
         if (coordinationId) {
           requestBody.coordinationId = coordinationId;
+        }
+
+        if (options?.plainShell) {
+          requestBody.plainShell = true;
         }
 
         const response = await fetch("/api/terminals", {

@@ -499,6 +499,12 @@ export const createSessionRuntime = ({
 
     session.isBootstrapCommandSent = true;
     const terminal = terminals.get(session.terminalId);
+
+    // Plain shells stay a bare shell: no agent CLI, no initial prompt injection.
+    if (terminal?.plainShell) {
+      return;
+    }
+
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
 
     const bootstrapCommand =

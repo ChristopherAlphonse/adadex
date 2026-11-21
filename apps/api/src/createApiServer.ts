@@ -4,7 +4,6 @@ import { join } from "node:path";
 
 import { isObjectValue, WORKSPACE_RUNTIME_DIR } from "@adadex/core";
 
-import { createCodeIntelStore } from "./codeIntelStore";
 import { createApiRequestHandler } from "./createApiServer/requestHandler";
 import type { CreateApiServerOptions } from "./createApiServer/types";
 import { createUpgradeHandler } from "./createApiServer/upgradeHandler";
@@ -83,8 +82,6 @@ export const createApiServer = ({
     scanUsageHeatmap ??
     ((scope: "all" | "project") => scanUsageHeatmapDefault(scope, resolvedWorkspaceCwd));
 
-  const codeIntelStore = createCodeIntelStore(resolvedStateDir);
-
   const requestHandler = createApiRequestHandler({
     runtime,
     workspaceCwd: resolvedWorkspaceCwd,
@@ -96,7 +93,6 @@ export const createApiServer = ({
     getApiPort,
     readGithubRepoSummary: readGithubRepoSummaryWithDefault,
     scanUsageHeatmap: scanUsageHeatmapWithDefault,
-    codeIntelStore,
     allowRemoteAccess,
   });
 

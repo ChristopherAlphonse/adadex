@@ -56,7 +56,9 @@ describe("the local log database", () => {
     expect((await stat(join(root, "logs"))).mode & 0o777).toBe(0o700);
     const raw = new DatabaseSync(path);
     expect(
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ raw.prepare("PRAGMA journal_mode").get() as { journal_mode: string }).journal_mode,
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        raw.prepare("PRAGMA journal_mode").get() as { journal_mode: string }
+      ).journal_mode,
     ).toBe("wal");
     raw.exec("PRAGMA user_version = 99");
     raw.close();
@@ -189,9 +191,12 @@ describe("the app logs to its local database", () => {
       input: { id: "nope", to: "spec" },
     });
 
-    const events = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "logs.query", limit: 50 })) as {
-      data: { source: string; message: string }[];
-    };
+    const events =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle(
+        { kind: "logs.query", limit: 50 },
+      )) as {
+        data: { source: string; message: string }[];
+      };
 
     const messages = events.data.map((e) => `${e.source}: ${e.message}`);
     expect(messages).toContain("app: app started");
@@ -200,7 +205,11 @@ describe("the app logs to its local database", () => {
     );
     expect(messages.some((m) => m.startsWith("approval: declined approval-1"))).toBe(true);
     expect(messages.some((m) => m.startsWith("action: ui ran job.advance: error"))).toBe(true);
-    expect(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle({ kind: "audit.verify", jobId: "nope" })) as unknown).toEqual({
+    expect(
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (await app.api.handle(
+        { kind: "audit.verify", jobId: "nope" },
+      )) as unknown,
+    ).toEqual({
       ok: true,
       data: { ok: true, entries: 0 },
     });
@@ -209,8 +218,8 @@ describe("the app logs to its local database", () => {
     app.close();
     const raw = new DatabaseSync(join(dataDir, "logs", "adadex.db"));
     expect(
-      (
-        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ raw.prepare("SELECT COUNT(*) AS n FROM events WHERE message = 'app stopping'").get() as {
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        raw.prepare("SELECT COUNT(*) AS n FROM events WHERE message = 'app stopping'").get() as {
           n: number;
         }
       ).n,

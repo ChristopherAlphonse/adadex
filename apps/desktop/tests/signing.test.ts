@@ -34,7 +34,9 @@ describe("the signing key", () => {
     expect(verifySignature(a.publicKey, "hellp", a.sign("hello"))).toBe(false);
     expect(
       verifySignature(
-        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ generateKeyPairSync("ed25519").publicKey.export({ type: "spki", format: "pem" }) as string,
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ generateKeyPairSync(
+          "ed25519",
+        ).publicKey.export({ type: "spki", format: "pem" }) as string,
         "hello",
         a.sign("hello"),
       ),
@@ -212,7 +214,9 @@ describe("opening an older database", () => {
     const logDb = openLogDb(path);
     expect(logDb.auditRows("p", "j1")).toHaveLength(1);
     expect(
-      (/* SAFETY: preceding checks establish the invariant this assertion encodes. */ logDb.db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version,
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
+        logDb.db.prepare("PRAGMA user_version").get() as { user_version: number }
+      ).user_version,
     ).toBe(2);
     logDb.appendAudit(
       "p",

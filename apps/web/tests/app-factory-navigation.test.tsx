@@ -142,7 +142,7 @@ describe("App factory navigation", () => {
 
     render(<App />);
     await screen.findByRole("navigation", { name: "Primary navigation" });
-    fireEvent.keyDown(window, { key: "8" });
+    fireEvent.keyDown(window, { key: "7" });
 
     expect(await screen.findByLabelText("Factory primary view")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Factory/i })).toHaveAttribute(

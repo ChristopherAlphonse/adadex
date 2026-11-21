@@ -36,7 +36,7 @@
     color-mix(in srgb, var(--accent-primary) 90%, #ffd89d 10%) 0%,
     color-mix(in srgb, var(--accent-primary) 78%, #d9851c 22%) 100%
   );
-  border-bottom-color: color-mix(in srgb, #121212 35%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--border) 35%, transparent);
   color: #121212;
 }
 
@@ -248,7 +248,7 @@
   min-height: 0;
   overflow: hidden;
   padding: 0;
-  background: color-mix(in srgb, var(--terminal-bg) 78%, #090d13 22%);
+  background: color-mix(in srgb, var(--terminal-bg) 78%, var(--surface) 22%);
 }
 
 .terminal-mount .xterm {
@@ -276,7 +276,7 @@
 
 .terminal-mount .xterm-viewport::-webkit-scrollbar-thumb {
   background: var(--terminal-scrollbar-thumb);
-  border: 1px solid color-mix(in srgb, var(--terminal-bg) 82%, #000000);
+  border: 1px solid color-mix(in srgb, var(--terminal-bg) 82%, var(--border));
 }
 
 .terminal-mount .xterm-viewport::-webkit-scrollbar-thumb:hover {

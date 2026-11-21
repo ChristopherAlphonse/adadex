@@ -99,7 +99,12 @@ export const nodeGit: GitPort = {
 
       return { ok: true, output: "" };
     } catch (e) {
-      const err = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ e as { stdout?: string; stderr?: string; message?: string };
+      const err =
+        /* SAFETY: preceding checks establish the invariant this assertion encodes. */ e as {
+          stdout?: string;
+          stderr?: string;
+          message?: string;
+        };
 
       return {
         ok: false,

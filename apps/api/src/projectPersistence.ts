@@ -391,7 +391,6 @@ export const migrateStateToGlobal = (workspaceCwd: string, projectStateDir: stri
     { name: "deck.json", legacy: ["deck.json"] },
     { name: "monitor-config.json", legacy: ["monitor-config.json"] },
     { name: "monitor-cache.json", legacy: ["monitor-cache.json"] },
-    { name: "code-intel-events.jsonl", legacy: ["code-intel-events.jsonl"] },
     { name: "runtime.json", legacy: ["runtime.json"] },
   ];
 

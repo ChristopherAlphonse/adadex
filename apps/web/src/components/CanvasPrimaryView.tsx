@@ -1202,16 +1202,6 @@ export const CanvasPrimaryView = ({
             });
           }
         }}
-        onCreateWorktreeTerminal={() => {
-          const result = onCreateWorktreeTerminal?.();
-
-          if (result && isFunctionValue(result.then)) {
-            void result.then((agentId) => {
-              if (agentId) setPendingOpenAgentId(agentId);
-            });
-          }
-        }}
-        {...(onCreateOrchestration ? { onCreateOrchestration } : {})}
         onFitView={handleFitView}
         onRefresh={handleRefresh}
         onDeleteAll={() => setIsDeleteAllDialogOpen(true)}

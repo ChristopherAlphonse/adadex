@@ -5,11 +5,9 @@ import { extname, join } from "node:path";
 
 import { isNumber, isObjectValue } from "@adadex/core";
 
-import type { CodeIntelStore } from "../codeIntelStore";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { logVerbose } from "../logging";
 import type { UsageChartResponse } from "../usageHeatmapScanner";
-import { handleCodeIntelEventsRoute } from "./codeIntelRoutes";
 import {
   handleConversationExportRoute,
   handleConversationItemRoute,
@@ -86,7 +84,6 @@ type CreateApiRequestHandlerOptions = {
   getApiPort: () => string;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageChartResponse>;
-  codeIntelStore: CodeIntelStore;
   allowRemoteAccess: boolean;
 };
 
@@ -135,7 +132,6 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     ],
   ],
   ["coordinations", [handleOrchestrationGitRoute, handleOrchestrationGitPullRequestRoute]],
-  ["code-intel", [handleCodeIntelEventsRoute]],
 ]);
 
 const extractRoutePrefix = (pathname: string): string | null => {
@@ -194,7 +190,6 @@ export const createApiRequestHandler = ({
   getApiPort,
   readGithubRepoSummary,
   scanUsageHeatmap,
-  codeIntelStore,
   allowRemoteAccess,
 }: CreateApiRequestHandlerOptions) => {
   const resolvedWebDistDir = webDistDir && existsSync(webDistDir) ? webDistDir : null;
@@ -209,7 +204,6 @@ export const createApiRequestHandler = ({
     getApiPort,
     readGithubRepoSummary,
     scanUsageHeatmap,
-    codeIntelStore,
   };
 
   return async (request: IncomingMessage, response: ServerResponse) => {

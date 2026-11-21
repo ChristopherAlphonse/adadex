@@ -185,7 +185,6 @@ export const OrchestrationPod = ({
     <article
       className={`deck-pod${isFocused ? " deck-pod--focused" : ""}`}
       data-status={orchestration.status}
-      style={{ borderColor: "var(--accent-primary)" }}
     >
       <header className="deck-pod-header">
         {isFocused && (

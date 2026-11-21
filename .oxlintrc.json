@@ -6,12 +6,7 @@
     "correctness": "error"
   },
   "env": { "browser": true, "node": true, "es2024": true },
-  "ignorePatterns": [
-    "**/dist/**",
-    "**/coverage/**",
-    ".adadex/**",
-    "tools/oxlint/anti-slop/**"
-  ],
+  "ignorePatterns": ["**/dist/**", "**/coverage/**", ".adadex/**", "tools/oxlint/anti-slop/**"],
   "rules": {
     "no-unused-vars": "warn",
     "typescript/no-non-null-assertion": "warn",

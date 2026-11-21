@@ -38,6 +38,7 @@ type CreateTerminalApiInput = {
   coordinationName?: string;
   workspaceMode: CoordinationWorkspaceMode;
   agentProvider?: TerminalAgentProvider;
+  plainShell?: boolean;
   nameOrigin?: TerminalNameOrigin;
   initialPrompt?: string;
   initialInputDraft?: string;
@@ -200,6 +201,10 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       bodyPayload.autoRenamePromptContext.trim().length > 0
     ) {
       createTerminalInput.autoRenamePromptContext = bodyPayload.autoRenamePromptContext.trim();
+    }
+
+    if (bodyPayload && bodyPayload.plainShell === true) {
+      createTerminalInput.plainShell = true;
     }
 
     if (

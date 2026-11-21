@@ -1,8 +1,9 @@
-import { isString } from "@adadex/core";
 import { mkdir, rm } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
 import { dirname } from "node:path";
 import { createInterface } from "node:readline";
+
+import { isString } from "@adadex/core";
 
 export interface BridgeCall {
   readonly callId: string;
@@ -32,7 +33,10 @@ export const startBridgeHost = async (
     socket.on("error", () => socket.destroy());
     createInterface({ input: socket }).on("line", (line) => {
       try {
-        const call = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(line) as BridgeCall;
+        const call =
+          /* SAFETY: preceding checks establish the invariant this assertion encodes. */ JSON.parse(
+            line,
+          ) as BridgeCall;
 
         if (!isString(call.callId) || !isString(call.actionId)) return;
         owner.set(call.callId, socket);

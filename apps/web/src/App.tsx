@@ -424,9 +424,9 @@ const AppShell = () => {
   const hasPrimarySidebarContent =
     activePrimaryNav === 2
       ? deckSidebarContent !== null
-      : activePrimaryNav === 5
+      : activePrimaryNav === 4
         ? conversationsSidebarContent !== null
-        : activePrimaryNav === 6
+        : activePrimaryNav === 5
           ? promptsSidebarContent !== null
           : true;
 
@@ -434,9 +434,8 @@ const AppShell = () => {
     isAgentsSidebarVisible &&
     activePrimaryNav !== 1 &&
     activePrimaryNav !== 3 &&
-    activePrimaryNav !== 4 &&
+    activePrimaryNav !== 6 &&
     activePrimaryNav !== 7 &&
-    activePrimaryNav !== 8 &&
     (hasPrimarySidebarContent || hasSidebarActionPanel);
 
   return (
@@ -460,9 +459,9 @@ const AppShell = () => {
               bodyContent={
                 activePrimaryNav === 2
                   ? (deckSidebarContent ?? undefined)
-                  : activePrimaryNav === 5
+                  : activePrimaryNav === 4
                     ? (conversationsSidebarContent ?? undefined)
-                    : activePrimaryNav === 6
+                    : activePrimaryNav === 5
                       ? (promptsSidebarContent ?? undefined)
                       : undefined
               }
@@ -559,20 +558,36 @@ const AppShell = () => {
                 return await createTerminal("shared", coordinationId);
               },
               onCreateTerminal: async () => {
-                return await createTerminal("shared", DECK_LEAD_ID);
+                return await createTerminal("shared", DECK_LEAD_ID, { plainShell: true });
               },
               onCreateWorktreeTerminal: async () => {
-                return await createTerminal("worktree", DECK_LEAD_ID);
+                return await createTerminal("worktree", DECK_LEAD_ID, { plainShell: true });
               },
               onCreateOrchestration: async () => {
-                const response = await fetch("/api/deck/coordinations", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ name: "", description: "" }),
-                });
+                // The API requires a unique, folder-safe name, so pick the first free "orchestration-N".
+                for (let index = 1; index <= 50; index += 1) {
+                  // eslint-disable-next-line no-await-in-loop
+                  const response = await fetch("/api/deck/coordinations", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: `orchestration-${index}`, description: "" }),
+                  });
 
-                if (!response.ok) return;
-                await refreshColumns();
+                  if (response.ok) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await refreshColumns();
+
+                    return;
+                  }
+
+                  // Only a name collision is worth retrying; anything else won't improve with a new name.
+                  // eslint-disable-next-line no-await-in-loop
+                  const failure = asRecord(await response.json().catch(() => null));
+
+                  if (!isString(failure?.error) || !failure.error.includes("already exists")) {
+                    return;
+                  }
+                }
               },
               onSpawnSwarm: async (coordinationId, workspaceMode) => {
                 const response = await fetch(
@@ -643,7 +658,7 @@ const AppShell = () => {
                 return isString(terminalId) ? terminalId : undefined;
               },
               onNavigateToConversation: (_sessionId) => {
-                setActivePrimaryNav(6);
+                setActivePrimaryNav(4);
               },
               onCloseActiveSession: (terminalId) => closeTerminal(terminalId),
               onDeleteActiveSession: (terminalId, terminalName, workspaceMode) => {
@@ -666,10 +681,10 @@ const AppShell = () => {
               gitStatusByOrchestrationId,
             }}
             factoryPrimaryViewProps={{ host: factoryHost }}
-            conversationsEnabled={isUiStateHydrated && activePrimaryNav === 5}
+            conversationsEnabled={isUiStateHydrated && activePrimaryNav === 4}
             onConversationsSidebarContent={setConversationsSidebarContent}
             onConversationsActionPanel={setConversationsActionPanel}
-            promptsEnabled={isUiStateHydrated && activePrimaryNav === 6}
+            promptsEnabled={isUiStateHydrated && activePrimaryNav === 5}
             onPromptsSidebarContent={setPromptsSidebarContent}
           />
         </div>

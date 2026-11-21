@@ -38,7 +38,13 @@ const setup = async (
 ) => {
   const store = createJobStore(root);
   const job = await store.create(factoryBuildPreset, "j1", "t", 3);
-  await store.save(/* SAFETY: preceding checks establish the invariant this assertion encodes. */ { ...job, stage: over.stage ?? "gate", round: 1 } as WorkflowJob);
+  await store.save(
+    /* SAFETY: preceding checks establish the invariant this assertion encodes. */ {
+      ...job,
+      stage: over.stage ?? "gate",
+      round: 1,
+    } as WorkflowJob,
+  );
   const commands: string[] = [];
 
   const executor = createJobExecutor({

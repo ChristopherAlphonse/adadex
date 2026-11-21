@@ -54,9 +54,9 @@
   align-items: center;
   gap: 0.36rem;
   padding: 0.6rem;
-  border: 1px solid #2b2f36;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #0d1017;
+  background: var(--background);
 }
 
 .pixpack-card canvas {

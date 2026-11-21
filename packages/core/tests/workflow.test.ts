@@ -43,7 +43,7 @@ describe("preset definitions", () => {
     );
 
     expect(table).toEqual({
-      "shape": ["rejected", "spec"],
+      ["shape"]: ["rejected", "spec"],
       spec: ["build"],
       build: ["gate", "needs-human"],
       gate: ["build", "needs-human", "prove", "review"],

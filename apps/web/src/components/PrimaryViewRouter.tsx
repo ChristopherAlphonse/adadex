@@ -3,7 +3,6 @@ import type { ComponentProps, ReactNode } from "react";
 import type { PrimaryNavIndex } from "../app/constants";
 import { ActivityPrimaryView } from "./ActivityPrimaryView";
 import { CanvasPrimaryView } from "./CanvasPrimaryView";
-import { CodeIntelPrimaryView } from "./CodeIntelPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
 import { FactoryPrimaryView } from "./factory/FactoryPrimaryView";
@@ -46,10 +45,6 @@ export const PrimaryViewRouter = ({
   }
 
   if (activePrimaryNav === 4) {
-    return <CodeIntelPrimaryView enabled={activePrimaryNav === 4} />;
-  }
-
-  if (activePrimaryNav === 5) {
     return (
       <ConversationsPrimaryView
         enabled={conversationsEnabled}
@@ -59,17 +54,17 @@ export const PrimaryViewRouter = ({
     );
   }
 
-  if (activePrimaryNav === 6) {
+  if (activePrimaryNav === 5) {
     return (
       <PromptsPrimaryView enabled={promptsEnabled} onSidebarContent={onPromptsSidebarContent} />
     );
   }
 
-  if (activePrimaryNav === 7) {
+  if (activePrimaryNav === 6) {
     return <SettingsPrimaryView {...settingsPrimaryViewProps} />;
   }
 
-  if (activePrimaryNav === 8) {
+  if (activePrimaryNav === 7) {
     return <FactoryPrimaryView {...factoryPrimaryViewProps} />;
   }
 

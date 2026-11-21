@@ -1,19 +1,9 @@
-import {
-  EyeOff,
-  GitBranch,
-  Maximize2,
-  Network,
-  RefreshCw,
-  Settings2,
-  TerminalSquare,
-} from "lucide-react";
+import { EyeOff, Maximize2, RefreshCw, Settings2, TerminalSquare } from "lucide-react";
 
 type ConsoleChromeToolbarProps = {
   hideIdle: boolean;
   onToggleHideIdle: () => void;
   onCreateTerminal?: () => void;
-  onCreateWorktreeTerminal?: () => void;
-  onCreateOrchestration?: () => void;
   onFitView?: () => void;
   onRefresh?: () => void;
   onDeleteAll?: () => void;
@@ -24,8 +14,6 @@ type ConsoleChromeToolbarProps = {
 
 const TOOLBAR_ACTIONS = [
   { id: "terminal", label: "Terminal", icon: TerminalSquare },
-  { id: "worktree", label: "Worktree", icon: GitBranch },
-  { id: "orchestration", label: "Orchestration", icon: Network },
   { id: "fit", label: "Fit", icon: Maximize2 },
   { id: "refresh", label: "Refresh", icon: RefreshCw },
   { id: "hide-idle", label: "Hide Idle", icon: EyeOff },
@@ -36,8 +24,6 @@ export const ConsoleChromeToolbar = ({
   hideIdle,
   onToggleHideIdle,
   onCreateTerminal,
-  onCreateWorktreeTerminal,
-  onCreateOrchestration,
   onFitView,
   onRefresh,
   onDeleteAll,
@@ -49,12 +35,6 @@ export const ConsoleChromeToolbar = ({
     switch (id) {
       case "terminal":
         onCreateTerminal?.();
-        break;
-      case "worktree":
-        onCreateWorktreeTerminal?.();
-        break;
-      case "orchestration":
-        onCreateOrchestration?.();
         break;
       case "fit":
         onFitView?.();

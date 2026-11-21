@@ -71,7 +71,7 @@ describe("App UI state persistence", () => {
 
       if (url.endsWith("/api/ui-state") && method === "GET") {
         return jsonResponse({
-          activePrimaryNav: 7,
+          activePrimaryNav: 6,
           isRuntimeStatusStripVisible: false,
           terminalCompletionSound: "retro-beep",
         });
@@ -158,7 +158,7 @@ describe("App UI state persistence", () => {
 
       if (url.endsWith("/api/ui-state") && method === "GET") {
         return jsonResponse({
-          activePrimaryNav: 7,
+          activePrimaryNav: 6,
           terminalCompletionSound: "retro-beep",
         });
       }

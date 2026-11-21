@@ -1,6 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import type { CodeIntelStore } from "../codeIntelStore";
 import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import type { UsageChartResponse } from "../usageHeatmapScanner";
 import { RequestBodyTooLargeError, readJsonBody, type JsonRequestPayload } from "./requestParsers";
@@ -18,7 +17,6 @@ export type RouteHandlerDependencies = {
   getApiPort: () => string;
   readGithubRepoSummary: () => Promise<GitHubRepoSummarySnapshot>;
   scanUsageHeatmap: (scope: "all" | "project") => Promise<UsageChartResponse>;
-  codeIntelStore: CodeIntelStore;
 };
 
 export type RouteHandlerContext = {

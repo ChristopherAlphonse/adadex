@@ -310,6 +310,8 @@ const parseV3Terminals = (
 
     if (isTerminalAgentProvider(entry.agentProvider)) terminal.agentProvider = entry.agentProvider;
 
+    if (entry.plainShell === true) terminal.plainShell = true;
+
     if (isString(entry.initialPrompt)) terminal.initialPrompt = entry.initialPrompt;
 
     if (isString(entry.initialInputDraft)) {

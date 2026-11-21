@@ -50,7 +50,7 @@ export const buildWorkerWorkspaceSection = (
         "",
         ...workers.map(
           (w) =>
-            `- \`${COORDINATION_WORKTREE_BRANCH_PREFIX}${w.terminalId}\` — item #${w.todoIndex}: ${w.todoText}`,
+            `- \`${COORDINATION_WORKTREE_BRANCH_PREFIX}${w.terminalId}\` (item #${w.todoIndex}): ${w.todoText}`,
         ),
       ].join("\n")
     : [
@@ -69,7 +69,7 @@ const buildWorktreeCompletionStrategySection = (
     "",
     "### Step-by-step merge process",
     "",
-    `1. **Create an integration branch** from \`${baseBranch}\`. First check if a stale integration branch exists from a previous swarm attempt — if so, delete it before proceeding:`,
+    `1. **Create an integration branch** from \`${baseBranch}\`. First check if a stale integration branch exists from a previous swarm attempt. If so, delete it before proceeding:`,
     "   ```bash",
     `   git branch -D adadex_integration_${coordinationId} 2>/dev/null || true`,
     `   git checkout ${baseBranch}`,

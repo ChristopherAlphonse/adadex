@@ -51,7 +51,7 @@
 
 .chrome-sidebar-toggle {
   border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--bg-surface-1) 85%, #1e1e1e);
+  background: color-mix(in srgb, var(--bg-surface-1) 85%, var(--surface));
   color: var(--text-primary);
   font-family: inherit;
   display: inline-flex;

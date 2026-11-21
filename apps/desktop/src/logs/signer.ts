@@ -57,16 +57,31 @@ export const createFileSigner = (dir: string, protector: KeyProtector = NONE): S
 
   if (!existsSync(privatePath)) {
     const pair = generateKeyPairSync("ed25519");
-    const privatePem = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ pair.privateKey.export({ type: "pkcs8", format: "pem" }) as string;
+
+    const privatePem =
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ pair.privateKey.export(
+        { type: "pkcs8", format: "pem" },
+      ) as string;
+
     writeFileSync(privatePath, protector.protect(Buffer.from(privatePem)), { mode: 0o600 });
-    writeFileSync(publicPath, /* SAFETY: preceding checks establish the invariant this assertion encodes. */ pair.publicKey.export({ type: "spki", format: "pem" }) as string, {
-      mode: 0o644,
-    });
+    writeFileSync(
+      publicPath,
+      /* SAFETY: preceding checks establish the invariant this assertion encodes. */ pair.publicKey.export(
+        { type: "spki", format: "pem" },
+      ) as string,
+      {
+        mode: 0o644,
+      },
+    );
     chmodSync(privatePath, 0o600);
   }
 
   const privateKey = createPrivateKey(protector.unprotect(readFileSync(privatePath)).toString());
-  const publicKey = /* SAFETY: preceding checks establish the invariant this assertion encodes. */ createPublicKey(privateKey).export({ type: "spki", format: "pem" }) as string;
+
+  const publicKey =
+    /* SAFETY: preceding checks establish the invariant this assertion encodes. */ createPublicKey(
+      privateKey,
+    ).export({ type: "spki", format: "pem" }) as string;
 
   return {
     publicKey,

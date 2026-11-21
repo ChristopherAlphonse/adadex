@@ -500,6 +500,7 @@ export const createTerminalRuntime = ({
     coordinationName,
     workspaceMode = "shared",
     agentProvider,
+    plainShell,
     initialPrompt,
     initialInputDraft,
     baseRef,
@@ -513,6 +514,7 @@ export const createTerminalRuntime = ({
     coordinationName?: string;
     workspaceMode?: CoordinationWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
+    plainShell?: boolean;
     initialPrompt?: string;
     initialInputDraft?: string;
     baseRef?: string;
@@ -586,6 +588,10 @@ export const createTerminalRuntime = ({
       lifecycleUpdatedAt: new Date().toISOString(),
     };
 
+    if (plainShell) {
+      terminal.plainShell = true;
+    }
+
     if (worktreeId) {
       terminal.worktreeId = worktreeId;
     }
@@ -614,17 +620,19 @@ export const createTerminalRuntime = ({
       worktreeManager.createOrchestrationWorktree(effectiveWorktreeId, baseRef);
     }
 
-    try {
-      const hookTargetCwd = shouldCreateWorktree
-        ? worktreeManager.getOrchestrationWorkspaceCwd(effectiveWorktreeId)
-        : workspaceCwd;
+    if (!plainShell) {
+      try {
+        const hookTargetCwd = shouldCreateWorktree
+          ? worktreeManager.getOrchestrationWorkspaceCwd(effectiveWorktreeId)
+          : workspaceCwd;
 
-      hookProcessor.installHooksInDirectory(
-        hookTargetCwd,
-        terminal.agentProvider ?? DEFAULT_AGENT_PROVIDER,
-      );
-    } catch {
-      // Best-effort: hook installation should not block terminal creation.
+        hookProcessor.installHooksInDirectory(
+          hookTargetCwd,
+          terminal.agentProvider ?? DEFAULT_AGENT_PROVIDER,
+        );
+      } catch {
+        // Best-effort: hook installation should not block terminal creation.
+      }
     }
 
     terminals.set(terminalId, terminal);
