@@ -2,9 +2,13 @@
   min-height: 0;
   background: var(--bg-canvas);
   padding: 0.56rem;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 0.52rem;
+}
+
+.console-shell .conversations-transcript {
+  flex: 1;
 }
 
 .conversations-header {
