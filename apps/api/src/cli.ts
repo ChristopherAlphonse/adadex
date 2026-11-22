@@ -169,6 +169,12 @@ const readPreferredStartPort = () => {
   return parsed;
 };
 
+/**
+ * Loopback unless ADADEX_BIND_HOST says otherwise. Only the container image sets it (to
+ * 0.0.0.0, on a network with no route to the outside); the Host and Origin checks stay on.
+ */
+const readBindHost = () => process.env.ADADEX_BIND_HOST?.trim() || "127.0.0.1";
+
 const resolveRuntimeApiBase = () => {
   const explicitBase = process.env.ADADEX_API_ORIGIN?.trim() ?? process.env.ADADEX_API_BASE?.trim();
 
@@ -268,8 +274,8 @@ const startServer = async () => {
   process.on("SIGINT", () => void shutdown());
   process.on("SIGTERM", () => void shutdown());
 
-  const { host, port: activePort } = await apiServer.start(port, "127.0.0.1");
-  const apiBaseUrl = `http://${host}:${activePort}`;
+  const { host, port: activePort } = await apiServer.start(port, readBindHost());
+  const apiBaseUrl = `http://${host === "0.0.0.0" ? "127.0.0.1" : host}:${activePort}`;
   writeRuntimeMetadata(projectStateDir, {
     apiBaseUrl,
     host,

@@ -1,0 +1,80 @@
+# Adadex in a locked-down sandbox. Start with:  docker compose up --build
+# Open http://127.0.0.1:8787 (loopback only). See docs/guides/docker-sandbox.md.
+
+name: adadex
+
+x-hardened: &hardened
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  read_only: true
+  init: true
+  restart: unless-stopped
+
+services:
+  adadex:
+    <<: *hardened
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: runtime
+    image: adadex-sandbox:local
+    working_dir: /workspace
+    # Binds 0.0.0.0 inside a network with no route out; only the gateway can reach it.
+    environment:
+      HTTPS_PROXY: http://egress:3128
+      HTTP_PROXY: http://egress:3128
+      NO_PROXY: localhost,127.0.0.1,::1
+    volumes:
+      # The one project the agents may touch. Use a dedicated clone, not your main checkout.
+      - type: bind
+        source: ${ADADEX_WORKSPACE:?set ADADEX_WORKSPACE to the project directory (absolute path)}
+        target: /workspace
+        bind:
+          create_host_path: false
+      # Agent logins, npm cache and Adadex state live here, not on your host.
+      - adadex-home:/home/adadex
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=1g
+    networks: [sandbox]
+    depends_on: [egress]
+    pids_limit: 1024
+    mem_limit: 4g
+    cpus: 4
+
+  egress:
+    <<: *hardened
+    build:
+      context: docker/edge
+      target: egress
+    image: adadex-egress:local
+    tmpfs:
+      - /var/run/squid:rw,nosuid,nodev,uid=13,gid=13
+      - /var/spool/squid:rw,nosuid,nodev,uid=13,gid=13
+      - /var/log/squid:rw,nosuid,nodev,uid=13,gid=13
+      - /tmp:rw,nosuid,nodev
+    networks: [sandbox, internet]
+    pids_limit: 256
+    mem_limit: 256m
+
+  gateway:
+    <<: *hardened
+    build:
+      context: docker/edge
+      target: gateway
+    image: adadex-gateway:local
+    ports:
+      - "127.0.0.1:${ADADEX_PORT:-8787}:8787"
+    networks: [sandbox, ingress]
+    depends_on: [adadex]
+    pids_limit: 64
+    mem_limit: 64m
+
+networks:
+  # No gateway, no route out: containers here can only talk to each other.
+  sandbox:
+    internal: true
+  internet: {}
+  ingress: {}
+
+volumes:
+  adadex-home: {}

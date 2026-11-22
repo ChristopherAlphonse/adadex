@@ -10,11 +10,13 @@ Adadex is a web-first orchestration layer for running multiple coding agents in 
 
 Terminals run [Claude Code](https://docs.claude.com/en/docs/claude-code) (`claude`) by default. Kiro CLI (`kiro-cli`) and OpenCode (`opencode`) can be selected per terminal.
 
+> **Run it in Docker.** Adadex and the agent CLIs depend on many npm packages, any of which can be compromised. The [Docker sandbox](#run-in-docker-preferred) keeps all of it away from your files, credentials and the open internet.
+
 ## Docs
 
 - **Start:** [Docs Home](docs/index.md), [Installation](docs/getting-started/installation.md), [Quickstart](docs/getting-started/quickstart.md)
 - **Concepts:** [Mental Model](docs/concepts/mental-model.md), [Coordination](docs/concepts/coordination.md), [Runtime and API](docs/concepts/runtime-and-api.md)
-- **Guides:** [Working With Todos](docs/guides/working-with-todos.md), [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md), [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md)
+- **Guides:** [Docker Sandbox](docs/guides/docker-sandbox.md), [Working With Todos](docs/guides/working-with-todos.md), [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md), [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md)
 - **Reference:** [CLI](docs/reference/cli.md), [API](docs/reference/api.md), [Filesystem Layout](docs/reference/filesystem-layout.md), [Troubleshooting](docs/reference/troubleshooting.md)
 
 The Electron desktop app is in progress; see [plans/PLAN.md](docs/plans/PLAN.md).
@@ -38,9 +40,40 @@ The Electron desktop app is in progress; see [plans/PLAN.md](docs/plans/PLAN.md)
 - `gh` for GitHub pull request features
 - `curl` for agent hook callbacks
 
-## Install
+## Run in Docker (preferred)
 
-Adadex is not yet published to the npm registry. Use one of the options below.
+**Docker is the preferred way to run Adadex.** Running it directly on your machine gives every npm package and agent CLI it pulls in full access to your files and credentials. Use the options under [Install](#install) only for development on Adadex itself.
+
+The image bundles Adadex plus Claude Code, Codex, OpenCode and Kiro CLI. You only need Docker with Compose.
+
+```bash
+# 1. Point at a dedicated clone of the project the agents should work on (absolute path).
+export ADADEX_WORKSPACE=/absolute/path/to/your-project-clone
+
+# 2. Build and start.
+docker compose up --build
+
+# 3. Open http://127.0.0.1:8787
+```
+
+Sign in to each agent once from an Adadex terminal (`claude`, `opencode auth login`, `kiro-cli login`). Logins are kept in the `adadex-home` Docker volume, never on your host.
+
+```bash
+docker compose up -d                  # start in the background
+docker compose logs -f egress         # see which domains were allowed or denied
+docker compose down                   # stop; keeps logins and state
+docker compose down -v                # stop and delete logins and state
+ADADEX_PORT=9000 docker compose up    # use another host port (still loopback only)
+docker compose -f docker-compose.yml -f docker-compose.offline.yml up   # no network at all
+```
+
+What the sandbox enforces: a read-only root filesystem, a non-root user with every capability dropped, no host home or Docker socket, and no direct internet. All traffic leaves through a proxy that allows only the domains in [`docker/edge/allowlist.txt`](docker/edge/allowlist.txt). The UI is published on `127.0.0.1` only.
+
+What it does not protect: your workspace folder is read-write, and allowed domains can carry data out. Use a dedicated clone and review diffs before running anything on your host. Codex is installed in the image, but Adadex cannot launch it from its UI yet. Full details: [Docker Sandbox guide](docs/guides/docker-sandbox.md).
+
+## Install (without Docker, not sandboxed)
+
+Adadex is not yet published to the npm registry. These options run everything with your user's full access; prefer [Docker](#run-in-docker-preferred) for normal use.
 
 **Local development:**
 

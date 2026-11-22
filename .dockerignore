@@ -1,0 +1,21 @@
+# Nothing secret, local, or generated goes into the build context.
+.git
+.github
+.husky
+.codegraph
+.claude
+.agents
+.kiro
+.opencode
+.cursor
+.adadex
+.env
+.env.*
+!.env.example
+**/node_modules
+**/dist
+**/coverage
+**/.vite
+docker/data
+*.log
+.DS_Store
