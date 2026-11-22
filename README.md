@@ -50,12 +50,14 @@ An Electron desktop app (`apps/desktop`) is in progress and is not yet a replace
 
 The image bundles Adadex plus Claude Code, Codex, OpenCode and Kiro CLI. On the host you only need [Docker with Compose](https://docs.docker.com/desktop/setup/install/mac-install/) (Docker Desktop, OrbStack or similar) installed and running, and `git`. Node and the agent CLIs are not needed on your machine.
 
-**1. Clone Adadex** anywhere you like and remember where (the examples call it `ADADEX_DIR`):
+**1. Clone Adadex** anywhere you like and set `ADADEX_DIR` to the clone's own folder (the one that contains `docker-compose.yml`):
 
 ```bash
 git clone https://github.com/ChristopherAlphonse/adadex.git
-export ADADEX_DIR="$PWD/adadex"
+export ADADEX_DIR="$PWD/adadex"   # run from the folder you cloned into
 ```
+
+If you are already inside the clone, use `export ADADEX_DIR="$PWD"` instead. A wrong value fails with `open .../docker-compose.yml: no such file or directory`; an unset one fails with `open /docker-compose.yml`.
 
 **2. Start it from the project you want the agents to work on.** That project must be a git clone, and it is mounted read-write (its `.git/hooks` folder is read-only), so use a dedicated clone:
 
@@ -66,7 +68,7 @@ ADADEX_WORKSPACE="$PWD" docker compose -f "$ADADEX_DIR/docker-compose.yml" up --
 
 **3. Open** <http://127.0.0.1:8787>.
 
-If `ADADEX_DIR` is not set (for example in a new terminal), replace it with the path to your Adadex clone.
+If `ADADEX_DIR` is not set (for example in a new terminal), set it again or replace it with the path to your Adadex clone. To work on Adadex itself from inside its clone, you can skip it: `ADADEX_WORKSPACE="$PWD" docker compose up --build`.
 
 Sign in to each agent once from an Adadex terminal (`claude`, `opencode auth login`, `kiro-cli login`). Logins are kept in the `adadex-home` Docker volume, never on your host. The volume is shared by every project you run, so you sign in once until you run `docker compose down -v`.
 
