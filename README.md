@@ -50,25 +50,26 @@ An Electron desktop app (`apps/desktop`) is in progress and is not yet a replace
 
 The image bundles Adadex plus Claude Code, Codex, OpenCode and Kiro CLI. On the host you only need [Docker with Compose](https://docs.docker.com/desktop/setup/install/mac-install/) (Docker Desktop, OrbStack or similar) installed and running, and `git`. Node and the agent CLIs are not needed on your machine.
 
-**1. Clone Adadex** anywhere you like and set `ADADEX_DIR` to the clone's own folder (the one that contains `docker-compose.yml`):
+**1. Clone Adadex** once, anywhere. Run this in any terminal:
 
 ```bash
-git clone https://github.com/ChristopherAlphonse/adadex.git
-export ADADEX_DIR="$PWD/adadex"   # run from the folder you cloned into
+git clone https://github.com/ChristopherAlphonse/adadex.git ~/adadex
 ```
 
-If you are already inside the clone, use `export ADADEX_DIR="$PWD"` instead. A wrong value fails with `open .../docker-compose.yml: no such file or directory`; an unset one fails with `open /docker-compose.yml`.
-
-**2. Start it from the project you want the agents to work on.** That project must be a git clone, and it is mounted read-write (its `.git/hooks` folder is read-only), so use a dedicated clone:
+**2. Start it.** Run this from the project you want the agents to work on. That project must be a git clone, and it is mounted read-write (its `.git/hooks` folder is read-only), so use a dedicated clone:
 
 ```bash
 cd /path/to/your-project
-ADADEX_WORKSPACE="$PWD" docker compose -f "$ADADEX_DIR/docker-compose.yml" up --build
+~/adadex/run.sh
 ```
 
-**3. Open** <http://127.0.0.1:8787>.
+The script finds the Adadex folder itself, uses the current folder as the workspace, and picks a free port starting at 8787. It prints the URL to open. Extra arguments go to `docker compose` (for example `~/adadex/run.sh up -d` or `~/adadex/run.sh down`). Set `ADADEX_PORT` to force a port.
 
-If `ADADEX_DIR` is not set (for example in a new terminal), set it again or replace it with the path to your Adadex clone. To work on Adadex itself from inside its clone, you can skip it: `ADADEX_WORKSPACE="$PWD" docker compose up --build`.
+If you prefer plain Compose, set `ADADEX_DIR` to the folder that contains `docker-compose.yml` and run `ADADEX_WORKSPACE="$PWD" docker compose -f "$ADADEX_DIR/docker-compose.yml" up --build`. A wrong `ADADEX_DIR` fails with `open .../docker-compose.yml: no such file or directory`; an unset one fails with `open /docker-compose.yml`.
+
+**3. Open** the URL the script prints (<http://127.0.0.1:8787> unless that port is busy).
+
+To work on Adadex itself, run this from inside its clone instead: `ADADEX_WORKSPACE="$PWD" docker compose up --build`.
 
 Sign in to each agent once from an Adadex terminal (`claude`, `opencode auth login`, `kiro-cli login`). Logins are kept in the `adadex-home` Docker volume, never on your host. The volume is shared by every project you run, so you sign in once until you run `docker compose down -v`.
 
@@ -76,7 +77,7 @@ Sign in to each agent once from an Adadex terminal (`claude`, `opencode auth log
 
 ```bash
 read -s CLAUDE_CODE_OAUTH_TOKEN && export CLAUDE_CODE_OAUTH_TOKEN
-ADADEX_WORKSPACE="$PWD" docker compose -f "$ADADEX_DIR/docker-compose.yml" up --build
+~/adadex/run.sh
 ```
 
 The token is passed into the container only when it is set in your shell, and it overrides a login stored in the volume. Any process in the container can read it, and it shows up in `docker inspect`. Do not put it in `.env` or commit it, and revoke it from your Claude account if it leaks. Do not mount `~/.claude` or `~/.claude.json` into the container: they hold your global settings, hooks and MCP configs.
