@@ -19,7 +19,7 @@ The goal is one Electron desktop app where people build their own workflows, eac
 ## Rules for every agent
 
 - **Never commit, push or open a PR** unless the user says so. Other tools committing this tree is not permission.
-- **Claude Code only.** Do not build an OpenCode or Kiro adapter. The provider port stays so one can be added later.
+- **Claude Code, OpenCode and Kiro are all supported** (owner decision 2026-11-22, see `docs/decisions/0001-runtime-and-orchestration.md`). Ghostex runs and supervises agents; this app keeps workflows, roles and policy. Agents started through Ghostex bypass the tool guard and sandbox, so that backend is opt-in.
 - **No new dependency, install-script approval or web fetch** without asking.
 - **An agent can never change or switch its own role.** Autonomy is only what a role grants. Do not add an action that changes a role or grants a permission; a test fails if one exists.
 - Do not give any role a human-only action, a network tool, or write access to `job.json`, `audit.log`, `checks.md` or the data folder. `parseRole` refuses these; keep the tests that check it.
@@ -33,7 +33,7 @@ The goal is one Electron desktop app where people build their own workflows, eac
 | --- | --- |
 | `packages/core` | Pure logic. Workflow engine (`advanceJob`, `parseWorkflow`), roles (`parseRole`, `authorizeForRole`, `policyForRole`), tool policy (`evaluateToolCall`), action registry, `planTick`, canvas logic (`toGraph`, `editWorkflow`, `problemsOf`), presets (`factory`, `factory-review`, eleven roles) |
 | `apps/desktop` | Everything with IO plus the Electron shell. `src/app/createApp.ts` wires it. Request contract in `src/ipc/contract.ts` |
-| `apps/web` | React UI. Factory view is nav item 8, talking to the host through `src/runtime/factoryHost.ts`; components in `src/components/factory/` |
+| `apps/web` | React UI. Factory view is nav item 7 and only shows when the desktop bridge is present, talking to the host through `src/runtime/factoryHost.ts`; components in `src/components/factory/` |
 | `apps/api` | The old local HTTP server. Removed in the cutover |
 
 ## Status by phase

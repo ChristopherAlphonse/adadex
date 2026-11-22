@@ -18,7 +18,13 @@ import {
   storeUsageSummary,
 } from "./conversations";
 import { broadcastMessage } from "./protocol";
-import type { PersistedTerminal, TerminalSession, TerminalStateMessage } from "./types";
+import { buildThreadReport, hasRecentReportFrom } from "./threadReport";
+import type {
+  ChannelMessage,
+  PersistedTerminal,
+  TerminalSession,
+  TerminalStateMessage,
+} from "./types";
 
 const MAX_AUTO_NAME_LENGTH = 50;
 
@@ -42,6 +48,12 @@ export const createHookProcessor = (deps: {
   getApiBaseUrl: () => string;
   persistRegistry: () => void;
   deliverChannelMessages: (terminalId: string) => number;
+  sendChannelMessage?: (
+    toTerminalId: string,
+    fromTerminalId: string,
+    content: string,
+  ) => ChannelMessage | null;
+  listChannelMessages?: (terminalId: string) => ChannelMessage[];
   releaseSessionKeepAlive: (terminalId: string) => boolean;
   onStateChange?: (
     terminalId: string,
@@ -62,6 +74,37 @@ export const createHookProcessor = (deps: {
 
   const installHooksInDirectory = (targetCwd: string, agentProvider: TerminalAgentProvider) => {
     installAgentHooks(targetCwd, agentProvider, getApiBaseUrl());
+  };
+
+  /** A child agent ending its turn tells its parent, so the parent never has to poll or rely on the child remembering. */
+  const reportToParent = (
+    childId: string,
+    turns: { role: string; content: string }[] | null,
+    lastAssistantMessage: string | null,
+  ) => {
+    const child = terminals.get(childId);
+    const parentId = child?.parentTerminalId;
+
+    if (!child || !parentId || !terminals.has(parentId) || !deps.sendChannelMessage) {
+      return;
+    }
+
+    const lastTurn = turns?.filter((turn) => turn.role === "assistant").at(-1);
+    const finalMessage = lastAssistantMessage || lastTurn?.content || "";
+
+    if (finalMessage.trim().length === 0) {
+      return;
+    }
+
+    if (hasRecentReportFrom(deps.listChannelMessages?.(parentId) ?? [], childId, Date.now())) {
+      return;
+    }
+
+    deps.sendChannelMessage(
+      parentId,
+      childId,
+      buildThreadReport(child.coordinationName, finalMessage),
+    );
   };
 
   const handleHook = <T>(hookName: string, payload: T, hookSessionId?: string) => {
@@ -289,6 +332,8 @@ export const createHookProcessor = (deps: {
       );
       logVerbose(`[Hook] Appended last_assistant_message for session ${matchedSessionId}.`);
     }
+
+    reportToParent(matchedSessionId, turns, lastAssistantMessage);
 
     if (matchedSessionId) {
       const deliveredMessageCount = deliverChannelMessages(matchedSessionId);

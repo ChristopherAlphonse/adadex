@@ -155,6 +155,7 @@ describe("App workspace setup", () => {
 
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: /Expand workspace setup/ }));
     expect(await screen.findByLabelText("Workspace setup")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
@@ -187,6 +188,8 @@ describe("App workspace setup", () => {
     });
 
     render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Expand workspace setup/ }));
 
     const setupCard = await screen.findByLabelText("Workspace setup");
     fireEvent.click(within(setupCard).getByRole("button", { name: "Update .gitignore" }));

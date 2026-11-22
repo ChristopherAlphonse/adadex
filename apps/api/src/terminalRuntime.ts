@@ -328,6 +328,8 @@ export const createTerminalRuntime = ({
     getApiBaseUrl,
     persistRegistry,
     deliverChannelMessages: channelMessaging.deliverChannelMessages,
+    sendChannelMessage: channelMessaging.sendChannelMessage,
+    listChannelMessages: channelMessaging.listChannelMessages,
     releaseSessionKeepAlive: sessionRuntime.releaseSessionKeepAlive,
     onStateChange: broadcastTerminalStateChanged,
   });
