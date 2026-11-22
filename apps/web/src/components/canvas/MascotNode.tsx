@@ -72,19 +72,15 @@ const buildEdgePath = (
 
   if (dist < 1) return "";
 
-  // Shorten the endpoint so the edge stops at the target node's border
   const shortenBy = targetRadius + 2;
   const endRatio = Math.max(0, (dist - shortenBy) / dist);
   const etx = cx + dx * endRatio;
   const ety = cy + dy * endRatio;
 
-  // Curvature — perpendicular offset for quadratic Bézier control point
-  // Single edges get a default curve; multi-edges fan out
   const curvature = edgeCount <= 1 ? 0.3 : (edgeIndex / (edgeCount - 1) - 0.5) * 2;
   const offsetRatio = 0.25 + edgeCount * 0.05;
   const baseOffset = Math.max(35, dist * offsetRatio);
 
-  // Perpendicular to source→target direction (unit normal: -dy/dist, dx/dist)
   const offsetX = (-dy / dist) * curvature * baseOffset;
   const offsetY = (dx / dist) * curvature * baseOffset;
   const cpx = (cx + etx) / 2 + offsetX;
@@ -199,7 +195,6 @@ export const MascotNode = ({
       }}
       style={{ cursor: "grab" }}
     >
-      {/* Invisible hit area — half-pixel alignment reduces blur on transformed SVG */}
       <rect
         x={Math.round(-glyphW / 2)}
         y={Math.round(-glyphH / 2)}
@@ -208,7 +203,6 @@ export const MascotNode = ({
         fill="transparent"
       />
 
-      {/* Edges — highlight when either endpoint is selected */}
       {connectedNodes.map((target) => {
         const active = isSelected || target.id === selectedNodeId;
         const path = buildEdgePath(0, 0, target.x - node.x, target.y - node.y, target.radius, 0, 1);
@@ -242,10 +236,8 @@ export const MascotNode = ({
         );
       })}
 
-      {/* Focused glow — same style as session nodes */}
       {showFocus && <circle className="canvas-node-focus-glow" r={node.radius - 4} fill={color} />}
 
-      {/* Mascot glyph via foreignObject */}
       <foreignObject
         x={Math.round(-glyphW / 2)}
         y={Math.round(-glyphH / 2)}
@@ -272,7 +264,6 @@ export const MascotNode = ({
         </div>
       </foreignObject>
 
-      {/* Label sits below the mascot's built-in shadow */}
       <text
         x={LABEL_OFFSET_X_PX}
         y={Math.round(glyphH / 2 + LABEL_BELOW_MASCOT_PX + LABEL_OFFSET_Y_PX)}

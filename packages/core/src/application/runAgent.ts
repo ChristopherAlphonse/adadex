@@ -40,7 +40,6 @@ export interface AgentRunResult {
 const errorMessage = (cause: unknown): string =>
   cause instanceof Error ? cause.message : "action failed";
 
-/** Agent calls arrive as JSON; anything else cannot be handed to an action parser. */
 const isParsedInput = (value: unknown): value is ParsedValue => {
   if (value === null || isString(value) || isNumber(value) || isBoolean(value)) return true;
 
@@ -122,7 +121,6 @@ export const runAgent = async (
       }
 
       if (event.type !== "action") continue;
-      // A value the provider could not have decoded from JSON is treated as missing, so the action's parser denies it.
       const input = isParsedInput(event.input) ? event.input : null;
       const outcome = await decide(deps, event.actionId, input);
       calls.push({ callId: event.callId, actionId: event.actionId, outcome });

@@ -1,4 +1,3 @@
-# Nothing secret, local, or generated goes into the build context.
 .git
 .github
 .husky

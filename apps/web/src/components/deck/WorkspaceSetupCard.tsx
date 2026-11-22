@@ -12,9 +12,7 @@ type WorkspaceSetupCardProps = {
   onLaunchAgent: () => void;
   isLaunchingAgent?: boolean;
   isRunningStepId?: WorkspaceSetupStepId | null;
-  /** Canvas overlay: collapse to a slim bar (same session). */
   onMinimize?: () => void;
-  /** Canvas overlay: hide until reopened from the canvas toolbar. */
   onDismiss?: () => void;
 };
 

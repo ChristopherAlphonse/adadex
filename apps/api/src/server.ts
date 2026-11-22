@@ -30,7 +30,6 @@ const promptsDir = process.env.ADADEX_PROMPTS_DIR;
 
 const webDistDir = process.env.ADADEX_WEB_DIST_DIR;
 
-// Validate startup environment
 const validateStartupEnv = () => {
   const rawPort = process.env.ADADEX_API_PORT ?? process.env.PORT;
 

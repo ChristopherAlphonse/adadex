@@ -187,7 +187,6 @@ const boot = async (): Promise<void> => {
       }
     : undefined;
 
-  // Keep the machine awake while an agent or a check is running, so unattended work is not cut off by sleep.
   let blocker: number | undefined;
 
   const options: MutableAppOptions = {

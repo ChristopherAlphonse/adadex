@@ -54,7 +54,7 @@ The image bundles Adadex plus Claude Code, Codex, OpenCode and Kiro CLI. On the 
 
 ```bash
 git clone https://github.com/ChristopherAlphonse/adadex.git
-export ADADEX_DIR="$PWD/adadex"   # absolute path to the clone
+export ADADEX_DIR="$PWD/adadex"
 ```
 
 **2. Start it from the project you want the agents to work on.** That project must be a git clone, and it is mounted read-write (its `.git/hooks` folder is read-only), so use a dedicated clone:
@@ -73,7 +73,7 @@ Sign in to each agent once from an Adadex terminal (`claude`, `opencode auth log
 **Skip the Claude Code login with a token (optional).** This needs Claude Code installed on your host. Run `claude setup-token` there, then pass the token for that run only:
 
 ```bash
-read -s CLAUDE_CODE_OAUTH_TOKEN && export CLAUDE_CODE_OAUTH_TOKEN   # paste the token; it is not echoed or saved in history
+read -s CLAUDE_CODE_OAUTH_TOKEN && export CLAUDE_CODE_OAUTH_TOKEN
 ADADEX_WORKSPACE="$PWD" docker compose -f "$ADADEX_DIR/docker-compose.yml" up --build
 ```
 
@@ -84,11 +84,11 @@ Day-to-day commands. Run them from your project folder, with the same `-f` and `
 ```bash
 dc() { ADADEX_WORKSPACE="$PWD" docker compose -f "$ADADEX_DIR/docker-compose.yml" "$@"; }
 
-dc up -d                  # start in the background
-dc logs -f egress         # see which domains were allowed or denied
-dc down                   # stop; keeps logins and state
-dc down -v                # stop and delete logins and state
-ADADEX_PORT=9000 dc up    # use another host port (still loopback only)
+dc up -d
+dc logs -f egress
+dc down
+dc down -v
+ADADEX_PORT=9000 dc up
 ```
 
 Offline mode is covered [below](#offline-mode).

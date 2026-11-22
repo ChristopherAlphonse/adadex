@@ -1,4 +1,3 @@
-/* Canvas tab — force-directed graph view (Obsidian-style) */
 
 .console-shell .canvas-view {
   position: relative;
@@ -23,7 +22,6 @@
   cursor: grabbing;
 }
 
-/* ─── Edges ─────────────────────────────────────────────────────────────────── */
 
 .canvas-edge {
   stroke-linecap: round;
@@ -60,7 +58,6 @@
     drop-shadow(0 0 18px rgba(255, 112, 43, 0.45));
 }
 
-/* ─── Node labels — hidden by default, visible on hover ─────────────────────── */
 
 .canvas-node-label {
   font-family: "PP Neue Machina Plain", sans-serif;
@@ -85,7 +82,6 @@
   opacity: 1;
 }
 
-/* ─── Node glow bloom animation ─────────────────────────────────────────────── */
 
 .canvas-node-bloom {
   pointer-events: none;
@@ -105,7 +101,6 @@
   }
 }
 
-/* ─── Focused node glow ────────────────────────────────────────────────────── */
 
 .canvas-node-focus-glow {
   pointer-events: none;
@@ -123,7 +118,6 @@
   }
 }
 
-/* ─── Node interactivity ───────────────────────────────────────────────────── */
 
 .canvas-node--terminal {
   cursor: grab;
@@ -142,7 +136,6 @@
   transform-origin: center;
 }
 
-/* ─── Node type rings (worktree / swarm) ─────────────────────────────────── */
 
 .canvas-node-ring {
   pointer-events: none;
@@ -164,7 +157,6 @@
   opacity: 0.3;
 }
 
-/* ─── Waiting indicator on session nodes ──────────────────────────────────── */
 
 .canvas-node-waiting-pill {
   fill: #f59e0b;
@@ -191,7 +183,6 @@
   user-select: none;
 }
 
-/* ─── Waiting notification bars (below toolbar) ──────────────────────────── */
 
 .canvas-waiting-list {
   position: absolute;
@@ -236,7 +227,6 @@
   opacity: 0.7;
 }
 
-/* ─── Canvas toolbar (top-left action buttons) ───────────────────────────── */
 
 .canvas-toolbar {
   position: absolute;
@@ -368,7 +358,6 @@
   background: var(--border);
 }
 
-/* ─── Force tuner panel (top-left) ─────────────────────────────────────────── */
 
 .canvas-tuner-toggle {
   position: absolute;
@@ -474,7 +463,6 @@
   background: #3b4252;
 }
 
-/* ─── Zoom controls (bottom-right) ─────────────────────────────────────────── */
 
 .canvas-controls {
   position: absolute;
@@ -516,7 +504,6 @@
   font-size: 14px;
 }
 
-/* ─── Split layout: graph panel + terminals panel ──────────────────────────── */
 
 .canvas-graph-panel {
   position: relative;
@@ -553,7 +540,6 @@
   background: var(--bg-canvas);
 }
 
-/* ─── Terminal skeleton loading ───────────────────────────────────────────── */
 
 .canvas-terminal-skeleton {
   flex: 1 0 370px;
@@ -594,7 +580,6 @@
   }
 }
 
-/* ─── Individual terminal column in the panel ──────────────────────────────── */
 
 .canvas-terminal-column {
   flex: 1 0 370px;
@@ -760,7 +745,6 @@
   }
 }
 
-/* ─── Context menu ──────────────────────────────────────────────────────── */
 
 .canvas-context-menu-backdrop {
   position: fixed;
@@ -827,7 +811,6 @@
   cursor: not-allowed;
 }
 
-/* ─── Detail panel (MiroFish-style, right side) ───────────────────────────── */
 
 .detail-panel {
   flex: 1 0 280px;
@@ -954,7 +937,6 @@
   line-height: 1.3;
 }
 
-/* Stack identity vertically when panel is narrow */
 @container (max-width: 340px) {
   .detail-identity {
     flex-direction: column;
@@ -1272,7 +1254,6 @@
   gap: 6px;
 }
 
-/* Stack action buttons when narrow */
 @container (max-width: 380px) {
   .detail-actions {
     flex-direction: column;
@@ -1307,7 +1288,6 @@
   color: var(--accent-primary);
 }
 
-/* ── Delete confirmation dialog (bottom-left corner) ── */
 
 .canvas-delete-dialog {
   position: absolute;
@@ -1318,7 +1298,6 @@
   max-width: calc(100% - 32px);
 }
 
-/* ── Danger toolbar button (subtle until hovered) ── */
 
 .canvas-toolbar-btn--danger:hover {
   background: color-mix(in srgb, #ef4444 10%, transparent);
@@ -1326,7 +1305,6 @@
   color: #e5a0a0;
 }
 
-/* ── Delete-all mode toggle ── */
 
 .delete-all-mode-row {
   display: flex;
@@ -1399,7 +1377,6 @@
   padding-top: 0.25rem;
 }
 
-/* ── Delete confirmation dialog (shared inner styles — Bloomberg terminal) ── */
 
 .delete-confirm-dialog {
   width: 100%;
@@ -1547,7 +1524,6 @@
   --action-button-letter-spacing: 0.07em;
 }
 
-/* ── Git actions dialog (Bloomberg terminal style) ── */
 
 .git-actions-dialog {
   width: 100%;

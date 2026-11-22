@@ -1,5 +1,3 @@
-# Adadex in a locked-down sandbox. Start with:  docker compose up --build
-# Open http://127.0.0.1:8787 (loopback only). See docs/guides/docker-sandbox.md.
 
 name: adadex
 
@@ -29,25 +27,22 @@ services:
       NO_PROXY: localhost,127.0.0.1,::1
       CLAUDE_CODE_OAUTH_TOKEN:
     volumes:
-      # The one project the agents may touch. Use a dedicated clone, not your main checkout.
       - type: bind
         source: ${ADADEX_WORKSPACE:?set ADADEX_WORKSPACE to the project directory (absolute path)}
         target: /workspace
         bind:
           create_host_path: false
       # Git hooks run on the host when you use git there, so agents must not be able to plant them.
-      # Requires the workspace to be a git clone (it has a .git/hooks directory).
       - type: bind
         source: ${ADADEX_WORKSPACE}/.git/hooks
         target: /workspace/.git/hooks
         read_only: true
         bind:
           create_host_path: false
-      # Agent logins, npm cache and Adadex state live here, not on your host.
       - adadex-home:/home/adadex
     tmpfs:
       # Docker mounts tmpfs noexec by default. OpenCode (a Bun binary) unpacks a native library
-      # into /tmp and loads it, so /tmp needs exec. It is size-limited and wiped on every restart.
+      # into /tmp and loads it, so /tmp needs exec.
       - /tmp:rw,exec,nosuid,nodev,size=1g
     networks: [sandbox]
     depends_on: [egress]
@@ -84,7 +79,6 @@ services:
     mem_limit: 64m
 
 networks:
-  # No gateway, no route out: containers here can only talk to each other.
   sandbox:
     internal: true
   internet: {}

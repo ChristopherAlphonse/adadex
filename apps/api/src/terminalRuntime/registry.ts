@@ -170,11 +170,6 @@ export const pruneUiStateTerminalReferences = (
   return nextState;
 };
 
-/**
- * Migrate a v1/v2 registry document to v3 terminal format.
- * Each old coordination entry becomes a terminal where terminalId = coordinationId.
- * Child agents are dropped.
- */
 const migrateV2ToV3 = (
   record: ParsedRecord,
   registryPath: string,

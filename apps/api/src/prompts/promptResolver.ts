@@ -16,7 +16,6 @@ export const readPromptTemplate = async (
   promptsDir: string,
   name: string,
 ): Promise<string | undefined> => {
-  // Guard against path traversal.
   if (name.includes("/") || name.includes("\\") || name.includes("..")) {
     return undefined;
   }
@@ -62,8 +61,6 @@ export const listPromptTemplates = async (promptsDir: string): Promise<string[]>
     return [];
   }
 };
-
-// ─── Multi-directory helpers (builtin + user) ─────────────────────────────
 
 type PromptEntry = { name: string; source: "builtin" | "user" };
 

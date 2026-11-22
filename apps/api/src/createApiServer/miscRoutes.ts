@@ -157,7 +157,6 @@ export const handleHookRoute: ApiRouteHandler = async (
 
   const hookName = match[1] ?? "";
 
-  // HTTP hooks pass the session ID via header; command hooks via query param.
   const hookSessionId =
     (isString(request.headers["x-adadex-session"]) && request.headers["x-adadex-session"].length > 0
       ? request.headers["x-adadex-session"]
@@ -236,7 +235,6 @@ export const handlePromptItemRoute: ApiRouteHandler = async (
   );
 
   if (request.method === "GET") {
-    // Resolve variables from query params (e.g. ?coordinationId=sandbox).
     const variables: Record<string, string> = {};
 
     for (const [key, value] of requestUrl.searchParams.entries()) {
@@ -310,8 +308,6 @@ export const handlePromptItemRoute: ApiRouteHandler = async (
 
   return true;
 };
-
-// ─── Channel routes ───────────────────────────────────────────────────────
 
 const CHANNEL_MESSAGES_PATH_PATTERN = /^\/api\/channels\/([^/]+)\/messages$/;
 

@@ -19,11 +19,9 @@ type RemoveOrchestrationWorktreeOptions = {
   bestEffort?: boolean;
 };
 
-/** Resolve the effective worktree identifier for a terminal. */
 const getEffectiveWorktreeId = (terminal: PersistedTerminal): string =>
   terminal.worktreeId ?? terminal.coordinationId;
 
-/** Find any terminal whose effective worktree identifier matches. */
 const findTerminalForWorktree = (
   terminals: Map<string, PersistedTerminal>,
   worktreeIdentifier: string,

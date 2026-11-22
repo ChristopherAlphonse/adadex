@@ -44,8 +44,6 @@ const formatDateLabel = (date: string): string => {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-/* ── Shared types ───────────────────────────────────── */
-
 type Segment = { label: string; tokens: number; color: string };
 
 type BarData = {
@@ -95,8 +93,6 @@ const buildYTicks = (maxTokens: number): { value: number; label: string }[] => {
   return ticks;
 };
 
-/* ── Tooltip (shared) ───────────────────────────────── */
-
 const ChartTooltip = ({
   bar,
   x,
@@ -143,8 +139,6 @@ const ChartTooltip = ({
     </div>
   );
 };
-
-/* ── Trend curve ───────────────────────────────────── */
 
 const buildTrendPath = (
   bars: BarData[],
@@ -195,8 +189,6 @@ const buildTrendPath = (
 
   return d;
 };
-
-/* ── Bar chart view ─────────────────────────────────── */
 
 const Y_AXIS_WIDTH = 52;
 
@@ -332,8 +324,6 @@ const BarChartView = ({
     </svg>
   );
 };
-
-/* ── Heatmap view ───────────────────────────────────── */
 
 const CELL_GAP = 3;
 
@@ -528,8 +518,6 @@ const HeatmapView = ({
   );
 };
 
-/* ── Measured panel wrapper ──────────────────────────── */
-
 const usePanelSize = () => {
   const [width, setWidth] = useState(400);
   const [height, setHeight] = useState(200);
@@ -553,8 +541,6 @@ const usePanelSize = () => {
 
   return { ref, width, height };
 };
-
-/* ── Main component ─────────────────────────────────── */
 
 export const UsageBarChart = ({ data, isLoading, onRefresh }: UsageChartSectionProps) => {
   const [segmentMode, setSegmentMode] = useState<BarSegmentMode>("project");

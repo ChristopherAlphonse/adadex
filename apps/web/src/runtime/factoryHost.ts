@@ -102,7 +102,7 @@ export interface FactoryHost {
   subscribe(onChange: () => void): () => void;
 }
 
-/** Test seam and the shape used when a preload adapts the request/response API. */
+/** The shape used when a preload adapts the request/response API. */
 export interface HostApiBridge {
   handle(request: ParsedValue): Promise<ParsedValue>;
   subscribe(listener: (event: ParsedValue) => void): () => void;
@@ -128,7 +128,6 @@ interface HostTransport {
   listen(listener: (event: ParsedValue) => void): () => void;
 }
 
-/** Fields the renderer may place on a host request envelope. */
 type FactoryRequestFields = {
   readonly actionId?: string;
   readonly approvalId?: string;
@@ -448,7 +447,6 @@ const isBridge = (value: unknown): value is HostBridge => {
   return hasRequestApi || hasHandleApi;
 };
 
-/** Test seam: lets a component test install a host without an Electron preload. */
 export const installFactoryHost = (bridge: HostBridge | null): void => {
   if (bridge === null) {
     delete window.adadexFactoryHost;

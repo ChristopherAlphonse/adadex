@@ -60,12 +60,10 @@ export const useTerminalCompletionNotification = (
 
       if (isFunctionValue(playResult?.catch)) {
         void playResult.catch(() => {
-          // Browsers can block untrusted audio playback; ignore and keep UI responsive.
+          // Browsers can block untrusted audio playback.
         });
       }
-    } catch {
-      // Some environments throw synchronously for media playback; ignore.
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {

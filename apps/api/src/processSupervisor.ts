@@ -227,7 +227,6 @@ export const createProcessSupervisor = (dependencies: SupervisorDependencies) =>
             killed.push(sessionId);
           }
         } else {
-          // A recycled pid must never be signalled just because it is live.
           dropped.push(sessionId);
         }
 

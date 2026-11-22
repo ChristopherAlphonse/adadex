@@ -260,8 +260,6 @@ export const createTerminalRuntimeStateStore = () => {
 
 export type TerminalRuntimeStateStore = ReturnType<typeof createTerminalRuntimeStateStore>;
 
-// getRuntimeStates builds a new Map on every call, so keep the last snapshot and reuse
-// it while its contents are unchanged: useSyncExternalStore requires a stable value.
 const createRuntimeStateSource = (
   runtimeStateStore: TerminalRuntimeStateStore,
   terminalIds: string[],

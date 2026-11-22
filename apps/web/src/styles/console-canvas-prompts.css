@@ -1,4 +1,3 @@
-/* ─── Prompts Primary View ─────────────────────────────────────────────── */
 
 .console-shell .prompts-view {
   min-height: 0;
@@ -28,7 +27,6 @@
   padding: 0.3rem 0.56rem;
 }
 
-/* ─── Prompt Detail ────────────────────────────────────────────────────── */
 
 .prompts-detail {
   display: grid;
@@ -134,7 +132,6 @@
   outline-offset: 1px;
 }
 
-/* ─── Embedded Terminal (New Prompt) — matches deck-detail-terminal ───── */
 
 .prompts-terminal {
   flex: 1;
@@ -198,7 +195,6 @@
   flex: 1;
 }
 
-/* ─── Sidebar Prompts List ─────────────────────────────────────────────── */
 
 .sidebar-prompts {
   display: grid;
@@ -316,7 +312,6 @@
   outline-offset: 1px;
 }
 
-/* ─── Minimized Terminal Bar ──────────────────────────────────────────── */
 
 .sidebar-prompts-minimized-terminal {
   display: flex;
@@ -377,7 +372,6 @@
   white-space: nowrap;
 }
 
-/* ─── Terminal Prompt Picker ───────────────────────────────────────────── */
 
 .terminal-prompt-picker-anchor {
   position: relative;

@@ -84,8 +84,8 @@ const GAP_Y = 120;
 
 /**
  * Turn a workflow into something a canvas can draw: stages placed left to right by how far they are from the start,
- * moves as edges (loops marked), and moves to needs-human as a badge. Pure, and it works on invalid workflows too,
- * because a person drawing one passes through invalid states.
+ * moves as edges (loops marked), and moves to needs-human as a badge.
+ * Pure, and it works on invalid workflows too.
  */
 export const toGraph = (def: WorkflowDefinition): WorkflowGraph => {
   const ids = new Set(def.stages.map((s) => s.id));

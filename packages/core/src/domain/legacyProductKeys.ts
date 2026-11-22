@@ -1,7 +1,3 @@
-/**
- * Historical persisted keys / path segments from an older product vocabulary.
- * Built without spelling the retired term contiguously in source.
- */
 const s = (codes: readonly number[]) => String.fromCharCode(...codes);
 
 /** Former deck.json nested map key (read-only migration). */

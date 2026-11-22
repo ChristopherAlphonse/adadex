@@ -106,9 +106,7 @@ export const createTerminalRuntime = ({
   if (!existsSync(registryPathPrimary) && existsSync(registryPathLegacy)) {
     try {
       renameSync(registryPathLegacy, registryPathPrimary);
-    } catch {
-      // best-effort migration from legacy registry filename
-    }
+    } catch {}
   }
 
   const registryPath = registryPathPrimary;
@@ -522,7 +520,6 @@ export const createTerminalRuntime = ({
     nameOrigin?: TerminalNameOrigin;
     autoRenamePromptContext?: string;
   }): TerminalSnapshot => {
-    // Enforce max children per parent.
     if (parentTerminalId) {
       const childCount = [...terminals.values()].filter(
         (t) => t.parentTerminalId === parentTerminalId,
@@ -550,16 +547,12 @@ export const createTerminalRuntime = ({
       }
     }
 
-    // Allow explicit coordinationId so multiple terminals can share a orchestration context (e.g. swarm workers).
     const coordinationId = requestedCoordinationId ?? terminalId;
     const effectiveName = coordinationName ?? allocateDefaultTerminalName();
 
-    // Auto-allocate a unique worktreeId when creating a worktree terminal
-    // so multiple worktree terminals can coexist (each gets its own directory).
     const worktreeId =
       requestedWorktreeId ?? (workspaceMode === "worktree" ? terminalId : undefined);
 
-    // Apply per-coordination agent provider default if not already specified
     let effectiveAgentProvider = agentProvider;
 
     if (requestedCoordinationId) {
@@ -630,9 +623,7 @@ export const createTerminalRuntime = ({
           hookTargetCwd,
           terminal.agentProvider ?? DEFAULT_AGENT_PROVIDER,
         );
-      } catch {
-        // Best-effort: hook installation should not block terminal creation.
-      }
+      } catch {}
     }
 
     terminals.set(terminalId, terminal);
@@ -804,9 +795,7 @@ export const createTerminalRuntime = ({
       if (!stoppedActiveSession && isProcessAlive(terminal.processId)) {
         try {
           process.kill(terminal.processId, "SIGTERM");
-        } catch {
-          // The lifecycle marker below still removes this terminal from the active set.
-        }
+        } catch {}
       }
 
       if (!stoppedActiveSession) {
@@ -832,9 +821,7 @@ export const createTerminalRuntime = ({
       if (!killedActiveSession && isProcessAlive(terminal.processId)) {
         try {
           process.kill(terminal.processId, signal);
-        } catch {
-          // The lifecycle marker below still removes this terminal from the active set.
-        }
+        } catch {}
       }
 
       if (!killedActiveSession) {

@@ -215,7 +215,6 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       createTerminalInput.worktreeId = bodyPayload.worktreeId.trim();
     }
 
-    // Support prompt resolution via template name + variables, or a raw string.
     if (
       bodyPayload &&
       isString(bodyPayload.promptTemplate) &&
@@ -233,24 +232,18 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
           )
         : {};
 
-      // Auto-inject terminalId variable so callers don't have to guess it.
-      // The runtime hasn't allocated the ID yet, so we use the orchestration name
-      // when provided (sandbox always passes its name).
       if (!templateVars.terminalId && createTerminalInput.coordinationName) {
         templateVars.terminalId = createTerminalInput.coordinationName;
       }
 
-      // Auto-inject apiPort so prompt templates can reference the local API.
       if (!templateVars.apiPort) {
         templateVars.apiPort = getApiPort();
       }
 
-      // Auto-inject userPromptsDir so prompt templates know where to save user prompts.
       if (!templateVars.userPromptsDir) {
         templateVars.userPromptsDir = userPromptsDir;
       }
 
-      // Auto-inject existingTerminals summary so planner-style prompts have context.
       if (!templateVars.existingTerminals) {
         const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
 

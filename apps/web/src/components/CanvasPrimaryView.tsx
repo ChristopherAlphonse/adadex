@@ -294,7 +294,6 @@ export const CanvasPrimaryView = ({
   onRefreshColumns,
   gitStatusByOrchestrationId = {},
 }: CanvasPrimaryViewProps) => {
-  // Lazy state keeps one store for the component lifetime without reading a ref during render.
   const [initialRuntimeStateStore] = useState(
     () => providedRuntimeStateStore ?? createTerminalRuntimeStateStore(),
   );
@@ -464,8 +463,6 @@ export const CanvasPrimaryView = ({
     [columns, nodesById],
   );
 
-  // Hydrate open terminals after a settling delay so all async data (columns,
-  // graph nodes, simulation) has time to land before we attempt the lookup.
   const hasPersistedTerminalIds = Boolean(
     canvasOpenTerminalIds && canvasOpenTerminalIds.length > 0,
   );
@@ -476,9 +473,6 @@ export const CanvasPrimaryView = ({
 
   const openTerminalCount = openTerminals.size;
 
-  // Once the settling timer fires, restore from the simulation graph which
-  // should now be fully populated. Adjusting state during render keeps this
-  // one-shot reconciliation out of an effect.
   if (
     !hasRestoredPersistedTerminals &&
     isUiStateHydrated &&
@@ -518,7 +512,6 @@ export const CanvasPrimaryView = ({
       return;
     }
 
-    // Only the timer completion updates state; the "hydrating" value is derived.
     const timer = window.setTimeout(() => {
       hasHydratedTerminals.current = true;
       setHasTerminalHydrationSettled(true);
@@ -527,20 +520,16 @@ export const CanvasPrimaryView = ({
     return () => window.clearTimeout(timer);
   }, [isUiStateHydrated, canvasOpenTerminalIds]);
 
-  // Persist open terminal IDs when they change
   useEffect(() => {
     if (!hasHydratedTerminals.current) return;
     onCanvasOpenTerminalIdsChange?.(Array.from(openTerminals.keys()));
   }, [openTerminals, onCanvasOpenTerminalIdsChange]);
 
-  // Keep open terminal nodes in step with incoming column data.
   if (reconciledColumns !== columns) {
     setReconciledColumns(columns);
     setOpenTerminals((current) => reconcileOpenTerminalNodes(current, columns));
   }
 
-  // Hydrate open orchestrations from persisted IDs.
-  // Gate on orchestration-type nodes being present (deck API fetch is async).
   const hasOrchestrationNodes = simulatedNodes.some((n) => n.type === "orchestration");
   const openOrchestrationCount = openOrchestrations.size;
 
@@ -564,13 +553,11 @@ export const CanvasPrimaryView = ({
     }
   }
 
-  // Persist open orchestration IDs when they change
   useEffect(() => {
     if (!hasHydratedOrchestrations) return;
     onCanvasOpenOrchestrationIdsChange?.(Array.from(openOrchestrations.keys()));
   }, [openOrchestrations, hasHydratedOrchestrations, onCanvasOpenOrchestrationIdsChange]);
 
-  // Persist terminals panel width only when user has explicitly dragged the divider
   useEffect(() => {
     if (!hasHydratedTerminals.current) return;
 
@@ -711,12 +698,10 @@ export const CanvasPrimaryView = ({
     [columns, onCloseActiveSession],
   );
 
-  // Divider drag handlers
   const handleDividerPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       e.preventDefault();
 
-      // Measure the actual rendered width of the terminals panel (works whether CSS- or inline-sized)
       const panelEl =
         /* SAFETY: preceding checks establish the invariant this assertion encodes. */ /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
           e.target as HTMLElement
@@ -736,7 +721,6 @@ export const CanvasPrimaryView = ({
 
     if (!drag) return;
     const containerWidth = containerRef.current?.clientWidth ?? 1200;
-    // Dragging left → terminals grow, dragging right → terminals shrink
     const delta = drag.startX - e.clientX;
 
     const newWidth = Math.max(
@@ -751,7 +735,6 @@ export const CanvasPrimaryView = ({
     dividerDragRef.current = null;
   }, []);
 
-  // Convert vertical wheel to horizontal scroll only when hovering terminal headers
   useEffect(() => {
     if (!isHydratingTerminals && openTerminalCount === 0 && openOrchestrationCount === 0) return;
     const panel = terminalsPanelRef.current;
@@ -814,7 +797,6 @@ export const CanvasPrimaryView = ({
     }
   }, []);
 
-  // Stable refs so the native listener always sees the latest data and callbacks
   const nodesByIdRef = useRef(nodesById);
   const onNavigateRef = useRef(onNavigateToConversation);
 
@@ -823,7 +805,6 @@ export const CanvasPrimaryView = ({
     onNavigateRef.current = onNavigateToConversation;
   }, [nodesById, onNavigateToConversation]);
 
-  // Native contextmenu listener — must be native to reliably preventDefault
   useEffect(() => {
     const svg = svgRef.current;
 
@@ -964,7 +945,6 @@ export const CanvasPrimaryView = ({
     [onOrchestrationAction],
   );
 
-  // Auto-open terminal for newly created agent once it appears in the graph
   if (pendingOpenAgentId) {
     const nodeId = buildActiveSessionNodeId(pendingOpenAgentId);
     const node = resolveActiveSessionNode(pendingOpenAgentId);
@@ -1049,7 +1029,6 @@ export const CanvasPrimaryView = ({
     };
   }, [selectedNodeId, openTerminals, openOrchestrations]);
 
-  // Separate orchestration and session nodes for render order
   const orchestrationNodes = simulatedNodes.filter(
     (n) => n.type === "orchestration" || n.type === "deck-lead",
   );
@@ -1295,7 +1274,6 @@ export const CanvasPrimaryView = ({
                 }),
               )}
 
-              {/* Render orchestration nodes (with arms) first */}
               {orchestrationNodes.map((node) => {
                 const connected = edges
                   .filter((e) => e.source === node.id)
@@ -1333,7 +1311,6 @@ export const CanvasPrimaryView = ({
                 );
               })}
 
-              {/* Render session nodes on top */}
               {sessionNodes.map((node) => (
                 <SessionNode
                   key={node.id}
@@ -1368,7 +1345,6 @@ export const CanvasPrimaryView = ({
             </div>
           </div>
 
-          {/* Waiting notifications — compact bars below the toolbar */}
           {waitingNodes.length > 0 && (
             <div className="canvas-waiting-list">
               {waitingNodes.map((node) => {
@@ -1528,7 +1504,6 @@ export const CanvasPrimaryView = ({
         />
       </div>
 
-      {/* Context menu */}
       {contextMenu && (
         <>
           <button
@@ -1539,9 +1514,7 @@ export const CanvasPrimaryView = ({
             onContextMenu={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              // Close current menu, then re-derive what's under the cursor on the SVG
               setContextMenu(null);
-              // Use rAF so the backdrop is removed before we probe elementFromPoint
               requestAnimationFrame(() => {
                 const under = document.elementFromPoint(e.clientX, e.clientY);
 

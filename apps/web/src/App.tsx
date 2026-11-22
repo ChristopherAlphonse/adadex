@@ -459,9 +459,7 @@ const AppShell = () => {
         if (isString(error) && error.trim().length > 0) {
           message = error;
         }
-      } catch {
-        // Fall back to the generic message when the server returns a non-JSON error.
-      }
+      } catch {}
 
       throw new Error(message);
     }
@@ -599,9 +597,7 @@ const AppShell = () => {
                 return await createTerminal("worktree", DECK_LEAD_ID, { plainShell: true });
               },
               onCreateOrchestration: async () => {
-                // The API requires a unique, folder-safe name, so pick the first free "orchestration-N".
                 for (let index = 1; index <= 50; index += 1) {
-                  // eslint-disable-next-line no-await-in-loop
                   const response = await fetch("/api/deck/coordinations", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -609,14 +605,11 @@ const AppShell = () => {
                   });
 
                   if (response.ok) {
-                    // eslint-disable-next-line no-await-in-loop
                     await refreshColumns();
 
                     return;
                   }
 
-                  // Only a name collision is worth retrying; anything else won't improve with a new name.
-                  // eslint-disable-next-line no-await-in-loop
                   const failure = asRecord(await response.json().catch(() => null));
 
                   if (!isString(failure?.error) || !failure.error.includes("already exists")) {

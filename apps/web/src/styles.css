@@ -1,10 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap");
 
-/* Tailwind utilities + shadcn component layer (does not own app chrome tokens) */
 @import "./styles/tailwind.css";
 @import "./styles/design-console-theme.css";
 
-/* App design tokens and layout — must load after tailwind to win cascade */
 @import "./styles/foundation.css";
 @import "./styles/console-theme-tokens.css";
 

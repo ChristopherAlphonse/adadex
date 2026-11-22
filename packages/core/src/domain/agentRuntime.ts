@@ -10,7 +10,7 @@ export const isAgentRuntimeState = (value: unknown): value is AgentRuntimeState 
   value === "waiting_for_permission" ||
   value === "waiting_for_user";
 
-/** The agent CLIs Adadex can launch in a terminal. Each gets its own hook install (see hookProcessor). */
+/** The agent CLIs Adadex can launch in a terminal. */
 export type TerminalAgentProvider = "claude" | "opencode" | "kiro";
 
 export const TERMINAL_AGENT_PROVIDERS: TerminalAgentProvider[] = ["claude", "opencode", "kiro"];

@@ -1,10 +1,6 @@
 import type { DeckCoordinationStatus } from "@adadex/core";
 import { useId } from "react";
 
-/**
- * Soft, rounded mascot with a few moods. The body color is tinted from the agent's color so
- * every agent stays recognisable, while the face plate and eyes stay constant.
- */
 export type CuteMascotState = "idle" | "working" | "happy" | "sleeping" | "worried";
 
 /** Which mood the mascot shows for each agent status. */
@@ -46,7 +42,6 @@ const Eyes = ({ state }: { state: CuteMascotState }) => {
     );
   }
 
-  // Open eyes: glossy ovals with a highlight. "working" glances sideways, "worried" is smaller.
   const shiftX = state === "working" ? 5 : 0;
   const ry = state === "worried" ? 9 : 11.5;
   const rx = state === "worried" ? 6.5 : 8.5;
@@ -119,7 +114,6 @@ export const CuteMascot = ({
 
       <g className="cm-figure" transform={isSleeping ? "translate(0 22) scale(1 0.84)" : undefined}>
         <g className="cm-bob">
-          {/* Antenna */}
           <g className="cm-antenna" transform={isSleeping ? "rotate(-14 98 32)" : undefined}>
             <path
               d="M98 34 L88 16"
@@ -132,7 +126,6 @@ export const CuteMascot = ({
             <circle cx="82" cy="8.5" fill="#fff" opacity="0.45" r="3" />
           </g>
 
-          {/* Body with two little feet */}
           <path
             d="M38 122 C38 58 66 30 100 30 C134 30 162 58 162 122 L162 176 C162 190 152 198 140 198 C128 198 122 192 118 184 C114 178 108 174 100 174 C92 174 86 178 82 184 C78 192 72 198 60 198 C48 198 38 190 38 176 Z"
             fill={`url(#${bodyId})`}
@@ -146,13 +139,11 @@ export const CuteMascot = ({
             strokeWidth="5"
           />
 
-          {/* Face plate */}
           <ellipse cx="100" cy="98" fill={FACE} rx="50" ry="41" />
           <ellipse cx="100" cy="132" fill="#000" opacity="0.04" rx="42" ry="8" />
 
           <Eyes state={state} />
 
-          {/* Cheeks for the happy mood */}
           {state === "happy" ? (
             <g fill="#ff9fb4" opacity="0.55">
               <ellipse cx="70" cy="112" rx="7" ry="4.5" />
@@ -160,7 +151,6 @@ export const CuteMascot = ({
             </g>
           ) : null}
 
-          {/* Arms */}
           <ellipse
             cx="46"
             cy={isSleeping ? 150 : 142}
@@ -193,7 +183,6 @@ export const CuteMascot = ({
         </g>
       </g>
 
-      {/* Mood extras */}
       {state === "happy" ? (
         <g
           className="cm-sparkle"

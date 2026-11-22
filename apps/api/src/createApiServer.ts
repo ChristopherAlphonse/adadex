@@ -23,7 +23,6 @@ export const createApiServer = ({
   allowRemoteAccess = false,
 }: CreateApiServerOptions = {}) => {
   const resolvedWorkspaceCwd = workspaceCwd ?? process.cwd();
-  // State lives in ~/.adadex/projects/<name>/ when provided, else falls back to <project>/.adadex/
   const resolvedStateDir = projectStateDir ?? join(resolvedWorkspaceCwd, WORKSPACE_RUNTIME_DIR);
   let resolvedApiBaseUrl = apiBaseUrl ?? "http://127.0.0.1:8787";
   const getApiBaseUrl = () => resolvedApiBaseUrl;
@@ -39,8 +38,6 @@ export const createApiServer = ({
   const resolvedUserPromptsDir = join(resolvedStateDir, "prompts");
   const resolvedCorePromptsDir = join(resolvedStateDir, "prompts", "core");
 
-  // Sync builtin prompts into the project state dir on every start so prompt
-  // changes in the repo take effect without requiring manual cache cleanup.
   const sourceDir = promptsDir ?? join(resolvedWorkspaceCwd, "prompts");
 
   if (fsExistsSync(sourceDir)) {
@@ -53,10 +50,6 @@ export const createApiServer = ({
     }
   }
 
-  // Read builtin prompts from the live source directory when available so new
-  // prompt files and prompt edits take effect without restarting the API.
-  // Keep the mirrored state copy as a fallback for packaged/runtime setups
-  // where the source prompts directory is unavailable.
   const resolvedPromptsDir = fsExistsSync(sourceDir) ? sourceDir : resolvedCorePromptsDir;
 
   const readGithubRepoSummaryWithDefault =

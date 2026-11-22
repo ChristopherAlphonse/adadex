@@ -10,7 +10,7 @@ Requires Docker with Compose (Docker Desktop, OrbStack or similar), installed an
 
 ```bash
 git clone https://github.com/ChristopherAlphonse/adadex.git
-cd adadex                                                  # run the next commands from this folder
+cd adadex
 export ADADEX_WORKSPACE=/absolute/path/to/your-project-clone
 docker compose up --build
 ```

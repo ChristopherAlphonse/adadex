@@ -74,7 +74,6 @@ export const SidebarConversationsList = ({
     [sessions],
   );
 
-  // Live search: debounce input changes and trigger search after 2+ chars
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);

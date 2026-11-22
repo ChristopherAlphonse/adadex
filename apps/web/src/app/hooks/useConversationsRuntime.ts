@@ -368,9 +368,6 @@ export const useConversationsRuntime = ({
     setHighlightedTurnId(hit.turnId);
   }, []);
 
-  // Reset and loading flags follow `enabled` and the selected session. They are adjusted
-  // during render when those inputs change (React's "adjust state when a prop changes"
-  // pattern) so the effects below only talk to the API.
   const [previousEnabled, setPreviousEnabled] = useState(enabled);
 
   if (previousEnabled !== enabled) {
@@ -470,9 +467,7 @@ export const useConversationsRuntime = ({
       if (payload && payload.sessionId === activeSessionId) {
         setSelectedSession(payload);
       }
-    } catch {
-      // A failed background refresh keeps what is already on screen.
-    }
+    } catch {}
   }, [activeSessionId]);
 
   const sendMessage = useCallback(async (sessionId: string, content: string) => {

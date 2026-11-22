@@ -112,8 +112,6 @@ export const ConversationsPrimaryView = ({
     [searchConversations],
   );
 
-  // Pushed content must keep a stable identity: the parent stores it in state, so a
-  // fresh element on every render would re-render this view in an endless loop.
   const sidebarContent = useMemo(
     () => (
       <SidebarConversationsList
@@ -176,7 +174,6 @@ export const ConversationsPrimaryView = ({
     });
   }, [clearAllSessions]);
 
-  // Push action panel for single or bulk delete confirmations
   const actionPanelContent = useMemo(
     () =>
       pendingDeleteSessionId ? (
@@ -228,8 +225,6 @@ export const ConversationsPrimaryView = ({
 
   const threadRef = useRef<HTMLOListElement | null>(null);
 
-  // A session change makes the stored state stale, so read it as empty instead
-  // of resetting it from an effect.
   const composerState =
     storedComposerState.sessionId === selectedSessionId
       ? storedComposerState
@@ -261,7 +256,6 @@ export const ConversationsPrimaryView = ({
     (message) => !isAcknowledged(message.text),
   );
 
-  // While a message is waiting for the agent, keep checking for the reply.
   const hasPendingMessages = pendingMessages.length > 0;
 
   useEffect(() => {
@@ -278,7 +272,6 @@ export const ConversationsPrimaryView = ({
     };
   }, [hasPendingMessages, refreshSelectedSession]);
 
-  // Keep the newest message in view.
   const turnCount = selectedSession?.turns.length ?? 0;
 
   useEffect(() => {

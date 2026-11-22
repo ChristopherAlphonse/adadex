@@ -11,7 +11,6 @@
   }
 }
 
-/* Map Tailwind color utilities to the app's existing CSS variables (foundation.css). */
 @theme inline {
   --radius-sm: calc(var(--radius, 0.5rem) - 4px);
   --radius-md: calc(var(--radius, 0.5rem) - 2px);

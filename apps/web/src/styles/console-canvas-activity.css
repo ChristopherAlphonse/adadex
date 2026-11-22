@@ -7,7 +7,6 @@
   overflow: hidden;
 }
 
-/* ── Chart header (shared) ──────────────────────────── */
 
 .usage-heatmap {
   min-height: 0;
@@ -91,7 +90,6 @@
   --action-button-padding-x: 0.34rem;
 }
 
-/* ── Bar chart ──────────────────────────────────────── */
 
 .usage-chart-split {
   position: relative;
@@ -124,7 +122,6 @@
   overflow-y: hidden;
 }
 
-/* ── Stats panel ─────────────────────────────────────── */
 
 .usage-chart-stats {
   margin: 0;
@@ -170,7 +167,6 @@
   font-weight: 600;
 }
 
-/* ── Vertical segment toggle ─────────────────────────── */
 
 .usage-chart-bar-segment-toggle {
   display: flex;
@@ -256,7 +252,6 @@
   filter: brightness(1.25);
 }
 
-/* ── Heatmap cells ────────────────────────────────────── */
 
 .usage-heatmap-month-label {
   fill: #8494ab;
@@ -283,7 +278,6 @@
   stroke-width: 2;
 }
 
-/* ── Tooltip ──────────────────────────────────────────── */
 
 .usage-heatmap-tooltip {
   position: absolute;
@@ -334,7 +328,6 @@
   font-weight: 600;
 }
 
-/* ── Legend ────────────────────────────────────────────── */
 
 .usage-chart-legend {
   display: flex;

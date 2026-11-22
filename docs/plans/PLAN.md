@@ -187,8 +187,8 @@ Test counts from `calphonse-skills`: 263 factory, 136 factory-review.
 ## Verify before and after a change
 
 ```
-pnpm lint && pnpm test && pnpm build            # the quality gate
-pnpm --filter @adadex/desktop smoke              # real Electron app, hidden, drives the board
+pnpm lint && pnpm test && pnpm build
+pnpm --filter @adadex/desktop smoke
 ```
 
 For a narrow change, run the scoped package's tests first, then widen. Live checks against real Claude Code need `claude` signed in and cost tokens; check files on disk, not what the model says.

@@ -29,7 +29,6 @@ type AdadexHook = {
 
 const DEFAULT_HOOK_TIMEOUT_SECONDS = 5;
 
-// The PostToolUse hook was removed with Code Intel; reinstalling clears copies earlier installs left behind.
 const LEGACY_POST_TOOL_USE_PATH = "/api/code-intel/events";
 
 const LEGACY_POST_TOOL_USE_NAME = "adadex-post-tool-use";
@@ -74,7 +73,6 @@ const readJsonRecord = (file: string): ParsedRecord | null => {
   }
 };
 
-/** Skips unchanged files so a new terminal does not make a running agent reload its hooks. */
 const writeIfChanged = (file: string, contents: string) => {
   if (readTextFile(file) !== contents) writeTextFileAtomic(file, contents);
 };
@@ -91,7 +89,6 @@ const installClaudeHooks = (targetCwd: string, apiBaseUrl: string) => {
   for (const hook of ADADEX_HOOKS) {
     const existingGroups = hooks[hook.event];
 
-    // Drop any group an earlier install wrote for this hook, so reinstalling never duplicates it.
     const groups = Array.isArray(existingGroups)
       ? existingGroups.filter((group) => !JSON.stringify(group).includes(hook.path))
       : [];
@@ -146,7 +143,6 @@ const installKiroHooks = (targetCwd: string, apiBaseUrl: string) => {
   const existingHooks = Array.isArray(existing?.hooks) ? existing.hooks : [];
   const nextNames = new Set(nextHooks.map((hook) => hook.name));
 
-  // Keep the user's own hooks; replace ours so a changed API URL does not leave stale copies behind.
   const keptHooks = existingHooks.filter((hook) => {
     const name = asRecord(hook)?.name;
 
@@ -156,17 +152,9 @@ const installKiroHooks = (targetCwd: string, apiBaseUrl: string) => {
   writeJsonFile(file, { version: "v1", hooks: [...keptHooks, ...nextHooks] });
 };
 
-/**
- * Exported for tests: the OpenCode plugin source Adadex writes for a given API URL.
- * It posts the same payload shape the Claude Code hooks send, so the API reads one format.
- */
-export const renderOpenCodePlugin = (
-  apiBaseUrl: string,
-) => `// Written by Adadex. Reports this OpenCode session to the Adadex deck.
-// It does nothing unless Adadex started OpenCode (ADADEX_SESSION_ID is set). Adadex rewrites this file.
+export const renderOpenCodePlugin = (apiBaseUrl: string) => `
 const API_BASE_URL = ${JSON.stringify(apiBaseUrl)};
 const ADADEX_SESSION_ID = process.env.ADADEX_SESSION_ID ?? "";
-// OpenCode tool names the API knows under their Claude Code name.
 const CANONICAL_TOOL_NAMES: Record<string, string> = { question: "AskUserQuestion" };
 
 const post = (path: string, body: Record<string, unknown>) => {
@@ -186,7 +174,6 @@ export default {
     if (ADADEX_SESSION_ID === "") return;
 
     const cwd: string = ctx.location?.directory ?? process.cwd();
-    // Subagent sessions belong to the terminal's main session; reporting them would end its turn early.
     const childSessions = new Set<string>();
 
     ctx.tool.hook("execute.before", (call: any) => {

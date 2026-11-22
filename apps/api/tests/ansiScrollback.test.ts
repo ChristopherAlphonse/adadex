@@ -13,8 +13,6 @@ describe("stripBrokenLeadingAnsi", () => {
   });
 
   it("strips a broken OSC tail terminated by BEL", () => {
-    // Scrollback trimming can drop the leading ESC of "\x1b]0;title\x07rest",
-    // leaving "]0;title\x07rest" — the bare OSC tail must be stripped.
     const bel = String.fromCharCode(0x07);
     const input = `]0;title${bel}rest of line`;
     expect(stripBrokenLeadingAnsi(input)).toBe("rest of line");
@@ -27,7 +25,6 @@ describe("stripBrokenLeadingAnsi", () => {
   });
 
   it("strips a broken CSI tail", () => {
-    // Bare "[31m" fragment left behind after the leading ESC byte was trimmed.
     expect(stripBrokenLeadingAnsi("[31mred text")).toBe("red text");
   });
 

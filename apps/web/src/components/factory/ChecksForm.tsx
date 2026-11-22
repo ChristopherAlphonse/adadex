@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-/** Remount with `key={saved}` so the field resets to what the host stored. */
 export const ChecksForm = ({
   saved,
   isPending,

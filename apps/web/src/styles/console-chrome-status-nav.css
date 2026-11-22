@@ -235,7 +235,6 @@
 .console-shell .console-primary-nav {
   grid-row: 3;
   border-bottom: 1px solid var(--border);
-  /* Slightly lifted from pure black-green so inactive tab text reads clearly */
   background: #0c1810;
   display: grid;
   grid-template-columns: 1fr auto;

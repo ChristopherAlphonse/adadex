@@ -144,7 +144,6 @@ const findOpenPort = async (startPort: number): Promise<number> => {
       break;
     }
 
-    // eslint-disable-next-line no-await-in-loop
     if (await canListenOnPort(port)) {
       return port;
     }
@@ -169,10 +168,6 @@ const readPreferredStartPort = () => {
   return parsed;
 };
 
-/**
- * Loopback unless ADADEX_BIND_HOST says otherwise. Only the container image sets it (to
- * 0.0.0.0, on a network with no route to the outside); the Host and Origin checks stay on.
- */
 const readBindHost = () => process.env.ADADEX_BIND_HOST?.trim() || "127.0.0.1";
 
 const resolveRuntimeApiBase = () => {
@@ -222,9 +217,7 @@ const maybeOpenBrowser = (url: string) => {
     });
 
     child.unref();
-  } catch {
-    // Best-effort browser open.
-  }
+  } catch {}
 };
 
 const startServer = async () => {

@@ -53,7 +53,7 @@ const writeLocalTerminalCompletionSound = (soundId: TerminalCompletionSoundId) =
   try {
     window.localStorage.setItem(TERMINAL_COMPLETION_SOUND_STORAGE_KEY, soundId);
   } catch {
-    // Browser storage can be disabled; workspace persistence still handles the setting.
+    // Browser storage can be disabled.
   }
 };
 
@@ -375,8 +375,6 @@ export const usePersistedUiState = ({
     [],
   );
 
-  // Drop persisted entries for terminals/coordinations that no longer exist. Reconcile during
-  // render against the last seen columns so the pruned values are used on the very next paint.
   const [reconciledColumns, setReconciledColumns] = useState(columns);
 
   if (columns !== reconciledColumns) {

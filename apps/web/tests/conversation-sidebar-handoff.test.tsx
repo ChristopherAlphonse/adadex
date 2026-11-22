@@ -4,8 +4,6 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { ConversationsPrimaryView } from "../src/components/ConversationsPrimaryView";
 
-// A regression throws from the callback once this guard trips, so a broken
-// build fails fast instead of hanging the whole test run.
 const LOOP_GUARD = 10;
 
 describe("ConversationsPrimaryView sidebar handoff", () => {
@@ -17,8 +15,6 @@ describe("ConversationsPrimaryView sidebar handoff", () => {
     let sidebarPushes = 0;
     let actionPanelPushes = 0;
 
-    // Mirrors AppShell: the parent stores pushed content in state, so an unstable
-    // push effect would otherwise re-render the view forever.
     const ParentHarness = () => {
       const [sidebarContent, setSidebarContent] = useState<ReactNode>(null);
       const [actionPanel, setActionPanel] = useState<ReactNode>(null);

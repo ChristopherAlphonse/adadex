@@ -96,7 +96,6 @@
   --action-button-color: #9bc8ff;
 }
 
-/* Split button for terminal creation with provider dropdown */
 .split-button {
   position: relative;
   display: inline-flex;

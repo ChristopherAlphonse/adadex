@@ -468,9 +468,7 @@ describe("createApiServer", () => {
           if (predicate(document)) {
             return document;
           }
-        } catch {
-          // Empty or partially written registry file; retry shortly.
-        }
+        } catch {}
       }
 
       await new Promise((resolve) => setTimeout(resolve, 20));

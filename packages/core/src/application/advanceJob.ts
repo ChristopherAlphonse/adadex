@@ -19,7 +19,6 @@ const refuse = (reason: string): AdvanceResult => ({ ok: false, reason });
 const equalsList = (equals: string | readonly string[]): readonly string[] =>
   isString(equals) ? [equals] : equals;
 
-/** Returns the reason a condition fails, or null when it holds. */
 const failure = (c: Condition, job: WorkflowJob, facts: JobFacts): string | null => {
   const say = (fallback: string): string => c.message ?? fallback;
 

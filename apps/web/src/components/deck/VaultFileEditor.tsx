@@ -16,7 +16,6 @@ type VaultFileEditorProps = {
   onSave: () => void;
 };
 
-/** Bottom-docked raw markdown editor for an editable coordination vault file. */
 export const VaultFileEditor = ({
   fileName,
   value,

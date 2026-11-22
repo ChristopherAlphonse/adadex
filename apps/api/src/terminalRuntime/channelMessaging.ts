@@ -36,8 +36,6 @@ export const createChannelMessaging = (deps: {
       return 0;
     }
 
-    // Messages typed by the operator reach the agent as a plain prompt; agent-to-agent messages
-    // keep their sender so the receiver knows who is talking.
     const lines = undelivered.map((m) =>
       m.fromTerminalId === OPERATOR_SENDER || m.fromTerminalId.length === 0
         ? m.content
@@ -86,7 +84,6 @@ export const createChannelMessaging = (deps: {
         `[Channel] Queued message ${message.messageId} from=${fromTerminalId} to=${toTerminalId}`,
       );
 
-      // If the target session is idle, deliver immediately.
       const targetSession = sessions.get(toTerminalId);
 
       if (targetSession && targetSession.agentState === "idle") {

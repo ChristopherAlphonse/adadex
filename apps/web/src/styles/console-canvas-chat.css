@@ -1,4 +1,3 @@
-/* Conversations: iOS-style chat bubbles and sidebar list. */
 
 .design-console {
   --chat-user: var(--brand);
@@ -22,7 +21,6 @@
   text-transform: none;
 }
 
-/* Sidebar list */
 
 .design-console .sidebar-conversations-list {
   display: flex;
@@ -131,7 +129,6 @@
   opacity: 0.85;
 }
 
-/* Per-conversation delete stays reachable without hiding the row's title and timestamp. */
 .design-console .sidebar-conversation-row {
   position: relative;
 }
@@ -182,7 +179,6 @@
   outline-offset: 1px;
 }
 
-/* Transcript */
 
 .design-console .conversations-view {
   padding: 0;
@@ -392,7 +388,6 @@
   text-decoration: underline;
 }
 
-/* Composer: message the agent */
 
 .design-console .chat-composer {
   display: flex;

@@ -767,9 +767,7 @@ describe("createSessionRuntime", () => {
           if (transcriptEvents.some((event) => event.type === "session_start")) {
             break;
           }
-        } catch {
-          // Transient empty/partial transcript file while flushing.
-        }
+        } catch {}
       }
 
       await new Promise((resolve) => setTimeout(resolve, 20));

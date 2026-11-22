@@ -133,7 +133,6 @@ export const AgentSheet = ({
   const coordinationId = orchestration?.coordinationId ?? null;
   const [previousCoordinationId, setPreviousCoordinationId] = useState(coordinationId);
 
-  // Start every agent from a clean panel when a different one is selected.
   if (previousCoordinationId !== coordinationId) {
     setPreviousCoordinationId(coordinationId);
     setMessage(null);

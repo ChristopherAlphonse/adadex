@@ -1,4 +1,3 @@
-/* Final light-theme pass for legacy console modules loaded after design-console-theme.css. */
 html.adadex-theme-light {
   --background: #f3f3f1;
   --foreground: #161616;
@@ -228,7 +227,6 @@ html.adadex-theme-light {
   border-color: var(--foreground);
 }
 
-/* Recent commits (GitHub view): base styles hardcode dark colors, so restyle for light. */
 .design-console.light .github-overview-recent {
   border-color: var(--border);
   background: var(--surface-2);
@@ -318,7 +316,6 @@ html.adadex-theme-light {
   color: var(--destructive);
 }
 
-/* Orchestration detail panel: base styles hardcode dark-theme text and surfaces. */
 .design-console.light .detail-name,
 .design-console.light .detail-value,
 .design-console.light .detail-todo,
@@ -382,7 +379,6 @@ html.adadex-theme-light {
   border-color: var(--border);
 }
 
-/* Deck pods and detail view: surfaces are hardcoded dark while their text follows the theme. */
 .design-console.light .deck-pod,
 .design-console.light .deck-pod-skills-editor,
 .design-console.light .deck-detail-main-header,

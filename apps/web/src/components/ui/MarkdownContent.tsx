@@ -12,8 +12,6 @@ const highlightHtml = (html: string, term: string): string => {
   const escaped = escapeRegExp(term);
   const regex = new RegExp(`(${escaped})`, "gi");
 
-  // Only highlight text nodes — skip anything inside HTML tags
-  // Split on tags, highlight only the non-tag segments
   const parts = html.split(/(<[^>]*>)/);
 
   return parts
@@ -46,6 +44,5 @@ export const MarkdownContent = ({ content, className, highlightTerm }: MarkdownC
     return rendered;
   }, [content, highlightTerm]);
 
-  // oxlint-disable-next-line react/no-danger -- markdown is rendered only inside the local operator UI and highlight markup is controlled.
   return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 };

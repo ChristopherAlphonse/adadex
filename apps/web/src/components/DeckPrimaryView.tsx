@@ -47,8 +47,6 @@ const normalizeDeckAvailableSkill = (value: ParsedValue): DeckAvailableSkill | n
   };
 };
 
-// ─── Main view ───────────────────────────────────────────────────────────────
-
 type FocusState =
   | { type: "vault-browser"; coordinationId: string }
   | { type: "vault"; coordinationId: string; fileName: string }
@@ -128,7 +126,6 @@ export const DeckPrimaryView = ({
   const [isLaunchingAgent, setIsLaunchingAgent] = useState(false);
   const [runningSetupStepId, setRunningSetupStepId] = useState<WorkspaceSetupStepId | null>(null);
 
-  // Fetch orchestration list
   const fetchOrchestrations = useCallback(async () => {
     const data = await requestDeckOrchestrations();
 
@@ -138,9 +135,7 @@ export const DeckPrimaryView = ({
 
     try {
       await onRefreshWorkspaceSetup();
-    } catch {
-      // silently ignore
-    }
+    } catch {}
   }, [onRefreshWorkspaceSetup]);
 
   useEffect(() => {
@@ -153,9 +148,7 @@ export const DeckPrimaryView = ({
 
       try {
         await onRefreshWorkspaceSetup();
-      } catch {
-        // silently ignore
-      }
+      } catch {}
     });
 
     return () => {
@@ -184,9 +177,7 @@ export const DeckPrimaryView = ({
         if (!cancelled) {
           setAvailableSkills(skills);
         }
-      } catch {
-        // silently ignore
-      }
+      } catch {}
     };
 
     void fetchSkills();
@@ -196,7 +187,6 @@ export const DeckPrimaryView = ({
     };
   }, []);
 
-  // Precompute visuals for all orchestrations
   const visualsMap = useMemo(() => {
     const map = new Map<string, MascotVisuals>();
 
@@ -207,8 +197,6 @@ export const DeckPrimaryView = ({
     return map;
   }, [orchestrations]);
 
-  // Fetch vault file content when focus changes. The result is tagged with the focus it
-  // was fetched for, so loading and stale content are derived instead of reset in the effect.
   useEffect(() => {
     if (focus?.type !== "vault") return;
 
@@ -247,7 +235,6 @@ export const DeckPrimaryView = ({
   const isEditingVault = isVaultFocused && editingVaultFocus === focus;
   const isVaultEditable = focus?.type === "vault" && canEditVaultFile(focus.fileName);
 
-  // Agent menu click-outside/escape
   const handleDismissAgentMenu = useCallback(() => setAgentMenuOpen(false), []);
   useClickOutside(agentMenuRef, agentMenuOpen, handleDismissAgentMenu);
 
@@ -339,7 +326,6 @@ export const DeckPrimaryView = ({
       });
       await fetchOrchestrations();
     } catch {
-      // silently ignore
     } finally {
       setIsLaunchingAgent(false);
     }
@@ -514,7 +500,6 @@ export const DeckPrimaryView = ({
         if (!response.ok) return;
         await fetchOrchestrations();
       } catch {
-        // silently ignore
       } finally {
         setDeletingOrchestrationId(null);
       }
@@ -533,9 +518,7 @@ export const DeckPrimaryView = ({
 
         if (!response.ok) return;
         await fetchOrchestrations();
-      } catch {
-        // silently ignore
-      }
+      } catch {}
     },
     [fetchOrchestrations],
   );
@@ -552,7 +535,6 @@ export const DeckPrimaryView = ({
     orchestrations.length === 0 &&
     workspaceSetup?.shouldShowSetupCard;
 
-  // Push sidebar content to the shared sidebar
   const sidebarContent = useMemo(
     () =>
       orchestrations.length > 0 || focus?.type === "terminal" ? (
@@ -627,8 +609,6 @@ export const DeckPrimaryView = ({
     return () => onSidebarContent?.(null);
   }, [onSidebarContent, sidebarContent]);
 
-  // ─── Empty state (no orchestrations) ─────────────────────────────────────────────
-
   if (orchestrations.length === 0 && focus?.type !== "terminal") {
     return (
       <section
@@ -680,8 +660,6 @@ export const DeckPrimaryView = ({
       </section>
     );
   }
-
-  // ─── Populated state ────────────────────────────────────────────────────────
 
   return (
     <section

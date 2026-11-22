@@ -1,8 +1,4 @@
 #!/bin/sh
-# Refuses to start Adadex unless the container is actually sandboxed.
-# The sandbox is applied at run time (docker-compose.yml), so a bare `docker run` would skip it.
-# Every check reads kernel state inside the container, so it cannot be satisfied by a label or env var.
-# Escape hatch for developing Adadex itself: ADADEX_ALLOW_UNSANDBOXED=1.
 set -u
 
 problems=""

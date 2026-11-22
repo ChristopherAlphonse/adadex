@@ -1,9 +1,4 @@
-/*
- * Token-based overrides for the design console shell.
- * Loaded last so legacy .console-shell rules (hardcoded dark hex) do not win.
- */
 
-/* ─── Canvas workspace ─────────────────────────────────────────────────────── */
 
 .design-console.console-shell .canvas-view,
 .design-console.console-shell .canvas-graph-panel,
@@ -73,7 +68,6 @@
   fill: var(--bg-canvas);
 }
 
-/* ─── Agents sidebar (beats console-overrides-telemetry.css) ───────────────── */
 
 .design-console.console-shell .dashboard-deck-shell {
   border-right-color: var(--sidebar-border);
@@ -139,7 +133,6 @@
   color: var(--accent-secondary);
 }
 
-/* ─── Terminals column (legacy shell) ─────────────────────────────────────── */
 
 .design-console.console-shell .terminals {
   background: var(--bg-canvas);
@@ -176,7 +169,6 @@
   color: var(--text-primary);
 }
 
-/* ─── Light theme: floating panels on canvas ─────────────────────────────────── */
 
 html.adadex-theme-light {
   --bg-canvas: #f3f3f1;
@@ -216,7 +208,6 @@ html.adadex-theme-light body {
   box-shadow: 0 4px 24px oklch(0 0 0 / 0.08);
 }
 
-/* ─── Light theme: primary tabs and legacy tab surfaces ───────────────────── */
 
 .design-console.light.console-shell .console-primary-nav {
   border-bottom-color: var(--border-subtle);
@@ -380,7 +371,6 @@ html.adadex-theme-light body {
 }
 
 
-/* Secondary accent (violet): focus rings and hover tints, leaving green for brand/running. */
 .design-console.console-shell .console-primary-nav-tab:focus-visible,
 .design-console.console-shell .deck-pod-btn:focus-visible {
   outline: 2px solid var(--accent-2);

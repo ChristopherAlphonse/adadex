@@ -14,7 +14,6 @@ export type ParseWorkflowResult =
 
 type Obj = ParsedRecord;
 
-/** Expected shape of one field: string, boolean, string-or-list, number, or effect name. */
 type FieldKind = "s" | "b" | "e" | "n" | "name";
 
 type FieldSpec = Readonly<Record<string, FieldKind>>;
@@ -25,7 +24,6 @@ const isObj = <T>(v: T): v is T & ParsedRecord => isParsedRecord(v);
 
 const str = (v: ParsedValue | undefined): v is string => isString(v) && v !== "";
 
-/** Required fields per condition kind. `s` is a string, `b` a boolean, `e` a string or list of strings. */
 const CONDITIONS = {
   "doc-exists": { doc: "s" },
   "doc-field": { doc: "s", field: "s", equals: "e" },

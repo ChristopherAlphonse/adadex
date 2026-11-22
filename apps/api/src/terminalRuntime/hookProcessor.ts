@@ -16,7 +16,6 @@ const deriveTerminalNameFromPrompt = (prompt: string): string => {
     return normalized;
   }
 
-  // Truncate at the last space before the limit to avoid cutting mid-word.
   const truncated = normalized.slice(0, MAX_AUTO_NAME_LENGTH);
   const lastSpace = truncated.lastIndexOf(" ");
 
@@ -101,7 +100,6 @@ export const createHookProcessor = (deps: {
         onStateChange?.(hookSessionId, "idle");
         broadcastMessage(session, { type: "state", state: "idle" });
 
-        // Deliver any queued channel messages now that the agent is idle.
         deliverChannelMessages(hookSessionId);
       }
 
@@ -148,11 +146,8 @@ export const createHookProcessor = (deps: {
         return { ok: true };
       }
 
-      // Update last-active timestamp (determines active/inactive on the canvas).
       terminal.lastActiveAt = new Date().toISOString();
 
-      // The user submitted a prompt, so the agent is about to start processing.
-      // Transition state out of waiting/idle to processing immediately.
       const activitySession = sessions.get(terminal.terminalId);
 
       if (activitySession) {
@@ -164,8 +159,6 @@ export const createHookProcessor = (deps: {
         broadcastMessage(activitySession, { type: "activity" });
       }
 
-      // Keep the operator's message as a conversation turn, even if the agent's transcript file
-      // cannot be read later on.
       const submittedPrompt = isString(hookPayloadRecord.prompt)
         ? hookPayloadRecord.prompt.trim()
         : "";
@@ -179,7 +172,6 @@ export const createHookProcessor = (deps: {
         );
       }
 
-      // Auto-name the terminal from the first prompt when it still has its default name.
       if (terminal.nameOrigin === "generated") {
         const prompt = isString(hookPayloadRecord.prompt) ? hookPayloadRecord.prompt.trim() : "";
 
@@ -215,21 +207,19 @@ export const createHookProcessor = (deps: {
 
     logVerbose(`[Hook] Stop hook: transcriptPath=${transcriptPath}`);
 
-    let matchedSessionId: string | null = null;
-
-    if (hookSessionId && sessions.has(hookSessionId)) {
-      matchedSessionId = hookSessionId;
-      logVerbose(`[Hook] Matched session by hook session id: ${matchedSessionId}`);
-    } else if (hookSessionId) {
-      logVerbose(`[Hook] hook session id=${hookSessionId} not found in active sessions, skipping.`);
-
-      return { ok: true };
-    } else {
+    if (!hookSessionId) {
       logVerbose("[Hook] No session id header/query — ignoring hook from external agent session.");
 
       return { ok: true };
     }
 
+    if (!sessions.has(hookSessionId)) {
+      logVerbose(`[Hook] hook session id=${hookSessionId} not found in active sessions, skipping.`);
+
+      return { ok: true };
+    }
+
+    const matchedSessionId = hookSessionId;
     logVerbose(`[Hook] Matched session: ${matchedSessionId}, parsing transcript...`);
     // OpenCode has no transcript file; its stop still ends the turn and delivers queued messages.
     const turns = transcriptPath ? parseAgentTranscript(transcriptPath) : null;
@@ -240,13 +230,11 @@ export const createHookProcessor = (deps: {
       : null;
 
     if (turns && turns.length > 0) {
-      // The agent's own transcript is the full record, so it replaces what was stored so far.
       const effectiveTurns = [...turns];
       const lastTurn = effectiveTurns[effectiveTurns.length - 1];
 
       if (
         lastAssistantMessage &&
-        lastAssistantMessage.length > 0 &&
         (lastTurn?.role !== "assistant" || lastTurn.content !== lastAssistantMessage)
       ) {
         const now = new Date().toISOString();
@@ -262,8 +250,7 @@ export const createHookProcessor = (deps: {
 
       storeAgentTranscriptTurns(transcriptDirectoryPath, matchedSessionId, effectiveTurns);
       logVerbose(`[Hook] Stored ${effectiveTurns.length} turns for session ${matchedSessionId}.`);
-    } else if (lastAssistantMessage && lastAssistantMessage.length > 0) {
-      // No readable transcript: add the reply after the prompts already recorded for this session.
+    } else if (lastAssistantMessage) {
       appendAgentTranscriptTurn(
         transcriptDirectoryPath,
         matchedSessionId,
@@ -273,7 +260,6 @@ export const createHookProcessor = (deps: {
       logVerbose(`[Hook] Appended last_assistant_message for session ${matchedSessionId}.`);
     }
 
-    // Deliver any queued channel messages now that the agent is idle.
     if (matchedSessionId) {
       const deliveredMessageCount = deliverChannelMessages(matchedSessionId);
 

@@ -7,7 +7,6 @@ type ConversationComposerProps = {
   onSend: (text: string) => Promise<boolean>;
 };
 
-/** Message box under a conversation: Enter sends, Shift+Enter adds a new line. */
 export const ConversationComposer = ({
   disabled,
   disabledReason,

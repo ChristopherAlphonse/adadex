@@ -69,7 +69,6 @@ const stripAnsiAndControlSequences = (value: string) => {
       continue;
     }
 
-    // Consume one-byte escape sequences like ESC c.
     index += 1;
   }
 

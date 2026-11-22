@@ -47,8 +47,7 @@ export const newWorkflow = (id: string, name: string): WorkflowDefinition => ({
 });
 
 /**
- * What stops this workflow from running, in words. Empty when it is fine. A canvas calls this after each edit and
- * shows the list: while someone is drawing, the workflow is allowed to be incomplete.
+ * What stops this workflow from running, in words. Empty when it is fine.
  */
 export const problemsOf = (w: WorkflowDefinition): readonly string[] => {
   const r = parseWorkflow(JSON.parse(JSON.stringify(w)));

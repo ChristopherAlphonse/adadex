@@ -153,7 +153,6 @@ const serveStaticFile = async (
   webDistDir: string,
   pathname: string,
 ): Promise<boolean> => {
-  // Prevent path traversal.
   const safePath = pathname.replace(/\.\./g, "").replace(/\/+/g, "/");
   const filePath = join(webDistDir, safePath === "/" ? "index.html" : safePath);
 
@@ -267,7 +266,6 @@ export const createApiRequestHandler = ({
         }
       }
 
-      // Serve static web frontend if available.
       if (resolvedWebDistDir && request.method === "GET") {
         const served =
           (await serveStaticFile(response, resolvedWebDistDir, requestUrl.pathname)) ||

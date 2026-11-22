@@ -106,7 +106,6 @@ const listSkillDefinitionFiles = (skillsRoot: string): string[] => {
   return definitions;
 };
 
-/** Project skill folders for each supported agent CLI. When two folders hold a skill with the same name, the earlier one wins. */
 const PROJECT_SKILL_DIRS = [
   [".claude", "skills"],
   [".opencode", "skills"],

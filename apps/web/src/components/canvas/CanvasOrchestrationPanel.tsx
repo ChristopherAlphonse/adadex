@@ -121,9 +121,7 @@ export const CanvasOrchestrationPanel = ({
 
         if (!response.ok) return;
         await refreshOrchestrationData();
-      } catch {
-        // silent
-      }
+      } catch {}
     },
     [node.coordinationId, refreshOrchestrationData],
   );
@@ -142,9 +140,7 @@ export const CanvasOrchestrationPanel = ({
         if (!response.ok) return;
         setEditingIndex(null);
         await refreshOrchestrationData();
-      } catch {
-        // silent
-      }
+      } catch {}
     },
     [node.coordinationId, refreshOrchestrationData],
   );
@@ -164,9 +160,7 @@ export const CanvasOrchestrationPanel = ({
         setAddingTodo(false);
         setAddText("");
         await refreshOrchestrationData();
-      } catch {
-        // silent
-      }
+      } catch {}
     },
     [node.coordinationId, refreshOrchestrationData],
   );
@@ -182,9 +176,7 @@ export const CanvasOrchestrationPanel = ({
 
         if (!response.ok) return;
         await refreshOrchestrationData();
-      } catch {
-        // silent
-      }
+      } catch {}
     },
     [node.coordinationId, refreshOrchestrationData],
   );
@@ -203,7 +195,6 @@ export const CanvasOrchestrationPanel = ({
         if (!response.ok) return;
         onSolveTodoItem?.(node.coordinationId, itemIndex);
       } catch {
-        // silent
       } finally {
         setSolvingTodoIndex((current) => (current === itemIndex ? null : current));
       }
@@ -223,7 +214,6 @@ export const CanvasOrchestrationPanel = ({
       tabIndex={-1}
       onPointerDown={() => onFocus?.()}
     >
-      {/* Header */}
       <div
         className="detail-panel-header"
         style={{
@@ -241,9 +231,7 @@ export const CanvasOrchestrationPanel = ({
         </button>
       </div>
 
-      {/* Content */}
       <div className="detail-content">
-        {/* Identity: glyph + info side by side */}
         <div className="detail-identity">
           {visuals && (
             <div className="detail-glyph">
@@ -270,7 +258,6 @@ export const CanvasOrchestrationPanel = ({
           </div>
         </div>
 
-        {/* Actions section */}
         <div className="detail-section">
           <div className="detail-section-title">Actions</div>
           <div className="detail-actions">
@@ -301,7 +288,6 @@ export const CanvasOrchestrationPanel = ({
           {spawnSwarmError ? <div className="deck-add-form-error">{spawnSwarmError}</div> : null}
         </div>
 
-        {/* Progress section */}
         {orchestration && (
           <div className="detail-section">
             <div className="detail-section-title">Progress</div>
@@ -416,7 +402,6 @@ export const CanvasOrchestrationPanel = ({
           </div>
         )}
 
-        {/* Vault files */}
         {orchestration && orchestration.vaultFiles.length > 0 && (
           <div className="detail-section">
             <div className="detail-section-title">Vault Files</div>
@@ -443,7 +428,6 @@ export const CanvasOrchestrationPanel = ({
           </div>
         )}
 
-        {/* Sessions section */}
         <div className="detail-section">
           <div className="detail-section-title">Sessions ({sessions.length})</div>
           {sessions.length === 0 ? (

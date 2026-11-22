@@ -406,10 +406,6 @@ export const handleDeckOrchestrationSkillsRoute: ApiRouteHandler = async (
   return true;
 };
 
-// ---------------------------------------------------------------------------
-// Deck — Agent provider + model override
-// ---------------------------------------------------------------------------
-
 const DECK_COORDINATION_AGENT_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/agent$/;
 
 export const handleDeckOrchestrationAgentRoute: ApiRouteHandler = async (
@@ -481,10 +477,6 @@ export const handleDeckOrchestrationAgentRoute: ApiRouteHandler = async (
   return true;
 };
 
-// ---------------------------------------------------------------------------
-// Deck — Todo toggle
-// ---------------------------------------------------------------------------
-
 const DECK_TODO_TOGGLE_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/todo\/toggle$/;
 
 export const handleDeckTodoToggleRoute: ApiRouteHandler = async (
@@ -533,10 +525,6 @@ export const handleDeckTodoToggleRoute: ApiRouteHandler = async (
 
   return true;
 };
-
-// ---------------------------------------------------------------------------
-// Deck — Todo edit (rename item text)
-// ---------------------------------------------------------------------------
 
 const DECK_TODO_EDIT_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/todo\/edit$/;
 
@@ -587,10 +575,6 @@ export const handleDeckTodoEditRoute: ApiRouteHandler = async (
   return true;
 };
 
-// ---------------------------------------------------------------------------
-// Deck — Todo add
-// ---------------------------------------------------------------------------
-
 const DECK_TODO_ADD_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/todo$/;
 
 export const handleDeckTodoAddRoute: ApiRouteHandler = async (
@@ -634,10 +618,6 @@ export const handleDeckTodoAddRoute: ApiRouteHandler = async (
   return true;
 };
 
-// ---------------------------------------------------------------------------
-// Deck — Todo delete
-// ---------------------------------------------------------------------------
-
 const DECK_TODO_DELETE_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/todo\/delete$/;
 
 export const handleDeckTodoDeleteRoute: ApiRouteHandler = async (
@@ -680,10 +660,6 @@ export const handleDeckTodoDeleteRoute: ApiRouteHandler = async (
 
   return true;
 };
-
-// ---------------------------------------------------------------------------
-// Deck — Solve a single todo item
-// ---------------------------------------------------------------------------
 
 const DECK_TODO_SOLVE_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/todo\/solve$/;
 
@@ -826,10 +802,6 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
   }
 };
 
-// ---------------------------------------------------------------------------
-// Deck — Swarm
-// ---------------------------------------------------------------------------
-
 const DECK_COORDINATION_SWARM_PATTERN = /^\/api\/deck\/coordinations\/([^/]+)\/swarm$/;
 
 export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
@@ -849,7 +821,6 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
   // SAFETY: the route pattern's only capture group is non-optional, so a successful match always fills match[1].
   const coordinationId = decodeURIComponent(match[1] as string);
 
-  // Read and parse coordination todo.md.
   const todoContent = readDeckVaultFile(workspaceCwd, coordinationId, "todo.md");
 
   if (todoContent === null) {
@@ -870,7 +841,6 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
     return true;
   }
 
-  // Parse optional request body for item filtering and agent provider.
   const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
 
   if (!bodyReadResult.ok) return true;
@@ -895,7 +865,6 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
   const workerWorkspaceMode =
     body.workspaceMode === undefined ? "worktree" : workspaceModeResult.workspaceMode;
 
-  // Filter to specific item indices if requested.
   let targetItems = incompleteItems;
 
   if (Array.isArray(body.todoItemIndices)) {
@@ -916,11 +885,9 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
   }
 
   if (targetItems.length > MAX_CHILDREN_PER_PARENT) {
-    // Todo order is priority order, so overflow items are deferred automatically.
     targetItems = targetItems.slice(0, MAX_CHILDREN_PER_PARENT);
   }
 
-  // Check for existing swarm terminals to prevent duplicates.
   const existingTerminals = runtime.listTerminalSnapshots();
 
   const existingSwarmIds = existingTerminals
@@ -938,7 +905,6 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
     return true;
   }
 
-  // Determine base ref: use coordination worktree branch if it exists, otherwise HEAD.
   const coordinationWorktreeTerminal = existingTerminals.find(
     (t) => t.coordinationId === coordinationId && t.workspaceMode === "worktree",
   );
@@ -947,7 +913,6 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
     ? `${COORDINATION_WORKTREE_BRANCH_PREFIX}${coordinationId}`
     : "HEAD";
 
-  // Resolve the coordination display name for prompts.
   const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
   const deckEntry = deckOrchestrations.find((t) => t.coordinationId === coordinationId);
   const coordinationName = deckEntry?.displayName ?? coordinationId;

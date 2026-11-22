@@ -142,9 +142,7 @@ export const createSessionRuntime = ({
       encoding: "utf8",
     });
 
-    stream.on("error", () => {
-      // Keep terminal flow alive even if transcript writes fail.
-    });
+    stream.on("error", () => {});
 
     return stream;
   };
@@ -353,9 +351,7 @@ export const createSessionRuntime = ({
     for (const disposable of session.ptyDisposables ?? []) {
       try {
         disposable.dispose();
-      } catch {
-        // Ignore listener cleanup errors; the PTY teardown below is still required.
-      }
+      } catch {}
     }
 
     session.ptyDisposables = [];
@@ -369,16 +365,12 @@ export const createSessionRuntime = ({
       if (processId !== undefined) {
         try {
           signalGroup?.(processId, options.killSignal ?? "SIGKILL");
-        } catch {
-          // Ignore group-signal errors; pty.kill still tears down the leader.
-        }
+        } catch {}
       }
 
       try {
         session.pty.kill(options.killSignal);
-      } catch {
-        // Ignore teardown errors; session will still be discarded.
-      }
+      } catch {}
     }
 
     for (const client of session.clients) {
@@ -500,7 +492,6 @@ export const createSessionRuntime = ({
     session.isBootstrapCommandSent = true;
     const terminal = terminals.get(session.terminalId);
 
-    // Plain shells stay a bare shell: no agent CLI, no initial prompt injection.
     if (terminal?.plainShell) {
       return;
     }
@@ -513,7 +504,6 @@ export const createSessionRuntime = ({
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
 
-    // Schedule initial prompt injection after the agent CLI has had time to boot.
     if (session.initialPrompt && !session.isInitialPromptSent) {
       schedulePromptTimer(
         session,
@@ -705,7 +695,6 @@ export const createSessionRuntime = ({
 
     session.ptyDisposables = [dataDisposable, exitDisposable];
 
-    // Propagate initial prompt from the terminal definition, if set.
     if (terminalRecord?.initialPrompt) {
       session.initialPrompt = terminalRecord.initialPrompt;
     }
@@ -856,7 +845,6 @@ export const createSessionRuntime = ({
     clearIdleCloseTimer(session);
     ensureAgentBootstrapped(sessionId, session);
 
-    // Send history and current state to the new listener
     if (session.scrollbackChunks.length > 0) {
       listener({ type: "history", data: session.scrollbackChunks.join("") });
     }

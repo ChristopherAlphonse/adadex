@@ -245,9 +245,7 @@ const parseTranscriptLines = (rawJsonl: string): ConversationTranscriptEvent[] =
       if (event) {
         events.push(event);
       }
-    } catch {
-      // Ignore malformed lines to keep transcript parsing resilient.
-    }
+    } catch {}
   }
 
   return events;
@@ -310,7 +308,6 @@ export const readConversationSession = (
     return null;
   }
 
-  // Only use clean turns from the agent CLI structured transcript (via Stop hook).
   const turns = readAgentTranscriptTurns(transcriptDirectoryPath, sessionId) ?? [];
   const summary = buildConversationSummary(sessionId, events, turns);
 
@@ -339,8 +336,6 @@ export const listConversationSessions = (
     .map((sessionId) => {
       const detail = readConversationSession(transcriptDirectoryPath, sessionId);
 
-      // Skip sessions that have no actual conversation turns — these are
-      // PTY sessions that were spawned but never received any user input.
       if (!detail || detail.turnCount === 0) {
         return null;
       }
@@ -389,25 +384,19 @@ export const deleteConversation = (transcriptDirectoryPath: string, sessionId: s
     if (existsSync(transcriptFile)) {
       rmSync(transcriptFile);
     }
-  } catch {
-    // Best-effort removal
-  }
+  } catch {}
 
   try {
     if (existsSync(turnsFile)) {
       rmSync(turnsFile);
     }
-  } catch {
-    // Best-effort removal
-  }
+  } catch {}
 
   try {
     if (existsSync(legacyTurnsFile)) {
       rmSync(legacyTurnsFile);
     }
-  } catch {
-    // Best-effort removal
-  }
+  } catch {}
 };
 
 export const deleteAllConversations = (transcriptDirectoryPath: string) => {
@@ -425,9 +414,7 @@ export const deleteAllConversations = (transcriptDirectoryPath: string) => {
     ) {
       try {
         rmSync(join(transcriptDirectoryPath, file));
-      } catch {
-        // Best-effort removal
-      }
+      } catch {}
     }
   }
 };

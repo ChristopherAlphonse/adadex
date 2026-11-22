@@ -10,13 +10,6 @@ const CSI_TAIL_RE = /^\[[0-9:;<=>?]*[ -/]*[@-~]/;
 
 const ORPHANED_CSI_TAIL_RE = /^(?=[0-9:;<=>?]*[;:<=>?])[0-9:;<=>?]*[ -/]*[@-~]/;
 
-/**
- * Scrollback trims old chunks by byte length, which can cut a multi-byte ANSI
- * escape sequence in half (e.g. the ESC byte dropped, leaving a bare OSC/CSI
- * tail). Replaying that fragment verbatim would print garbage before the
- * first real character, so strip any such leading fragment before sending
- * history to a client.
- */
 export const stripBrokenLeadingAnsi = (text: string): string => {
   let nextText = text;
 
