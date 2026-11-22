@@ -1,0 +1,36 @@
+# Domains the sandbox may reach over HTTPS. A leading dot also matches subdomains.
+# Everything else is refused. Edit this file, then: docker compose build egress && docker compose up -d
+# To see what a tool needs, run `docker compose logs egress` and look for TCP_DENIED lines.
+
+# npm and git hosting
+registry.npmjs.org
+github.com
+api.github.com
+codeload.github.com
+objects.githubusercontent.com
+raw.githubusercontent.com
+
+# Claude Code
+api.anthropic.com
+claude.ai
+platform.claude.com
+console.anthropic.com
+
+# Codex
+api.openai.com
+auth.openai.com
+chatgpt.com
+
+# OpenCode
+opencode.ai
+models.opencode.ai
+models.dev
+
+# Kiro: sign-in and service endpoints. Kept to exact hosts on purpose: a wildcard such as
+# .amazonaws.com would let anything inside the sandbox send data to any S3 bucket.
+# Confirm against `docker compose logs egress` on first login; add only what is denied.
+.kiro.dev
+view.awsapps.com
+oidc.us-east-1.amazonaws.com
+q.us-east-1.amazonaws.com
+codewhisperer.us-east-1.amazonaws.com

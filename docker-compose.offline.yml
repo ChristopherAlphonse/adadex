@@ -1,0 +1,13 @@
+# Offline mode: no egress proxy, no route to the internet at all.
+#   docker compose -f docker-compose.yml -f docker-compose.offline.yml up
+# Agents that need a hosted model API will not work; use it for local-only work.
+
+services:
+  adadex:
+    environment:
+      HTTPS_PROXY: !reset null
+      HTTP_PROXY: !reset null
+      NO_PROXY: !reset null
+    depends_on: !reset []
+  egress:
+    profiles: [online-only]
