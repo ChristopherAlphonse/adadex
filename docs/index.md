@@ -21,6 +21,7 @@ Adadex has three main layers:
 
 ## Guides
 
+- [Agents Workspace](guides/agents-workspace.md) explains the rail, chat/terminal switching, composer shortcuts, and launch options
 - [Working With Todos](guides/working-with-todos.md) explains how checkbox lines become progress and worker inputs
 - [Orchestrating Child Agents](guides/orchestrating-child-agents.md) explains parent/worker spawning, shared mode, and worktree mode
 - [Inter-Agent Messaging](guides/inter-agent-messaging.md) explains the channel queue and delivery rules
