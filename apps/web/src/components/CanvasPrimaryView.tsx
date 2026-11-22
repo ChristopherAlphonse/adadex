@@ -1,15 +1,6 @@
 import { isFunctionValue } from "@adadex/core";
 import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@adadex/core";
-import {
-  ChevronUp,
-  GitBranch,
-  Hexagon,
-  Layers,
-  ListTodo,
-  Sparkles,
-  Terminal as TerminalIcon,
-  Trash2,
-} from "lucide-react";
+import { ChevronUp, ListTodo } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { answerApproval } from "../app/answerApproval";
@@ -19,6 +10,7 @@ import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
+import { useWorkspaceSetupOverlay } from "../app/hooks/useWorkspaceSetupOverlay";
 import {
   createTerminalRuntimeStateStore,
   type TerminalRuntimeStateStore,
@@ -28,11 +20,11 @@ import type {
   TerminalView,
   TerminalWorkspaceMode,
 } from "../app/types";
+import { CanvasContextMenu } from "./canvas/CanvasContextMenu";
 import { CanvasOrchestrationPanel } from "./canvas/CanvasOrchestrationPanel";
 import {
   type ContextMenuState,
   CLICK_THRESHOLD,
-  WORKSPACE_SETUP_OVERLAY_STORAGE_KEY,
   GRAPH_MIN_WIDTH,
   TERMINAL_MIN_WIDTH,
   ACTIVE_SESSION_RADIUS,
@@ -54,7 +46,7 @@ import { ConsoleChromeToolbar } from "./design-system/ConsoleChromeToolbar";
 import { ConsoleInspectorPanel } from "./design-system/ConsoleInspectorPanel";
 import { ThreadTree } from "./ThreadTree";
 
-type CanvasPrimaryViewProps = {
+export type CanvasPrimaryViewProps = {
   columns: TerminalView;
   runtimeStateStore?: TerminalRuntimeStateStore;
   isUiStateHydrated?: boolean;
@@ -172,52 +164,13 @@ export const CanvasPrimaryView = ({
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef(new Map<string, HTMLElement>());
   const lastFocusedPanelIdRef = useRef<string | null>(null);
-  const shouldShowWorkspaceSetupCard = Boolean(workspaceSetup?.shouldShowSetupCard);
 
-  const [workspaceSetupOverlay, setWorkspaceSetupOverlay] = useState<
-    "expanded" | "minimized" | "hidden"
-  >(() => {
-    if (!shouldShowWorkspaceSetupCard || typeof sessionStorage === "undefined") {
-      return "minimized";
-    }
-
-    const raw = sessionStorage.getItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY);
-
-    if (raw === "minimized" || raw === "hidden" || raw === "expanded") {
-      return raw;
-    }
-
-    return "minimized";
-  });
-
-  const [wasSetupCardVisible, setWasSetupCardVisible] = useState(shouldShowWorkspaceSetupCard);
-
-  if (wasSetupCardVisible !== shouldShowWorkspaceSetupCard) {
-    setWasSetupCardVisible(shouldShowWorkspaceSetupCard);
-
-    if (!shouldShowWorkspaceSetupCard) {
-      setWorkspaceSetupOverlay("minimized");
-    }
-  }
-
-  const visibleWorkspaceSetupOverlay = shouldShowWorkspaceSetupCard
-    ? workspaceSetupOverlay
-    : "expanded";
-
-  const incompleteWorkspaceSetupSteps = useMemo(
-    () => (workspaceSetup?.steps ?? []).filter((step) => !step.complete).length,
-    [workspaceSetup],
-  );
-
-  useEffect(() => {
-    if (!shouldShowWorkspaceSetupCard) {
-      sessionStorage.removeItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY);
-
-      return;
-    }
-
-    sessionStorage.setItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY, visibleWorkspaceSetupOverlay);
-  }, [shouldShowWorkspaceSetupCard, visibleWorkspaceSetupOverlay]);
+  const {
+    shouldShow: shouldShowWorkspaceSetupCard,
+    overlay: visibleWorkspaceSetupOverlay,
+    setOverlay: setWorkspaceSetupOverlay,
+    incompleteSteps: incompleteWorkspaceSetupSteps,
+  } = useWorkspaceSetupOverlay(workspaceSetup);
 
   const agentRuntimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
 
@@ -1374,252 +1327,19 @@ export const CanvasPrimaryView = ({
       </div>
 
       {contextMenu && (
-        <>
-          <button
-            type="button"
-            aria-label="Close canvas context menu"
-            className="canvas-context-menu-backdrop"
-            onClick={() => setContextMenu(null)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setContextMenu(null);
-              requestAnimationFrame(() => {
-                const under = document.elementFromPoint(e.clientX, e.clientY);
-
-                if (under) {
-                  under.dispatchEvent(
-                    new MouseEvent("contextmenu", {
-                      bubbles: true,
-                      clientX: e.clientX,
-                      clientY: e.clientY,
-                    }),
-                  );
-                }
-              });
-            }}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter" && e.key !== " " && e.key !== "Escape") return;
-              e.preventDefault();
-              setContextMenu(null);
-            }}
-          />
-          <div
-            className="canvas-context-menu"
-            style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setContextMenu(null);
-              requestAnimationFrame(() => {
-                const under = document.elementFromPoint(e.clientX, e.clientY);
-
-                if (under) {
-                  under.dispatchEvent(
-                    new MouseEvent("contextmenu", {
-                      bubbles: true,
-                      clientX: e.clientX,
-                      clientY: e.clientY,
-                    }),
-                  );
-                }
-              });
-            }}
-          >
-            {contextMenu.kind === "canvas" && (
-              <>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    setContextMenu(null);
-                    onCreateOrchestration?.();
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Hexagon size={14} />
-                  </span>
-                  New Orchestration
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    setContextMenu(null);
-                    const result = onCreateTerminal?.();
-
-                    if (result && isFunctionValue(result.then)) {
-                      void result.then((agentId) => {
-                        if (agentId) setPendingOpenAgentId(agentId);
-                      });
-                    }
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <TerminalIcon size={14} />
-                  </span>
-                  New Terminal
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    setContextMenu(null);
-                    const result = onCreateWorktreeTerminal?.();
-
-                    if (result && isFunctionValue(result.then)) {
-                      void result.then((agentId) => {
-                        if (agentId) setPendingOpenAgentId(agentId);
-                      });
-                    }
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <GitBranch size={14} />
-                  </span>
-                  New Worktree Terminal
-                </button>
-              </>
-            )}
-            {contextMenu.kind === "orchestration" && (
-              <>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => handleCreateAgent(contextMenu.coordinationId)}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <TerminalIcon size={14} />
-                  </span>
-                  Create new agent
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    setContextMenu(null);
-                    const result = onCreateWorktreeTerminal?.();
-
-                    if (result && isFunctionValue(result.then)) {
-                      void result.then((agentId) => {
-                        if (agentId) setPendingOpenAgentId(agentId);
-                      });
-                    }
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <GitBranch size={14} />
-                  </span>
-                  New Worktree Terminal
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() =>
-                    handleOrchestrationAction(
-                      contextMenu.coordinationId,
-                      "coordination-reorganize-todos",
-                    )
-                  }
-                >
-                  <span className="canvas-context-menu-icon">
-                    <ListTodo size={14} />
-                  </span>
-                  Update To-Do List
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() =>
-                    handleOrchestrationAction(contextMenu.coordinationId, "coordination-update")
-                  }
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Hexagon size={14} />
-                  </span>
-                  Update Orchestration
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    void handleSpawnSwarm(contextMenu.coordinationId, "worktree");
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Layers size={14} />
-                  </span>
-                  Spawn Swarm (Worktrees)
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    void handleSpawnSwarm(contextMenu.coordinationId, "shared");
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Layers size={14} />
-                  </span>
-                  Spawn Swarm (Normal)
-                </button>
-              </>
-            )}
-            {contextMenu.kind === "deck-lead" && (
-              <>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => handleDeckLeadAction("deck-lead-reorganize-todos")}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <ListTodo size={14} />
-                  </span>
-                  Reorganize To-Do's
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => handleDeckLeadAction("deck-lead-reorganize-coordinations")}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Hexagon size={14} />
-                  </span>
-                  Reorganize Coordinations
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => handleDeckLeadAction("deck-lead-clean-contexts")}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Sparkles size={14} />
-                  </span>
-                  Clean Coordination Contexts
-                </button>
-              </>
-            )}
-            {contextMenu.kind === "active-session" && (
-              <button
-                type="button"
-                className="canvas-context-menu-item canvas-context-menu-item--danger"
-                onClick={() => {
-                  onDeleteActiveSession?.(
-                    contextMenu.sessionId,
-                    contextMenu.label,
-                    contextMenu.workspaceMode,
-                  );
-                  setContextMenu(null);
-                }}
-              >
-                <span className="canvas-context-menu-icon">
-                  <Trash2 size={14} />
-                </span>
-                Delete
-              </button>
-            )}
-          </div>
-        </>
+        <CanvasContextMenu
+          menu={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onCreateAgent={handleCreateAgent}
+          onCreateOrchestration={onCreateOrchestration}
+          onCreateTerminal={onCreateTerminal}
+          onCreateWorktreeTerminal={onCreateWorktreeTerminal}
+          onDeckLeadAction={handleDeckLeadAction}
+          onDeleteActiveSession={onDeleteActiveSession}
+          onOpenAgent={setPendingOpenAgentId}
+          onOrchestrationAction={handleOrchestrationAction}
+          onSpawnSwarm={handleSpawnSwarm}
+        />
       )}
 
       {pendingDeleteTerminal && onCancelDelete && onConfirmDelete && (

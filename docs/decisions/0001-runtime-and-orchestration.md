@@ -30,5 +30,16 @@ Ghostex, which already does them well and supports Claude Code, OpenCode and Kir
 - New orchestration work is a thin layer over `ghostex` verbs (`agents create`, `send`, `wait-reply`,
   `coordinator …`) and a view of its state, not new supervision code in `apps/api`.
 - The web UI shows threads, chat, diffs, questions and usage; it does not decide what an agent may do.
-- Not done by this decision, and tracked as open work: SQLite state replacing the JSON files, splitting the
-  oversized files, removing the hook files written into user projects, and deleting `apps/api`.
+- Done since: Claude Code hooks no longer touch the project's `.claude/settings.local.json`; they live in
+  `.adadex/hooks/claude.settings.json` and load through `claude --settings`. A child agent that ends its turn
+  reports to its parent automatically. A waiting agent can be approved or denied from the thread list (Claude only).
+- Open work, with the reason each is still open:
+  - **Delete `apps/api`:** the web UI's terminals, deck and conversations only exist on this server. The desktop
+    request layer has no equivalent, so deleting it removes those features. This needs the web views rebuilt on
+    the desktop first (PLAN.md phase 6).
+  - **SQLite state for `apps/api`:** not worth doing for code that is scheduled for deletion.
+  - **OpenCode and Kiro hook files** still go in the project (`.opencode/plugins`, `.kiro/hooks`); no verified
+    way to load them from elsewhere was found.
+  - **`legacyProductKeys.ts`** reads old saved state; removing it breaks loading older projects.
+  - **Approve button limit:** the route needs a browser Origin header, which keeps out a plain `curl` but not a
+    process that forges the header. The owner accepted this on 2026-11-22.

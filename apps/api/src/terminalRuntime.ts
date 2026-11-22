@@ -25,8 +25,6 @@ import {
 import { createChannelMessaging } from "./terminalRuntime/channelMessaging";
 import {
   DEFAULT_AGENT_PROVIDER,
-  DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS,
-  TERMINAL_ID_PREFIX,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
 } from "./terminalRuntime/constants";
 import {
@@ -49,6 +47,13 @@ import {
 import { recoverPersistedSessions } from "./terminalRuntime/sessionRecovery";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
 import { createDefaultGitClient } from "./terminalRuntime/systemClients";
+import {
+  allocateDefaultTerminalName as allocateDefaultTerminalNameFrom,
+  allocateTerminalId as allocateTerminalIdFrom,
+  collectTerminalCascade as collectTerminalCascadeFrom,
+  isProcessAlive,
+  toTerminalSnapshot as toTerminalSnapshotFrom,
+} from "./terminalRuntime/terminalViews";
 import type { DirectSessionListener } from "./terminalRuntime/types";
 import {
   type CoordinationWorkspaceMode,
@@ -158,35 +163,6 @@ export const createTerminalRuntime = ({
       terminals,
       uiState,
     });
-  };
-
-  const isProcessAlive = (pid: number | undefined): pid is number => {
-    if (!pid || !Number.isInteger(pid) || pid <= 0) {
-      return false;
-    }
-
-    try {
-      process.kill(pid, 0);
-
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const lifecycleStateToAgentState = (
-    lifecycleState: TerminalLifecycleState,
-  ): TerminalSnapshot["state"] => {
-    switch (lifecycleState) {
-      case "stale":
-        return "stale";
-      case "exited":
-        return "exited";
-      case "stopped":
-        return "stopped";
-      default:
-        return "live";
-    }
   };
 
   const markTerminalRunning = (
@@ -347,116 +323,22 @@ export const createTerminalRuntime = ({
     persistRegistry();
   }
 
-  const allocateTerminalId = () => {
-    let candidateNumber = 1;
+  const allocateTerminalId = () =>
+    allocateTerminalIdFrom(terminals, sessions, (id) =>
+      worktreeManager.hasOrchestrationWorktree(id),
+    );
 
-    while (candidateNumber < Number.MAX_SAFE_INTEGER) {
-      const candidateId = `${TERMINAL_ID_PREFIX}${candidateNumber}`;
+  const allocateDefaultTerminalName = (): string => allocateDefaultTerminalNameFrom(terminals);
 
-      if (terminals.has(candidateId)) {
-        candidateNumber += 1;
-        continue;
-      }
+  const toTerminalSnapshot = (terminal: PersistedTerminal): TerminalSnapshot =>
+    toTerminalSnapshotFrom(
+      terminal,
+      sessions.get(terminal.terminalId),
+      uiState.terminalInactivityThresholdMs,
+    );
 
-      if (sessions.has(candidateId)) {
-        candidateNumber += 1;
-        continue;
-      }
-
-      if (worktreeManager.hasOrchestrationWorktree(candidateId)) {
-        candidateNumber += 1;
-        continue;
-      }
-
-      return candidateId;
-    }
-
-    throw new Error("Unable to allocate terminal id.");
-  };
-
-  const allocateDefaultTerminalName = (): string => {
-    const usedNumbers = new Set<number>();
-    const pattern = /^Adadex Terminal (\d+)$/;
-
-    for (const t of terminals.values()) {
-      const match = pattern.exec(t.coordinationName);
-
-      if (match) usedNumbers.add(Number(match[1]));
-    }
-
-    let n = 1;
-
-    while (usedNumbers.has(n)) n++;
-
-    return `Adadex Terminal ${n}`;
-  };
-
-  const isTerminalRecentlyActive = (terminal: PersistedTerminal): boolean => {
-    if (!terminal.lastActiveAt) return false;
-
-    const thresholdMs =
-      uiState.terminalInactivityThresholdMs ?? DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS;
-
-    return Date.now() - new Date(terminal.lastActiveAt).getTime() < thresholdMs;
-  };
-
-  const toTerminalSnapshot = (terminal: PersistedTerminal): TerminalSnapshot => {
-    const session = sessions.get(terminal.terminalId);
-
-    const lifecycleState: TerminalLifecycleState = session
-      ? "running"
-      : (terminal.lifecycleState ?? "registered");
-
-    const snapshot: TerminalSnapshot = {
-      terminalId: terminal.terminalId,
-      label: terminal.terminalId,
-      state: lifecycleStateToAgentState(lifecycleState),
-      coordinationId: terminal.coordinationId,
-      coordinationName: terminal.coordinationName,
-      workspaceMode: terminal.workspaceMode,
-      createdAt: terminal.createdAt,
-      hasUserPrompt: isTerminalRecentlyActive(terminal),
-      lifecycleState,
-    };
-
-    if (terminal.parentTerminalId) {
-      snapshot.parentTerminalId = terminal.parentTerminalId;
-    }
-
-    if (session) {
-      snapshot.agentRuntimeState = session.agentState;
-    }
-
-    if (terminal.lifecycleReason) {
-      snapshot.lifecycleReason = terminal.lifecycleReason;
-    }
-
-    if (terminal.lifecycleUpdatedAt) {
-      snapshot.lifecycleUpdatedAt = terminal.lifecycleUpdatedAt;
-    }
-
-    if (terminal.processId) {
-      snapshot.processId = terminal.processId;
-    }
-
-    if (terminal.startedAt) {
-      snapshot.startedAt = terminal.startedAt;
-    }
-
-    if (terminal.endedAt) {
-      snapshot.endedAt = terminal.endedAt;
-    }
-
-    if (terminal.exitCode !== undefined) {
-      snapshot.exitCode = terminal.exitCode;
-    }
-
-    if (terminal.exitSignal !== undefined) {
-      snapshot.exitSignal = terminal.exitSignal;
-    }
-
-    return snapshot;
-  };
+  const collectTerminalCascade = (rootTerminalId: string): string[] =>
+    collectTerminalCascadeFrom(rootTerminalId, terminals);
 
   const broadcastTerminalEvent = (event: TerminalEvent) => {
     const payload = JSON.stringify(event);
@@ -472,29 +354,6 @@ export const createTerminalRuntime = ({
 
   const _broadcastTerminalListChanged = () => {
     broadcastTerminalEvent({ type: "terminal-list-changed" });
-  };
-
-  const collectTerminalCascade = (rootTerminalId: string): string[] => {
-    const toDelete = new Set<string>();
-    const queue = [rootTerminalId];
-
-    while (queue.length > 0) {
-      const currentTerminalId = queue.shift();
-
-      if (!currentTerminalId || toDelete.has(currentTerminalId)) {
-        continue;
-      }
-
-      toDelete.add(currentTerminalId);
-
-      for (const terminal of terminals.values()) {
-        if (terminal.parentTerminalId === currentTerminalId) {
-          queue.push(terminal.terminalId);
-        }
-      }
-    }
-
-    return Array.from(toDelete);
   };
 
   const createTerminal = ({
