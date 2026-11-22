@@ -2,7 +2,8 @@ import type { ComponentProps, ReactNode } from "react";
 
 import type { PrimaryNavIndex } from "../app/constants";
 import { ActivityPrimaryView } from "./ActivityPrimaryView";
-import { CanvasPrimaryView } from "./CanvasPrimaryView";
+import { AgentsWorkspaceView } from "./agents/AgentsWorkspaceView";
+import type { CanvasPrimaryView } from "./CanvasPrimaryView";
 import { ConversationsPrimaryView } from "./ConversationsPrimaryView";
 import { DeckPrimaryView } from "./DeckPrimaryView";
 import { FactoryPrimaryView } from "./factory/FactoryPrimaryView";
@@ -68,5 +69,5 @@ export const PrimaryViewRouter = ({
     return <FactoryPrimaryView {...factoryPrimaryViewProps} />;
   }
 
-  return <CanvasPrimaryView {...canvasPrimaryViewProps} />;
+  return <AgentsWorkspaceView {...canvasPrimaryViewProps} />;
 };

@@ -159,7 +159,7 @@ describe("App workspace setup", () => {
     expect(await screen.findByLabelText("Workspace setup")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
-    expect(screen.getByLabelText("Canvas graph view")).toBeInTheDocument();
+    expect(screen.getByLabelText("Agents workspace")).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Primary navigation" });
     const agentsBtn = nav.querySelector("button");
     expect(agentsBtn).toHaveAttribute("aria-current", "page");
