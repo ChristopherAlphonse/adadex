@@ -3,6 +3,7 @@ import { type ComponentProps, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 import { useConversationChat } from "../app/hooks/useConversationChat";
+import { sendChannelMessage } from "../app/sendChannelMessage";
 import { ConversationChatThread } from "./ConversationChatThread";
 import { Terminal } from "./Terminal";
 
@@ -42,7 +43,10 @@ const ChatView = ({ sessionId }: { sessionId: string }) => {
 
   return (
     <div className="h-full overflow-y-auto p-3">
-      <ConversationChatThread messages={messages} />
+      <ConversationChatThread
+        messages={messages}
+        onSendAnswer={(text) => sendChannelMessage(sessionId, text)}
+      />
     </div>
   );
 };

@@ -42,3 +42,23 @@ export type UsageSummary = {
   firstAt: string | null;
   lastAt: string | null;
 };
+
+export type QuestionOption = {
+  label: string;
+  detail: string | null;
+  recommended: boolean;
+};
+
+export type Question = {
+  id: string;
+  text: string;
+  options: QuestionOption[];
+};
+
+/** A set of questions an agent asks the user, written by the agent as a fenced `questions` block. */
+export type QuestionForm = {
+  title: string;
+  questions: Question[];
+};
+
+export type MessageSegment = { kind: "text"; text: string } | { kind: "form"; form: QuestionForm };

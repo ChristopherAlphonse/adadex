@@ -81,3 +81,5 @@ export * from "./domain/transcript";
 export * from "./application/transcriptRules";
 
 export * from "./application/buildThreadTree";
+
+export * from "./application/questionForm";

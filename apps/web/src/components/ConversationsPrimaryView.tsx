@@ -420,7 +420,12 @@ export const ConversationsPrimaryView = ({
               </div>
             </header>
             {showRichChat && chatMessages ? (
-              <ConversationChatThread messages={chatMessages} />
+              <ConversationChatThread
+                messages={chatMessages}
+                onSendAnswer={
+                  selectedSessionId ? (text) => sendMessage(selectedSessionId, text) : undefined
+                }
+              />
             ) : null}
             <ol className="chat-thread" hidden={showRichChat} ref={threadRef}>
               {selectedSession.turns.map((turn, index) => {

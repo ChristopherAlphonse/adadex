@@ -6,11 +6,13 @@ import {
   asString,
   extractDiff,
   isSubagentToolCall,
+  splitQuestionForms,
 } from "@adadex/core";
 import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 
+import { QuestionCard } from "./QuestionCard";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
 type ToolCallBlock = Extract<TranscriptBlock, { kind: "tool-call" }>;
@@ -224,12 +226,18 @@ const WorkSummary = ({
   </details>
 );
 
+const ANSWERS_TITLE = /^Answers to "([^"]*)":/;
+
 const AgentTurn = ({
   messages,
   results,
+  answered,
+  onSendAnswer,
 }: {
   messages: TranscriptMessage[];
   results: Map<string, ToolResultBlock>;
+  answered: ReadonlySet<string>;
+  onSendAnswer?: ((text: string) => Promise<void>) | undefined;
 }) => {
   const calls = messages.flatMap((message) =>
     message.blocks.flatMap((block) => (block.kind === "tool-call" ? [block] : [])),
@@ -237,9 +245,14 @@ const AgentTurn = ({
 
   const files = collectEditedFiles(calls);
 
-  const texts = messages.flatMap((message) =>
+  const segments = messages.flatMap((message) =>
     message.blocks.flatMap((block, index) =>
-      block.kind === "text" ? [{ key: `${message.id}-${index}`, text: block.text }] : [],
+      block.kind === "text"
+        ? splitQuestionForms(block.text).map((segment, position) => ({
+            key: `${message.id}-${index}-${position}`,
+            segment,
+          }))
+        : [],
     ),
   );
 
@@ -254,16 +267,32 @@ const AgentTurn = ({
         />
       ) : null}
       {files.length > 0 ? <EditedFiles files={files} /> : null}
-      {texts.map(({ key, text }) => (
-        <div className="chat-bubble rounded-2xl bg-surface-2 px-3.5 py-2" key={key}>
-          <MarkdownContent content={text} className="chat-bubble-content" />
-        </div>
-      ))}
+      {segments.map(({ key, segment }) =>
+        segment.kind === "form" ? (
+          <QuestionCard
+            answered={answered.has(segment.form.title)}
+            form={segment.form}
+            key={key}
+            onSend={onSendAnswer}
+          />
+        ) : (
+          <div className="chat-bubble rounded-2xl bg-surface-2 px-3.5 py-2" key={key}>
+            <MarkdownContent content={segment.text} className="chat-bubble-content" />
+          </div>
+        ),
+      )}
     </li>
   );
 };
 
-export const ConversationChatThread = ({ messages }: { messages: TranscriptMessage[] }) => {
+export const ConversationChatThread = ({
+  messages,
+  onSendAnswer,
+}: {
+  messages: TranscriptMessage[];
+  /** Sends a question card's answers to the agent. Without it, cards are read-only. */
+  onSendAnswer?: ((text: string) => Promise<void>) | undefined;
+}) => {
   const results = useMemo(() => {
     const map = new Map<string, ToolResultBlock>();
 
@@ -280,6 +309,20 @@ export const ConversationChatThread = ({ messages }: { messages: TranscriptMessa
 
   const turns = useMemo(() => toTurns(messages), [messages]);
 
+  const answered = useMemo(() => {
+    const titles = new Set<string>();
+
+    for (const turn of turns) {
+      const title = turn.kind === "user" ? ANSWERS_TITLE.exec(turn.text)?.[1] : undefined;
+
+      if (title !== undefined) {
+        titles.add(title);
+      }
+    }
+
+    return titles;
+  }, [turns]);
+
   return (
     <ol className="chat-thread flex flex-col gap-4">
       {turns.map((turn) =>
@@ -292,7 +335,13 @@ export const ConversationChatThread = ({ messages }: { messages: TranscriptMessa
             {turn.text}
           </li>
         ) : (
-          <AgentTurn key={turn.id} messages={turn.messages} results={results} />
+          <AgentTurn
+            answered={answered}
+            key={turn.id}
+            messages={turn.messages}
+            onSendAnswer={onSendAnswer}
+            results={results}
+          />
         ),
       )}
     </ol>
