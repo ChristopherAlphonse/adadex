@@ -1,6 +1,6 @@
 import type { TranscriptMessage } from "@adadex/core";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { ConversationChatThread } from "../src/components/ConversationChatThread";
 
@@ -63,5 +63,57 @@ describe("ConversationChatThread", () => {
     expect(screen.getByText("fix it")).toBeTruthy();
     expect(container.querySelectorAll('li[data-role="user"]')).toHaveLength(1);
     expect(container.querySelectorAll('li[data-role="assistant"]')).toHaveLength(1);
+  });
+
+  it("renders a questions block as a card and sends the answers", async () => {
+    const onSendAnswer = vi.fn(async (_text: string) => {});
+
+    const withForm: TranscriptMessage[] = [
+      {
+        id: "a9",
+        role: "assistant",
+        timestamp: null,
+        blocks: [
+          {
+            kind: "text",
+            text: 'Quick check.\n```questions\n{"title":"Pick one","questions":[{"text":"Which?","options":[{"label":"Red","recommended":true},{"label":"Blue"}]}]}\n```',
+          },
+        ],
+      },
+    ];
+
+    render(<ConversationChatThread messages={withForm} onSendAnswer={onSendAnswer} />);
+    expect(screen.getByText("Quick check.")).toBeTruthy();
+    expect(screen.getByText("Which?")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Send answers" }));
+    await waitFor(() => {
+      expect(onSendAnswer).toHaveBeenCalledWith(expect.stringContaining("q1 (Which?): Red"));
+    });
+  });
+
+  it("shows a form as answered when its answer is already in the conversation", () => {
+    const history: TranscriptMessage[] = [
+      {
+        id: "a1",
+        role: "assistant",
+        timestamp: null,
+        blocks: [
+          {
+            kind: "text",
+            text: '```questions\n{"title":"Pick one","questions":[{"text":"Which?","options":[{"label":"Red"}]}]}\n```',
+          },
+        ],
+      },
+      {
+        id: "u1",
+        role: "user",
+        timestamp: null,
+        blocks: [{ kind: "text", text: 'Answers to "Pick one":\nq1 (Which?): Red' }],
+      },
+    ];
+
+    render(<ConversationChatThread messages={history} onSendAnswer={async () => {}} />);
+    expect(screen.getByText("Answers sent.")).toBeTruthy();
   });
 });
