@@ -48,12 +48,9 @@ The image bundles Adadex plus Claude Code, Codex, OpenCode and Kiro CLI. You onl
 
 ```bash
 # 1. Point at a dedicated clone of the project the agents should work on (absolute path).
-export ADADEX_WORKSPACE=/absolute/path/to/your-project-clone
+ ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml up --build
 
-# 2. Build and start.
-docker compose up --build
-
-# 3. Open http://127.0.0.1:8787
+# 2. Open http://127.0.0.1:8787
 ```
 
 The workspace must be a git clone (its `.git/hooks` folder is mounted read-only), and it is mounted read-write, so use a dedicated clone.
