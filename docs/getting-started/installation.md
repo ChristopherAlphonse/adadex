@@ -6,7 +6,11 @@ Adadex is a local Node.js project with a local API and web UI.
 
 Run Adadex in the Docker sandbox. It bundles the agent CLIs and keeps them, and the npm packages they depend on, away from your files, credentials and the open internet.
 
+Requires Docker with Compose (Docker Desktop, OrbStack or similar), installed and running, plus `git`.
+
 ```bash
+git clone https://github.com/ChristopherAlphonse/adadex.git
+cd adadex                                                  # run the next commands from this folder
 export ADADEX_WORKSPACE=/absolute/path/to/your-project-clone
 docker compose up --build
 ```

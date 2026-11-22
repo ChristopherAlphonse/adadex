@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Adadex">
+  <defs>
+    <linearGradient id="b" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e3d7f9"/><stop offset="1" stop-color="#a98fe0"/></linearGradient>
+    <linearGradient id="a" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e8defa"/><stop offset="1" stop-color="#b49be6"/></linearGradient>
+    <clipPath id="c"><rect x="360" y="160" width="150" height="190"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="#000"/>
+  <g transform="translate(51 51) scale(0.8)"><g fill="#fff">
+    <path fill-rule="evenodd" transform="translate(-12 0)" d="M64 160 H110 L174 350 H134 L121 314 H53 L40 350 H0 Z M68 282 H106 L87 224 Z"/>
+    <path fill-rule="evenodd" d="M172 160 H255 A96 96 0 0 1 255 350 H172 Z M206 194 V316 H255 A61 61 0 0 0 255 194 Z"/>
+  </g>
+  <g clip-path="url(#c)" stroke="#fff" stroke-width="38"><path d="M366 156 L504 354 M504 156 L366 354"/></g>
+  <g transform="translate(209 205) scale(0.5)">
+    <ellipse cx="100" cy="206" rx="56" ry="7" fill="#000" opacity="0.25"/>
+    <g transform="rotate(-14 98 32)"><path d="M98 34 L88 16" fill="none" stroke="url(#a)" stroke-linecap="round" stroke-width="6"/><circle cx="85" cy="12" r="10" fill="url(#a)"/></g>
+    <path d="M38 122 C38 58 66 30 100 30 C134 30 162 58 162 122 L162 176 C162 190 152 198 140 198 C128 198 122 192 118 184 C114 178 108 174 100 174 C92 174 86 178 82 184 C78 192 72 198 60 198 C48 198 38 190 38 176 Z" fill="url(#b)"/>
+    <ellipse cx="100" cy="98" rx="50" ry="41" fill="#fdf3e3"/>
+    <ellipse cx="84" cy="98" rx="6.5" ry="9" fill="#241b2f"/><ellipse cx="116" cy="98" rx="6.5" ry="9" fill="#241b2f"/>
+    <circle cx="86.5" cy="93" r="3" fill="#fff"/><circle cx="118.5" cy="93" r="3" fill="#fff"/>
+    <path d="M90 116 Q100 126 110 116" fill="none" stroke="#241b2f" stroke-linecap="round" stroke-width="3.5"/>
+    <ellipse cx="46" cy="142" rx="17" ry="21" fill="url(#a)" transform="rotate(-18 46 142)"/>
+    <ellipse cx="162" cy="96" rx="15" ry="22" fill="url(#a)" transform="rotate(28 162 96)"/>
+  </g>
+</g></svg>

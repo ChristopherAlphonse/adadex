@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="150" height="100" alt="Adadex header" src="./static/images/adadex-header.png" />
+<img width="160" height="160" alt="Adadex logo: ADX with the mascot sitting inside the D" src="./static/images/adadex-logo.png" />
 
 </div>
 
@@ -33,6 +33,10 @@ The Electron desktop app is in progress; see [plans/PLAN.md](docs/plans/PLAN.md)
 
 ## Requirements
 
+**Docker (preferred):** only Docker with Compose and `git`. See [Run in Docker](#run-in-docker-preferred).
+
+**Without Docker:**
+
 - Node.js `22+`
 - Claude Code (`claude`) — see the [install guide](https://docs.claude.com/en/docs/claude-code)
 - Optional: Kiro CLI (`kiro-cli`, `curl -fsSL https://cli.kiro.dev/install | bash`) or OpenCode (`opencode`) if you want those providers
@@ -44,43 +48,50 @@ The Electron desktop app is in progress; see [plans/PLAN.md](docs/plans/PLAN.md)
 
 **Docker is the preferred way to run Adadex.** Running it directly on your machine gives every npm package and agent CLI it pulls in full access to your files and credentials. Use the options under [Install](#install-without-docker-not-sandboxed) only for development on Adadex itself.
 
-The image bundles Adadex plus Claude Code, Codex, OpenCode and Kiro CLI. You only need Docker with Compose.
+The image bundles Adadex plus Claude Code, Codex, OpenCode and Kiro CLI. On the host you only need [Docker with Compose](https://docs.docker.com/desktop/setup/install/mac-install/) (Docker Desktop, OrbStack or similar) installed and running, and `git`. Node and the agent CLIs are not needed on your machine.
+
+**1. Clone Adadex** anywhere you like and remember where (the examples call it `ADADEX_DIR`):
 
 ```bash
-# 1. Point at a dedicated clone of the project the agents should work on (absolute path).
- ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml up --build
-
-# 2. Open http://127.0.0.1:8787
+git clone https://github.com/ChristopherAlphonse/adadex.git
+export ADADEX_DIR="$PWD/adadex"   # absolute path to the clone
 ```
 
-The workspace must be a git clone (its `.git/hooks` folder is mounted read-only), and it is mounted read-write, so use a dedicated clone.
+**2. Start it from the project you want the agents to work on.** That project must be a git clone, and it is mounted read-write (its `.git/hooks` folder is read-only), so use a dedicated clone:
+
+```bash
+cd /path/to/your-project
+ADADEX_WORKSPACE="$PWD" docker compose -f "$ADADEX_DIR/docker-compose.yml" up --build
+```
+
+**3. Open** <http://127.0.0.1:8787>.
+
+If `ADADEX_DIR` is not set (for example in a new terminal), replace it with the path to your Adadex clone.
 
 Sign in to each agent once from an Adadex terminal (`claude`, `opencode auth login`, `kiro-cli login`). Logins are kept in the `adadex-home` Docker volume, never on your host. The volume is shared by every project you run, so you sign in once until you run `docker compose down -v`.
 
-**Skip the Claude Code login with a token.** Run `claude setup-token` on your host, then pass the token for that run only:
+**Skip the Claude Code login with a token (optional).** This needs Claude Code installed on your host. Run `claude setup-token` there, then pass the token for that run only:
 
 ```bash
 read -s CLAUDE_CODE_OAUTH_TOKEN && export CLAUDE_CODE_OAUTH_TOKEN   # paste the token; it is not echoed or saved in history
-ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml up --build
+ADADEX_WORKSPACE="$PWD" docker compose -f "$ADADEX_DIR/docker-compose.yml" up --build
 ```
 
 The token is passed into the container only when it is set in your shell, and it overrides a login stored in the volume. Any process in the container can read it, and it shows up in `docker inspect`. Do not put it in `.env` or commit it, and revoke it from your Claude account if it leaks. Do not mount `~/.claude` or `~/.claude.json` into the container: they hold your global settings, hooks and MCP configs.
 
-```bash
-docker compose up -d                  # start in the background
-docker compose logs -f egress         # see which domains were allowed or denied
-docker compose down                   # stop; keeps logins and state
-docker compose down -v                # stop and delete logins and state
-ADADEX_PORT=9000 docker compose up    # use another host port (still loopback only)
-docker compose -f docker-compose.yml -f docker-compose.offline.yml up   # no network at all
-```
-
-If you run Compose from the project directory instead of the Adadex clone, point `-f` at the clone's compose file and pass the workspace explicitly (replace the path with your own Adadex clone):
+Day-to-day commands. Run them from your project folder, with the same `-f` and `ADADEX_WORKSPACE` as above (shortened here with a shell variable):
 
 ```bash
-ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml up --build
-ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml down
+dc() { ADADEX_WORKSPACE="$PWD" docker compose -f "$ADADEX_DIR/docker-compose.yml" "$@"; }
+
+dc up -d                  # start in the background
+dc logs -f egress         # see which domains were allowed or denied
+dc down                   # stop; keeps logins and state
+dc down -v                # stop and delete logins and state
+ADADEX_PORT=9000 dc up    # use another host port (still loopback only)
 ```
+
+Offline mode is covered [below](#offline-mode).
 
 What the sandbox enforces: a read-only root filesystem, a non-root user with every capability dropped, no host home or Docker socket, and no direct internet. All traffic leaves through a proxy that allows only the domains in [`docker/edge/allowlist.txt`](docker/edge/allowlist.txt). The UI is published on `127.0.0.1` only. Agent auto-update is switched off, so versions change only when you rebuild.
 
@@ -93,7 +104,9 @@ What it does not protect: your workspace folder is read-write, and allowed domai
 For local-only work with no network at all:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.offline.yml up
+ADADEX_WORKSPACE="$PWD" docker compose \
+  -f "$ADADEX_DIR/docker-compose.yml" \
+  -f "$ADADEX_DIR/docker-compose.offline.yml" up
 ```
 
 This removes the egress proxy, so the container has no route out. Agents that need a hosted model API (Claude, Codex, Kiro, hosted OpenCode models) will not work in this mode.
@@ -114,6 +127,8 @@ Adadex is not yet published to the npm registry. These options run everything wi
 **Local development:**
 
 ```bash
+git clone https://github.com/ChristopherAlphonse/adadex.git
+cd adadex
 npm install
 npm run dev
 ```
