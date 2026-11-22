@@ -84,7 +84,6 @@ COPY --from=build /src/node_modules/ws /opt/adadex/node_modules/ws
 
 ENV NODE_ENV=production \
     ADADEX_PACKAGE_ROOT=/opt/adadex \
-    ADADEX_BIND_HOST=0.0.0.0 \
     ADADEX_NO_OPEN=1 \
     NODE_USE_ENV_PROXY=1 \
     HOME=/home/adadex

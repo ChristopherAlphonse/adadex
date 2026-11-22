@@ -13,6 +13,10 @@ Open <http://127.0.0.1:8787>. The port is published on loopback only.
 
 Sign in to each agent once from the Adadex terminal (`claude`, `codex login --device-auth`, `opencode auth login`, `kiro-cli login`). Logins are stored in the `adadex-home` Docker volume, not on your host. Stop with `docker compose down`; add `-v` to also delete logins and state.
 
+## Use `docker compose`, not `docker run`
+
+The sandbox is defined in `docker-compose.yml`, not in the image. A bare `docker run` of the image skips the read-only filesystem, dropped capabilities, internal network and egress proxy. It also binds loopback inside the container, so a published port reaches nothing. Always start it with `docker compose`.
+
 ## What it enforces
 
 | Boundary | How |

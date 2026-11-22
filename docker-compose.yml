@@ -21,6 +21,9 @@ services:
     working_dir: /workspace
     # Binds 0.0.0.0 inside a network with no route out; only the gateway can reach it.
     environment:
+      # Set here, not in the image: a bare `docker run` then binds loopback inside the container
+      # and publishes nothing reachable, instead of exposing the API on every host interface.
+      ADADEX_BIND_HOST: 0.0.0.0
       HTTPS_PROXY: http://egress:3128
       HTTP_PROXY: http://egress:3128
       NO_PROXY: localhost,127.0.0.1,::1
