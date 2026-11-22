@@ -101,35 +101,6 @@ export const ActionCards = ({
                 </div>
               )}
             </div>
-            {selectedAgent === "claude" ? (
-              <>
-                <input
-                  aria-label="Model (optional)"
-                  className="deck-empty-agent-trigger"
-                  onChange={(event) => {
-                    changeLaunchSettings({ model: event.target.value.trim() });
-                  }}
-                  placeholder="model (default)"
-                  size={16}
-                  type="text"
-                  value={launchSettings.model}
-                />
-                <select
-                  aria-label="Effort"
-                  className="deck-empty-agent-trigger"
-                  onChange={(event) => {
-                    changeLaunchSettings({ effort: event.target.value });
-                  }}
-                  value={launchSettings.effort}
-                >
-                  {EFFORT_OPTIONS.map((level) => (
-                    <option key={level} value={level}>
-                      {level === "" ? "effort (default)" : level}
-                    </option>
-                  ))}
-                </select>
-              </>
-            ) : null}
             <button
               type="button"
               className="deck-empty-agent-launch"
@@ -139,6 +110,34 @@ export const ActionCards = ({
               {isLaunchingAgent ? "..." : "Launch"}
             </button>
           </div>
+          {selectedAgent === "claude" ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <input
+                aria-label="Model (optional)"
+                className="deck-empty-agent-trigger w-44"
+                onChange={(event) => {
+                  changeLaunchSettings({ model: event.target.value.trim() });
+                }}
+                placeholder="model (default)"
+                type="text"
+                value={launchSettings.model}
+              />
+              <select
+                aria-label="Effort"
+                className="deck-empty-agent-trigger"
+                onChange={(event) => {
+                  changeLaunchSettings({ effort: event.target.value });
+                }}
+                value={launchSettings.effort}
+              >
+                {EFFORT_OPTIONS.map((level) => (
+                  <option key={level} value={level}>
+                    {level === "" ? "effort (default)" : level}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
         </div>
       </div>
       <button type="button" className="deck-empty-card" onClick={onAdd}>
