@@ -1,13 +1,16 @@
 import { ChevronUp, ListTodo, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { useConversationChat } from "../../app/hooks/useConversationChat";
 import { useWorkspaceSetupOverlay } from "../../app/hooks/useWorkspaceSetupOverlay";
+import { sendChannelMessage } from "../../app/sendChannelMessage";
 import { AgentStateBadge } from "../AgentStateBadge";
 import { type CanvasPrimaryViewProps, CanvasPrimaryView } from "../CanvasPrimaryView";
 import { WorkspaceSetupCard } from "../deck/WorkspaceSetupCard";
+import { DeleteOrchestrationDialog } from "../DeleteOrchestrationDialog";
 import { TerminalChatPane } from "../TerminalChatPane";
 import { AgentsRail } from "./AgentsRail";
-import { type AgentsViewId, AgentsViewPicker } from "./AgentsViewPicker";
+import { type ChatWorkbenchPanel, ChatWorkbench } from "./ChatWorkbench";
 
 const CLOCK_TICK_MS = 30_000;
 
@@ -15,6 +18,15 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
   const {
     columns,
     onCreateTerminal,
+    onCreateAgent,
+    onCreateWorktreeTerminal,
+    onOpenGitActions,
+    onCloseActiveSession,
+    onDeleteActiveSession,
+    pendingDeleteTerminal,
+    isDeletingTerminalId,
+    onCancelDelete,
+    onConfirmDelete,
     onTerminalRenamed,
     onTerminalActivity,
     workspaceSetup = null,
@@ -26,9 +38,13 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
   } = props;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [openView, setOpenView] = useState<AgentsViewId | null>(null);
+  const [isGraphOpen, setIsGraphOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [isLaunchingPlanner, setIsLaunchingPlanner] = useState(false);
+  const [panel, setPanel] = useState<ChatWorkbenchPanel | null>(null);
+  const [sideChatDraft, setSideChatDraft] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const chatViewportRef = useRef<HTMLDivElement | null>(null);
 
   const {
     shouldShow: shouldShowSetup,
@@ -36,6 +52,14 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
     setOverlay: setSetupOverlay,
     incompleteSteps,
   } = useWorkspaceSetupOverlay(workspaceSetup);
+
+  const selected = columns.find((session) => session.terminalId === selectedId) ?? null;
+  const messages = useConversationChat(selected?.terminalId ?? null, null);
+
+  const select = (terminalId: string) => {
+    setSelectedId(terminalId);
+    setActionError(null);
+  };
 
   const launchPlanner = async () => {
     if (!onLaunchWorkspaceSetupPlanner) return;
@@ -45,9 +69,52 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
     try {
       const id = await onLaunchWorkspaceSetupPlanner();
 
-      if (id) setSelectedId(id);
+      if (id) select(id);
     } finally {
       setIsLaunchingPlanner(false);
+    }
+  };
+
+  const bringBack = async (text: string) => {
+    if (!selectedId) return;
+
+    try {
+      await sendChannelMessage(selectedId, text);
+      setActionError(null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Unable to bring the answer back.");
+    }
+  };
+
+  const delegate = async () => {
+    if (!onCreateAgent || !selected) return;
+
+    try {
+      const id = await onCreateAgent(selected.coordinationId, selected.terminalId);
+
+      if (id) select(id);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Unable to delegate.");
+    }
+  };
+
+  const createWorktree = async () => {
+    if (!onCreateWorktreeTerminal) return;
+
+    try {
+      const id = await onCreateWorktreeTerminal();
+
+      if (id) select(id);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Unable to create the worktree.");
+    }
+  };
+
+  const scrollToBottom = () => {
+    const viewport = chatViewportRef.current;
+
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
     }
   };
 
@@ -61,8 +128,6 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
     };
   }, []);
 
-  const selected = columns.find((session) => session.terminalId === selectedId) ?? null;
-
   return (
     <section aria-label="Agents workspace" className="flex min-h-0 min-w-0 flex-1">
       <AgentsRail
@@ -71,12 +136,40 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
           onCreateTerminal
             ? () => {
                 void Promise.resolve(onCreateTerminal()).then((id) => {
-                  if (id) setSelectedId(id);
+                  if (id) select(id);
                 });
               }
             : undefined
         }
-        onSelect={setSelectedId}
+        isGraphOpen={isGraphOpen}
+        onClose={
+          onCloseActiveSession
+            ? (session) => {
+                void onCloseActiveSession(
+                  session.terminalId,
+                  session.coordinationName || session.label,
+                  session.workspaceMode,
+                );
+
+                if (session.terminalId === selectedId) setSelectedId(null);
+              }
+            : undefined
+        }
+        onDelete={
+          onDeleteActiveSession
+            ? (session) => {
+                onDeleteActiveSession(
+                  session.terminalId,
+                  session.coordinationName || session.label,
+                  session.workspaceMode,
+                );
+              }
+            : undefined
+        }
+        onSelect={select}
+        onToggleGraph={() => {
+          setIsGraphOpen((open) => !open);
+        }}
         selectedId={selected?.terminalId ?? null}
         sessions={columns}
       />
@@ -135,13 +228,44 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
                 <AgentStateBadge state={selected.agentRuntimeState} />
               ) : null}
             </header>
-            <div className="min-h-0 flex-1">
+            {actionError ? (
+              <p
+                className="m-0 border-b border-border px-4 py-1 text-xs text-destructive"
+                role="alert"
+              >
+                {actionError}
+              </p>
+            ) : null}
+            <ChatWorkbench
+              columns={columns}
+              messages={messages}
+              onBringBack={(text) => {
+                void bringBack(text);
+              }}
+              onDelegate={onCreateAgent ? () => void delegate() : undefined}
+              onCreateWorktree={onCreateWorktreeTerminal ? () => void createWorktree() : undefined}
+              onOpenGit={
+                onOpenGitActions ? () => onOpenGitActions(selected.coordinationId) : undefined
+              }
+              onPanelChange={setPanel}
+              onScrollToBottom={scrollToBottom}
+              onSelectSession={select}
+              onSideChatDraftChange={setSideChatDraft}
+              panel={panel}
+              session={selected}
+              sideChatDraft={sideChatDraft}
+            />
+            <div className="min-h-0 flex-1 overflow-y-auto" ref={chatViewportRef}>
               <TerminalChatPane
                 key={selected.terminalId}
                 terminalId={selected.terminalId}
                 terminalLabel={selected.label}
                 {...(onTerminalRenamed ? { onTerminalRenamed } : {})}
                 {...(onTerminalActivity ? { onTerminalActivity } : {})}
+                onSideChatRequest={(draft) => {
+                  setSideChatDraft(draft);
+                  setPanel("side");
+                }}
               />
             </div>
           </>
@@ -150,31 +274,36 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
         )}
       </div>
 
-      <aside
-        aria-label="Views"
-        className="flex min-h-0 w-[28rem] shrink-0 flex-col border-l border-border bg-surface/40"
-        style={openView ? { width: "min(60%, 56rem)" } : undefined}
-      >
-        {openView === "graph" ? (
-          <>
-            <button
-              aria-label="Close view"
-              className="ml-auto mr-2 mt-2 grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
-              onClick={() => {
-                setOpenView(null);
-              }}
-              type="button"
-            >
-              <X size={14} />
-            </button>
-            <div className="flex min-h-0 flex-1">
-              <CanvasPrimaryView {...props} workspaceSetup={null} />
-            </div>
-          </>
-        ) : (
-          <AgentsViewPicker onOpen={setOpenView} />
-        )}
-      </aside>
+      {isGraphOpen ? (
+        <aside
+          aria-label="Graph view"
+          className="flex min-h-0 w-[min(60%,56rem)] shrink-0 flex-col border-l border-border bg-surface/40"
+        >
+          <button
+            aria-label="Close graph"
+            className="ml-auto mr-2 mt-2 grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+            onClick={() => {
+              setIsGraphOpen(false);
+            }}
+            type="button"
+          >
+            <X size={14} />
+          </button>
+          <div className="flex min-h-0 flex-1">
+            <CanvasPrimaryView {...props} pendingDeleteTerminal={null} workspaceSetup={null} />
+          </div>
+        </aside>
+      ) : null}
+      {pendingDeleteTerminal && onCancelDelete && onConfirmDelete ? (
+        <div className="canvas-delete-dialog">
+          <DeleteOrchestrationDialog
+            isDeletingTerminalId={isDeletingTerminalId ?? null}
+            onCancel={onCancelDelete}
+            onConfirmDelete={onConfirmDelete}
+            pendingDeleteTerminal={pendingDeleteTerminal}
+          />
+        </div>
+      ) : null}
     </section>
   );
 };

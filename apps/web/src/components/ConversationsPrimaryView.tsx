@@ -1,14 +1,17 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { readAgentProviderPreference } from "../app/agentProviders";
 import { formatClock, formatDay, toTitle } from "../app/conversationText";
 import { useConversationChat } from "../app/hooks/useConversationChat";
 import { useConversationsRuntime } from "../app/hooks/useConversationsRuntime";
+import { isEditableEventTarget } from "../app/hotkeys";
 import { ClearAllConversationsDialog } from "./ClearAllConversationsDialog";
 import { ConversationChatThread } from "./ConversationChatThread";
 import { ConversationComposer } from "./ConversationComposer";
 import { ConversationTurnBubble } from "./ConversationTurnBubble";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { SidebarConversationsList } from "./SidebarConversationsList";
+import { TerminalChatPane } from "./TerminalChatPane";
 
 type ConversationsPrimaryViewProps = {
   enabled: boolean;
@@ -60,6 +63,9 @@ export const ConversationsPrimaryView = ({
   } = useConversationsRuntime({ enabled });
 
   const [isPlainView, setIsPlainView] = useState(false);
+
+  const [chatTerminalMode, setChatTerminalMode] = useState<"chat" | "terminal">("chat");
+  const [agentProvider] = useState(readAgentProviderPreference);
 
   const chatMessages = useConversationChat(
     selectedSessionId,
@@ -238,6 +244,9 @@ export const ConversationsPrimaryView = ({
     emptyComposerStateFor(selectedSessionId),
   );
 
+  const [stashedDraft, setStashedDraft] = useState<string | null>(null);
+  const [restoreDraft, setRestoreDraft] = useState<string | null>(null);
+
   const threadRef = useRef<HTMLOListElement | null>(null);
 
   const composerState =
@@ -261,6 +270,32 @@ export const ConversationsPrimaryView = ({
   const isLiveSession =
     selectedSession !== null &&
     !selectedSession.events.some((event) => event.type === "session_end");
+
+  // Alt+G / Option+G: toggle between chat and terminal view
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey || (event.key !== "g" && event.key !== "G")) {
+        return;
+      }
+
+      if (selectedSession === null) {
+        return;
+      }
+
+      if (isEditableEventTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      setChatTerminalMode((current) => (current === "chat" ? "terminal" : "chat"));
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedSession]);
 
   const isAcknowledged = (text: string) =>
     selectedSession?.turns.some(
@@ -329,6 +364,58 @@ export const ConversationsPrimaryView = ({
     [selectedSessionId, sendMessage, refreshSelectedSession, updateComposerState],
   );
 
+  const handleStash = useCallback((text: string) => {
+    setStashedDraft(text);
+  }, []);
+
+  const handleQueue = useCallback(
+    (text: string) => {
+      updateComposerState((current) => ({
+        ...current,
+        pendingMessages: [...current.pendingMessages, { id: `pending-${Date.now()}`, text }],
+      }));
+    },
+    [updateComposerState],
+  );
+
+  const handleStop = useCallback(() => {
+    console.warn("Agent stop not yet implemented");
+  }, []);
+
+  const handleInterruptAndSend = useCallback(
+    async (text: string): Promise<boolean> => {
+      return onSendMessage(text);
+    },
+    [onSendMessage],
+  );
+
+  const sendNow = useCallback(
+    async (message: { id: string; text: string }) => {
+      // Optimistically remove from pending
+      updateComposerState((current) => ({
+        ...current,
+        pendingMessages: current.pendingMessages.filter((m) => m.id !== message.id),
+      }));
+
+      if (!selectedSessionId) {
+        return;
+      }
+
+      try {
+        await sendMessage(selectedSessionId, message.text);
+        void refreshSelectedSession();
+      } catch (error) {
+        // Re-add to pending on failure
+        updateComposerState((current) => ({
+          ...current,
+          sendError: error instanceof Error ? error.message : "Unable to send the message.",
+          pendingMessages: [...current.pendingMessages, message],
+        }));
+      }
+    },
+    [selectedSessionId, sendMessage, refreshSelectedSession, updateComposerState],
+  );
+
   return (
     <section className="conversations-view" aria-label="Conversations primary view">
       {errorMessage ? <p className="conversations-error">{errorMessage}</p> : null}
@@ -367,6 +454,18 @@ export const ConversationsPrimaryView = ({
                     {isPlainView ? "Rich" : "Plain"}
                   </button>
                 ) : null}
+                <button
+                  aria-label={
+                    chatTerminalMode === "chat" ? "Switch to terminal view" : "Switch to chat view"
+                  }
+                  className="chat-ghost-btn"
+                  onClick={() => {
+                    setChatTerminalMode((current) => (current === "chat" ? "terminal" : "chat"));
+                  }}
+                  type="button"
+                >
+                  {chatTerminalMode === "chat" ? "Terminal" : "Chat"}
+                </button>
                 <button
                   aria-label="Export conversation as JSON"
                   className="chat-ghost-btn"
@@ -419,49 +518,132 @@ export const ConversationsPrimaryView = ({
                 </button>
               </div>
             </header>
-            {showRichChat && chatMessages ? (
-              <ConversationChatThread
-                messages={chatMessages}
-                onSendAnswer={
-                  selectedSessionId ? (text) => sendMessage(selectedSessionId, text) : undefined
-                }
-              />
-            ) : null}
-            <ol className="chat-thread" hidden={showRichChat} ref={threadRef}>
-              {selectedSession.turns.map((turn, index) => {
-                const isHighlighted = turn.turnId === highlightedTurnId;
-
-                return (
-                  <ConversationTurnBubble
-                    content={turn.content}
-                    highlightTerm={
-                      isHighlighted && searchQuery.length > 0 ? searchQuery : undefined
+            {chatTerminalMode === "terminal" ? (
+              <div className="chat-terminal-embed">
+                <TerminalChatPane terminalId={selectedSession.sessionId} />
+              </div>
+            ) : (
+              <>
+                {showRichChat && chatMessages ? (
+                  <ConversationChatThread
+                    messages={chatMessages}
+                    onSendAnswer={
+                      selectedSessionId ? (text) => sendMessage(selectedSessionId, text) : undefined
                     }
-                    highlighted={isHighlighted}
-                    key={turn.turnId}
-                    ref={isHighlighted ? highlightedRef : undefined}
-                    role={turn.role}
-                    showSender={selectedSession.turns[index - 1]?.role !== turn.role}
-                    startedAt={turn.startedAt}
                   />
-                );
-              })}
-              {pendingMessages.map((message) => (
-                <li className="chat-turn" data-pending="true" data-role="user" key={message.id}>
-                  <div className="chat-bubble">
-                    <p className="chat-bubble-gist">{message.text}</p>
+                ) : null}
+                <ol className="chat-thread" hidden={showRichChat} ref={threadRef}>
+                  {selectedSession.turns.map((turn, index) => {
+                    const isHighlighted = turn.turnId === highlightedTurnId;
+
+                    return (
+                      <ConversationTurnBubble
+                        content={turn.content}
+                        highlightTerm={
+                          isHighlighted && searchQuery.length > 0 ? searchQuery : undefined
+                        }
+                        highlighted={isHighlighted}
+                        key={turn.turnId}
+                        ref={isHighlighted ? highlightedRef : undefined}
+                        role={turn.role}
+                        showSender={selectedSession.turns[index - 1]?.role !== turn.role}
+                        startedAt={turn.startedAt}
+                      />
+                    );
+                  })}
+                  {pendingMessages.map((message) => (
+                    <li className="chat-turn" data-pending="true" data-role="user" key={message.id}>
+                      <div className="chat-bubble">
+                        <p className="chat-bubble-gist">{message.text}</p>
+                      </div>
+                      <div className="chat-meta">
+                        Sent · the agent will reply when it is free
+                        <button
+                          aria-label="Send now"
+                          className="chat-pending-play"
+                          onClick={() => void sendNow(message)}
+                          type="button"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            fill="currentColor"
+                            focusable="false"
+                            viewBox="0 0 16 16"
+                          >
+                            <path d="M5 3.5l8 4.5-8 4.5V3.5z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                {stashedDraft !== null ? (
+                  <div className="chat-stash-banner">
+                    <span className="chat-stash-banner-text">
+                      Stashed: &ldquo;
+                      {stashedDraft.length > 60 ? `${stashedDraft.slice(0, 60)}…` : stashedDraft}
+                      &rdquo;
+                    </span>
+                    <button
+                      className="chat-stash-banner-restore"
+                      onClick={() => {
+                        setRestoreDraft(stashedDraft);
+                        setStashedDraft(null);
+                      }}
+                      type="button"
+                    >
+                      Restore
+                    </button>
+                    <button
+                      aria-label="Dismiss stash"
+                      className="chat-stash-banner-dismiss"
+                      onClick={() => {
+                        setStashedDraft(null);
+                      }}
+                      type="button"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        fill="none"
+                        focusable="false"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M4 4l8 8M12 4l-8 8" />
+                      </svg>
+                    </button>
                   </div>
-                  <div className="chat-meta">Sent · the agent will reply when it is free</div>
-                </li>
-              ))}
-            </ol>
-            <ConversationComposer
-              disabled={!isLiveSession}
-              disabledReason="This session has ended. Start the agent again to keep talking."
-              error={composerState.sendError}
-              onSend={onSendMessage}
-              key={selectedSession.sessionId}
-            />
+                ) : null}
+                <ConversationComposer
+                  disabled={!isLiveSession}
+                  disabledReason="This session has ended. Start the agent again to keep talking."
+                  error={composerState.sendError}
+                  {...(restoreDraft !== null ? { externalDraft: restoreDraft } : {})}
+                  onInterruptAndSend={handleInterruptAndSend}
+                  onQueue={handleQueue}
+                  onSend={onSendMessage}
+                  onStash={handleStash}
+                  onStop={handleStop}
+                  key={`${selectedSession.sessionId}:${restoreDraft ?? ""}`}
+                />
+                <div className="chat-model-row">
+                  <button
+                    aria-label="Switch model or effort"
+                    className="chat-model-pill"
+                    onClick={() => {
+                      console.warn("Model switching not yet implemented");
+                    }}
+                    title="Option+P / Alt+P to switch model"
+                    type="button"
+                  >
+                    {agentProvider} · default
+                  </button>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <p className="conversations-empty">Select a conversation from the sidebar.</p>

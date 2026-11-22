@@ -59,6 +59,15 @@ adadex channel list <terminal-id>
 - `POST /api/channels/:terminalId/messages`
 - `GET /api/channels/:terminalId/messages`
 
+## In the Agents workspace
+
+The Agents workspace uses channels for two operator workflows:
+
+- **Side chat** — typing `/btw <question>` in a session's chat opens the Side chat panel. Pick another agent, send the question through its channel, then use **Bring back** to paste the answer into the current session.
+- **Handoff** — the Side chat panel's **Hand off this session** button sends the current session's Markdown export URL to the chosen agent's channel.
+
+Both are ordinary channel messages, so the usual delivery rules apply.
+
 ## Current behavior
 
 - messages and their delivery state persist across API restarts

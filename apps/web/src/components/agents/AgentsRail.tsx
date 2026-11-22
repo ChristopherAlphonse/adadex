@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, GitBranch, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, GitBranch, Network, Plus, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -13,6 +13,10 @@ type AgentsRailProps = {
   now: number;
   onSelect: (terminalId: string) => void;
   onCreateAgent?: (() => void) | undefined;
+  isGraphOpen: boolean;
+  onToggleGraph: () => void;
+  onClose?: ((session: Session) => void) | undefined;
+  onDelete?: ((session: Session) => void) | undefined;
 };
 
 const NEEDS_YOU_STATES = new Set(["waiting_for_permission", "waiting_for_user"]);
@@ -88,6 +92,10 @@ export const AgentsRail = ({
   now,
   onSelect,
   onCreateAgent,
+  isGraphOpen,
+  onToggleGraph,
+  onClose,
+  onDelete,
 }: AgentsRailProps) => {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 
@@ -133,16 +141,31 @@ export const AgentsRail = ({
         <span className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
           Sessions
         </span>
-        {onCreateAgent ? (
+        <div className="flex items-center gap-0.5">
           <button
-            aria-label="New agent"
-            className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
-            onClick={onCreateAgent}
+            aria-label={isGraphOpen ? "Close graph" : "Open graph"}
+            aria-pressed={isGraphOpen}
+            className={cn(
+              "grid size-6 place-items-center rounded-md hover:bg-secondary hover:text-foreground",
+              isGraphOpen ? "bg-secondary text-foreground" : "text-muted-foreground",
+            )}
+            onClick={onToggleGraph}
+            title="Graph"
             type="button"
           >
-            <Plus size={14} />
+            <Network size={14} />
           </button>
-        ) : null}
+          {onCreateAgent ? (
+            <button
+              aria-label="New agent"
+              className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+              onClick={onCreateAgent}
+              type="button"
+            >
+              <Plus size={14} />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-3">
@@ -178,33 +201,68 @@ export const AgentsRail = ({
               {isCollapsed
                 ? null
                 : group.rows.map(({ session, depth }) => (
-                    <button
-                      aria-current={session.terminalId === selectedId ? "true" : undefined}
+                    <div
                       className={cn(
-                        "flex w-full items-center gap-2 rounded-md py-1.5 pr-2 text-left text-sm hover:bg-secondary",
-                        session.terminalId === selectedId
-                          ? "bg-secondary text-foreground"
-                          : "text-muted-foreground",
+                        "group/row flex items-center rounded-md pr-1 hover:bg-secondary",
+                        session.terminalId === selectedId && "bg-secondary",
                       )}
                       key={session.terminalId}
-                      onClick={() => {
-                        onSelect(session.terminalId);
-                      }}
-                      style={{ paddingLeft: `${22 + depth * 14}px` }}
-                      type="button"
                     >
-                      <span
-                        aria-hidden
-                        className={cn("size-2 shrink-0 rounded-full", dotClass(session))}
-                      />
-                      <span className="min-w-0 flex-1 truncate">{sessionName(session)}</span>
-                      {session.workspaceMode === "worktree" ? (
-                        <GitBranch aria-label="Worktree" className="shrink-0" size={12} />
-                      ) : null}
-                      <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">
-                        {formatAge(session.createdAt, now)}
+                      <button
+                        aria-current={session.terminalId === selectedId ? "true" : undefined}
+                        className={cn(
+                          "flex min-w-0 flex-1 items-center gap-2 py-1.5 pr-1 text-left text-sm",
+                          session.terminalId === selectedId
+                            ? "text-foreground"
+                            : "text-muted-foreground",
+                        )}
+                        onClick={() => {
+                          onSelect(session.terminalId);
+                        }}
+                        style={{ paddingLeft: `${22 + depth * 14}px` }}
+                        type="button"
+                      >
+                        <span
+                          aria-hidden
+                          className={cn("size-2 shrink-0 rounded-full", dotClass(session))}
+                        />
+                        <span className="min-w-0 flex-1 truncate">{sessionName(session)}</span>
+                        {session.workspaceMode === "worktree" ? (
+                          <GitBranch aria-label="Worktree" className="shrink-0" size={12} />
+                        ) : null}
+                        <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground group-focus-within/row:hidden group-hover/row:hidden">
+                          {formatAge(session.createdAt, now)}
+                        </span>
+                      </button>
+                      <span className="hidden shrink-0 items-center gap-0.5 group-focus-within/row:flex group-hover/row:flex">
+                        {onClose ? (
+                          <button
+                            aria-label={`Close ${sessionName(session)}`}
+                            className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"
+                            onClick={() => {
+                              onClose(session);
+                            }}
+                            title="Close session"
+                            type="button"
+                          >
+                            <X size={13} />
+                          </button>
+                        ) : null}
+                        {onDelete ? (
+                          <button
+                            aria-label={`Delete ${sessionName(session)}`}
+                            className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-destructive"
+                            onClick={() => {
+                              onDelete(session);
+                            }}
+                            title="Delete session"
+                            type="button"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        ) : null}
                       </span>
-                    </button>
+                    </div>
                   ))}
             </section>
           );

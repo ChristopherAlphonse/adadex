@@ -55,6 +55,8 @@ import {
   buildTerminalSnapshotsUrl,
 } from "./runtime/runtimeEndpoints";
 
+type CreateAgentOptions = { plainShell?: boolean; parentTerminalId?: string };
+
 const AppShell = () => {
   const [terminals, setTerminals] = useState<TerminalView>([]);
 
@@ -165,6 +167,7 @@ const AppShell = () => {
     isGitDialogLoading,
     isGitDialogMutating,
     setGitCommitMessageDraft,
+    openOrchestrationGitActions,
     closeOrchestrationGitActions,
     commitOrchestrationChanges,
     commitAndPushOrchestrationBranch,
@@ -487,7 +490,11 @@ const AppShell = () => {
                 setSidebarWidth(clampSidebarWidth(width));
               }}
               actionPanel={sidebarActionPanel}
-              threadTree={<ThreadTree onApproval={answerApproval} terminals={terminals} />}
+              threadTree={
+                activePrimaryNav === 2 ? undefined : (
+                  <ThreadTree onApproval={answerApproval} terminals={terminals} />
+                )
+              }
               bodyContent={
                 activePrimaryNav === 2
                   ? (deckSidebarContent ?? undefined)
@@ -586,8 +593,14 @@ const AppShell = () => {
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
               onCanvasOpenOrchestrationIdsChange: setCanvasOpenCoordinationIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
-              onCreateAgent: async (coordinationId) => {
-                return await createTerminal("shared", coordinationId);
+              onCreateAgent: async (coordinationId, parentTerminalId) => {
+                const options: CreateAgentOptions = {};
+
+                if (parentTerminalId) {
+                  options.parentTerminalId = parentTerminalId;
+                }
+
+                return await createTerminal("shared", coordinationId, options);
               },
               onCreateTerminal: async () => {
                 return await createTerminal("shared", DECK_LEAD_ID, { plainShell: true });
@@ -677,6 +690,7 @@ const AppShell = () => {
               onRefreshColumns: async () => {
                 await refreshColumns();
               },
+              onOpenGitActions: openOrchestrationGitActions,
               gitStatusByOrchestrationId,
             }}
             factoryPrimaryViewProps={{ host: factoryHost }}

@@ -32,6 +32,7 @@ import {
   readAvailableAgentSkills,
 } from "../agentSkills";
 import { markCoordinationsInitialized } from "../setupState";
+import { initTodos, LEGACY_TODO_FILE, readTodoProgress } from "./todoStore";
 
 const COORDINATIONS_DIR = join(WORKSPACE_RUNTIME_DIR, COORDINATIONS_DIR_SEGMENT);
 
@@ -42,14 +43,6 @@ const isDeckCoordinationStatus = (
 ): value is DeckCoordinationStatus => isString(value) && VALID_STATUSES.has(value);
 
 type DeckCoordinationScope = { paths: string[]; tags: string[] };
-
-type TodoProgressItem = { text: string; done: boolean };
-
-type TodoProgress = {
-  total: number;
-  done: number;
-  items: TodoProgressItem[];
-};
 
 type DeckCoordinationState = {
   color: string | null;
@@ -212,30 +205,6 @@ const parseContextMd = (
   return { displayName, description, suggestedSkills: parseSuggestedSkillsFromContext(content) };
 };
 
-export const parseTodoProgress = (content: string): TodoProgress => {
-  const lines = content.split("\n");
-  let total = 0;
-  let done = 0;
-  const items: TodoProgressItem[] = [];
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const checkedMatch = trimmed.match(/^- \[x\]\s+(.+)/i);
-    const uncheckedMatch = trimmed.match(/^- \[ \]\s+(.+)/);
-
-    if (checkedMatch) {
-      total++;
-      done++;
-      items.push({ text: checkedMatch[1] ?? "", done: true });
-    } else if (uncheckedMatch) {
-      total++;
-      items.push({ text: uncheckedMatch[1] ?? "", done: false });
-    }
-  }
-
-  return { total, done, items };
-};
-
 export const readDeckCoordinations = (
   workspaceCwd: string,
   projectStateDir?: string,
@@ -282,30 +251,11 @@ export const readDeckCoordinations = (
 
     try {
       vaultFiles = readdirSync(entryPath)
-        .filter((f) => f.endsWith(".md") && f !== "CONTEXT.md")
-        .sort((a, b) => {
-          if (a === "todo.md") return -1;
-
-          if (b === "todo.md") return 1;
-
-          return a.localeCompare(b);
-        });
+        .filter((f) => f.endsWith(".md") && f !== "CONTEXT.md" && f !== LEGACY_TODO_FILE)
+        .sort((a, b) => a.localeCompare(b));
     } catch {}
 
-    let todoTotal = 0;
-    let todoDone = 0;
-    let todoItems: TodoProgressItem[] = [];
-    const todoPath = join(entryPath, "todo.md");
-
-    if (existsSync(todoPath)) {
-      try {
-        const todoContent = readFileSync(todoPath, "utf-8");
-        const progress = parseTodoProgress(todoContent);
-        todoTotal = progress.total;
-        todoDone = progress.done;
-        todoItems = progress.items;
-      } catch {}
-    }
+    const todos = readTodoProgress(workspaceCwd, entry) ?? { total: 0, done: 0, items: [] };
 
     const result: DeckCoordinationSummary = {
       coordinationId: entry,
@@ -316,9 +266,9 @@ export const readDeckCoordinations = (
       mascot: state.mascot,
       scope: state.scope,
       vaultFiles,
-      todoTotal,
-      todoDone,
-      todoItems,
+      todoTotal: todos.total,
+      todoDone: todos.done,
+      todoItems: todos.items,
       suggestedSkills: agentInfo.suggestedSkills,
     };
 
@@ -350,240 +300,6 @@ export const readDeckVaultFile = (
   } catch {
     return null;
   }
-};
-
-/** Vault files the Deck UI may overwrite as raw markdown. */
-export const EDITABLE_DECK_VAULT_FILES: ReadonlySet<string> = new Set(["todo.md"]);
-
-/**
- * Overwrite an existing coordination markdown file with operator-authored content.
- */
-export const writeDeckVaultFile = (
-  workspaceCwd: string,
-  coordinationId: string,
-  fileName: string,
-  content: string,
-): boolean => {
-  if (!EDITABLE_DECK_VAULT_FILES.has(fileName)) return false;
-
-  if (
-    coordinationId.includes("..") ||
-    coordinationId.includes("/") ||
-    coordinationId.includes("\\")
-  ) {
-    return false;
-  }
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, fileName);
-
-  try {
-    if (!statSync(filePath).isFile()) return false;
-
-    writeFileSync(filePath, content, "utf-8");
-
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Toggle a todo checkbox in a coordination's todo.md by item index.
- */
-export const toggleTodoItem = (
-  workspaceCwd: string,
-  coordinationId: string,
-  itemIndex: number,
-  done: boolean,
-): TodoProgress | null => {
-  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
-
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const lines = content.split("\n");
-  let todoIndex = 0;
-  let toggled = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i] ?? "";
-    const trimmed = line.trim();
-
-    if (/^- \[[ xX]\]\s+/.test(trimmed)) {
-      if (todoIndex === itemIndex) {
-        lines[i] = done ? line.replace(/- \[ \]/, "- [x]") : line.replace(/- \[[xX]\]/, "- [ ]");
-        toggled = true;
-        break;
-      }
-
-      todoIndex++;
-    }
-  }
-
-  if (!toggled) return null;
-
-  const updated = lines.join("\n");
-
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-/**
- * Edit the text of a todo item in a coordination's todo.md by item index.
- */
-export const editTodoItem = (
-  workspaceCwd: string,
-  coordinationId: string,
-  itemIndex: number,
-  text: string,
-): TodoProgress | null => {
-  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
-
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const lines = content.split("\n");
-  let todoIndex = 0;
-  let edited = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i] ?? "";
-    const trimmed = line.trim();
-    const match = trimmed.match(/^(- \[[ xX]\])\s+(.+)/);
-
-    if (match) {
-      if (todoIndex === itemIndex) {
-        const indent = line.match(/^(\s*)/)?.[1] ?? "";
-        lines[i] = `${indent}${match[1]} ${text}`;
-        edited = true;
-        break;
-      }
-
-      todoIndex++;
-    }
-  }
-
-  if (!edited) return null;
-
-  const updated = lines.join("\n");
-
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-/**
- * Add a new todo item to a coordination's todo.md.
- */
-export const addTodoItem = (
-  workspaceCwd: string,
-  coordinationId: string,
-  text: string,
-): TodoProgress | null => {
-  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
-
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const trimmed = content.endsWith("\n") ? content : `${content}\n`;
-  const updated = `${trimmed}- [ ] ${text}\n`;
-
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-/**
- * Delete a todo item from a coordination's todo.md by item index.
- */
-export const deleteTodoItem = (
-  workspaceCwd: string,
-  coordinationId: string,
-  itemIndex: number,
-): TodoProgress | null => {
-  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
-
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const lines = content.split("\n");
-  let todoIndex = 0;
-  let deleted = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = (lines[i] ?? "").trim();
-
-    if (/^- \[[ xX]\]\s+/.test(trimmed)) {
-      if (todoIndex === itemIndex) {
-        lines.splice(i, 1);
-        deleted = true;
-        break;
-      }
-
-      todoIndex++;
-    }
-  }
-
-  if (!deleted) return null;
-
-  const updated = lines.join("\n");
-
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
 };
 
 type CreateDeckCoordinationInput = {
@@ -631,7 +347,7 @@ export const createDeckCoordination = (
 
   const contextMd = applySuggestedSkillsToContext(baseContextMd, suggestedSkills);
   writeFileSync(join(coordinationDir, "CONTEXT.md"), contextMd);
-  writeFileSync(join(coordinationDir, "todo.md"), "# Todo\n");
+  initTodos(workspaceCwd, name);
 
   const deckState = readDeckState(stateDir);
   deckState.coordinations[name] = {

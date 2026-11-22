@@ -54,7 +54,7 @@ Terminal WebSockets do not own the PTY. They are clients attached to a PTY sessi
 
 The terminal registry file is named `coordinations.json`. Current records are terminals. A terminal record stores identity, coordination ID, optional worktree ID, parent terminal ID, workspace mode, display name, lifecycle fields, and UI-related metadata.
 
-Deck metadata is separate from coordination markdown. `deck.json` stores display/status details that should not be mixed into `CONTEXT.md` or `todo.md`.
+Deck metadata is separate from coordination markdown. `deck.json` stores display/status details that should not be mixed into `CONTEXT.md` or `todos.json`.
 
 ## Terminal lifecycle
 

@@ -66,6 +66,7 @@ export const QuestionCard = ({ form, answered = false, onSend }: QuestionCardPro
     <section
       aria-label={form.title}
       className="overflow-hidden rounded-xl border border-border bg-card text-sm"
+      data-question-title={form.title}
     >
       <header className="px-4 pt-3 pb-1">
         <p className="m-0 font-medium">{form.title}</p>

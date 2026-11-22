@@ -59,11 +59,11 @@ That includes:
 
 - context about the area
 - notes and handoff information
-- the current task list in `todo.md`
+- the current task list in `todos.json`
 
 If another agent needs to understand the job later, the important information should already be there without depending on one old chat thread.
 
-Deck reads these files directly. It parses the first heading and first non-empty paragraph of `CONTEXT.md` for display metadata, lists other markdown files as vault files, and parses checkbox lines in `todo.md` for progress and worker assignments.
+Deck reads these files directly. It parses the first heading and first non-empty paragraph of `CONTEXT.md` for display metadata, lists other markdown files as vault files, and reads `todos.json` for progress and worker assignments.
 
 ## What belongs in runtime state
 
@@ -86,11 +86,11 @@ The expected flow is:
 
 1. the developer or a parent agent defines a job boundary
 2. the coordination files capture the local context
-3. `todo.md` breaks the job into executable checkbox items
+3. `todos.json` breaks the job into executable todo items
 4. Deck or the CLI creates terminals from those items
 5. each worker receives a prompt generated from the coordination context path, todo text, workspace mode, and parent terminal ID when present
 6. workers report status through short channel messages and by leaving durable notes in files
-7. the parent or human reviews the result and updates `todo.md`
+7. the parent or human reviews the result and updates the todos
 
 If the boundary is vague, the orchestration gets worse. Adadex helps organize work, but it does not rescue a poorly defined job.
 

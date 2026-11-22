@@ -1,15 +1,13 @@
 import { asRecord, isBoolean, isNumber, isString } from "@adadex/core";
 
+import { readDeckCoordinations } from "../deck/readDeckCoordinations";
 import {
   addTodoItem,
   deleteTodoItem,
   editTodoItem,
-  parseTodoProgress,
-  readDeckCoordinations,
-  readDeckVaultFile,
+  readTodoProgress,
   toggleTodoItem,
-} from "../deck/readDeckCoordinations";
-import {} from "../deck/swarmPrompts";
+} from "../deck/todoStore";
 import { RuntimeInputError } from "../terminalRuntime";
 import { buildSingleTodoWorkerPrompt, type DeckTerminalCreateInput } from "./deckRouteShared";
 import type { ApiRouteHandler } from "./routeHelpers";
@@ -124,6 +122,18 @@ export const handleDeckTodoAddRoute: ApiRouteHandler = async (
 
   if (!match) return false;
 
+  if (request.method === "GET") {
+    const progress = readTodoProgress(workspaceCwd, decodeURIComponent(match[1] ?? ""));
+
+    if (!progress) {
+      writeJson(response, 404, { error: "Coordination not found" }, corsOrigin);
+    } else {
+      writeJson(response, 200, progress, corsOrigin);
+    }
+
+    return true;
+  }
+
   if (request.method !== "POST") {
     writeMethodNotAllowed(response, corsOrigin);
 
@@ -147,7 +157,7 @@ export const handleDeckTodoAddRoute: ApiRouteHandler = async (
   const result = addTodoItem(workspaceCwd, coordinationId, text.trim());
 
   if (!result) {
-    writeJson(response, 404, { error: "Coordination todo.md not found" }, corsOrigin);
+    writeJson(response, 404, { error: "Coordination not found" }, corsOrigin);
 
     return true;
   }
@@ -239,15 +249,14 @@ export const handleDeckTodoSolveRoute: ApiRouteHandler = async (
 
   // SAFETY: the route pattern's only capture group is non-optional, so a successful match always fills match[1].
   const coordinationId = decodeURIComponent(match[1] as string);
-  const todoContent = readDeckVaultFile(workspaceCwd, coordinationId, "todo.md");
+  const todoResult = readTodoProgress(workspaceCwd, coordinationId);
 
-  if (todoContent === null) {
-    writeJson(response, 404, { error: "Coordination or todo.md not found." }, corsOrigin);
+  if (!todoResult) {
+    writeJson(response, 404, { error: "Coordination not found." }, corsOrigin);
 
     return true;
   }
 
-  const todoResult = parseTodoProgress(todoContent);
   const todoItem = todoResult.items[itemIndex] ?? null;
 
   if (!todoItem) {

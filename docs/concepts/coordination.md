@@ -9,7 +9,7 @@ A coordination is a folder under `.adadex/coordinations/<coordination-id>/` that
 The minimum useful files are:
 
 - `CONTEXT.md`
-- `todo.md`
+- `todos.json` (created and edited by Adadex, not by hand)
 
 Additional markdown files are allowed and are surfaced as coordination vault files in the app.
 
@@ -22,8 +22,8 @@ Deck does not maintain a separate database copy of the coordination context. It 
 - a folder is considered a coordination only when it contains `CONTEXT.md`
 - the first `# Heading` in `CONTEXT.md` becomes the display name
 - the first non-empty paragraph after that heading becomes the description
-- every other `.md` file becomes a vault file, with `todo.md` sorted first
-- checkbox lines in `todo.md` become progress and worker inputs
+- every other `.md` file becomes a vault file
+- the items in `todos.json` become progress and worker inputs
 
 Deck-specific metadata such as color, status, deck mascot appearance, paths, and tags lives separately in runtime state. That keeps UI preferences out of the agent-facing markdown files.
 
@@ -65,23 +65,19 @@ You can use these skills if you need to.
 
 The managed block is rewritten by the API when suggested skills change. Put human-authored architecture notes outside that block.
 
-## What goes in `todo.md`
+## Todos
 
-`todo.md` should contain markdown checkbox items:
+Todos are stored in `todos.json` as a list of `{ "text": "...", "done": false }` items. Change them in the Deck or with the CLI:
 
-```md
-# Todo
-
-- [ ] add request validation for the new endpoint
-- [ ] cover the invalid payload case in tests
-- [x] wire the route into the request handler
+```bash
+adadex todo list <coordination-id>
+adadex todo add <coordination-id> "cover the invalid payload case in tests"
+adadex todo done <coordination-id> 0
 ```
 
-The runtime parses checkbox lines and computes progress.
+Their order matters because swarm creation uses the item index when it creates worker terminal IDs such as `<coordination-id>-swarm-0`.
 
-Only lines that match `- [ ] text` or `- [x] text` are treated as todo items. Their order matters because swarm creation uses the parsed item index when it creates worker terminal IDs such as `<coordination-id>-swarm-0`.
-
-When the UI toggles, edits, adds, or deletes todos, it rewrites `todo.md`. Deck also offers a bottom-docked raw markdown editor for the whole `todo.md` file. There is no hidden todo store.
+A coordination that still has a legacy `todo.md` is migrated to `todos.json` the first time it is read. The markdown file is left in place and ignored afterwards.
 
 ## Coordinations and delegation
 

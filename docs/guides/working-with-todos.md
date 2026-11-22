@@ -4,7 +4,7 @@ Todos are the operational center of a coordination.
 
 ## How todo parsing works
 
-Adadex reads `todo.md` directly. It does not copy todo state into a separate store.
+Todos live in `todos.json` inside the coordination folder. The Deck and the `adadex todo` command are the ways to change them.
 
 Only markdown checkbox lines are parsed:
 
@@ -34,15 +34,15 @@ Good todo items are:
 
 Bad todo items are vague and force the agent to rediscover the assignment.
 
-Because worker prompts are generated from todo text, each item should carry enough scope to be executed alone. Put broader architecture, constraints, and ownership notes in `CONTEXT.md`; put the specific action in `todo.md`.
+Because worker prompts are generated from todo text, each item should carry enough scope to be executed alone. Put broader architecture, constraints, and ownership notes in `CONTEXT.md`; put the specific action in the todo.
 
 ## Authoring pattern
 
 - keep one coordination per work area
-- keep one `todo.md` per coordination
+- keep one todo list per coordination
 - write tasks at the level of one child-agent assignment
 - keep order meaningful because swarm overflow is truncated by todo order
-- mark items done in the file or through the UI, which rewrites the file
+- mark items done in the Deck or with `adadex todo done <coordination-id> <index>`
 
 ## How todos drive execution
 
@@ -58,9 +58,9 @@ For a swarm, Adadex filters incomplete items, optionally narrows them to request
 
 ## Editing and drift
 
-When the UI toggles, edits, adds, or deletes a todo, it rewrites `todo.md`. Manual edits are also valid, but they can change item indices. Avoid reordering todos while a solve agent or swarm is active unless the coordinator knows about the change.
+When the UI toggles, edits, adds, or deletes a todo, it rewrites `todos.json`. Removing or reordering items changes item indices. Avoid reordering todos while a solve agent or swarm is active unless the coordinator knows about the change.
 
-Workers should not mark their own item done unless the assigned task explicitly requires it. In the swarm flow, the coordinator or human reviewer should update `todo.md` after reviewing the combined result.
+Workers should not mark their own item done unless the assigned task explicitly requires it. In the swarm flow, the coordinator or human reviewer should update the todos after reviewing the combined result.
 
 ## Example
 

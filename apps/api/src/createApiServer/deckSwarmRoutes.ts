@@ -2,11 +2,7 @@ import { join } from "node:path";
 
 import { COORDINATIONS_DIR_SEGMENT, asRecord, isNumber, WORKSPACE_RUNTIME_DIR } from "@adadex/core";
 
-import {
-  parseTodoProgress,
-  readDeckCoordinations,
-  readDeckVaultFile,
-} from "../deck/readDeckCoordinations";
+import { readDeckCoordinations } from "../deck/readDeckCoordinations";
 import {
   buildCompletionStrategySection,
   buildWorkerCommitGuidance,
@@ -16,6 +12,7 @@ import {
   buildWorkerReminder,
   buildWorkerWorkspaceSection,
 } from "../deck/swarmPrompts";
+import { readTodoProgress } from "../deck/todoStore";
 import { resolvePrompt } from "../prompts";
 import { MAX_CHILDREN_PER_PARENT, RuntimeInputError } from "../terminalRuntime";
 import { COORDINATION_WORKTREE_BRANCH_PREFIX } from "../terminalRuntime/constants";
@@ -43,15 +40,13 @@ export const handleDeckOrchestrationSwarmRoute: ApiRouteHandler = async (
   // SAFETY: the route pattern's only capture group is non-optional, so a successful match always fills match[1].
   const coordinationId = decodeURIComponent(match[1] as string);
 
-  const todoContent = readDeckVaultFile(workspaceCwd, coordinationId, "todo.md");
+  const todoResult = readTodoProgress(workspaceCwd, coordinationId);
 
-  if (todoContent === null) {
-    writeJson(response, 404, { error: "Coordination or todo.md not found." }, corsOrigin);
+  if (!todoResult) {
+    writeJson(response, 404, { error: "Coordination not found." }, corsOrigin);
 
     return true;
   }
-
-  const todoResult = parseTodoProgress(todoContent);
 
   const incompleteItems = todoResult.items
     .map((item, index) => ({ ...item, index }))

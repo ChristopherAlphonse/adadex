@@ -63,7 +63,9 @@ export type CanvasPrimaryViewProps = {
   onCanvasOpenTerminalIdsChange?: (ids: string[]) => void;
   onCanvasOpenOrchestrationIdsChange?: (ids: string[]) => void;
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
-  onCreateAgent?: (coordinationId: string) => Promise<string | undefined> | undefined;
+  onCreateAgent?:
+    | ((coordinationId: string, parentTerminalId?: string) => Promise<string | undefined>)
+    | undefined;
   onCreateTerminal?: () => Promise<string | undefined> | undefined;
   onCreateWorktreeTerminal?: () => Promise<string | undefined> | undefined;
   onCreateOrchestration?: () => void;
@@ -92,6 +94,7 @@ export type CanvasPrimaryViewProps = {
   onTerminalRenamed?: ((terminalId: string, coordinationName: string) => void) | undefined;
   onTerminalActivity?: ((terminalId: string) => void) | undefined;
   onRefreshColumns?: () => Promise<void> | void;
+  onOpenGitActions?: (coordinationId: string) => void;
   gitStatusByOrchestrationId?: Record<string, CoordinationGitStatusSnapshot>;
 };
 

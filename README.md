@@ -23,7 +23,7 @@ The Electron desktop app is in progress; see [plans/PLAN.md](docs/plans/PLAN.md)
 
 ## What Adadex Does
 
-- Creates **coordinations** as scoped job containers, each with `CONTEXT.md`, `todo.md`, and notes
+- Creates **coordinations** as scoped job containers, each with `CONTEXT.md`, a todo list, and notes
 - Runs multiple coding agent terminals side by side, with the provider chosen per terminal
 - Spawns child agents from todo items so parallel work has a source of truth
 - Supports inter-agent messaging for completion reports, blockers, and handoffs
@@ -152,20 +152,20 @@ On first run, Adadex creates a `.adadex/` scaffold in the project directory, ass
 
 Adadex separates three concerns that usually pile up in a stack of terminals:
 
-1. **Context** lives in `.adadex/coordinations/<coordination-id>/`. `CONTEXT.md` explains the area, `todo.md` holds executable work items, and additional markdown files hold notes and handoffs.
+1. **Context** lives in `.adadex/coordinations/<coordination-id>/`. `CONTEXT.md` explains the area, `todos.json` holds executable work items (edit them in the Deck or with `adadex todo`), and additional markdown files hold notes and handoffs.
 2. **Execution** lives in terminal records and PTY sessions managed by the local API. A terminal attaches to a coordination, and several terminals can share one coordination during swarm work.
 3. **Isolation** is optional. Shared terminals run in the main workspace; worktree terminals run under `.adadex/worktrees/<worktree-id>/` on `adadex/<worktree-id>` branches.
 
-The UI reads coordination files directly, parses checkbox items from `todo.md`, and uses incomplete items to generate worker prompts. Agent hooks feed the API with agent state, transcripts, and idle events so the UI shows more than raw terminal output.
+The UI reads coordination files directly, reads todos from `todos.json`, and uses incomplete items to generate worker prompts. Agent hooks feed the API with agent state, transcripts, and idle events so the UI shows more than raw terminal output.
 
 ## Coordinations
 
-A coordination is a scoped job container. It gives one slice of work its own files, notes, and `todo.md` so an agent does not need to reconstruct the entire codebase context from chat history.
+A coordination is a scoped job container. It gives one slice of work its own files, notes, and todo list so an agent does not need to reconstruct the entire codebase context from chat history.
 
 Each coordination holds:
 
 - `CONTEXT.md`: describes the area (documentation, database, API, frontend, etc.)
-- `todo.md`: checkbox items that track what is done and what remains
+- `todos.json`: the todo list that tracks what is done and what remains
 - any additional notes or handoff files the agent needs
 
 One coordination can represent one focused area of the codebase. You can run a single agent against it, delegate individual items to child agents, or launch a swarm to work through the list in parallel.

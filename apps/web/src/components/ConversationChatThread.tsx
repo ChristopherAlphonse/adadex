@@ -4,7 +4,6 @@ import {
   type TranscriptBlock,
   type TranscriptMessage,
   asString,
-  extractDiff,
   isSubagentToolCall,
   splitMessageSegments,
 } from "@adadex/core";
@@ -12,6 +11,12 @@ import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 
+import {
+  type EditedFile,
+  type HandoverTone,
+  collectEditedFiles,
+  splitHandovers,
+} from "../app/chatExtras";
 import { QuestionCard } from "./QuestionCard";
 import { MarkdownContent } from "./ui/MarkdownContent";
 import { VisualCardView } from "./VisualCardView";
@@ -19,8 +24,6 @@ import { VisualCardView } from "./VisualCardView";
 type ToolCallBlock = Extract<TranscriptBlock, { kind: "tool-call" }>;
 
 type ToolResultBlock = Extract<TranscriptBlock, { kind: "tool-result" }>;
-
-type EditedFile = { path: string; added: number; removed: number; lines: DiffLine[] };
 
 type Turn =
   | { kind: "user"; id: string; text: string }
@@ -82,24 +85,13 @@ const formatDuration = (messages: TranscriptMessage[]): string | null => {
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 };
 
-const collectEditedFiles = (calls: ToolCallBlock[]): EditedFile[] => {
-  const files = new Map<string, EditedFile>();
+type HandoverClass = HandoverTone | "none";
 
-  for (const call of calls) {
-    const diff = extractDiff(call.name, call.input);
-    const path = asString(call.input.file_path) ?? asString(call.input.path);
-
-    if (diff && path) {
-      const file = files.get(path) ?? { path, added: 0, removed: 0, lines: [] };
-
-      file.added += diff.lines.filter((line) => line.kind === "add").length;
-      file.removed += diff.lines.filter((line) => line.kind === "del").length;
-      file.lines.push(...diff.lines);
-      files.set(path, file);
-    }
-  }
-
-  return [...files.values()];
+const HANDOVER_TONE: Record<HandoverClass, string> = {
+  done: "border border-running/40 bg-running/15",
+  untested: "border border-border bg-surface-2",
+  "needs-you": "border border-stopped/40 bg-stopped/15",
+  none: "bg-surface-2",
 };
 
 const keyedLines = (lines: DiffLine[]) => {
@@ -279,9 +271,17 @@ const AgentTurn = ({
         ) : segment.kind === "visual" ? (
           <VisualCardView key={key} visual={segment.visual} />
         ) : (
-          <div className="chat-bubble rounded-2xl bg-surface-2 px-3.5 py-2" key={key}>
-            <MarkdownContent content={segment.text} className="chat-bubble-content" />
-          </div>
+          splitHandovers(segment.text).map((part) => (
+            <div
+              className={cn(
+                "chat-bubble rounded-2xl px-3.5 py-2",
+                HANDOVER_TONE[part.tone ?? "none"],
+              )}
+              key={`${key}-${part.key}`}
+            >
+              <MarkdownContent content={part.text} className="chat-bubble-content" />
+            </div>
+          ))
         ),
       )}
     </li>

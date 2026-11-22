@@ -15,6 +15,7 @@ type CreateTerminalRequest = {
   workspaceMode: TerminalWorkspaceMode;
   coordinationId?: string;
   plainShell?: boolean;
+  parentTerminalId?: string;
 };
 
 type UseTerminalMutationsOptions = {
@@ -37,7 +38,7 @@ type UseTerminalMutationsResult = {
   createTerminal: (
     workspaceMode: TerminalWorkspaceMode,
     coordinationId?: string,
-    options?: { plainShell?: boolean },
+    options?: { plainShell?: boolean; parentTerminalId?: string },
   ) => Promise<string | undefined>;
   requestDeleteTerminal: (
     terminalId: string,
@@ -132,7 +133,7 @@ export const useTerminalMutations = ({
     async (
       workspaceMode: TerminalWorkspaceMode,
       coordinationId?: string,
-      options?: { plainShell?: boolean },
+      options?: { plainShell?: boolean; parentTerminalId?: string },
     ) => {
       try {
         setIsCreatingTerminal(true);
@@ -146,6 +147,10 @@ export const useTerminalMutations = ({
 
         if (options?.plainShell) {
           requestBody.plainShell = true;
+        }
+
+        if (options?.parentTerminalId) {
+          requestBody.parentTerminalId = options.parentTerminalId;
         }
 
         const response = await fetch("/api/terminals", {

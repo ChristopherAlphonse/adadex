@@ -1,0 +1,7 @@
+{
+  "task_id": "task-chat-terminal-features",
+  "task_description": "Implement chat and terminal features in the adadex conversation tab: composer enhancements (Tab-to-queue, Escape×2 stop, Ctrl+Enter interrupt-and-send, Ctrl+G expanded, stash prompt, play button for pending), Chat/Terminal tab switching with Alt+G shortcut and model pill, and reading enhancements (per-message menu, text selection Reply, view modes, Cmd+F search focus).",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

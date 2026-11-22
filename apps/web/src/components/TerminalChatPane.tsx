@@ -7,7 +7,10 @@ import { sendChannelMessage } from "../app/sendChannelMessage";
 import { ConversationChatThread } from "./ConversationChatThread";
 import { Terminal } from "./Terminal";
 
-type TerminalChatPaneProps = ComponentProps<typeof Terminal>;
+type TerminalChatPaneProps = ComponentProps<typeof Terminal> & {
+  /** `/btw <question>` in the chat composer opens a side chat instead of messaging this session. */
+  onSideChatRequest?: ((draft: string) => void) | undefined;
+};
 
 type PaneMode = "terminal" | "chat";
 
@@ -18,8 +21,16 @@ const MODES: { mode: PaneMode; label: string }[] = [
   { mode: "terminal", label: "Terminal" },
 ];
 
-const ChatView = ({ sessionId }: { sessionId: string }) => {
+const ChatView = ({
+  sessionId,
+  onSideChatRequest,
+}: {
+  sessionId: string;
+  onSideChatRequest?: ((draft: string) => void) | undefined;
+}) => {
   const [tick, setTick] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const messages = useConversationChat(sessionId, String(tick));
 
   useEffect(() => {
@@ -32,27 +43,80 @@ const ChatView = ({ sessionId }: { sessionId: string }) => {
     };
   }, []);
 
-  if (!messages || messages.length === 0) {
-    return (
-      <p className="m-0 p-4 text-sm text-muted-foreground">
-        No chat yet. It appears after the agent finishes its first turn. Switch to Terminal to see
-        what it is doing now.
-      </p>
-    );
-  }
+  const send = async () => {
+    const text = draft.trim();
+
+    if (!text) return;
+
+    if (text.startsWith("/btw ") && onSideChatRequest) {
+      onSideChatRequest(text.slice(5).trim());
+      setDraft("");
+
+      return;
+    }
+
+    try {
+      await sendChannelMessage(sessionId, text);
+      setDraft("");
+      setError(null);
+    } catch {
+      setError("Unable to send the message.");
+    }
+  };
 
   return (
-    <div className="h-full overflow-y-auto p-3">
-      <ConversationChatThread
-        messages={messages}
-        onSendAnswer={(text) => sendChannelMessage(sessionId, text)}
-      />
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        {!messages || messages.length === 0 ? (
+          <p className="m-0 text-sm text-muted-foreground">
+            No chat yet. It appears after the agent finishes its first turn. Switch to Terminal to
+            see what it is doing now.
+          </p>
+        ) : (
+          <ConversationChatThread
+            messages={messages}
+            onSendAnswer={(text) => sendChannelMessage(sessionId, text)}
+          />
+        )}
+      </div>
+      <form
+        className="flex shrink-0 items-center gap-2 border-t border-border px-3 py-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void send();
+        }}
+      >
+        <input
+          aria-label="Message the agent"
+          className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-sm"
+          onChange={(event) => {
+            setDraft(event.target.value);
+          }}
+          placeholder="Message the agent… or /btw for a side chat"
+          value={draft}
+        />
+        <button
+          className="rounded-md bg-foreground px-2 py-1 text-sm font-medium text-background disabled:opacity-40"
+          disabled={draft.trim().length === 0}
+          type="submit"
+        >
+          Send
+        </button>
+      </form>
+      {error ? (
+        <p className="m-0 px-3 pb-2 text-xs text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 };
 
 /** One agent session shown either as its raw terminal or as a structured chat, switched with a toggle. */
-export const TerminalChatPane = (props: TerminalChatPaneProps) => {
+export const TerminalChatPane = ({
+  onSideChatRequest,
+  ...terminalProps
+}: TerminalChatPaneProps) => {
   const [mode, setMode] = useState<PaneMode>("terminal");
 
   return (
@@ -79,7 +143,11 @@ export const TerminalChatPane = (props: TerminalChatPaneProps) => {
         ))}
       </fieldset>
       <div className="min-h-0 flex-1">
-        {mode === "chat" ? <ChatView sessionId={props.terminalId} /> : <Terminal {...props} />}
+        {mode === "chat" ? (
+          <ChatView onSideChatRequest={onSideChatRequest} sessionId={terminalProps.terminalId} />
+        ) : (
+          <Terminal {...terminalProps} />
+        )}
       </div>
     </div>
   );

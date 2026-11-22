@@ -3,14 +3,12 @@ import { asRecord, isString, isTerminalAgentProvider } from "@adadex/core";
 import {
   createDeckCoordination,
   deleteDeckCoordination,
-  EDITABLE_DECK_VAULT_FILES,
   listDeckAvailableSkills,
   readDeckCoordinations,
   readDeckVaultFile,
   updateDeckCoordinationAgent,
   updateDeckCoordinationMascot,
   updateDeckCoordinationSuggestedSkills,
-  writeDeckVaultFile,
 } from "../deck/readDeckCoordinations";
 import {} from "../deck/swarmPrompts";
 import {} from "../terminalRuntime";
@@ -203,42 +201,6 @@ export const handleDeckVaultFileRoute: ApiRouteHandler = async (
 
   const coordinationId = decodeURIComponent(match[1] ?? "");
   const fileName = decodeURIComponent(match[2] ?? "");
-
-  if (request.method === "PUT") {
-    if (!EDITABLE_DECK_VAULT_FILES.has(fileName)) {
-      writeJson(response, 403, { error: "Vault file is read-only" }, corsOrigin);
-
-      return true;
-    }
-
-    const body = await readJsonBodyOrWriteError(request, response, corsOrigin);
-
-    if (!body.ok) return true;
-
-    const content = asRecord(body.payload)?.content;
-
-    if (!isString(content)) {
-      writeJson(response, 400, { error: "content (string) is required" }, corsOrigin);
-
-      return true;
-    }
-
-    if (readDeckVaultFile(workspaceCwd, coordinationId, fileName) === null) {
-      writeJson(response, 404, { error: "Vault file not found" }, corsOrigin);
-
-      return true;
-    }
-
-    if (!writeDeckVaultFile(workspaceCwd, coordinationId, fileName, content)) {
-      writeJson(response, 500, { error: "Could not save vault file" }, corsOrigin);
-
-      return true;
-    }
-
-    writeText(response, 200, content, "text/markdown; charset=utf-8", corsOrigin);
-
-    return true;
-  }
 
   if (request.method !== "GET") {
     writeMethodNotAllowed(response, corsOrigin);
