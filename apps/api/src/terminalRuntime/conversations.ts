@@ -9,6 +9,7 @@ import {
   type ConversationTurn,
   type ParsedValue,
   type TranscriptMessage,
+  type UsageSummary,
   asRecord,
   asString,
   isNumber,
@@ -381,10 +382,17 @@ export const deleteConversation = (transcriptDirectoryPath: string, sessionId: s
   const turnsFile = join(transcriptDirectoryPath, agentTurnsFilename(sessionId));
   const legacyTurnsFile = join(transcriptDirectoryPath, legacyAgentTurnsFilename(sessionId));
   const chatFile = join(transcriptDirectoryPath, chatFilename(sessionId));
+  const statsFile = join(transcriptDirectoryPath, statsFilename(sessionId));
 
   try {
     if (existsSync(chatFile)) {
       rmSync(chatFile);
+    }
+  } catch {}
+
+  try {
+    if (existsSync(statsFile)) {
+      rmSync(statsFile);
     }
   } catch {}
 
@@ -419,6 +427,7 @@ export const deleteAllConversations = (transcriptDirectoryPath: string) => {
       file.endsWith(".jsonl") ||
       file.endsWith(".agent-turns.json") ||
       file.endsWith(".chat.json") ||
+      file.endsWith(".stats.json") ||
       file.endsWith(".claude-turns.json")
     ) {
       try {
@@ -430,6 +439,8 @@ export const deleteAllConversations = (transcriptDirectoryPath: string) => {
 
 const agentTurnsFilename = (sessionId: string) =>
   `${encodeURIComponent(sessionId)}.agent-turns.json`;
+
+const statsFilename = (sessionId: string) => `${encodeURIComponent(sessionId)}.stats.json`;
 
 const chatFilename = (sessionId: string) => `${encodeURIComponent(sessionId)}.chat.json`;
 
@@ -444,6 +455,37 @@ export const storeAgentTranscriptTurns = (
   ensureTranscriptDirectory(transcriptDirectoryPath);
   const filePath = join(transcriptDirectoryPath, agentTurnsFilename(sessionId));
   writeFileSync(filePath, JSON.stringify(turns), "utf8");
+};
+
+export const storeUsageSummary = (
+  transcriptDirectoryPath: string,
+  sessionId: string,
+  summary: UsageSummary,
+) => {
+  ensureTranscriptDirectory(transcriptDirectoryPath);
+  writeFileSync(
+    join(transcriptDirectoryPath, statsFilename(sessionId)),
+    JSON.stringify(summary),
+    "utf8",
+  );
+};
+
+export const readUsageSummary = (
+  transcriptDirectoryPath: string,
+  sessionId: string,
+): UsageSummary | null => {
+  const filePath = join(transcriptDirectoryPath, statsFilename(sessionId));
+
+  if (!existsSync(filePath)) {
+    return null;
+  }
+
+  try {
+    // SAFETY: file is only written by storeUsageSummary, which serializes a UsageSummary.
+    return JSON.parse(readFileSync(filePath, "utf8")) as UsageSummary;
+  } catch {
+    return null;
+  }
 };
 
 export const storeChatMessages = (

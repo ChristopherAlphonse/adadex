@@ -5,6 +5,7 @@ import {
   asRecord,
   isString,
   parseClaudeTranscript,
+  summarizeClaudeUsage,
 } from "@adadex/core";
 
 import { logVerbose } from "../logging";
@@ -14,6 +15,7 @@ import {
   appendAgentTranscriptTurn,
   storeAgentTranscriptTurns,
   storeChatMessages,
+  storeUsageSummary,
 } from "./conversations";
 import { broadcastMessage } from "./protocol";
 import type { PersistedTerminal, TerminalSession, TerminalStateMessage } from "./types";
@@ -238,7 +240,14 @@ export const createHookProcessor = (deps: {
 
     if (transcriptPath) {
       try {
-        const chat = parseClaudeTranscript(readFileSync(transcriptPath, "utf8"));
+        const rawTranscript = readFileSync(transcriptPath, "utf8");
+        const chat = parseClaudeTranscript(rawTranscript);
+
+        storeUsageSummary(
+          transcriptDirectoryPath,
+          matchedSessionId,
+          summarizeClaudeUsage(rawTranscript),
+        );
 
         if (chat.length > 0) {
           storeChatMessages(transcriptDirectoryPath, matchedSessionId, chat);

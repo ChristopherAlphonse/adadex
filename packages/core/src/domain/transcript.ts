@@ -20,3 +20,25 @@ export type DiffLineKind = "add" | "del" | "meta" | "context";
 export type DiffLine = { kind: DiffLineKind; text: string };
 
 export type DiffExtract = { lines: DiffLine[]; truncated: boolean };
+
+/** Token counts of one model request. */
+export type RequestUsage = {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheCreation: number;
+};
+
+/** What a session's transcript says about its model use. Null fields mean the transcript had no request yet. */
+export type UsageSummary = {
+  model: string | null;
+  requestCount: number;
+  /** Tokens the last request sent to the model: new input plus everything read from or written to the cache. */
+  contextTokens: number;
+  lastRequest: RequestUsage | null;
+  /** Share of the last request's input that came from the cache, 0 to 1. */
+  cacheHitRate: number | null;
+  totalOutput: number;
+  firstAt: string | null;
+  lastAt: string | null;
+};

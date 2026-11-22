@@ -6,8 +6,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   readChatMessages,
+  readUsageSummary,
   storeAgentTranscriptTurns,
   storeChatMessages,
+  storeUsageSummary,
 } from "../src/terminalRuntime/conversations";
 
 const dirs: string[] = [];
@@ -46,5 +48,26 @@ describe("readChatMessages", () => {
     expect(readChatMessages(dir, "s2")).toEqual([
       { id: "t1", role: "user", timestamp: "a", blocks: [{ kind: "text", text: "yo" }] },
     ]);
+  });
+});
+
+describe("usage summary storage", () => {
+  it("round-trips a stored summary and returns null when absent", () => {
+    const dir = makeDir();
+
+    const summary = {
+      model: "m",
+      requestCount: 1,
+      contextTokens: 10,
+      lastRequest: { input: 1, output: 2, cacheRead: 3, cacheCreation: 4 },
+      cacheHitRate: 0.3,
+      totalOutput: 2,
+      firstAt: null,
+      lastAt: null,
+    };
+
+    expect(readUsageSummary(dir, "s1")).toBeNull();
+    storeUsageSummary(dir, "s1", summary);
+    expect(readUsageSummary(dir, "s1")).toEqual(summary);
   });
 });

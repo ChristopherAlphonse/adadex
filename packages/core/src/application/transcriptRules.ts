@@ -1,12 +1,15 @@
 import type {
   DiffExtract,
   DiffLine,
+  RequestUsage,
   TranscriptBlock,
   TranscriptMessage,
+  UsageSummary,
 } from "../domain/transcript";
 import {
   type ParsedRecord,
   type ParsedValue,
+  asNumber,
   asRecord,
   asString,
   isString,
@@ -225,4 +228,57 @@ export const parseClaudeTranscript = (jsonl: string): TranscriptMessage[] => {
   }
 
   return messages;
+};
+
+const usageNumber = (value: ParsedValue | undefined): number => asNumber(value) ?? 0;
+
+/** Pure: Claude Code JSONL text to a usage summary from each assistant message's `usage` block. */
+export const summarizeClaudeUsage = (jsonl: string): UsageSummary => {
+  const summary: UsageSummary = {
+    model: null,
+    requestCount: 0,
+    contextTokens: 0,
+    lastRequest: null,
+    cacheHitRate: null,
+    totalOutput: 0,
+    firstAt: null,
+    lastAt: null,
+  };
+
+  for (const line of jsonl.split(/\r?\n/)) {
+    const parsed = line.trim().length > 0 ? parseJsonRecord(line) : null;
+    const timestamp = parsed ? asString(parsed.timestamp) : null;
+
+    if (timestamp) {
+      summary.firstAt ??= timestamp;
+      summary.lastAt = timestamp;
+    }
+
+    const message = parsed ? asRecord(parsed.message) : null;
+    const usage = message ? asRecord(message.usage) : null;
+
+    if (message && usage && asString(parsed?.type) === "assistant") {
+      const request: RequestUsage = {
+        input: usageNumber(usage.input_tokens),
+        output: usageNumber(usage.output_tokens),
+        cacheRead: usageNumber(usage.cache_read_input_tokens),
+        cacheCreation: usageNumber(usage.cache_creation_input_tokens),
+      };
+
+      summary.model = asString(message.model) ?? summary.model;
+      summary.requestCount += 1;
+      summary.totalOutput += request.output;
+      summary.lastRequest = request;
+    }
+  }
+
+  if (summary.lastRequest) {
+    const { input, cacheRead, cacheCreation } = summary.lastRequest;
+    const total = input + cacheRead + cacheCreation;
+
+    summary.contextTokens = total;
+    summary.cacheHitRate = total > 0 ? cacheRead / total : null;
+  }
+
+  return summary;
 };

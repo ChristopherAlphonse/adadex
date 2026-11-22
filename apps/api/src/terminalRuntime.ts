@@ -33,6 +33,7 @@ import {
   deleteConversation,
   listConversationSessions,
   readChatMessages,
+  readUsageSummary,
   readConversationSession,
   searchConversations,
 } from "./terminalRuntime/conversations";
@@ -673,6 +674,10 @@ export const createTerminalRuntime = ({
 
     listConversationSessions() {
       return listConversationSessions(transcriptDirectoryPath);
+    },
+
+    readConversationStats(sessionId: string) {
+      return readUsageSummary(transcriptDirectoryPath, sessionId);
     },
 
     readConversationChat(sessionId: string) {

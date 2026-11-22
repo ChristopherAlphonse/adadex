@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { DIFF_MAX_LINES, extractDiff, isSubagentToolCall, parseClaudeTranscript } from "../src";
+import {
+  DIFF_MAX_LINES,
+  extractDiff,
+  isSubagentToolCall,
+  parseClaudeTranscript,
+  summarizeClaudeUsage,
+} from "../src";
 
 describe("transcript rules", () => {
   it("detects sub-agent tools", () => {
@@ -47,5 +53,48 @@ describe("transcript rules", () => {
 
     expect(msgs.map((m) => m.role)).toEqual(["assistant", "tool"]);
     expect(msgs[1]?.blocks[0]).toMatchObject({ kind: "tool-result", toolUseId: "t1", text: "ok" });
+  });
+});
+
+describe("summarizeClaudeUsage", () => {
+  const line = (usage: Record<string, number>, at: string) =>
+    JSON.stringify({
+      type: "assistant",
+      timestamp: at,
+      message: { model: "claude-sonnet-5-5", usage, content: [] },
+    });
+
+  it("takes context and cache rate from the last request and sums output", () => {
+    const jsonl = [
+      line({ input_tokens: 10, output_tokens: 5 }, "2026-11-22T06:00:00.000Z"),
+      "not json",
+      line(
+        {
+          input_tokens: 2,
+          output_tokens: 100,
+          cache_read_input_tokens: 90,
+          cache_creation_input_tokens: 8,
+        },
+        "2026-11-22T06:01:00.000Z",
+      ),
+    ].join("\n");
+
+    const summary = summarizeClaudeUsage(jsonl);
+
+    expect(summary.model).toBe("claude-sonnet-5-5");
+    expect(summary.requestCount).toBe(2);
+    expect(summary.contextTokens).toBe(100);
+    expect(summary.cacheHitRate).toBeCloseTo(0.9);
+    expect(summary.totalOutput).toBe(105);
+    expect(summary.firstAt).toBe("2026-11-22T06:00:00.000Z");
+    expect(summary.lastAt).toBe("2026-11-22T06:01:00.000Z");
+  });
+
+  it("is empty before any request", () => {
+    const summary = summarizeClaudeUsage("");
+
+    expect(summary.lastRequest).toBeNull();
+    expect(summary.cacheHitRate).toBeNull();
+    expect(summary.requestCount).toBe(0);
   });
 });
