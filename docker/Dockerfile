@@ -35,8 +35,9 @@ RUN --network=none npm run build
 FROM ${NODE_IMAGE} AS agents
 WORKDIR /opt/agents
 COPY docker/agents/package.json docker/agents/package-lock.json ./
-RUN npm ci --ignore-scripts --omit=dev \
- && npm rebuild @anthropic-ai/claude-code opencode-ai
+RUN npm ci --ignore-scripts --omit=dev
+# Vendor install scripts run with no network: they only link the binary npm ci already fetched.
+RUN --network=none npm rebuild @anthropic-ai/claude-code opencode-ai
 
 # Kiro ships as a tarball, not on npm. Pinned version, pinned sha256 per architecture.
 FROM ${NODE_IMAGE} AS kiro
@@ -91,4 +92,7 @@ ENV NODE_ENV=production \
 USER adadex
 WORKDIR /workspace
 EXPOSE 8787
+# Plain TCP connect to loopback: no HTTP, so no Host/Origin or proxy settings involved.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["node", "-e", "require('net').connect(8787,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
 ENTRYPOINT ["node", "/opt/adadex/bin/adadex"]

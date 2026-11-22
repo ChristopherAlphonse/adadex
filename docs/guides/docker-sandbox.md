@@ -29,7 +29,7 @@ Verified on Docker Desktop (arm64): `api.anthropic.com` and `registry.npmjs.org`
 
 State these to anyone you share this with:
 
-- **The workspace is read-write.** A compromised agent can edit or delete anything in it, including `.git/hooks` and `.git/config`. Use a dedicated clone, and review the diff, hooks and config before you run git or any script on the host.
+- **The workspace is read-write.** A compromised agent can edit or delete anything in it, including `.git/config`. `.git/hooks` is mounted read-only, so hooks cannot be planted, which means the workspace must be a git clone. Use a dedicated clone, and review the diff and `.git/config` before you run git or any script on the host.
 - **Allowed domains are exfiltration paths.** GitHub, npm and the model APIs are reachable, so data in the workspace or the `adadex-home` volume can leave through them. Keep the allowlist short and keep production secrets out of the workspace.
 - **Agent logins live in the volume** and are readable by anything running in the container. Use accounts and API keys with the least access you can.
 - **Docker is a container boundary, not a VM.** A kernel or runtime escape would bypass all of this. For hostile code, prefer a microVM such as Docker Sandboxes (`sbx`).

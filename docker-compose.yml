@@ -31,6 +31,14 @@ services:
         target: /workspace
         bind:
           create_host_path: false
+      # Git hooks run on the host when you use git there, so agents must not be able to plant them.
+      # Requires the workspace to be a git clone (it has a .git/hooks directory).
+      - type: bind
+        source: ${ADADEX_WORKSPACE}/.git/hooks
+        target: /workspace/.git/hooks
+        read_only: true
+        bind:
+          create_host_path: false
       # Agent logins, npm cache and Adadex state live here, not on your host.
       - adadex-home:/home/adadex
     tmpfs:
