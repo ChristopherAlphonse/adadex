@@ -82,6 +82,9 @@ COPY --from=build /src/package.json /opt/adadex/package.json
 COPY --from=build /src/node_modules/node-pty /opt/adadex/node_modules/node-pty
 COPY --from=build /src/node_modules/ws /opt/adadex/node_modules/ws
 
+# Start-up guard: exits unless caps are dropped, root is read-only and there is no default route.
+COPY --chmod=0555 docker/sandbox-check.sh /opt/adadex/sandbox-check.sh
+
 ENV NODE_ENV=production \
     ADADEX_PACKAGE_ROOT=/opt/adadex \
     ADADEX_NO_OPEN=1 \
@@ -94,4 +97,4 @@ EXPOSE 8787
 # Plain TCP connect to loopback: no HTTP, so no Host/Origin or proxy settings involved.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD ["node", "-e", "require('net').connect(8787,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
-ENTRYPOINT ["node", "/opt/adadex/bin/adadex"]
+ENTRYPOINT ["/opt/adadex/sandbox-check.sh"]

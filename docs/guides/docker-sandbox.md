@@ -15,7 +15,7 @@ Sign in to each agent once from the Adadex terminal (`claude`, `codex login --de
 
 ## Use `docker compose`, not `docker run`
 
-The sandbox is defined in `docker-compose.yml`, not in the image. A bare `docker run` of the image skips the read-only filesystem, dropped capabilities, internal network and egress proxy. It also binds loopback inside the container, so a published port reaches nothing. Always start it with `docker compose`.
+The sandbox is defined in `docker-compose.yml`, not in the image. The image refuses to start unless the container is sandboxed. At start-up it checks, from inside, that all capabilities are dropped, `no-new-privileges` is set, the root filesystem is read-only, and there is no default route to the internet. A bare `docker run` fails these checks and exits with a message. It also binds loopback inside the container, so a published port reaches nothing. Start it with `docker compose`. To develop Adadex itself without the sandbox, set `ADADEX_ALLOW_UNSANDBOXED=1`.
 
 ## What it enforces
 
