@@ -1,4 +1,16 @@
 import { type TranscriptMessage, splitMessageSegments } from "@adadex/core";
+import {
+  ArrowDown,
+  CircleHelp,
+  FileText,
+  GitBranch,
+  GitCommitHorizontal,
+  type LucideIcon,
+  MessageSquareMore,
+  Info,
+  Sparkles,
+  UserPlus,
+} from "lucide-react";
 import { useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -51,6 +63,46 @@ const PANEL_LABEL: Record<ChatWorkbenchPanel, string> = {
   files: "Files and links",
   details: "Session details",
   help: "Questions and shortcuts",
+};
+
+const PANEL_ICONS: readonly { panel: ChatWorkbenchPanel; icon: LucideIcon }[] = [
+  { panel: "side", icon: MessageSquareMore },
+  { panel: "catchup", icon: Sparkles },
+  { panel: "files", icon: FileText },
+  { panel: "details", icon: Info },
+  { panel: "help", icon: CircleHelp },
+];
+
+const IconButton = ({
+  icon: Icon,
+  label,
+  active = false,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) => (
+  <button
+    aria-label={label}
+    aria-pressed={active}
+    className={cn(
+      "grid size-7 place-items-center rounded-md hover:bg-secondary hover:text-foreground",
+      active ? "bg-secondary text-foreground" : "text-muted-foreground",
+    )}
+    onClick={onClick}
+    title={label}
+    type="button"
+  >
+    <Icon size={15} />
+  </button>
+);
+
+const formatStarted = (iso: string | undefined): string => {
+  const time = iso ? Date.parse(iso) : Number.NaN;
+
+  return Number.isFinite(time) ? new Date(time).toLocaleString() : "—";
 };
 
 const stateLabel = (session: TerminalView[number]): string =>
@@ -185,84 +237,61 @@ export const ChatWorkbench = ({
 
   return (
     <div className="shrink-0 border-b border-border">
-      <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-1 border-0 px-2 py-1">
+      <fieldset className="m-0 flex min-w-0 items-center gap-1 border-0 px-2 py-1.5">
         <legend className="sr-only">Chat activity</legend>
-        {groups.map((group) => (
-          <button
-            aria-label={`${group.label}, ${group.sessions.length}`}
-            aria-pressed={panel === group.kind}
-            className={cn(
-              "rounded-full border border-border px-2 py-0.5 text-xs",
-              panel === group.kind
-                ? "bg-surface-2 font-medium text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            key={group.kind}
-            onClick={() => {
-              toggle(group.kind);
-            }}
-            type="button"
-          >
-            {group.label} <span className="font-mono">{group.sessions.length}</span>
-          </button>
-        ))}
-        {(["side", "catchup", "files", "details", "help"] as const).map((item) => (
-          <button
-            aria-label={PANEL_LABEL[item]}
-            aria-pressed={panel === item}
-            className={cn(
-              "rounded-full border border-border px-2 py-0.5 text-xs",
-              panel === item
-                ? "bg-surface-2 font-medium text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            key={item}
-            onClick={() => {
-              toggle(item);
-            }}
-            type="button"
-          >
-            {PANEL_LABEL[item]}
-          </button>
-        ))}
-        <button
-          aria-label="Scroll to latest message"
-          className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
-          onClick={onScrollToBottom}
-          type="button"
-        >
-          ↓
-        </button>
-        {onDelegate ? (
-          <button
-            aria-label="Delegate to a child agent"
-            className="ml-auto rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
-            onClick={onDelegate}
-            type="button"
-          >
-            Delegate
-          </button>
-        ) : null}
-        {onCreateWorktree ? (
-          <button
-            aria-label="New worktree agent"
-            className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
-            onClick={onCreateWorktree}
-            type="button"
-          >
-            Worktree
-          </button>
-        ) : null}
-        {onOpenGit ? (
-          <button
-            aria-label="Git actions"
-            className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
-            onClick={onOpenGit}
-            type="button"
-          >
-            Git
-          </button>
-        ) : null}
+        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+          {groups
+            .filter((group) => group.sessions.length > 0 || panel === group.kind)
+            .map((group) => (
+              <button
+                aria-label={`${group.label}, ${group.sessions.length}`}
+                aria-pressed={panel === group.kind}
+                className={cn(
+                  "shrink-0 rounded-full px-2.5 py-0.5 text-xs",
+                  panel === group.kind
+                    ? "bg-secondary font-medium text-foreground"
+                    : "bg-surface-2 text-muted-foreground hover:text-foreground",
+                )}
+                key={group.kind}
+                onClick={() => {
+                  toggle(group.kind);
+                }}
+                type="button"
+              >
+                {group.label} <span className="font-mono">{group.sessions.length}</span>
+              </button>
+            ))}
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {PANEL_ICONS.map(({ panel: item, icon: Icon }) => (
+            <IconButton
+              active={panel === item}
+              icon={Icon}
+              key={item}
+              label={PANEL_LABEL[item]}
+              onClick={() => {
+                toggle(item);
+              }}
+            />
+          ))}
+          <IconButton
+            icon={ArrowDown}
+            label="Scroll to latest message"
+            onClick={onScrollToBottom}
+          />
+          {onDelegate || onCreateWorktree || onOpenGit ? (
+            <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+          ) : null}
+          {onDelegate ? (
+            <IconButton icon={UserPlus} label="Delegate to a child agent" onClick={onDelegate} />
+          ) : null}
+          {onCreateWorktree ? (
+            <IconButton icon={GitBranch} label="New worktree agent" onClick={onCreateWorktree} />
+          ) : null}
+          {onOpenGit ? (
+            <IconButton icon={GitCommitHorizontal} label="Git actions" onClick={onOpenGit} />
+          ) : null}
+        </div>
       </fieldset>
 
       {panel ? (
@@ -422,7 +451,7 @@ export const ChatWorkbench = ({
               <dt className="text-muted-foreground">Workspace</dt>
               <dd className="m-0">{session?.workspaceMode ?? "—"}</dd>
               <dt className="text-muted-foreground">Started</dt>
-              <dd className="m-0">{session?.startedAt ?? "—"}</dd>
+              <dd className="m-0">{formatStarted(session?.startedAt)}</dd>
               <dt className="text-muted-foreground">Context</dt>
               <dd className="m-0">
                 {stats ? `${stats.contextTokens.toLocaleString()} tokens` : "Not recorded yet"}

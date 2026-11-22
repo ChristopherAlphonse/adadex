@@ -11,8 +11,11 @@ import { TerminalChatPane } from "../TerminalChatPane";
 import { AgentsRail } from "./AgentsRail";
 import { type ChatWorkbenchPanel, ChatWorkbench } from "./ChatWorkbench";
 import { SessionDeleteDialog } from "./SessionDeleteDialog";
+import { useDeckGroupNames } from "./useDeckGroupNames";
 
 const CLOCK_TICK_MS = 30_000;
+
+const SELECTED_SESSION_KEY = "adadex.agents.selectedSession";
 
 export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
   const {
@@ -37,7 +40,10 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
     onLaunchWorkspaceSetupPlanner,
   } = props;
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() =>
+    typeof sessionStorage === "undefined" ? null : sessionStorage.getItem(SELECTED_SESSION_KEY),
+  );
+
   const [isGraphOpen, setIsGraphOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [isLaunchingPlanner, setIsLaunchingPlanner] = useState(false);
@@ -53,11 +59,13 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
     incompleteSteps,
   } = useWorkspaceSetupOverlay(workspaceSetup);
 
+  const groupNames = useDeckGroupNames(columns.length);
   const selected = columns.find((session) => session.terminalId === selectedId) ?? null;
   const messages = useConversationChat(selected?.terminalId ?? null, null);
 
   const select = (terminalId: string) => {
     setSelectedId(terminalId);
+    sessionStorage.setItem(SELECTED_SESSION_KEY, terminalId);
     setActionError(null);
   };
 
@@ -151,7 +159,10 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
                   session.workspaceMode,
                 );
 
-                if (session.terminalId === selectedId) setSelectedId(null);
+                if (session.terminalId === selectedId) {
+                  setSelectedId(null);
+                  sessionStorage.removeItem(SELECTED_SESSION_KEY);
+                }
               }
             : undefined
         }
@@ -171,10 +182,11 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
           setIsGraphOpen((open) => !open);
         }}
         selectedId={selected?.terminalId ?? null}
+        groupNames={groupNames}
         sessions={columns}
       />
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-[26rem] flex-1 flex-col">
         {shouldShowSetup && setupOverlay === "expanded" ? (
           <div className="p-3">
             <WorkspaceSetupCard
@@ -245,7 +257,9 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
               onDelegate={onCreateAgent ? () => void delegate() : undefined}
               onCreateWorktree={onCreateWorktreeTerminal ? () => void createWorktree() : undefined}
               onOpenGit={
-                onOpenGitActions ? () => onOpenGitActions(selected.coordinationId) : undefined
+                onOpenGitActions && selected.workspaceMode === "worktree"
+                  ? () => onOpenGitActions(selected.coordinationId)
+                  : undefined
               }
               onPanelChange={setPanel}
               onScrollToBottom={scrollToBottom}
@@ -255,7 +269,7 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
               session={selected}
               sideChatDraft={sideChatDraft}
             />
-            <div className="min-h-0 flex-1 overflow-y-auto" ref={chatViewportRef}>
+            <div className="agents-terminal min-h-0 flex-1 overflow-y-auto" ref={chatViewportRef}>
               <TerminalChatPane
                 key={selected.terminalId}
                 terminalId={selected.terminalId}
@@ -277,7 +291,7 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
       {isGraphOpen ? (
         <aside
           aria-label="Graph view"
-          className="flex min-h-0 w-[min(60%,56rem)] shrink-0 flex-col border-l border-border bg-surface/40"
+          className="flex min-h-0 w-[min(52%,52rem)] shrink-0 flex-col border-l border-border bg-surface/40"
         >
           <button
             aria-label="Close graph"

@@ -17,6 +17,9 @@ import {
   buildDeckOrchestrationsUrl,
   buildDeckOrchestrationUrl,
   buildDeckSkillsUrl,
+  buildDeckTodoAddUrl,
+  buildDeckTodoDeleteUrl,
+  buildDeckTodoEditUrl,
   buildDeckTodoToggleUrl,
   buildDeckVaultFileUrl,
   buildTerminalsUrl,
@@ -254,7 +257,7 @@ export const DeckPrimaryView = ({
       setFocus({
         type: "terminal",
         agentId,
-        terminalLabel: "Orchestration Planner",
+        terminalLabel: "Coordination Planner",
       });
       await fetchOrchestrations();
     } catch {
@@ -313,7 +316,7 @@ export const DeckPrimaryView = ({
           const msg =
             body && isObjectValue(body) && "error" in body && isString(body.error)
               ? body.error
-              : "Failed to create orchestration";
+              : "Failed to create coordination";
 
           setCreateError(msg);
 
@@ -453,6 +456,40 @@ export const DeckPrimaryView = ({
       } catch {}
     },
     [fetchOrchestrations],
+  );
+
+  const sendTodoRequest = useCallback(
+    async (url: string, method: "PATCH" | "POST", body: Record<string, number | string>) => {
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) return;
+        await fetchOrchestrations();
+      } catch {}
+    },
+    [fetchOrchestrations],
+  );
+
+  const handleTodoAdd = useCallback(
+    (coordinationId: string, text: string) =>
+      sendTodoRequest(buildDeckTodoAddUrl(coordinationId), "POST", { text }),
+    [sendTodoRequest],
+  );
+
+  const handleTodoEdit = useCallback(
+    (coordinationId: string, itemIndex: number, text: string) =>
+      sendTodoRequest(buildDeckTodoEditUrl(coordinationId), "PATCH", { itemIndex, text }),
+    [sendTodoRequest],
+  );
+
+  const handleTodoDelete = useCallback(
+    (coordinationId: string, itemIndex: number) =>
+      sendTodoRequest(buildDeckTodoDeleteUrl(coordinationId), "POST", { itemIndex }),
+    [sendTodoRequest],
   );
 
   const focusedOrchestration =
@@ -752,6 +789,9 @@ export const DeckPrimaryView = ({
         visuals={sheetCoordinationId ? (visualsMap.get(sheetCoordinationId) ?? null) : null}
         onClose={() => setSheetCoordinationId(null)}
         onTodoToggle={handleTodoToggle}
+        onTodoAdd={handleTodoAdd}
+        onTodoEdit={handleTodoEdit}
+        onTodoDelete={handleTodoDelete}
         onVaultFileClick={(coordinationId, fileName) =>
           setFocus({ type: "vault", coordinationId, fileName })
         }

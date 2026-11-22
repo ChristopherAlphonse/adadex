@@ -19,6 +19,7 @@ import {
 import { CuteMascot, type CuteMascotState, MASCOT_STATE_FOR_STATUS } from "./CuteMascot";
 import type { MascotVisuals } from "./mascotVisuals";
 import { MASCOT_COLORS } from "./mascotVisuals";
+import { AddTodo, TodoRow } from "./TodoRow";
 
 const STATUS_LABELS: Record<DeckCoordinationSummary["status"], string> = {
   idle: "Idle",
@@ -70,6 +71,9 @@ type AgentSheetProps = {
   isDeleting?: boolean;
   onClose: () => void;
   onTodoToggle?: ((coordinationId: string, itemIndex: number, done: boolean) => void) | undefined;
+  onTodoAdd?: ((coordinationId: string, text: string) => void) | undefined;
+  onTodoEdit?: ((coordinationId: string, itemIndex: number, text: string) => void) | undefined;
+  onTodoDelete?: ((coordinationId: string, itemIndex: number) => void) | undefined;
   onVaultFileClick: (coordinationId: string, fileName: string) => void;
   onVaultBrowse: (coordinationId: string) => void;
   onSaveSuggestedSkills?:
@@ -95,6 +99,9 @@ export const AgentSheet = ({
   isDeleting,
   onClose,
   onTodoToggle,
+  onTodoAdd,
+  onTodoEdit,
+  onTodoDelete,
   onVaultFileClick,
   onVaultBrowse,
   onSaveSuggestedSkills,
@@ -408,29 +415,40 @@ export const AgentSheet = ({
                 ) : (
                   <ul className="flex flex-col gap-1">
                     {orchestration.todoItems.map((item, index) => (
-                      <li key={item.text}>
-                        <label
-                          className={cn(
-                            "flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2 text-sm leading-snug transition-colors hover:bg-surface-2",
-                            item.done && "text-muted-foreground line-through",
-                          )}
-                          htmlFor={`todo-${orchestration.coordinationId}-${index}`}
-                        >
-                          <input
-                            checked={item.done}
-                            id={`todo-${orchestration.coordinationId}-${index}`}
-                            className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
-                            onChange={() => {
-                              onTodoToggle?.(orchestration.coordinationId, index, !item.done);
-                            }}
-                            type="checkbox"
-                          />
-                          {item.text}
-                        </label>
+                      <li key={`${orchestration.coordinationId}-${index}-${item.text}`}>
+                        <TodoRow
+                          done={item.done}
+                          id={`todo-${orchestration.coordinationId}-${index}`}
+                          onDelete={
+                            onTodoDelete
+                              ? () => {
+                                  onTodoDelete(orchestration.coordinationId, index);
+                                }
+                              : undefined
+                          }
+                          onEdit={
+                            onTodoEdit
+                              ? (text) => {
+                                  onTodoEdit(orchestration.coordinationId, index, text);
+                                }
+                              : undefined
+                          }
+                          onToggle={() => {
+                            onTodoToggle?.(orchestration.coordinationId, index, !item.done);
+                          }}
+                          text={item.text}
+                        />
                       </li>
                     ))}
                   </ul>
                 )}
+                {onTodoAdd ? (
+                  <AddTodo
+                    onAdd={(text) => {
+                      onTodoAdd(orchestration.coordinationId, text);
+                    }}
+                  />
+                ) : null}
               </section>
 
               <section className="flex flex-col gap-3">
@@ -485,7 +503,7 @@ export const AgentSheet = ({
                                 <span className="font-medium">{skillName}</span>
                                 <span className="text-xs text-muted-foreground">
                                   {skill?.description ??
-                                    "Stored on this orchestration, but not available right now."}
+                                    "Stored on this coordination, but not available right now."}
                                 </span>
                               </span>
                             </label>

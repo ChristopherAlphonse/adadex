@@ -19,7 +19,6 @@ import {
 
 import { cn } from "@/lib/utils";
 
-import { answerApproval } from "./app/answerApproval";
 import { ColorThemeProvider, useColorThemeContext } from "./app/ColorThemeContext";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { DECK_LEAD_ID } from "./app/hooks/useCanvasGraphData";
@@ -47,7 +46,6 @@ import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { ConsoleChromeHeader } from "./components/design-system/ConsoleChromeHeader";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
-import { ThreadTree } from "./components/ThreadTree";
 import { createFactoryHost } from "./runtime/factoryHost";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import {
@@ -436,9 +434,14 @@ const AppShell = () => {
           ? promptsSidebarContent !== null
           : true;
 
+  const isGitPanelOpen =
+    openGitOrchestrationId !== null &&
+    terminals.find((terminal) => terminal.coordinationId === openGitOrchestrationId)
+      ?.workspaceMode === "worktree";
+
   const showAgentsSidebar =
     isAgentsSidebarVisible &&
-    activePrimaryNav !== 1 &&
+    (activePrimaryNav !== 1 || isGitPanelOpen) &&
     activePrimaryNav !== 3 &&
     activePrimaryNav !== 6 &&
     activePrimaryNav !== 7 &&
@@ -490,11 +493,6 @@ const AppShell = () => {
                 setSidebarWidth(clampSidebarWidth(width));
               }}
               actionPanel={sidebarActionPanel}
-              threadTree={
-                activePrimaryNav === 2 ? undefined : (
-                  <ThreadTree onApproval={answerApproval} terminals={terminals} />
-                )
-              }
               bodyContent={
                 activePrimaryNav === 2
                   ? (deckSidebarContent ?? undefined)

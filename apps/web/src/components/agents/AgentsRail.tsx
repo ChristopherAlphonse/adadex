@@ -9,6 +9,7 @@ type Session = TerminalView[number];
 
 type AgentsRailProps = {
   sessions: TerminalView;
+  groupNames: ReadonlyMap<string, string>;
   selectedId: string | null;
   now: number;
   onSelect: (terminalId: string) => void;
@@ -21,8 +22,8 @@ type AgentsRailProps = {
 
 const NEEDS_YOU_STATES = new Set(["waiting_for_permission", "waiting_for_user"]);
 
-const formatAge = (createdAt: string, now: number): string => {
-  const minutes = Math.floor((now - Date.parse(createdAt)) / 60_000);
+const formatAge = (session: Session, now: number): string => {
+  const minutes = Math.floor((now - Date.parse(session.startedAt ?? session.createdAt)) / 60_000);
 
   if (!Number.isFinite(minutes) || minutes < 1) {
     return "now";
@@ -48,6 +49,11 @@ const dotClass = (session: Session): string => {
 
   return "bg-muted-foreground/40";
 };
+
+const DECK_LEAD_ID = "__deck_lead__";
+
+const groupLabel = (coordinationId: string, names: ReadonlyMap<string, string>): string =>
+  names.get(coordinationId) ?? (coordinationId === DECK_LEAD_ID ? "Deck lead" : coordinationId);
 
 const sessionName = (session: Session): string =>
   session.coordinationName || session.label || session.terminalId;
@@ -88,6 +94,7 @@ const flattenGroup = (group: Session[]): TreeRow[] => {
 
 export const AgentsRail = ({
   sessions,
+  groupNames,
   selectedId,
   now,
   onSelect,
@@ -111,12 +118,19 @@ export const AgentsRail = ({
 
     return Array.from(byCoordination, ([coordinationId, group]) => ({
       coordinationId,
+      label: groupLabel(coordinationId, groupNames),
       rows: flattenGroup(group),
       needsYou: group.filter(
         (session) => session.agentRuntimeState && NEEDS_YOU_STATES.has(session.agentRuntimeState),
       ).length,
-    }));
-  }, [sessions]);
+    })).sort((a, b) => {
+      if (a.coordinationId === DECK_LEAD_ID) return -1;
+
+      if (b.coordinationId === DECK_LEAD_ID) return 1;
+
+      return a.label.localeCompare(b.label);
+    });
+  }, [sessions, groupNames]);
 
   const toggle = (coordinationId: string) => {
     setCollapsed((current) => {
@@ -190,7 +204,7 @@ export const AgentsRail = ({
                 type="button"
               >
                 <Chevron className="shrink-0 text-muted-foreground" size={14} />
-                <span className="min-w-0 flex-1 truncate">{group.coordinationId}</span>
+                <span className="min-w-0 flex-1 truncate">{group.label}</span>
                 {group.needsYou > 0 ? (
                   <span className="rounded-full bg-stopped/20 px-1.5 text-[11px] text-stopped">
                     {group.needsYou}
@@ -231,7 +245,7 @@ export const AgentsRail = ({
                           <GitBranch aria-label="Worktree" className="shrink-0" size={12} />
                         ) : null}
                         <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground group-focus-within/row:hidden group-hover/row:hidden">
-                          {formatAge(session.createdAt, now)}
+                          {formatAge(session, now)}
                         </span>
                       </button>
                       <span className="hidden shrink-0 items-center gap-0.5 group-focus-within/row:flex group-hover/row:flex">

@@ -221,7 +221,7 @@ describe("App workspace setup", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Deck/ }));
 
     await waitFor(() => {
-      expect(screen.getAllByText("Add Orchestration")).toHaveLength(1);
+      expect(screen.getAllByText("Add Coordination")).toHaveLength(1);
     });
     expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
   });

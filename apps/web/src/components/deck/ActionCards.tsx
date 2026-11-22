@@ -49,7 +49,7 @@ export const ActionCards = ({
           <CuteMascot color="#34d399" size={compact ? 96 : 120} state="happy" />
         </div>
         <div className="deck-empty-card-text">
-          <span className="deck-empty-card-title">Add Orchestration</span>
+          <span className="deck-empty-card-title">Add Coordination</span>
           <span className="deck-empty-card-desc">
             Start the deck by creating a orchestration for your codebase
           </span>

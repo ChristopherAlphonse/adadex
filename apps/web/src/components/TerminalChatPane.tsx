@@ -117,7 +117,9 @@ export const TerminalChatPane = ({
   onSideChatRequest,
   ...terminalProps
 }: TerminalChatPaneProps) => {
-  const [mode, setMode] = useState<PaneMode>("terminal");
+  const [chosenMode, setChosenMode] = useState<PaneMode | null>(null);
+  const history = useConversationChat(terminalProps.terminalId, null);
+  const mode: PaneMode = chosenMode ?? (history && history.length > 0 ? "chat" : "terminal");
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -134,7 +136,7 @@ export const TerminalChatPane = ({
             )}
             key={item.mode}
             onClick={() => {
-              setMode(item.mode);
+              setChosenMode(item.mode);
             }}
             type="button"
           >

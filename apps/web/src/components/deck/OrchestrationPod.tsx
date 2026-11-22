@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 
 import { CuteMascot, MASCOT_STATE_FOR_STATUS } from "./CuteMascot";
 import type { MascotVisuals } from "./mascotVisuals";
+import { renderInlineCode } from "./TodoRow";
 
 export const STATUS_LABELS: Record<DeckCoordinationSummary["status"], string> = {
   idle: "idle",
@@ -175,7 +176,7 @@ export const OrchestrationPod = ({
               {nextTodo ? (
                 <>
                   <span className="deck-pod-next-label">Next</span>
-                  <span className="deck-pod-next-text">{nextTodo.text}</span>
+                  <span className="deck-pod-next-text">{renderInlineCode(nextTodo.text)}</span>
                 </>
               ) : orchestration.todoTotal > 0 ? (
                 <span className="deck-pod-next-text">All todos done</span>
