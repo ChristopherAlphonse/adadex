@@ -155,6 +155,7 @@ export const SidebarConversationsList = ({
   return (
     <section className="active-agents-section" aria-label="Sidebar section Conversations">
       <div className="sidebar-conversations-toolbar">
+        <span className="sidebar-conversations-title">Conversations</span>
         <button
           aria-label="Refresh conversations"
           className="sidebar-conversations-icon-btn"

@@ -170,3 +170,130 @@ describe("ConversationChatThread viewMode", () => {
     expect(screen.getByText("Worked")).toBeTruthy();
   });
 });
+
+const userAndAgentMessages: TranscriptMessage[] = [
+  ...toolCallMessages,
+  {
+    id: "u2",
+    role: "user",
+    timestamp: null,
+    blocks: [{ kind: "text", text: "Please review this" }],
+  },
+];
+
+/** jsdom does not select text on drag, so set the selection explicitly before mouseup. */
+const selectTextIn = (node: Element | null) => {
+  if (!node) throw new Error("selection target missing");
+
+  const selection = window.getSelection();
+  const range = document.createRange();
+
+  range.selectNodeContents(node);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+};
+
+describe("rich-chat selection Reply", () => {
+  it("offers Copy and Reply on a user turn and only replies when Reply is clicked", () => {
+    const onReply = vi.fn();
+
+    const { container } = render(
+      <ConversationChatThread messages={userAndAgentMessages} onReply={onReply} />,
+    );
+
+    const userTurn = container.querySelector('li[data-role="user"]');
+
+    if (!userTurn) throw new Error("user turn missing");
+
+    selectTextIn(userTurn);
+    fireEvent.mouseUp(userTurn);
+
+    expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Reply" })).toBeTruthy();
+    expect(onReply).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reply" }));
+
+    expect(onReply).toHaveBeenCalledExactlyOnceWith("Please review this");
+  });
+
+  it("offers Reply on an agent turn without firing it on selection alone", () => {
+    const onReply = vi.fn();
+
+    const { container } = render(
+      <ConversationChatThread messages={toolCallMessages} onReply={onReply} />,
+    );
+
+    const agentTurn = container.querySelector('li[data-role="assistant"]');
+
+    if (!agentTurn) throw new Error("agent turn missing");
+
+    selectTextIn(agentTurn);
+    fireEvent.mouseUp(agentTurn);
+
+    expect(onReply).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reply" }));
+
+    expect(onReply).toHaveBeenCalledOnce();
+    expect(onReply.mock.calls[0][0]).toContain("Working on it");
+  });
+
+  it("shows only Copy when no onReply handler is supplied", () => {
+    const { container } = render(<ConversationChatThread messages={toolCallMessages} />);
+
+    const agentTurn = container.querySelector('li[data-role="assistant"]');
+
+    if (!agentTurn) throw new Error("agent turn missing");
+
+    selectTextIn(agentTurn);
+    fireEvent.mouseUp(agentTurn);
+
+    expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reply" })).toBeNull();
+  });
+});
+
+describe("v2 fixes: onReply wiring, onRewind/onFork, view dropdown, session reset", () => {
+  it("ConversationTurnBubble calls onRewind when Rewind to here is clicked", () => {
+    const onRewind = vi.fn();
+    render(
+      <ConversationTurnBubble
+        role={userRole}
+        content="User message"
+        startedAt="2024-01-01T00:00:00Z"
+        showSender={false}
+        highlighted={false}
+        highlightTerm={undefined}
+        turnId="turn-99"
+        onRewind={onRewind}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Message actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rewind to here" }));
+
+    expect(onRewind).toHaveBeenCalledExactlyOnceWith("turn-99");
+  });
+
+  it("ConversationTurnBubble calls onFork when Fork from here is clicked on assistant message", () => {
+    const onFork = vi.fn();
+    render(
+      <ConversationTurnBubble
+        role={assistantRole}
+        content="Agent response"
+        startedAt="2024-01-01T00:00:00Z"
+        showSender={false}
+        highlighted={false}
+        highlightTerm={undefined}
+        turnId="turn-100"
+        onFork={onFork}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Message actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Fork from here" }));
+
+    expect(onFork).toHaveBeenCalledExactlyOnceWith("turn-100");
+  });
+});

@@ -68,6 +68,25 @@ export const ConversationsPrimaryView = ({
   const [agentProvider] = useState(readAgentProviderPreference);
   const [viewMode, setViewMode] = useState<"quiet" | "normal" | "summary" | "detailed">("quiet");
   const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false);
+  const viewDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Close the view dropdown when clicking outside of it
+  useEffect(() => {
+    if (!isViewDropdownOpen) return;
+
+    const handleOutsideMouseDown = (event: MouseEvent) => {
+      // SAFETY: a mousedown listener on document always receives a Node as its target.
+      if (viewDropdownRef.current && !viewDropdownRef.current.contains(event.target as Node)) {
+        setIsViewDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideMouseDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideMouseDown);
+    };
+  }, [isViewDropdownOpen]);
 
   const chatMessages = useConversationChat(
     selectedSessionId,
@@ -252,6 +271,16 @@ export const ConversationsPrimaryView = ({
   const [stashedDraft, setStashedDraft] = useState<string | null>(null);
   const [restoreDraft, setRestoreDraft] = useState<string | null>(null);
 
+  // Reset session-specific state when switching sessions
+  const [previousSessionId, setPreviousSessionId] = useState(selectedSessionId);
+
+  if (previousSessionId !== selectedSessionId) {
+    // Clear the drafts when navigating to a different session.
+    setPreviousSessionId(selectedSessionId);
+    setRestoreDraft(null);
+    setStashedDraft(null);
+  }
+
   const threadRef = useRef<HTMLOListElement | null>(null);
 
   const composerState =
@@ -424,6 +453,14 @@ export const ConversationsPrimaryView = ({
     setRestoreDraft(`> ${quotedText}\n\n`);
   }, []);
 
+  const handleRewind = useCallback((turnId: string) => {
+    console.warn("Rewind to here not yet implemented for turn", turnId);
+  }, []);
+
+  const handleFork = useCallback((turnId: string) => {
+    console.warn("Fork from here not yet implemented for turn", turnId);
+  }, []);
+
   const handleInterruptAndSend = useCallback(
     async (text: string): Promise<boolean> => {
       return onSendMessage(text);
@@ -496,7 +533,7 @@ export const ConversationsPrimaryView = ({
                     {isPlainView ? "Rich" : "Plain"}
                   </button>
                 ) : null}
-                <div style={{ position: "relative" }}>
+                <div style={{ position: "relative" }} ref={viewDropdownRef}>
                   <button
                     aria-label="Change view mode"
                     className="chat-ghost-btn"
@@ -632,6 +669,8 @@ export const ConversationsPrimaryView = ({
                         startedAt={turn.startedAt}
                         turnId={turn.turnId}
                         onReply={handleReply}
+                        onRewind={handleRewind}
+                        onFork={handleFork}
                       />
                     );
                   })}

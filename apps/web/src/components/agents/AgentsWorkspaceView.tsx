@@ -2,16 +2,18 @@ import { ChevronUp, ListTodo, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useConversationChat } from "../../app/hooks/useConversationChat";
+import { useSessionStats } from "../../app/hooks/useSessionStats";
 import { useWorkspaceSetupOverlay } from "../../app/hooks/useWorkspaceSetupOverlay";
 import { sendChannelMessage } from "../../app/sendChannelMessage";
 import { AgentStateBadge } from "../AgentStateBadge";
 import { type CanvasPrimaryViewProps, CanvasPrimaryView } from "../CanvasPrimaryView";
 import { WorkspaceSetupCard } from "../deck/WorkspaceSetupCard";
 import { TerminalChatPane } from "../TerminalChatPane";
-import { AgentsRail } from "./AgentsRail";
+import { AgentsRail, groupLabel } from "./AgentsRail";
 import { type ChatWorkbenchPanel, ChatWorkbench } from "./ChatWorkbench";
 import { SessionDeleteDialog } from "./SessionDeleteDialog";
 import { useDeckGroupNames } from "./useDeckGroupNames";
+import { usePinnedSessions } from "./usePinnedSessions";
 
 const CLOCK_TICK_MS = 30_000;
 
@@ -60,7 +62,22 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
   } = useWorkspaceSetupOverlay(workspaceSetup);
 
   const groupNames = useDeckGroupNames(columns.length);
+  const stats = useSessionStats(selectedId);
+  const { pinnedIds, togglePin } = usePinnedSessions();
+
   const selected = columns.find((session) => session.terminalId === selectedId) ?? null;
+
+  const footerText = selected
+    ? [
+        selected.agentRuntimeState ?? selected.state,
+        stats ? `${stats.contextTokens.toLocaleString()} tokens` : null,
+        stats ? `${stats.requestCount} requests` : null,
+        groupLabel(selected.coordinationId, groupNames),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+
   const messages = useConversationChat(selected?.terminalId ?? null, null);
 
   const select = (terminalId: string) => {
@@ -178,11 +195,13 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
             : undefined
         }
         onSelect={select}
+        onTogglePin={togglePin}
         onToggleGraph={() => {
           setIsGraphOpen((open) => !open);
         }}
         selectedId={selected?.terminalId ?? null}
         groupNames={groupNames}
+        pinnedIds={pinnedIds}
         sessions={columns}
       />
 
@@ -232,14 +251,6 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
         ) : null}
         {selected ? (
           <>
-            <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-              <h2 className="m-0 min-w-0 truncate text-sm font-semibold text-foreground">
-                {selected.coordinationName || selected.label}
-              </h2>
-              {selected.agentRuntimeState ? (
-                <AgentStateBadge state={selected.agentRuntimeState} />
-              ) : null}
-            </header>
             {actionError ? (
               <p
                 className="m-0 border-b border-border px-4 py-1 text-xs text-destructive"
@@ -249,6 +260,16 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
               </p>
             ) : null}
             <ChatWorkbench
+              heading={
+                <>
+                  <h2 className="m-0 min-w-0 truncate text-sm font-semibold text-foreground">
+                    {selected.coordinationName || selected.label}
+                  </h2>
+                  {selected.agentRuntimeState ? (
+                    <AgentStateBadge state={selected.agentRuntimeState} />
+                  ) : null}
+                </>
+              }
               columns={columns}
               messages={messages}
               onBringBack={(text) => {
@@ -282,6 +303,9 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
                 }}
               />
             </div>
+            <footer className="shrink-0 truncate border-t border-border px-4 py-1.5 text-center text-xs text-muted-foreground">
+              {footerText}
+            </footer>
           </>
         ) : (
           <p className="m-auto text-sm text-muted-foreground">Select a session to see its chat.</p>

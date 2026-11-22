@@ -11,7 +11,7 @@ import {
   Sparkles,
   UserPlus,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -51,6 +51,8 @@ type ChatWorkbenchProps = {
   onDelegate?: (() => void) | undefined;
   onCreateWorktree?: (() => void) | undefined;
   onOpenGit?: (() => void) | undefined;
+  /** Shown at the left of the toolbar row: the session title and its state. */
+  heading?: ReactNode;
 };
 
 const PANEL_LABEL: Record<ChatWorkbenchPanel, string> = {
@@ -152,6 +154,7 @@ export const ChatWorkbench = ({
   onDelegate,
   onCreateWorktree,
   onOpenGit,
+  heading,
 }: ChatWorkbenchProps) => {
   const [sideTarget, setSideTarget] = useState("");
   const [sideHistory, setSideHistory] = useState<SideEntry[]>([]);
@@ -239,6 +242,9 @@ export const ChatWorkbench = ({
     <div className="shrink-0 border-b border-border">
       <fieldset className="m-0 flex min-w-0 items-center gap-1 border-0 px-2 py-1.5">
         <legend className="sr-only">Chat activity</legend>
+        {heading ? (
+          <div className="flex min-w-0 max-w-[45%] shrink-0 items-center gap-2 pr-2">{heading}</div>
+        ) : null}
         <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
           {groups
             .filter((group) => group.sessions.length > 0 || panel === group.kind)

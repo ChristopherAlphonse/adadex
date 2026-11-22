@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 
 import { formatClock, toGist, toPlainText } from "../app/conversationText";
 import { MarkdownContent } from "./ui/MarkdownContent";
+import { TextSelectionBar, useTextSelection } from "./ui/TextSelectionBar";
 
 const GIST_LENGTH = 220;
 
@@ -36,8 +37,6 @@ export const ConversationTurnBubble = forwardRef<HTMLLIElement, ConversationTurn
   ) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isSelectionBarVisible, setIsSelectionBarVisible] = useState(false);
-    const [selectionBarText, setSelectionBarText] = useState("");
 
     const plain = toPlainText(content);
 
@@ -48,6 +47,7 @@ export const ConversationTurnBubble = forwardRef<HTMLLIElement, ConversationTurn
 
     const liRef = useRef<HTMLLIElement | null>(null);
     const menuRef = useRef<HTMLDivElement | null>(null);
+    const selection = useTextSelection(liRef);
 
     // Merge forwarded ref with local liRef
     const setRef = useCallback(
@@ -113,51 +113,6 @@ export const ConversationTurnBubble = forwardRef<HTMLLIElement, ConversationTurn
       }
 
       setIsMenuOpen(false);
-    };
-
-    useEffect(() => {
-      const node = liRef.current;
-
-      if (!node) return undefined;
-
-      const handleSelectionMouseUp = () => {
-        const selection = window.getSelection();
-
-        if (
-          selection &&
-          !selection.isCollapsed &&
-          selection.toString().trim().length > 0 &&
-          node.contains(selection.anchorNode)
-        ) {
-          setSelectionBarText(selection.toString());
-          setIsSelectionBarVisible(true);
-        }
-      };
-
-      const handleSelectionMouseDown = () => {
-        setIsSelectionBarVisible(false);
-      };
-
-      node.addEventListener("mousedown", handleSelectionMouseDown);
-      node.addEventListener("mouseup", handleSelectionMouseUp);
-
-      return () => {
-        node.removeEventListener("mousedown", handleSelectionMouseDown);
-        node.removeEventListener("mouseup", handleSelectionMouseUp);
-      };
-    }, []);
-
-    const handleCopySelection = () => {
-      void navigator.clipboard.writeText(selectionBarText);
-      setIsSelectionBarVisible(false);
-    };
-
-    const handleReplySelection = () => {
-      if (onReply) {
-        onReply(selectionBarText);
-      }
-
-      setIsSelectionBarVisible(false);
     };
 
     return (
@@ -230,17 +185,12 @@ export const ConversationTurnBubble = forwardRef<HTMLLIElement, ConversationTurn
         ) : null}
 
         {/* Text selection bar */}
-        {isSelectionBarVisible ? (
-          <div className="chat-selection-bar">
-            <button type="button" onClick={handleCopySelection}>
-              Copy
-            </button>
-            {onReply ? (
-              <button type="button" onClick={handleReplySelection}>
-                Reply
-              </button>
-            ) : null}
-          </div>
+        {selection.isSelectionBarVisible ? (
+          <TextSelectionBar
+            onDismiss={selection.dismissSelectionBar}
+            onReply={onReply}
+            selectedText={selection.selectedText}
+          />
         ) : null}
       </li>
     );

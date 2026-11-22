@@ -7,7 +7,7 @@ import {
   isSubagentToolCall,
   splitMessageSegments,
 } from "@adadex/core";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ import {
 } from "../app/chatExtras";
 import { QuestionCard } from "./QuestionCard";
 import { MarkdownContent } from "./ui/MarkdownContent";
+import { TextSelectionBar, useTextSelection } from "./ui/TextSelectionBar";
 import { VisualCardView } from "./VisualCardView";
 
 type ToolCallBlock = Extract<TranscriptBlock, { kind: "tool-call" }>;
@@ -223,19 +224,52 @@ const WorkSummary = ({
 
 const ANSWERS_TITLE = /^Answers to "([^"]*)":/;
 
+const UserTurn = ({
+  text,
+  onReply,
+}: {
+  text: string;
+  onReply?: ((selectedText: string) => void) | undefined;
+}) => {
+  const liRef = useRef<HTMLLIElement | null>(null);
+  const selection = useTextSelection(liRef);
+
+  return (
+    <li
+      className="max-w-[78%] self-end rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm text-primary-foreground"
+      data-role="user"
+      ref={liRef}
+    >
+      {text}
+      {selection.isSelectionBarVisible ? (
+        <TextSelectionBar
+          onDismiss={selection.dismissSelectionBar}
+          onReply={onReply}
+          selectedText={selection.selectedText}
+        />
+      ) : null}
+    </li>
+  );
+};
+
 const AgentTurn = ({
   messages,
   results,
   answered,
   onSendAnswer,
+  onReply,
   viewMode,
 }: {
   messages: TranscriptMessage[];
   results: Map<string, ToolResultBlock>;
   answered: ReadonlySet<string>;
   onSendAnswer?: ((text: string) => Promise<void>) | undefined;
+  onReply?: ((selectedText: string) => void) | undefined;
   viewMode?: "quiet" | "normal" | "summary" | "detailed" | undefined;
 }) => {
+  const liRef = useRef<HTMLLIElement | null>(null);
+  const selection = useTextSelection(liRef);
+
   const calls = messages.flatMap((message) =>
     message.blocks.flatMap((block) => (block.kind === "tool-call" ? [block] : [])),
   );
@@ -254,7 +288,11 @@ const AgentTurn = ({
   );
 
   return (
-    <li className="flex max-w-[92%] flex-col items-stretch gap-2 self-start" data-role="assistant">
+    <li
+      className="flex max-w-[92%] flex-col items-stretch gap-2 self-start"
+      data-role="assistant"
+      ref={liRef}
+    >
       {calls.length > 0 && viewMode !== "summary" ? (
         <WorkSummary
           calls={calls}
@@ -289,6 +327,13 @@ const AgentTurn = ({
           ))
         ),
       )}
+      {selection.isSelectionBarVisible ? (
+        <TextSelectionBar
+          onDismiss={selection.dismissSelectionBar}
+          onReply={onReply}
+          selectedText={selection.selectedText}
+        />
+      ) : null}
     </li>
   );
 };
@@ -297,7 +342,7 @@ export const ConversationChatThread = ({
   messages,
   onSendAnswer,
   viewMode = "quiet",
-  onReply: _onReply,
+  onReply,
 }: {
   messages: TranscriptMessage[];
   /** Sends a question card's answers to the agent. Without it, cards are read-only. */
@@ -339,18 +384,13 @@ export const ConversationChatThread = ({
     <ol className="chat-thread flex flex-col gap-4">
       {turns.map((turn) =>
         turn.kind === "user" ? (
-          <li
-            className="max-w-[78%] self-end rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm text-primary-foreground"
-            data-role="user"
-            key={turn.id}
-          >
-            {turn.text}
-          </li>
+          <UserTurn key={turn.id} onReply={onReply} text={turn.text} />
         ) : (
           <AgentTurn
             answered={answered}
             key={turn.id}
             messages={turn.messages}
+            onReply={onReply}
             onSendAnswer={onSendAnswer}
             results={results}
             viewMode={viewMode}
