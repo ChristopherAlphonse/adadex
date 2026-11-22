@@ -43,7 +43,14 @@ const ThreadRow = ({ node, now, depth }: { node: ThreadNode; now: number; depth:
       className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-[13px] hover:bg-surface-2"
       style={{ paddingLeft: `${8 + depth * 16}px` }}
     >
-      <span className="truncate text-foreground">{node.label}</span>
+      <span className="flex min-w-0 items-center gap-1.5">
+        <span className="truncate text-foreground">{node.label}</span>
+        {node.children.length > 0 ? (
+          <span className="shrink-0 rounded-full border border-border px-1.5 text-[10px] text-muted-foreground">
+            Coordinator · {node.children.length}
+          </span>
+        ) : null}
+      </span>
       <span className="flex shrink-0 items-center gap-2 text-xs">
         <span className={cn(STATUS_TONE[node.status])}>{STATUS_LABEL[node.status]}</span>
         <span className="text-muted-foreground">{formatAge(node.createdAt, now)}</span>

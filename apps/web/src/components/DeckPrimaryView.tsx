@@ -1,5 +1,4 @@
 import type {
-  CoordinationWorkspaceMode,
   DeckAvailableSkill,
   DeckCoordinationSummary,
   WorkspaceSetupSnapshot,
@@ -63,11 +62,6 @@ type DeckPrimaryViewProps = {
   onRefreshWorkspaceSetup: () => Promise<WorkspaceSetupSnapshot | null>;
   onRunWorkspaceSetupStep: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
   suppressWorkspaceSetupCard?: boolean;
-  onCreateAgent?: (coordinationId: string) => Promise<string | undefined>;
-  onSpawnSwarm?: (
-    coordinationId: string,
-    workspaceMode: CoordinationWorkspaceMode,
-  ) => Promise<void>;
 };
 
 type LoadedVaultFile = { focus: FocusState; content: string | null };
@@ -99,8 +93,6 @@ export const DeckPrimaryView = ({
   onRefreshWorkspaceSetup,
   onRunWorkspaceSetupStep,
   suppressWorkspaceSetupCard = false,
-  onCreateAgent,
-  onSpawnSwarm,
 }: DeckPrimaryViewProps) => {
   const [orchestrations, setOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [focus, setFocus] = useState<FocusState | null>(null);
@@ -856,8 +848,6 @@ export const DeckPrimaryView = ({
         onSaveMascot={handleMascotSave}
         onSaveAgent={handleSaveCoordinationAgent}
         onDelete={handleDeleteOrchestration}
-        onCreateAgent={onCreateAgent}
-        onSpawnSwarm={onSpawnSwarm}
       />
     </section>
   );

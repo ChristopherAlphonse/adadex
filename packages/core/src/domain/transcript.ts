@@ -61,4 +61,26 @@ export type QuestionForm = {
   questions: Question[];
 };
 
-export type MessageSegment = { kind: "text"; text: string } | { kind: "form"; form: QuestionForm };
+export type VisualTile = { label: string; value: string; detail: string | null };
+
+export type VisualChart = {
+  kind: "bar" | "line";
+  title: string | null;
+  labels: string[];
+  values: number[];
+};
+
+export type VisualTable = { columns: string[]; rows: string[][] };
+
+/** A card an agent draws in the chat with a fenced `visual` block: stat tiles, one chart, one table. */
+export type VisualCard = {
+  title: string | null;
+  tiles: VisualTile[];
+  chart: VisualChart | null;
+  table: VisualTable | null;
+};
+
+export type MessageSegment =
+  | { kind: "text"; text: string }
+  | { kind: "form"; form: QuestionForm }
+  | { kind: "visual"; visual: VisualCard };

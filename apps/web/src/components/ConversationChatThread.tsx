@@ -6,7 +6,7 @@ import {
   asString,
   extractDiff,
   isSubagentToolCall,
-  splitQuestionForms,
+  splitMessageSegments,
 } from "@adadex/core";
 import { useMemo } from "react";
 
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 import { QuestionCard } from "./QuestionCard";
 import { MarkdownContent } from "./ui/MarkdownContent";
+import { VisualCardView } from "./VisualCardView";
 
 type ToolCallBlock = Extract<TranscriptBlock, { kind: "tool-call" }>;
 
@@ -248,7 +249,7 @@ const AgentTurn = ({
   const segments = messages.flatMap((message) =>
     message.blocks.flatMap((block, index) =>
       block.kind === "text"
-        ? splitQuestionForms(block.text).map((segment, position) => ({
+        ? splitMessageSegments(block.text).map((segment, position) => ({
             key: `${message.id}-${index}-${position}`,
             segment,
           }))
@@ -275,6 +276,8 @@ const AgentTurn = ({
             key={key}
             onSend={onSendAnswer}
           />
+        ) : segment.kind === "visual" ? (
+          <VisualCardView key={key} visual={segment.visual} />
         ) : (
           <div className="chat-bubble rounded-2xl bg-surface-2 px-3.5 py-2" key={key}>
             <MarkdownContent content={segment.text} className="chat-bubble-content" />

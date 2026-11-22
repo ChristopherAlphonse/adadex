@@ -1,5 +1,4 @@
 import {
-  type CoordinationWorkspaceMode,
   type DeckAvailableSkill,
   type DeckCoordinationSummary,
   TERMINAL_AGENT_PROVIDERS,
@@ -73,10 +72,6 @@ type AgentSheetProps = {
   onTodoToggle?: ((coordinationId: string, itemIndex: number, done: boolean) => void) | undefined;
   onVaultFileClick: (coordinationId: string, fileName: string) => void;
   onVaultBrowse: (coordinationId: string) => void;
-  onCreateAgent?: ((coordinationId: string) => Promise<string | undefined>) | undefined;
-  onSpawnSwarm?:
-    | ((coordinationId: string, workspaceMode: CoordinationWorkspaceMode) => Promise<void>)
-    | undefined;
   onSaveSuggestedSkills?:
     | ((coordinationId: string, suggestedSkills: string[]) => Promise<boolean>)
     | undefined;
@@ -102,15 +97,11 @@ export const AgentSheet = ({
   onTodoToggle,
   onVaultFileClick,
   onVaultBrowse,
-  onCreateAgent,
-  onSpawnSwarm,
   onSaveSuggestedSkills,
   onSaveMascot,
   onSaveAgent,
   onDelete,
 }: AgentSheetProps) => {
-  const [busyAction, setBusyAction] = useState<string | null>(null);
-
   const [message, setMessage] = useState<{
     tone: "ok" | "error";
     text: string;
@@ -142,24 +133,6 @@ export const AgentSheet = ({
     setMoodPreview(null);
     setNewSkill("");
   }
-
-  const run = async (key: string, task: () => Promise<string | undefined>) => {
-    setBusyAction(key);
-    setMessage(null);
-
-    try {
-      const successText = await task();
-
-      setMessage({ tone: "ok", text: successText || "Done." });
-    } catch (error) {
-      setMessage({
-        tone: "error",
-        text: error instanceof Error ? error.message : "Action failed.",
-      });
-    } finally {
-      setBusyAction(null);
-    }
-  };
 
   const progressPct =
     orchestration && orchestration.todoTotal > 0
@@ -402,63 +375,16 @@ export const AgentSheet = ({
                 </section>
               ) : null}
 
-              <section className="flex flex-col gap-3">
-                <SectionTitle>Actions</SectionTitle>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className={primaryButtonClass}
-                    disabled={busyAction !== null || !onCreateAgent}
-                    onClick={() => {
-                      void run("agent", async () => {
-                        await onCreateAgent?.(orchestration.coordinationId);
-
-                        return "Agent started. Find it on the Agents tab.";
-                      });
-                    }}
-                    type="button"
-                  >
-                    {busyAction === "agent" ? "Starting…" : "Create agent"}
-                  </button>
-                  <button
-                    className={actionButtonClass}
-                    disabled={busyAction !== null || !onSpawnSwarm}
-                    onClick={() => {
-                      void run("worktree", async () => {
-                        await onSpawnSwarm?.(orchestration.coordinationId, "worktree");
-
-                        return "Swarm started in separate worktrees.";
-                      });
-                    }}
-                    type="button"
-                  >
-                    {busyAction === "worktree" ? "Spawning…" : "Spawn swarm (worktrees)"}
-                  </button>
-                  <button
-                    className={actionButtonClass}
-                    disabled={busyAction !== null || !onSpawnSwarm}
-                    onClick={() => {
-                      void run("shared", async () => {
-                        await onSpawnSwarm?.(orchestration.coordinationId, "shared");
-
-                        return "Swarm started in the shared workspace.";
-                      });
-                    }}
-                    type="button"
-                  >
-                    {busyAction === "shared" ? "Spawning…" : "Spawn swarm (shared)"}
-                  </button>
-                </div>
-                {message ? (
-                  <output
-                    className={cn(
-                      "text-sm",
-                      message.tone === "error" ? "text-destructive" : "text-running",
-                    )}
-                  >
-                    {message.text}
-                  </output>
-                ) : null}
-              </section>
+              {message ? (
+                <output
+                  className={cn(
+                    "text-sm",
+                    message.tone === "error" ? "text-destructive" : "text-running",
+                  )}
+                >
+                  {message.text}
+                </output>
+              ) : null}
 
               <section className="flex flex-col gap-3">
                 <div className="flex items-baseline justify-between">

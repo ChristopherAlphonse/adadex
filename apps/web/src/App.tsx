@@ -509,10 +509,6 @@ const AppShell = () => {
               onRefreshWorkspaceSetup: refreshWorkspaceSetup,
               onRunWorkspaceSetupStep: runWorkspaceSetupStep,
               suppressWorkspaceSetupCard: true,
-              onCreateAgent: async (coordinationId) => {
-                return await createTerminal("shared", coordinationId);
-              },
-              onSpawnSwarm: spawnSwarm,
             }}
             activityPrimaryViewProps={{
               usageChartProps: {
