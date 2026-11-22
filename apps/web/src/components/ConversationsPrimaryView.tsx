@@ -1,8 +1,10 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { formatClock, formatDay, toTitle } from "../app/conversationText";
+import { useConversationChat } from "../app/hooks/useConversationChat";
 import { useConversationsRuntime } from "../app/hooks/useConversationsRuntime";
 import { ClearAllConversationsDialog } from "./ClearAllConversationsDialog";
+import { ConversationChatThread } from "./ConversationChatThread";
 import { ConversationComposer } from "./ConversationComposer";
 import { ConversationTurnBubble } from "./ConversationTurnBubble";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
@@ -56,6 +58,19 @@ export const ConversationsPrimaryView = ({
     clearSearch: clearConversationsSearch,
     navigateToSearchHit: navigateToConversationSearchHit,
   } = useConversationsRuntime({ enabled });
+
+  const [isPlainView, setIsPlainView] = useState(false);
+
+  const chatMessages = useConversationChat(
+    selectedSessionId,
+    selectedSession ? `${selectedSession.lastEventAt}:${selectedSession.turnCount}` : null,
+  );
+
+  const showRichChat =
+    !isPlainView &&
+    chatMessages !== null &&
+    highlightedTurnId === null &&
+    chatMessages.some((message) => message.blocks.some((block) => block.kind === "tool-call"));
 
   const [isPendingClearAll, setIsPendingClearAll] = useState(false);
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
@@ -339,6 +354,19 @@ export const ConversationsPrimaryView = ({
                 </p>
               </div>
               <div className="chat-header-actions">
+                {chatMessages ? (
+                  <button
+                    aria-label="Toggle between rich chat and plain turns"
+                    aria-pressed={isPlainView}
+                    className="chat-ghost-btn"
+                    onClick={() => {
+                      setIsPlainView((value) => !value);
+                    }}
+                    type="button"
+                  >
+                    {isPlainView ? "Rich" : "Plain"}
+                  </button>
+                ) : null}
                 <button
                   aria-label="Export conversation as JSON"
                   className="chat-ghost-btn"
@@ -391,7 +419,10 @@ export const ConversationsPrimaryView = ({
                 </button>
               </div>
             </header>
-            <ol className="chat-thread" ref={threadRef}>
+            {showRichChat && chatMessages ? (
+              <ConversationChatThread messages={chatMessages} />
+            ) : null}
+            <ol className="chat-thread" hidden={showRichChat} ref={threadRef}>
               {selectedSession.turns.map((turn, index) => {
                 const isHighlighted = turn.turnId === highlightedTurnId;
 

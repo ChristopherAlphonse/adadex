@@ -9,6 +9,7 @@ import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { logVerbose } from "../logging";
 import type { UsageChartResponse } from "../usageHeatmapScanner";
 import {
+  handleConversationChatRoute,
   handleConversationExportRoute,
   handleConversationItemRoute,
   handleConversationSearchRoute,
@@ -118,6 +119,7 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     [
       handleConversationsCollectionRoute,
       handleConversationSearchRoute,
+      handleConversationChatRoute,
       handleConversationExportRoute,
       handleConversationItemRoute,
     ],

@@ -8,6 +8,7 @@ import {
   type ConversationSessionSummary,
   type ConversationTurn,
   type ParsedValue,
+  type TranscriptMessage,
   asRecord,
   asString,
   isNumber,
@@ -379,6 +380,13 @@ export const deleteConversation = (transcriptDirectoryPath: string, sessionId: s
   const transcriptFile = join(transcriptDirectoryPath, transcriptFilenameForSession(sessionId));
   const turnsFile = join(transcriptDirectoryPath, agentTurnsFilename(sessionId));
   const legacyTurnsFile = join(transcriptDirectoryPath, legacyAgentTurnsFilename(sessionId));
+  const chatFile = join(transcriptDirectoryPath, chatFilename(sessionId));
+
+  try {
+    if (existsSync(chatFile)) {
+      rmSync(chatFile);
+    }
+  } catch {}
 
   try {
     if (existsSync(transcriptFile)) {
@@ -410,6 +418,7 @@ export const deleteAllConversations = (transcriptDirectoryPath: string) => {
     if (
       file.endsWith(".jsonl") ||
       file.endsWith(".agent-turns.json") ||
+      file.endsWith(".chat.json") ||
       file.endsWith(".claude-turns.json")
     ) {
       try {
@@ -422,6 +431,8 @@ export const deleteAllConversations = (transcriptDirectoryPath: string) => {
 const agentTurnsFilename = (sessionId: string) =>
   `${encodeURIComponent(sessionId)}.agent-turns.json`;
 
+const chatFilename = (sessionId: string) => `${encodeURIComponent(sessionId)}.chat.json`;
+
 const legacyAgentTurnsFilename = (sessionId: string) =>
   `${encodeURIComponent(sessionId)}.claude-turns.json`;
 
@@ -433,6 +444,50 @@ export const storeAgentTranscriptTurns = (
   ensureTranscriptDirectory(transcriptDirectoryPath);
   const filePath = join(transcriptDirectoryPath, agentTurnsFilename(sessionId));
   writeFileSync(filePath, JSON.stringify(turns), "utf8");
+};
+
+export const storeChatMessages = (
+  transcriptDirectoryPath: string,
+  sessionId: string,
+  messages: TranscriptMessage[],
+) => {
+  ensureTranscriptDirectory(transcriptDirectoryPath);
+  writeFileSync(
+    join(transcriptDirectoryPath, chatFilename(sessionId)),
+    JSON.stringify(messages),
+    "utf8",
+  );
+};
+
+const turnsToChatMessages = (turns: ConversationTurn[]): TranscriptMessage[] =>
+  turns.map((turn) => ({
+    id: turn.turnId,
+    role: turn.role,
+    timestamp: turn.startedAt,
+    blocks: [{ kind: "text", text: turn.content }],
+  }));
+
+/** Structured chat for a session. Falls back to flat turns for providers without a parsable transcript (OpenCode, Kiro). */
+export const readChatMessages = (
+  transcriptDirectoryPath: string,
+  sessionId: string,
+): TranscriptMessage[] | null => {
+  const filePath = join(transcriptDirectoryPath, chatFilename(sessionId));
+
+  if (existsSync(filePath)) {
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(filePath, "utf8"));
+
+      if (Array.isArray(parsed)) {
+        // SAFETY: file is only written by storeChatMessages, which serializes TranscriptMessage[].
+        return parsed as TranscriptMessage[];
+      }
+    } catch {}
+  }
+
+  const turns = readAgentTranscriptTurns(transcriptDirectoryPath, sessionId);
+
+  return turns && turns.length > 0 ? turnsToChatMessages(turns) : null;
 };
 
 const parseConversationTurn = (payload: ParsedValue): ConversationTurn | null => {

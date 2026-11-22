@@ -1,9 +1,20 @@
-import { type TerminalAgentProvider, asRecord, isString } from "@adadex/core";
+import { readFileSync } from "node:fs";
+
+import {
+  type TerminalAgentProvider,
+  asRecord,
+  isString,
+  parseClaudeTranscript,
+} from "@adadex/core";
 
 import { logVerbose } from "../logging";
 import { installAgentHooks } from "./agentHooks";
 import { parseAgentTranscript } from "./agentTranscript";
-import { appendAgentTranscriptTurn, storeAgentTranscriptTurns } from "./conversations";
+import {
+  appendAgentTranscriptTurn,
+  storeAgentTranscriptTurns,
+  storeChatMessages,
+} from "./conversations";
 import { broadcastMessage } from "./protocol";
 import type { PersistedTerminal, TerminalSession, TerminalStateMessage } from "./types";
 
@@ -224,6 +235,16 @@ export const createHookProcessor = (deps: {
     // OpenCode has no transcript file; its stop still ends the turn and delivers queued messages.
     const turns = transcriptPath ? parseAgentTranscript(transcriptPath) : null;
     logVerbose(`[Hook] Parsed ${turns?.length ?? 0} turns from transcript.`);
+
+    if (transcriptPath) {
+      try {
+        const chat = parseClaudeTranscript(readFileSync(transcriptPath, "utf8"));
+
+        if (chat.length > 0) {
+          storeChatMessages(transcriptDirectoryPath, matchedSessionId, chat);
+        }
+      } catch {}
+    }
 
     const lastAssistantMessage = isString(hookPayloadRecord.last_assistant_message)
       ? hookPayloadRecord.last_assistant_message.trim()

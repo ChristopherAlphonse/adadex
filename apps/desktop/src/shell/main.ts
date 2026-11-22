@@ -207,6 +207,10 @@ const boot = async (): Promise<void> => {
   };
 
   if (keyProtector) options.keyProtector = keyProtector;
+
+  // Opt-in: run agents through Ghostex (bypasses adadex's tool guard and OS sandbox).
+  if (process.env.ADADEX_GHOSTEX_AGENT) options.ghostexAgent = process.env.ADADEX_GHOSTEX_AGENT;
+
   core = createApp(options);
   const api = core.api;
 

@@ -7,6 +7,37 @@ const CONVERSATION_ITEM_PATH_PATTERN = /^\/api\/conversations\/([^/]+)$/;
 
 const CONVERSATION_EXPORT_PATH_PATTERN = /^\/api\/conversations\/([^/]+)\/export$/;
 
+const CONVERSATION_CHAT_PATH_PATTERN = /^\/api\/conversations\/([^/]+)\/chat$/;
+
+export const handleConversationChatRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(CONVERSATION_CHAT_PATH_PATTERN);
+
+  if (!match) {
+    return false;
+  }
+
+  if (request.method !== "GET") {
+    writeMethodNotAllowed(response, corsOrigin);
+
+    return true;
+  }
+
+  const messages = runtime.readConversationChat(decodeURIComponent(match[1] ?? ""));
+
+  if (!messages) {
+    writeJson(response, 404, { error: "Conversation chat not found." }, corsOrigin);
+
+    return true;
+  }
+
+  writeJson(response, 200, { messages }, corsOrigin);
+
+  return true;
+};
+
 export const handleConversationsCollectionRoute: ApiRouteHandler = async (
   { request, response, requestUrl, corsOrigin },
   { runtime },

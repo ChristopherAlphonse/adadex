@@ -13,6 +13,7 @@ import {
 } from "@adadex/core";
 
 import { createClaudeCodeProvider, type SpawnAgent } from "../agents/claudeCodeProvider";
+import { createGhostexProvider, runGhostexCli } from "../agents/ghostexProvider";
 import {
   buildProfile,
   defaultDenyRead,
@@ -64,6 +65,12 @@ export interface AppOptions {
   readonly hookPath: string;
   /** How agents are started. The default runs Claude Code; tests pass a fake. */
   readonly makeProvider?: (request: ProviderRequest) => AgentProvider;
+  /**
+   * Run agents through Ghostex instead of Claude Code directly: a Ghostex agent id such as "claude", "kiro" or
+   * "opencode". Ghostex owns the terminal, so adadex's tool-policy guard and operating system sandbox do NOT apply
+   * to these agents. Off by default.
+   */
+  readonly ghostexAgent?: string;
   /** Most agents at once, and how many runs that move nothing before a job is parked. */
   readonly concurrency?: number;
   readonly stallLimit?: number;
@@ -253,6 +260,15 @@ export const createApp = (options: AppOptions): App => {
   const roles = createRoleStore(join(options.dataDir, "roles"), registry);
 
   const defaultProvider = (request: ProviderRequest): AgentProvider => {
+    if (options.ghostexAgent) {
+      return createGhostexProvider({
+        run: runGhostexCli,
+        agentId: options.ghostexAgent,
+        cwd: request.cwd,
+        allowHidden: true,
+      });
+    }
+
     const base = options.spawn ?? spawnAgent;
     let spawn = base;
 
