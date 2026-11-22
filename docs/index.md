@@ -22,6 +22,8 @@ Adadex has three main layers:
 ## Guides
 
 - [Agents Workspace](guides/agents-workspace.md) explains the rail, chat/terminal switching, composer shortcuts, and launch options
+- [Asking Questions](guides/asking-questions.md) and [Visual Replies](guides/visual-replies.md) explain the question and visual cards an agent can show in chat
+- [Docker Sandbox](guides/docker-sandbox.md) explains the sandboxed way to run Adadex
 - [Working With Todos](guides/working-with-todos.md) explains how checkbox lines become progress and worker inputs
 - [Orchestrating Child Agents](guides/orchestrating-child-agents.md) explains parent/worker spawning, shared mode, and worktree mode
 - [Inter-Agent Messaging](guides/inter-agent-messaging.md) explains the channel queue and delivery rules
@@ -35,7 +37,7 @@ Adadex has three main layers:
 
 ## Desktop app (in progress)
 
-The pages above describe the web app and local API. The Electron desktop app that replaces them is planned in [plans/PLAN.md](plans/PLAN.md).
+The pages above describe the web app and local API. An Electron desktop app (`apps/desktop`) is in progress and does not replace them yet.
 
 ## Contributor policy
 

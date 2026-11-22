@@ -17,6 +17,7 @@
   - Must stay free of React, HTTP, PTY, and filesystem orchestration concerns.
 - API app: `apps/api`
   - Node HTTP/WebSocket server, PTY session runtime, worktree lifecycle, transcript persistence.
+- Desktop app: `apps/desktop` (in progress; see `apps/desktop/AGENTS.md`)
 - Web app: `apps/web`
   - Vite + React operator UI, modular CSS, UI orchestration over API/runtime contracts.
 - Runtime state: `.adadex/`
@@ -32,6 +33,10 @@
   - `docs/concepts/coordination.md`
   - `docs/concepts/runtime-and-api.md`
 - Workflow guides:
+  - `docs/guides/agents-workspace.md`
+  - `docs/guides/asking-questions.md`
+  - `docs/guides/visual-replies.md`
+  - `docs/guides/docker-sandbox.md`
   - `docs/guides/working-with-todos.md`
   - `docs/guides/orchestrating-child-agents.md`
   - `docs/guides/inter-agent-messaging.md`
@@ -74,6 +79,7 @@
 - `apps/api/AGENTS.md` expands server/runtime/worktree rules.
 - `apps/web/AGENTS.md` expands UI/component/style rules.
 - `packages/core/AGENTS.md` expands domain and ports-and-adapters rules.
+- `apps/desktop/AGENTS.md` expands the action host and job rules.
 
 ## Continual learning
 - **Promote sparingly.** After repeated or high-cost feedback that will apply to future sessions, fold the lesson into tracked guidelines instead of relying on conversation memory alone.
