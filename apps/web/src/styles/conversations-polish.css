@@ -200,3 +200,14 @@
 .design-console .sidebar-conversation-avatar .cute-mascot {
   display: block;
 }
+
+/* Chat: user messages, the selected conversation and the send button use a calm slate, not the neon brand green. */
+.design-console {
+  --chat-user: #313a4b;
+  --chat-user-text: #eef1f6;
+}
+
+.design-console.light {
+  --chat-user: #dfe5f0;
+  --chat-user-text: #161616;
+}
