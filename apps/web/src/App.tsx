@@ -19,6 +19,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
+import { answerApproval } from "./app/answerApproval";
 import { ColorThemeProvider, useColorThemeContext } from "./app/ColorThemeContext";
 import { useBackendLivenessPolling } from "./app/hooks/useBackendLivenessPolling";
 import { DECK_LEAD_ID } from "./app/hooks/useCanvasGraphData";
@@ -486,7 +487,7 @@ const AppShell = () => {
                 setSidebarWidth(clampSidebarWidth(width));
               }}
               actionPanel={sidebarActionPanel}
-              threadTree={<ThreadTree terminals={terminals} />}
+              threadTree={<ThreadTree onApproval={answerApproval} terminals={terminals} />}
               bodyContent={
                 activePrimaryNav === 2
                   ? (deckSidebarContent ?? undefined)

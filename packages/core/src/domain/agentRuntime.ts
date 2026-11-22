@@ -24,7 +24,14 @@ const SAFE_AGENT_FLAG_VALUE = /^[A-Za-z0-9._:/-]{1,80}$/;
 export const isSafeAgentFlagValue = (value: unknown): value is string =>
   typeof value === "string" && SAFE_AGENT_FLAG_VALUE.test(value);
 
-export type AgentLaunchOptions = { model?: string | undefined; effort?: string | undefined };
+export type AgentLaunchOptions = {
+  model?: string | undefined;
+  effort?: string | undefined;
+  /** Absolute path of a Claude Code settings file to load for this session (`--settings`). */
+  settingsFile?: string | undefined;
+};
+
+const shellSingleQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`;
 
 /**
  * The command typed into a new terminal. Only Claude Code takes `--model` and `--effort` (checked against
@@ -42,7 +49,25 @@ export const buildAgentLaunchCommand = (
 
   return [
     baseCommand,
+    ...(options.settingsFile ? ["--settings", shellSingleQuote(options.settingsFile)] : []),
     ...(isSafeAgentFlagValue(options.model) ? ["--model", options.model] : []),
     ...(isSafeAgentFlagValue(options.effort) ? ["--effort", options.effort] : []),
   ].join(" ");
+};
+
+export type PermissionDecision = "approve" | "deny";
+
+/**
+ * The keys that answer an agent's permission prompt, or null when this agent is not supported. Claude Code's
+ * prompt has "Yes" selected, so Enter approves it and Escape declines it. Other agents are not wired.
+ */
+export const permissionAnswerKeys = (
+  provider: TerminalAgentProvider,
+  decision: PermissionDecision,
+): string | null => {
+  if (provider !== "claude") {
+    return null;
+  }
+
+  return decision === "approve" ? "\r" : "\u001b";
 };

@@ -1,6 +1,5 @@
-import { createWriteStream, existsSync, mkdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import type { IncomingMessage } from "node:http";
-import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
 import { buildAgentLaunchCommand, isNumber, isString } from "@adadex/core";
@@ -8,6 +7,7 @@ import { type IPty, spawn } from "node-pty";
 import type { WebSocket, WebSocketServer } from "ws";
 
 import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
+import { claudeHookSettingsPath } from "./agentHooks";
 import { stripBrokenLeadingAnsi } from "./ansiScrollback";
 import {
   DEFAULT_AGENT_PROVIDER,
@@ -17,14 +17,20 @@ import {
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
 import {
-  type ConversationTranscriptEvent,
   type ConversationTranscriptEventPayload,
-  ensureTranscriptDirectory,
   type SessionEndTranscriptEvent,
-  transcriptFilenameForSession,
 } from "./conversations";
 import { broadcastMessage, getTerminalId, sendMessage } from "./protocol";
 import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
+import {
+  appendDebugLog,
+  appendScrollback as appendScrollbackChunk,
+  appendTranscriptEvent,
+  closeTranscript,
+  createDebugLog as openDebugLog,
+  createTranscriptLog as openTranscriptLog,
+  getShellLaunch,
+} from "./sessionLogs";
 import { toErrorMessage } from "./systemClients";
 import type {
   DirectSessionListener,
@@ -92,98 +98,14 @@ export const createSessionRuntime = ({
     ? Math.max(1, Math.floor(maxConcurrentSessions))
     : TERMINAL_MAX_CONCURRENT_SESSIONS;
 
-  const getShellLaunch = () => {
-    if (process.platform === "win32") {
-      return {
-        command: process.env.ComSpec ?? "cmd.exe",
-        args: [],
-      };
-    }
+  const createDebugLog = (sessionId: string) =>
+    openDebugLog(sessionId, isDebugPtyLogsEnabled, ptyLogDir);
 
-    const shellFromEnvironment = process.env.SHELL?.trim();
+  const createTranscriptLog = (sessionId: string) =>
+    openTranscriptLog(sessionId, transcriptDirectoryPath);
 
-    if (shellFromEnvironment && shellFromEnvironment.length > 0) {
-      return {
-        command: shellFromEnvironment,
-        args: ["-i"],
-      };
-    }
-
-    return {
-      command: "/bin/bash",
-      args: ["-i"],
-    };
-  };
-
-  const createDebugLog = (sessionId: string) => {
-    if (!isDebugPtyLogsEnabled) {
-      return undefined;
-    }
-
-    mkdirSync(ptyLogDir, { recursive: true });
-    const filename = `${sessionId}-${Date.now()}.log`;
-
-    return createWriteStream(join(ptyLogDir, filename), {
-      flags: "a",
-      encoding: "utf8",
-    });
-  };
-
-  const appendDebugLog = (session: TerminalSession, line: string) => {
-    session.debugLog?.write(`${new Date().toISOString()} ${line}\n`);
-  };
-
-  const createTranscriptLog = (sessionId: string) => {
-    ensureTranscriptDirectory(transcriptDirectoryPath);
-    const filename = transcriptFilenameForSession(sessionId);
-
-    const stream = createWriteStream(join(transcriptDirectoryPath, filename), {
-      flags: "a",
-      encoding: "utf8",
-    });
-
-    stream.on("error", () => {});
-
-    return stream;
-  };
-
-  const appendTranscriptEvent = (
-    session: TerminalSession,
-    sessionId: string,
-    event: ConversationTranscriptEventPayload,
-  ) => {
-    if (!session.transcriptLog) {
-      return;
-    }
-
-    const nextEventCount = (session.transcriptEventCount ?? 0) + 1;
-    session.transcriptEventCount = nextEventCount;
-
-    // SAFETY: event is a validated ConversationTranscriptEventPayload; adding the ids
-    // completes the same discriminated union with no field changes.
-    const payload: ConversationTranscriptEvent = {
-      ...event,
-      eventId: `${sessionId}:${nextEventCount}`,
-      sessionId,
-      coordinationId: session.coordinationId,
-    } as ConversationTranscriptEvent;
-
-    session.transcriptLog.write(`${JSON.stringify(payload)}\n`);
-  };
-
-  const closeTranscript = (
-    session: TerminalSession,
-    sessionId: string,
-    event: ConversationTranscriptEventPayload,
-  ) => {
-    if (session.hasTranscriptEnded) {
-      return;
-    }
-
-    appendTranscriptEvent(session, sessionId, event);
-    session.hasTranscriptEnded = true;
-    session.transcriptLog?.end();
-    session.transcriptLog = undefined;
+  const appendScrollback = (session: TerminalSession, chunk: string) => {
+    appendScrollbackChunk(session, chunk, scrollbackMaxBytes);
   };
 
   const emitStateIfChanged = (
@@ -269,32 +191,6 @@ export const createSessionRuntime = ({
     }
 
     session.promptTimers.add(timer);
-  };
-
-  const appendScrollback = (session: TerminalSession, chunk: string) => {
-    let nextChunk = chunk;
-    let nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
-
-    if (nextChunkBytes > scrollbackMaxBytes) {
-      const chunkBuffer = Buffer.from(nextChunk, "utf8");
-      nextChunk = chunkBuffer.subarray(chunkBuffer.length - scrollbackMaxBytes).toString("utf8");
-      nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
-      session.scrollbackChunks = [];
-      session.scrollbackBytes = 0;
-    }
-
-    session.scrollbackChunks.push(nextChunk);
-    session.scrollbackBytes += nextChunkBytes;
-
-    while (session.scrollbackBytes > scrollbackMaxBytes && session.scrollbackChunks.length > 0) {
-      const removedChunk = session.scrollbackChunks.shift();
-
-      if (!removedChunk) {
-        break;
-      }
-
-      session.scrollbackBytes -= Buffer.byteLength(removedChunk, "utf8");
-    }
   };
 
   const sendHistory = (websocket: WebSocket, session: TerminalSession) => {
@@ -501,7 +397,13 @@ export const createSessionRuntime = ({
     const bootstrapCommand = buildAgentLaunchCommand(
       provider,
       TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER],
-      { model: terminal?.agentModel, effort: terminal?.agentEffort },
+      {
+        model: terminal?.agentModel,
+        effort: terminal?.agentEffort,
+        settingsFile: existsSync(claudeHookSettingsPath(session.workingDirectory))
+          ? claudeHookSettingsPath(session.workingDirectory)
+          : undefined,
+      },
     );
 
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
@@ -598,6 +500,7 @@ export const createSessionRuntime = ({
     const transcriptLog = createTranscriptLog(sessionId);
 
     const session: TerminalSession = {
+      workingDirectory: orchestrationCwd,
       terminalId: sessionId,
       coordinationId,
       pty,

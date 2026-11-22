@@ -75,7 +75,7 @@ Stopping or killing a terminal tears down the active PTY and updates lifecycle m
 
 Adadex installs hooks in the target workspace that `curl` back into the local API. Where they go depends on the terminal's agent:
 
-- **Claude Code** (default): merged into `.claude/settings.local.json`
+- **Claude Code** (default): written to `.adadex/hooks/claude.settings.json` and loaded with `claude --settings`. The project's own `.claude/settings.local.json` is not touched; Adadex entries that older versions put there are removed.
 - **Kiro CLI**: written to `.kiro/hooks/adadex.json`
 - **OpenCode**: none, because it has no shell hooks; its state comes from terminal output only
 

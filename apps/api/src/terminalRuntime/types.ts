@@ -56,6 +56,8 @@ export type Disposable = {
 export type TerminalSession = {
   terminalId: string;
   coordinationId: string;
+  /** The folder the terminal started in. */
+  workingDirectory: string;
   pty: IPty;
   ptyDisposables?: Disposable[];
   clients: Set<WebSocket>;

@@ -334,6 +334,8 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 
 const TERMINAL_ITEM_PATH_PATTERN = /^\/api\/terminals\/([^/]+)$/;
 
+const TERMINAL_APPROVAL_PATH_PATTERN = /^\/api\/terminals\/([^/]+)\/approval$/;
+
 const TERMINAL_ACTION_PATH_PATTERN = /^\/api\/terminals\/([^/]+)\/(stop|kill)$/;
 
 export const handleTerminalItemRoute: ApiRouteHandler = async (
@@ -400,6 +402,66 @@ export const handleTerminalItemRoute: ApiRouteHandler = async (
   }
 
   writeJson(response, 200, payload, corsOrigin);
+
+  return true;
+};
+
+/**
+ * Answers an agent's permission prompt on the user's behalf. It only works while the agent is waiting on one, and the
+ * request must carry a browser Origin header. That keeps a plain `curl` from an agent out, but it cannot stop a
+ * process that forges the header: the owner accepted that limit (2026-11-22).
+ */
+export const handleTerminalApprovalRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(TERMINAL_APPROVAL_PATH_PATTERN);
+
+  if (!match) {
+    return false;
+  }
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+
+    return true;
+  }
+
+  if (request.headers.origin === undefined) {
+    writeJson(
+      response,
+      403,
+      { error: "Approvals must come from the Adadex web page." },
+      corsOrigin,
+    );
+
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  // SAFETY: readJsonBody parsed the body into ParsedValue members; a missing key reads as undefined.
+  const decision = (bodyReadResult.payload as ParsedRecord | null)?.decision;
+
+  if (decision !== "approve" && decision !== "deny") {
+    writeJson(response, 400, { error: "decision must be approve or deny." }, corsOrigin);
+
+    return true;
+  }
+
+  const result = runtime.answerPermission(decodeURIComponent(match[1] ?? ""), decision);
+
+  if (!result.ok) {
+    writeJson(response, 409, { error: result.reason }, corsOrigin);
+
+    return true;
+  }
+
+  writeJson(response, 200, { ok: true }, corsOrigin);
 
   return true;
 };

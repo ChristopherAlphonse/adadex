@@ -6,6 +6,8 @@ export type ThreadNode = {
   terminalId: string;
   label: string;
   status: ThreadStatus;
+  /** When the agent is waiting on the user: to approve a tool call, or to answer. Null otherwise. */
+  waitingFor: "approval" | "answer" | null;
   createdAt: string;
   children: ThreadNode[];
 };
@@ -44,6 +46,12 @@ export const buildThreadTree = (terminals: readonly TerminalSnapshot[]): ThreadN
       terminalId: terminal.terminalId,
       label: terminal.label,
       status: threadStatusOf(terminal),
+      waitingFor:
+        terminal.agentRuntimeState === "waiting_for_permission"
+          ? "approval"
+          : terminal.agentRuntimeState === "waiting_for_user"
+            ? "answer"
+            : null,
       createdAt: terminal.createdAt,
       children: [],
     });

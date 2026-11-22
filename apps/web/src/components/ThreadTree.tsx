@@ -1,4 +1,5 @@
 import {
+  type PermissionDecision,
   type TerminalSnapshot,
   type ThreadNode,
   type ThreadStatus,
@@ -11,6 +12,10 @@ import { cn } from "@/lib/utils";
 type ThreadTreeProps = {
   terminals: readonly TerminalSnapshot[];
   now?: number;
+  /** Opens an agent's terminal. When given, a thread waiting on the user gets an Open button: the user answers there. */
+  onOpen?: ((terminalId: string) => void) | undefined;
+  /** Answers an agent's permission prompt. When given, a thread waiting for approval gets Approve and Deny buttons. */
+  onApproval?: ((terminalId: string, decision: PermissionDecision) => Promise<void>) | undefined;
 };
 
 const STATUS_LABEL: Record<ThreadStatus, string> = {
@@ -37,7 +42,76 @@ const formatAge = (createdAt: string, now: number): string => {
   return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h`;
 };
 
-const ThreadRow = ({ node, now, depth }: { node: ThreadNode; now: number; depth: number }) => (
+type RowHandlers = {
+  onOpen?: ((terminalId: string) => void) | undefined;
+  onApproval?: ((terminalId: string, decision: PermissionDecision) => Promise<void>) | undefined;
+};
+
+const ApprovalButtons = ({
+  terminalId,
+  onApproval,
+}: {
+  terminalId: string;
+  onApproval: NonNullable<RowHandlers["onApproval"]>;
+}) => {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const answer = async (decision: PermissionDecision) => {
+    setBusy(true);
+    setError(null);
+
+    try {
+      await onApproval(terminalId, decision);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Could not answer.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        className="rounded bg-running/20 px-1.5 text-[11px] text-foreground hover:bg-running/30 disabled:opacity-50"
+        disabled={busy}
+        onClick={() => {
+          void answer("approve");
+        }}
+        type="button"
+      >
+        Approve
+      </button>
+      <button
+        className="rounded border border-border px-1.5 text-[11px] text-foreground hover:bg-surface-2 disabled:opacity-50"
+        disabled={busy}
+        onClick={() => {
+          void answer("deny");
+        }}
+        type="button"
+      >
+        Deny
+      </button>
+      {error ? (
+        <span className="text-[11px] text-destructive" role="alert">
+          {error}
+        </span>
+      ) : null}
+    </>
+  );
+};
+
+const ThreadRow = ({
+  node,
+  now,
+  depth,
+  onOpen,
+  onApproval,
+}: RowHandlers & {
+  node: ThreadNode;
+  now: number;
+  depth: number;
+}) => (
   <li>
     <div
       className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-[13px] hover:bg-surface-2"
@@ -51,15 +125,38 @@ const ThreadRow = ({ node, now, depth }: { node: ThreadNode; now: number; depth:
           </span>
         ) : null}
       </span>
-      <span className="flex shrink-0 items-center gap-2 text-xs">
-        <span className={cn(STATUS_TONE[node.status])}>{STATUS_LABEL[node.status]}</span>
+      <span className="flex shrink-0 flex-wrap items-center justify-end gap-2 text-xs">
+        <span className={cn(STATUS_TONE[node.status])}>
+          {node.waitingFor === "approval" ? "Needs approval" : STATUS_LABEL[node.status]}
+        </span>
+        {node.waitingFor === "approval" && onApproval ? (
+          <ApprovalButtons onApproval={onApproval} terminalId={node.terminalId} />
+        ) : null}
+        {node.status === "needs-you" && onOpen ? (
+          <button
+            className="rounded border border-border px-1.5 text-[11px] text-foreground hover:bg-surface-2"
+            onClick={() => {
+              onOpen(node.terminalId);
+            }}
+            type="button"
+          >
+            Open
+          </button>
+        ) : null}
         <span className="text-muted-foreground">{formatAge(node.createdAt, now)}</span>
       </span>
     </div>
     {node.children.length > 0 ? (
       <ul className="m-0 list-none p-0">
         {node.children.map((child) => (
-          <ThreadRow depth={depth + 1} key={child.terminalId} node={child} now={now} />
+          <ThreadRow
+            depth={depth + 1}
+            key={child.terminalId}
+            node={child}
+            now={now}
+            onApproval={onApproval}
+            onOpen={onOpen}
+          />
         ))}
       </ul>
     ) : null}
@@ -73,7 +170,7 @@ const countWaiting = (nodes: readonly ThreadNode[]): number =>
   );
 
 /** Agents as a tree: a parent agent with the child agents it started nested under it, each with its status. */
-export const ThreadTree = ({ terminals, now }: ThreadTreeProps) => {
+export const ThreadTree = ({ terminals, now, onOpen, onApproval }: ThreadTreeProps) => {
   const [clock, setClock] = useState(() => now ?? Date.now());
 
   useEffect(() => {
@@ -105,7 +202,14 @@ export const ThreadTree = ({ terminals, now }: ThreadTreeProps) => {
       </p>
       <ul className="m-0 list-none p-0">
         {roots.map((node) => (
-          <ThreadRow depth={0} key={node.terminalId} node={node} now={now ?? clock} />
+          <ThreadRow
+            depth={0}
+            key={node.terminalId}
+            node={node}
+            now={now ?? clock}
+            onApproval={onApproval}
+            onOpen={onOpen}
+          />
         ))}
       </ul>
     </section>

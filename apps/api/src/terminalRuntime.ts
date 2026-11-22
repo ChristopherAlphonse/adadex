@@ -3,9 +3,10 @@ import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
-import type { TerminalSnapshot } from "@adadex/core";
+import type { PermissionDecision, TerminalSnapshot } from "@adadex/core";
 import {
   isSafeAgentFlagValue,
+  permissionAnswerKeys,
   LEGACY_TERMINAL_REGISTRY_FILENAME,
   TERMINAL_REGISTRY_FILENAME,
   WORKSPACE_RUNTIME_DIR,
@@ -966,6 +967,33 @@ export const createTerminalRuntime = ({
 
     writeInput(terminalId: string, data: string): boolean {
       return sessionRuntime.writeInput(terminalId, data);
+    },
+
+    /** Answers the permission prompt an agent is waiting on. Refuses unless the agent is waiting on exactly that. */
+    answerPermission(
+      terminalId: string,
+      decision: PermissionDecision,
+    ): { ok: true } | { ok: false; reason: string } {
+      const terminal = terminals.get(terminalId);
+      const session = sessions.get(terminalId);
+
+      if (!terminal || !session) {
+        return { ok: false, reason: "That terminal is not running." };
+      }
+
+      if (session.agentState !== "waiting_for_permission") {
+        return { ok: false, reason: "That agent is not waiting for a permission answer." };
+      }
+
+      const keys = permissionAnswerKeys(terminal.agentProvider ?? DEFAULT_AGENT_PROVIDER, decision);
+
+      if (keys === null) {
+        return { ok: false, reason: "Answering permission prompts is only supported for Claude." };
+      }
+
+      return sessionRuntime.writeInput(terminalId, keys)
+        ? { ok: true }
+        : { ok: false, reason: "Could not send the answer to the terminal." };
     },
 
     resizeTerminal(terminalId: string, cols: number, rows: number): boolean {

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { answerApproval } from "../app/answerApproval";
 import type { GraphNode } from "../app/canvas/types";
 import { useAgentRuntimeStates } from "../app/hooks/useAgentRuntimeStates";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
@@ -433,6 +434,25 @@ export const CanvasPrimaryView = ({
       handleCanvasPointerMove(e);
     },
     [dragNodeId, screenToGraph, moveNode, handleCanvasPointerMove],
+  );
+
+  const openTerminalFor = useCallback(
+    (terminalId: string) => {
+      const nodeId = buildActiveSessionNodeId(terminalId);
+      const node = nodesById.get(nodeId);
+
+      if (!node) return;
+
+      const resolvedNode = node.sessionId
+        ? (resolveActiveSessionNode(node.sessionId) ?? node)
+        : node;
+
+      setSelectedNodeId(nodeId);
+      setOpenTerminals((prev) =>
+        prev.has(nodeId) ? prev : new Map(prev).set(nodeId, { ...resolvedNode }),
+      );
+    },
+    [nodesById, resolveActiveSessionNode],
   );
 
   const handleNodeClick = useCallback(
@@ -1262,7 +1282,7 @@ export const CanvasPrimaryView = ({
           ) : null}
 
           <div className="absolute left-3 top-3 z-10 w-72 max-w-[40%] overflow-hidden rounded-xl border border-border bg-surface/90 backdrop-blur empty:hidden">
-            <ThreadTree terminals={columns} />
+            <ThreadTree onApproval={answerApproval} onOpen={openTerminalFor} terminals={columns} />
           </div>
 
           <ConsoleCanvasViewportControls

@@ -29,28 +29,43 @@ const createProcessor = (
 const readJson = (file: string) => JSON.parse(readFileSync(file, "utf8"));
 
 describe("agent hook install", () => {
-  it("writes grouped Claude Code hooks to .claude/settings.local.json and is idempotent", () => {
+  it("writes grouped Claude Code hooks to an Adadex-owned file and leaves the project's settings alone", () => {
     const dir = mkdtempSync(join(tmpdir(), "adadex-claude-"));
     const { installHooksInDirectory } = createProcessor(dir);
 
     installHooksInDirectory(dir, "claude");
     installHooksInDirectory(dir, "claude");
-    const { hooks } = readJson(join(dir, ".claude", "settings.local.json"));
+    const { hooks } = readJson(join(dir, ".adadex", "hooks", "claude.settings.json"));
 
     expect(hooks.Stop).toHaveLength(1);
     expect(hooks.Notification).toHaveLength(1);
     expect(hooks.PostToolUse).toBeUndefined();
+    expect(existsSync(join(dir, ".claude"))).toBe(false);
     expect(existsSync(join(dir, ".kiro"))).toBe(false);
   });
 
-  it("keeps the user's own Claude Code settings and hooks", () => {
+  it("removes only Adadex's entries from the project's old settings and keeps the user's own", () => {
     const dir = mkdtempSync(join(tmpdir(), "adadex-claude-"));
     mkdirSync(join(dir, ".claude"));
+
+    const adadexStop = {
+      matcher: "*",
+      hooks: [{ type: "command", command: "curl -s -X POST http://x/api/hooks/stop" }],
+    };
+
     writeFileSync(
       join(dir, ".claude", "settings.local.json"),
       JSON.stringify({
         model: "opus",
-        hooks: { Stop: [{ matcher: "*", hooks: [{ type: "command", command: "say done" }] }] },
+        hooks: {
+          Stop: [{ matcher: "*", hooks: [{ type: "command", command: "say done" }] }, adadexStop],
+          Notification: [
+            {
+              matcher: "*",
+              hooks: [{ type: "command", command: "curl http://x/api/hooks/notification" }],
+            },
+          ],
+        },
       }),
     );
 
@@ -58,7 +73,9 @@ describe("agent hook install", () => {
     const settings = readJson(join(dir, ".claude", "settings.local.json"));
 
     expect(settings.model).toBe("opus");
-    expect(settings.hooks.Stop).toHaveLength(2);
+    expect(settings.hooks.Stop).toHaveLength(1);
+    expect(JSON.stringify(settings.hooks.Stop)).toContain("say done");
+    expect(settings.hooks.Notification).toBeUndefined();
   });
 
   it("writes Kiro hooks without a Notification trigger and replaces stale copies", () => {
