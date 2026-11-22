@@ -5,6 +5,7 @@ import type { Duplex } from "node:stream";
 
 import type { TerminalSnapshot } from "@adadex/core";
 import {
+  isSafeAgentFlagValue,
   LEGACY_TERMINAL_REGISTRY_FILENAME,
   TERMINAL_REGISTRY_FILENAME,
   WORKSPACE_RUNTIME_DIR,
@@ -500,6 +501,8 @@ export const createTerminalRuntime = ({
     coordinationName,
     workspaceMode = "shared",
     agentProvider,
+    agentModel,
+    agentEffort,
     plainShell,
     initialPrompt,
     initialInputDraft,
@@ -514,6 +517,8 @@ export const createTerminalRuntime = ({
     coordinationName?: string;
     workspaceMode?: CoordinationWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
+    agentModel?: string;
+    agentEffort?: string;
     plainShell?: boolean;
     initialPrompt?: string;
     initialInputDraft?: string;
@@ -582,6 +587,14 @@ export const createTerminalRuntime = ({
       lifecycleState: "registered",
       lifecycleUpdatedAt: new Date().toISOString(),
     };
+
+    if (isSafeAgentFlagValue(agentModel)) {
+      terminal.agentModel = agentModel;
+    }
+
+    if (isSafeAgentFlagValue(agentEffort)) {
+      terminal.agentEffort = agentEffort;
+    }
 
     if (plainShell) {
       terminal.plainShell = true;

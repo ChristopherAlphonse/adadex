@@ -10,6 +10,7 @@ import {
   asRecord,
   isBoolean,
   isNumber,
+  isSafeAgentFlagValue,
   isString,
 } from "@adadex/core";
 
@@ -304,6 +305,10 @@ const parseV3Terminals = (
     if (isString(entry.parentTerminalId)) terminal.parentTerminalId = entry.parentTerminalId;
 
     if (isTerminalAgentProvider(entry.agentProvider)) terminal.agentProvider = entry.agentProvider;
+
+    if (isSafeAgentFlagValue(entry.agentModel)) terminal.agentModel = entry.agentModel;
+
+    if (isSafeAgentFlagValue(entry.agentEffort)) terminal.agentEffort = entry.agentEffort;
 
     if (entry.plainShell === true) terminal.plainShell = true;
 

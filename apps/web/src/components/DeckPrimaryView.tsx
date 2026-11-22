@@ -8,6 +8,7 @@ import type {
 import { asRecord, isObjectValue, isString, type ParsedValue } from "@adadex/core";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { launchSettingsToRequest, readAgentLaunchSettings } from "../app/agentLaunchOptions";
 import { useAgentProviderPreference } from "../app/hooks/useAgentProviderPreference";
 import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";
@@ -311,6 +312,7 @@ export const DeckPrimaryView = ({
           name: "coordination-planner",
           workspaceMode: "shared",
           agentProvider: selectedAgent,
+          ...launchSettingsToRequest(readAgentLaunchSettings()),
           promptTemplate: "coordination-planner",
         }),
       });

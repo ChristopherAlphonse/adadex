@@ -3,7 +3,7 @@ import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
-import { isNumber, isString } from "@adadex/core";
+import { buildAgentLaunchCommand, isNumber, isString } from "@adadex/core";
 import { type IPty, spawn } from "node-pty";
 import type { WebSocket, WebSocketServer } from "ws";
 
@@ -498,8 +498,11 @@ export const createSessionRuntime = ({
 
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
 
-    const bootstrapCommand =
-      TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
+    const bootstrapCommand = buildAgentLaunchCommand(
+      provider,
+      TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER],
+      { model: terminal?.agentModel, effort: terminal?.agentEffort },
+    );
 
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);

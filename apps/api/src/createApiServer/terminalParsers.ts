@@ -1,4 +1,10 @@
-import { TERMINAL_AGENT_PROVIDERS, isObjectValue, isString, type ParsedRecord } from "@adadex/core";
+import {
+  TERMINAL_AGENT_PROVIDERS,
+  isObjectValue,
+  isSafeAgentFlagValue,
+  isString,
+  type ParsedRecord,
+} from "@adadex/core";
 
 import {
   type CoordinationWorkspaceMode,
@@ -163,6 +169,50 @@ export const parseTerminalAgentProvider = (
     agentProvider: rawAgentProvider,
     error: null,
   };
+};
+
+type TerminalAgentFlagsParseResult = {
+  agentModel: string | undefined;
+  agentEffort: string | undefined;
+  error: string | null;
+};
+
+/** Optional `agentModel` and `agentEffort` for the agent CLI. Rejected when they are not safe to type into a shell. */
+export const parseTerminalAgentFlags = (
+  payload: JsonRequestPayload,
+): TerminalAgentFlagsParseResult => {
+  const none = { agentModel: undefined, agentEffort: undefined, error: null };
+
+  if (payload === null || payload === undefined || !isObjectValue(payload)) {
+    return none;
+  }
+
+  // SAFETY: the parse boundary produced ParsedValue members; missing keys read as undefined.
+  const record = payload as ParsedRecord;
+
+  const values: Record<"agentModel" | "agentEffort", string | undefined> = {
+    agentModel: undefined,
+    agentEffort: undefined,
+  };
+
+  for (const key of ["agentModel", "agentEffort"] as const) {
+    const raw = record[key];
+
+    if (raw === undefined || raw === null || raw === "") {
+      continue;
+    }
+
+    if (!isSafeAgentFlagValue(raw)) {
+      return {
+        ...none,
+        error: `${key} may only contain letters, digits and . _ : / - (up to 80 characters).`,
+      };
+    }
+
+    values[key] = raw;
+  }
+
+  return { ...values, error: null };
 };
 
 export const parseTerminalNameOrigin = (

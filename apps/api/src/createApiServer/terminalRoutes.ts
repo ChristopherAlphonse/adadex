@@ -25,6 +25,7 @@ import {
   writeNoContent,
 } from "./routeHelpers";
 import {
+  parseTerminalAgentFlags,
   parseTerminalAgentProvider,
   parseTerminalName,
   parseTerminalNameOrigin,
@@ -38,6 +39,8 @@ type CreateTerminalApiInput = {
   coordinationName?: string;
   workspaceMode: CoordinationWorkspaceMode;
   agentProvider?: TerminalAgentProvider;
+  agentModel?: string;
+  agentEffort?: string;
   plainShell?: boolean;
   nameOrigin?: TerminalNameOrigin;
   initialPrompt?: string;
@@ -143,6 +146,14 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     return true;
   }
 
+  const agentFlagsResult = parseTerminalAgentFlags(bodyReadResult.payload);
+
+  if (agentFlagsResult.error) {
+    writeJson(response, 400, { error: agentFlagsResult.error }, corsOrigin);
+
+    return true;
+  }
+
   const nameOriginResult = parseTerminalNameOrigin(bodyReadResult.payload);
 
   if (nameOriginResult.error) {
@@ -162,6 +173,14 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 
     if (agentProviderResult.agentProvider !== undefined) {
       createTerminalInput.agentProvider = agentProviderResult.agentProvider;
+    }
+
+    if (agentFlagsResult.agentModel !== undefined) {
+      createTerminalInput.agentModel = agentFlagsResult.agentModel;
+    }
+
+    if (agentFlagsResult.agentEffort !== undefined) {
+      createTerminalInput.agentEffort = agentFlagsResult.agentEffort;
     }
 
     if (nameOriginResult.nameOrigin !== undefined) {
