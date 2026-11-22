@@ -42,7 +42,7 @@ The Electron desktop app is in progress; see [plans/PLAN.md](docs/plans/PLAN.md)
 
 ## Run in Docker (preferred)
 
-**Docker is the preferred way to run Adadex.** Running it directly on your machine gives every npm package and agent CLI it pulls in full access to your files and credentials. Use the options under [Install](#install) only for development on Adadex itself.
+**Docker is the preferred way to run Adadex.** Running it directly on your machine gives every npm package and agent CLI it pulls in full access to your files and credentials. Use the options under [Install](#install-without-docker-not-sandboxed) only for development on Adadex itself.
 
 The image bundles Adadex plus Claude Code, Codex, OpenCode and Kiro CLI. You only need Docker with Compose.
 
@@ -70,6 +70,25 @@ docker compose -f docker-compose.yml -f docker-compose.offline.yml up   # no net
 What the sandbox enforces: a read-only root filesystem, a non-root user with every capability dropped, no host home or Docker socket, and no direct internet. All traffic leaves through a proxy that allows only the domains in [`docker/edge/allowlist.txt`](docker/edge/allowlist.txt). The UI is published on `127.0.0.1` only.
 
 What it does not protect: your workspace folder is read-write, and allowed domains can carry data out. Use a dedicated clone and review diffs before running anything on your host. Codex is installed in the image, but Adadex cannot launch it from its UI yet. Full details: [Docker Sandbox guide](docs/guides/docker-sandbox.md).
+
+### Offline mode
+
+For local-only work with no network at all:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.offline.yml up
+```
+
+This removes the egress proxy, so the container has no route out. Agents that need a hosted model API (Claude, Codex, Kiro, hosted OpenCode models) will not work in this mode.
+
+### How the image is built
+
+- Base images are pinned by digest, and the agent CLIs install from lockfiles (`docker/agents/`). Kiro is pinned by version and sha256.
+- Dependencies install with `--ignore-scripts`, so no package runs code during install.
+- Compiling node-pty and the whole Adadex build run with `--network=none`, so a compromised build tool cannot send anything out while the image builds.
+- The final image has no compiler and runs as a non-root user.
+
+The dependency download step still needs the network. To bump an agent or base image, see [Maintenance](docs/guides/docker-sandbox.md#maintenance).
 
 ## Install (without Docker, not sandboxed)
 
