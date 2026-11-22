@@ -45,7 +45,9 @@ services:
       # Agent logins, npm cache and Adadex state live here, not on your host.
       - adadex-home:/home/adadex
     tmpfs:
-      - /tmp:rw,nosuid,nodev,size=1g
+      # Docker mounts tmpfs noexec by default. OpenCode (a Bun binary) unpacks a native library
+      # into /tmp and loads it, so /tmp needs exec. It is size-limited and wiped on every restart.
+      - /tmp:rw,exec,nosuid,nodev,size=1g
     networks: [sandbox]
     depends_on: [egress]
     pids_limit: 1024

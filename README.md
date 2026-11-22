@@ -67,6 +67,13 @@ ADADEX_PORT=9000 docker compose up    # use another host port (still loopback on
 docker compose -f docker-compose.yml -f docker-compose.offline.yml up   # no network at all
 ```
 
+If you run Compose from the project directory instead of the Adadex clone, point `-f` at the clone's compose file and pass the workspace explicitly (replace the path with your own Adadex clone):
+
+```bash
+ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml up --build
+ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml down
+```
+
 What the sandbox enforces: a read-only root filesystem, a non-root user with every capability dropped, no host home or Docker socket, and no direct internet. All traffic leaves through a proxy that allows only the domains in [`docker/edge/allowlist.txt`](docker/edge/allowlist.txt). The UI is published on `127.0.0.1` only.
 
 What it does not protect: your workspace folder is read-write, and allowed domains can carry data out. Use a dedicated clone and review diffs before running anything on your host. Codex is installed in the image, but Adadex cannot launch it from its UI yet. Full details: [Docker Sandbox guide](docs/guides/docker-sandbox.md).
