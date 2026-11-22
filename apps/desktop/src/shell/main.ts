@@ -117,7 +117,7 @@ const smokeBoard = async (w: BrowserWindow): Promise<SmokeBoardResult> => {
       }
       throw new Error("timed out waiting for " + what);
     };
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "8" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "7" }));
     const view = await until(() => document.querySelector('[aria-label="Factory primary view"]'), "factory view");
     const card = await until(() => view.querySelector('[aria-label="Job Smoke job"]'), "job card");
     const stage = card.closest('section[aria-label^="Stage "]').getAttribute("aria-label");
