@@ -29,13 +29,39 @@ const messages: TranscriptMessage[] = [
 ];
 
 describe("ConversationChatThread", () => {
-  it("renders tool calls with diff, sub-agent chip, and hides tool-result messages", () => {
+  it("groups tool calls into one work summary with an edited-files card", () => {
     const { container } = render(<ConversationChatThread messages={messages} />);
 
     expect(screen.getByText("Editing now")).toBeTruthy();
+    expect(screen.getByText("Worked")).toBeTruthy();
+    expect(screen.getByText("2 tool calls")).toBeTruthy();
+    expect(screen.getByText("1 file")).toBeTruthy();
+    expect(screen.getByText("Edited 1 file")).toBeTruthy();
     expect(screen.getByText("sub-agent")).toBeTruthy();
-    expect(container.querySelector('[data-kind="del"]')?.textContent).toContain("-foo");
-    expect(container.querySelector('[data-kind="add"]')?.textContent).toContain("+bar");
-    expect(container.querySelectorAll("li")).toHaveLength(1);
+    expect(container.textContent).toContain("-foo");
+    expect(container.textContent).toContain("+bar");
+  });
+
+  it("shows how long the agent worked when timestamps are present", () => {
+    const timed = messages.map((message, index) => ({
+      ...message,
+      timestamp: `2026-11-22T00:00:0${index * 9}.000Z`,
+    }));
+
+    render(<ConversationChatThread messages={timed} />);
+    expect(screen.getByText("Worked 9s")).toBeTruthy();
+  });
+
+  it("puts each user message in its own turn", () => {
+    const withUser: TranscriptMessage[] = [
+      { id: "u0", role: "user", timestamp: null, blocks: [{ kind: "text", text: "fix it" }] },
+      ...messages,
+    ];
+
+    const { container } = render(<ConversationChatThread messages={withUser} />);
+
+    expect(screen.getByText("fix it")).toBeTruthy();
+    expect(container.querySelectorAll('li[data-role="user"]')).toHaveLength(1);
+    expect(container.querySelectorAll('li[data-role="assistant"]')).toHaveLength(1);
   });
 });

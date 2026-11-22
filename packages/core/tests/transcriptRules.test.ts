@@ -13,6 +13,15 @@ describe("transcript rules", () => {
     expect(d?.lines.map((l) => l.kind)).toEqual(["del", "add"]);
   });
 
+  it("shows only the changed lines of an Edit", () => {
+    const d = extractDiff("Edit", {
+      old_string: "keep\nold\nend",
+      new_string: "keep\nnew one\nnew two\nend",
+    });
+
+    expect(d?.lines.map((l) => l.text)).toEqual(["-old", "+new one", "+new two"]);
+  });
+
   it("caps long diffs", () => {
     const d = extractDiff("Write", { content: "x\n".repeat(500) });
     expect(d?.lines).toHaveLength(DIFF_MAX_LINES);

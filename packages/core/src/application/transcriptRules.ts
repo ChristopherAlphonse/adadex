@@ -43,6 +43,32 @@ const classifyPatchLine = (line: string): DiffLine => {
   return { kind: "context", text: line };
 };
 
+/** Drops the lines the old and new text share at the start and end, so only the real change is shown. */
+const changedLines = (oldText: string, newText: string) => {
+  const before = oldText.split("\n");
+  const after = newText.split("\n");
+  let start = 0;
+
+  while (start < before.length && start < after.length && before[start] === after[start]) {
+    start += 1;
+  }
+
+  let end = 0;
+
+  while (
+    end < before.length - start &&
+    end < after.length - start &&
+    before[before.length - 1 - end] === after[after.length - 1 - end]
+  ) {
+    end += 1;
+  }
+
+  return {
+    old: before.slice(start, before.length - end).join("\n"),
+    next: after.slice(start, after.length - end).join("\n"),
+  };
+};
+
 const prefixedLines = (kind: "add" | "del", prefix: string, text: string): DiffLine[] =>
   text.split("\n").map((line) => ({ kind, text: `${prefix}${line}` }));
 
@@ -76,7 +102,12 @@ export const extractDiff = (name: string, input: ParsedRecord): DiffExtract | nu
   const newText = asString(input.new_string);
 
   if (lower === "edit" && oldText !== null && newText !== null) {
-    return capDiff([...prefixedLines("del", "-", oldText), ...prefixedLines("add", "+", newText)]);
+    const changed = changedLines(oldText, newText);
+
+    return capDiff([
+      ...(changed.old === "" ? [] : prefixedLines("del", "-", changed.old)),
+      ...(changed.next === "" ? [] : prefixedLines("add", "+", changed.next)),
+    ]);
   }
 
   const content = asString(input.content);
