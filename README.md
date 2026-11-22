@@ -56,7 +56,18 @@ docker compose up --build
 # 3. Open http://127.0.0.1:8787
 ```
 
-Sign in to each agent once from an Adadex terminal (`claude`, `opencode auth login`, `kiro-cli login`). Logins are kept in the `adadex-home` Docker volume, never on your host.
+The workspace must be a git clone (its `.git/hooks` folder is mounted read-only), and it is mounted read-write, so use a dedicated clone.
+
+Sign in to each agent once from an Adadex terminal (`claude`, `opencode auth login`, `kiro-cli login`). Logins are kept in the `adadex-home` Docker volume, never on your host. The volume is shared by every project you run, so you sign in once until you run `docker compose down -v`.
+
+**Skip the Claude Code login with a token.** Run `claude setup-token` on your host, then pass the token for that run only:
+
+```bash
+read -s CLAUDE_CODE_OAUTH_TOKEN && export CLAUDE_CODE_OAUTH_TOKEN   # paste the token; it is not echoed or saved in history
+ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml up --build
+```
+
+The token is passed into the container only when it is set in your shell, and it overrides a login stored in the volume. Any process in the container can read it, and it shows up in `docker inspect`. Do not put it in `.env` or commit it, and revoke it from your Claude account if it leaks. Do not mount `~/.claude` or `~/.claude.json` into the container: they hold your global settings, hooks and MCP configs.
 
 ```bash
 docker compose up -d                  # start in the background
@@ -74,7 +85,9 @@ ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml up
 ADADEX_WORKSPACE="$PWD" docker compose -f ~/Desktop/adadex/docker-compose.yml down
 ```
 
-What the sandbox enforces: a read-only root filesystem, a non-root user with every capability dropped, no host home or Docker socket, and no direct internet. All traffic leaves through a proxy that allows only the domains in [`docker/edge/allowlist.txt`](docker/edge/allowlist.txt). The UI is published on `127.0.0.1` only.
+What the sandbox enforces: a read-only root filesystem, a non-root user with every capability dropped, no host home or Docker socket, and no direct internet. All traffic leaves through a proxy that allows only the domains in [`docker/edge/allowlist.txt`](docker/edge/allowlist.txt). The UI is published on `127.0.0.1` only. Agent auto-update is switched off, so versions change only when you rebuild.
+
+Start it with `docker compose`, not `docker run`. The image checks at start-up that capabilities are dropped, `no-new-privileges` is set, the root filesystem is read-only and there is no default route to the internet, and it exits with a message if not. To develop Adadex itself without the sandbox, set `ADADEX_ALLOW_UNSANDBOXED=1`.
 
 What it does not protect: your workspace folder is read-write, and allowed domains can carry data out. Use a dedicated clone and review diffs before running anything on your host. Codex is installed in the image, but Adadex cannot launch it from its UI yet. Full details: [Docker Sandbox guide](docs/guides/docker-sandbox.md).
 

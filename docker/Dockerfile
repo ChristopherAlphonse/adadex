@@ -89,6 +89,8 @@ ENV NODE_ENV=production \
     ADADEX_PACKAGE_ROOT=/opt/adadex \
     ADADEX_NO_OPEN=1 \
     NODE_USE_ENV_PROXY=1 \
+    DISABLE_AUTOUPDATER=1 \
+    OPENCODE_DISABLE_AUTOUPDATE=true \
     HOME=/home/adadex
 
 USER adadex

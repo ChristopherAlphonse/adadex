@@ -23,6 +23,7 @@ chatgpt.com
 
 # OpenCode
 opencode.ai
+models.opencode.ai
 models.dev
 
 # Kiro: sign-in and service endpoints. Kept to exact hosts on purpose: a wildcard such as

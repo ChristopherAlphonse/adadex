@@ -27,6 +27,7 @@ services:
       HTTPS_PROXY: http://egress:3128
       HTTP_PROXY: http://egress:3128
       NO_PROXY: localhost,127.0.0.1,::1
+      CLAUDE_CODE_OAUTH_TOKEN:
     volumes:
       # The one project the agents may touch. Use a dedicated clone, not your main checkout.
       - type: bind
