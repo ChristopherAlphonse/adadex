@@ -236,7 +236,7 @@ describe("rich-chat selection Reply", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reply" }));
 
     expect(onReply).toHaveBeenCalledOnce();
-    expect(onReply.mock.calls[0][0]).toContain("Working on it");
+    expect(onReply.mock.calls[0]?.[0]).toContain("Working on it");
   });
 
   it("shows only Copy when no onReply handler is supplied", () => {
