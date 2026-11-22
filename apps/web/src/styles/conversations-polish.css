@@ -187,3 +187,16 @@
   letter-spacing: 0;
   text-transform: none;
 }
+
+/* Conversations: the session avatar is the cute mascot, with no letter circle behind it. */
+.design-console .sidebar-conversation-avatar {
+  background: none;
+  border-radius: 0;
+  height: 40px;
+  overflow: visible;
+  width: 40px;
+}
+
+.design-console .sidebar-conversation-avatar .cute-mascot {
+  display: block;
+}

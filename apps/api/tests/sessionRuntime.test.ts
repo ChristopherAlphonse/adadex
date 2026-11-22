@@ -207,6 +207,55 @@ describe("createSessionRuntime", () => {
     runtime.close();
   });
 
+  it("prepares the agent's hooks before the agent CLI is launched", () => {
+    const coordinationId = "orchestration-1";
+
+    const terminals = new Map<string, PersistedTerminal>([
+      [
+        coordinationId,
+        {
+          terminalId: coordinationId,
+          coordinationId,
+          coordinationName: coordinationId,
+          createdAt: new Date().toISOString(),
+          workspaceMode: "shared",
+        },
+      ],
+    ]);
+
+    const websocketServer = new FakeWebSocketServer();
+    const pty = new FakePty();
+    spawnMock.mockReturnValue(pty);
+
+    const callOrder: string[] = [];
+    const prepareAgentLaunch = vi.fn(() => callOrder.push("prepare"));
+    pty.write.mockImplementation(() => callOrder.push("launch"));
+
+    const runtime = createSessionRuntime({
+      websocketServer: asRuntimeWebSocketServer(websocketServer),
+      terminals,
+      sessions: new Map<string, TerminalSession>(),
+      getOrchestrationWorkspaceCwd: () => process.cwd(),
+      isDebugPtyLogsEnabled: false,
+      ptyLogDir: process.cwd(),
+      transcriptDirectoryPath: createTemporaryDirectory(),
+      prepareAgentLaunch,
+    });
+
+    websocketServer.nextSocket = new FakeWebSocket();
+
+    runtime.handleUpgrade(
+      createUpgradeRequest(coordinationId),
+      /* SAFETY: the upgrade handler only forwards the duplex, so the fake needs no socket members. */ {} as Duplex,
+      Buffer.alloc(0),
+    );
+
+    expect(prepareAgentLaunch).toHaveBeenCalledWith(process.cwd(), expect.any(String));
+    expect(callOrder).toEqual(["prepare", "launch"]);
+
+    runtime.close();
+  });
+
   it("closes idle sessions after the configured grace timeout", () => {
     vi.useFakeTimers();
 

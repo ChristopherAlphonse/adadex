@@ -1,6 +1,8 @@
 import { ChevronUp, ListTodo, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { cn } from "@/lib/utils";
+
 import { useConversationChat } from "../../app/hooks/useConversationChat";
 import { useSessionStats } from "../../app/hooks/useSessionStats";
 import { useWorkspaceSetupOverlay } from "../../app/hooks/useWorkspaceSetupOverlay";
@@ -205,7 +207,7 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
         sessions={columns}
       />
 
-      <div className="flex min-h-0 min-w-[26rem] flex-1 flex-col">
+      <div className={cn("flex min-h-0 min-w-[26rem] flex-1 flex-col", isGraphOpen && "hidden")}>
         {shouldShowSetup && setupOverlay === "expanded" ? (
           <div className="p-3">
             <WorkspaceSetupCard
@@ -230,24 +232,26 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
           </div>
         ) : null}
         {shouldShowSetup && setupOverlay === "minimized" ? (
-          <button
-            aria-label={
-              incompleteSteps > 0
-                ? `Expand workspace setup, ${incompleteSteps} steps incomplete`
-                : "Expand workspace setup"
-            }
-            className="workspace-setup-minimized-bar m-3"
-            onClick={() => {
-              setSetupOverlay("expanded");
-            }}
-            type="button"
-          >
-            <ListTodo aria-hidden size={16} strokeWidth={2} />
-            <span className="workspace-setup-minimized-bar-label">
-              Workspace setup{incompleteSteps > 0 ? ` · ${incompleteSteps} incomplete` : ""}
-            </span>
-            <ChevronUp aria-hidden size={16} strokeWidth={2} />
-          </button>
+          <div className="agents-setup-bar shrink-0 p-3 pb-0">
+            <button
+              aria-label={
+                incompleteSteps > 0
+                  ? `Expand workspace setup, ${incompleteSteps} steps incomplete`
+                  : "Expand workspace setup"
+              }
+              className="workspace-setup-minimized-bar"
+              onClick={() => {
+                setSetupOverlay("expanded");
+              }}
+              type="button"
+            >
+              <ListTodo aria-hidden size={16} strokeWidth={2} />
+              <span className="workspace-setup-minimized-bar-label">
+                Workspace setup{incompleteSteps > 0 ? ` · ${incompleteSteps} incomplete` : ""}
+              </span>
+              <ChevronUp aria-hidden size={16} strokeWidth={2} />
+            </button>
+          </div>
         ) : null}
         {selected ? (
           <>
@@ -315,7 +319,7 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
       {isGraphOpen ? (
         <aside
           aria-label="Graph view"
-          className="flex min-h-0 w-[min(52%,52rem)] shrink-0 flex-col border-l border-border bg-surface/40"
+          className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-border bg-surface/40"
         >
           <button
             aria-label="Close graph"

@@ -646,6 +646,29 @@ const AppShell = () => {
 
                 return isString(terminalId) ? terminalId : undefined;
               },
+              onDeckLeadRunSwarm: async (coordinationId, coordinationName, openTodoCount) => {
+                const response = await fetch("/api/terminals", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    workspaceMode: "shared",
+                    coordinationId: DECK_LEAD_ID,
+                    promptTemplate: "deck-lead-run-swarm",
+                    promptVariables: {
+                      coordinationId,
+                      coordinationName,
+                      openTodoCount: String(openTodoCount),
+                    },
+                  }),
+                });
+
+                if (!response.ok) return undefined;
+                const snapshot = asRecord(await response.json());
+                await refreshColumns();
+                const terminalId = snapshot?.terminalId;
+
+                return isString(terminalId) ? terminalId : undefined;
+              },
               onOrchestrationAction: async (coordinationId, action) => {
                 const response = await fetch("/api/terminals", {
                   method: "POST",

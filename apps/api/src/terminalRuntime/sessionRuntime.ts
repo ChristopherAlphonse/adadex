@@ -34,6 +34,7 @@ import { toErrorMessage } from "./systemClients";
 import type {
   DirectSessionListener,
   PersistedTerminal,
+  TerminalAgentProvider,
   TerminalSession,
   TerminalSessionEndDetails,
   TerminalSessionStartDetails,
@@ -69,6 +70,11 @@ type CreateSessionRuntimeOptions = {
     coordinationId: string;
   }) => void;
   onProcessExit?: (sessionId: string) => void;
+  /**
+   * Called right before the agent CLI launches, so its hook settings exist even when `.adadex` was removed after
+   * the terminal was created. Without them the session runs but never reports a chat.
+   */
+  prepareAgentLaunch?: (workingDirectory: string, agentProvider: TerminalAgentProvider) => void;
 };
 
 export const createSessionRuntime = ({
@@ -89,6 +95,7 @@ export const createSessionRuntime = ({
   signalGroup,
   onProcessSpawn,
   onProcessExit,
+  prepareAgentLaunch,
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
   const DEFAULT_PTY_ROWS = 35;
@@ -392,6 +399,10 @@ export const createSessionRuntime = ({
     }
 
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
+
+    try {
+      prepareAgentLaunch?.(session.workingDirectory, provider);
+    } catch {}
 
     const bootstrapCommand = buildAgentLaunchCommand(
       provider,

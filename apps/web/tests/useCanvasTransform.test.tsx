@@ -36,6 +36,7 @@ describe("useCanvasTransform fitAll", () => {
     expect(result.current.transform.scale).toBe(1);
   });
 
+  // Padding is 12% of the shorter side (72px of a 600px-high canvas), so small canvases are not wasted.
   it("includes node radii when sizing the fitted graph", () => {
     const { result } = renderHook(() => useCanvasTransform());
 
@@ -48,6 +49,6 @@ describe("useCanvasTransform fitAll", () => {
       ]);
     });
 
-    expect(result.current.transform.scale).toBeCloseTo(600 / 2104, 3);
+    expect(result.current.transform.scale).toBeCloseTo((1000 - 2 * 72) / 2104, 3);
   });
 });

@@ -3378,4 +3378,78 @@ describe("createApiServer", () => {
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([]);
   });
+
+  it("updates and clears a terminal's persisted launch options through the PATCH route", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const registryPath = join(workspaceCwd, ".adadex", "state", "coordinations.json");
+    mkdirSync(join(workspaceCwd, ".adadex", "state"), { recursive: true });
+    writeFileSync(
+      registryPath,
+      `${JSON.stringify(
+        {
+          version: 3,
+          terminals: [
+            {
+              terminalId: "terminal-1",
+              coordinationId: "terminal-1",
+              coordinationName: "planner",
+              createdAt: "2026-04-09T10:00:00.000Z",
+              workspaceMode: "shared",
+              agentProvider: "claude",
+              agentModel: "claude-opus-5-5",
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const baseUrl = await startServer({ workspaceCwd });
+    const url = `${baseUrl}/api/terminals/terminal-1/launch-options`;
+
+    const invalidResponse = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentModel: "opus; rm -rf /" }),
+    });
+
+    expect(invalidResponse.status).toBe(400);
+    await expect(invalidResponse.json()).resolves.toEqual({
+      error: expect.stringContaining("agentModel"),
+    });
+
+    const updateResponse = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentEffort: "high" }),
+    });
+
+    expect(updateResponse.status).toBe(200);
+    await expect(updateResponse.json()).resolves.toEqual(
+      expect.objectContaining({ agentModel: "claude-opus-5-5", agentEffort: "high" }),
+    );
+
+    const clearResponse = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentModel: "" }),
+    });
+
+    expect(clearResponse.status).toBe(200);
+    const clearedSnapshot = await clearResponse.json();
+
+    expect(clearedSnapshot).toEqual(expect.objectContaining({ agentEffort: "high" }));
+    expect(clearedSnapshot).not.toHaveProperty("agentModel");
+
+    const missingResponse = await fetch(`${baseUrl}/api/terminals/unknown/launch-options`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentEffort: "low" }),
+    });
+
+    expect(missingResponse.status).toBe(404);
+  });
 });

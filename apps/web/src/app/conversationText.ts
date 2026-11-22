@@ -89,3 +89,19 @@ export const formatDay = (value: string | null): string => {
     ? new Date(parsed).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     : "";
 };
+
+/**
+ * A session is live unless its most recent lifecycle event is an end. A record can hold several runs (a terminal id
+ * that was used again), so an old end event must not lock a session that has started since.
+ */
+export const isSessionLive = (events: readonly { type: string }[]): boolean => {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const type = events[index]?.type;
+
+    if (type === "session_end") return false;
+
+    if (type === "session_start") return true;
+  }
+
+  return true;
+};

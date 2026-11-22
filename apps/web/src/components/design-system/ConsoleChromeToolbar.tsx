@@ -1,10 +1,9 @@
-import { EyeOff, Maximize2, RefreshCw, Settings2, TerminalSquare } from "lucide-react";
+import { EyeOff, RefreshCw, Settings2, TerminalSquare } from "lucide-react";
 
 type ConsoleChromeToolbarProps = {
   hideIdle: boolean;
   onToggleHideIdle: () => void;
   onCreateTerminal?: () => void;
-  onFitView?: () => void;
   onRefresh?: () => void;
   onDeleteAll?: () => void;
   onNewAgent?: () => void;
@@ -13,8 +12,7 @@ type ConsoleChromeToolbarProps = {
 };
 
 const TOOLBAR_ACTIONS = [
-  { id: "terminal", label: "Terminal", icon: TerminalSquare },
-  { id: "fit", label: "Fit", icon: Maximize2 },
+  { id: "terminal", label: "New terminal", icon: TerminalSquare },
   { id: "refresh", label: "Refresh", icon: RefreshCw },
   { id: "hide-idle", label: "Hide Idle", icon: EyeOff },
   { id: "setup", label: "Setup", icon: Settings2 },
@@ -24,7 +22,6 @@ export const ConsoleChromeToolbar = ({
   hideIdle,
   onToggleHideIdle,
   onCreateTerminal,
-  onFitView,
   onRefresh,
   onDeleteAll,
   onNewAgent,
@@ -35,9 +32,6 @@ export const ConsoleChromeToolbar = ({
     switch (id) {
       case "terminal":
         onCreateTerminal?.();
-        break;
-      case "fit":
-        onFitView?.();
         break;
       case "refresh":
         onRefresh?.();
@@ -82,7 +76,7 @@ export const ConsoleChromeToolbar = ({
         <button
           type="button"
           onClick={onDeleteAll}
-          className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[14.5px] font-medium text-destructive transition-colors hover:bg-destructive/10"
+          className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
         >
           <svg
             className="size-3.5"
@@ -101,11 +95,6 @@ export const ConsoleChromeToolbar = ({
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="flex items-center gap-1.5 text-[14px] text-muted-foreground">
-          <span className="size-1.5 animate-pulse rounded-full bg-running" />
-          <span>Auto-refresh in 12s</span>
-        </div>
-        <div className="mx-1 h-4 w-px bg-border" />
         <button
           type="button"
           onClick={onNewAgent ?? onCreateTerminal}

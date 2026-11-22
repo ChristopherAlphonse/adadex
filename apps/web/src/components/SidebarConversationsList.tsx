@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { formatRelativeTime, toGist, toTitle } from "../app/conversationText";
+import { MASCOT_COLORS } from "../app/mascotPalette";
 import type { ConversationSearchHit, ConversationSessionSummary } from "../app/types";
-
-const AVATAR_HUES = [210, 262, 152, 28, 340, 186];
+import { CuteMascot } from "./deck/CuteMascot";
 
 const getSessionTitle = (session: ConversationSessionSummary): string =>
   toTitle(session.firstUserTurnPreview, session.sessionId, 40);
 
-const getAvatarHue = (sessionId: string): number => {
+const getMascotColor = (sessionId: string): string => {
   let hash = 0;
 
   for (const char of sessionId) {
     hash = (hash * 31 + char.charCodeAt(0)) % 997;
   }
 
-  return AVATAR_HUES[hash % AVATAR_HUES.length] ?? 210;
+  return MASCOT_COLORS[hash % MASCOT_COLORS.length] ?? "#b79cf0";
 };
 
 const getSessionSortTimestamp = (session: ConversationSessionSummary): number => {
@@ -303,15 +303,12 @@ export const SidebarConversationsList = ({
                   }}
                   type="button"
                 >
-                  <span
-                    aria-hidden="true"
-                    className="sidebar-conversation-avatar"
-                    style={
-                      /* SAFETY: React passes custom properties through; "--avatar-hue" is a valid CSS variable name. */
-                      { "--avatar-hue": getAvatarHue(session.sessionId) } as React.CSSProperties
-                    }
-                  >
-                    {getSessionTitle(session).charAt(0).toUpperCase()}
+                  <span aria-hidden="true" className="sidebar-conversation-avatar">
+                    <CuteMascot
+                      color={getMascotColor(session.sessionId)}
+                      size={36}
+                      state={session.endedAt ? "sleeping" : "idle"}
+                    />
                   </span>
                   <span className="sidebar-conversation-body">
                     <span className="sidebar-conversation-top">

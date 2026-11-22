@@ -49,48 +49,5 @@ describe("TerminalChatPane Chat/Terminal mode toggle", () => {
   });
 });
 
-describe("chat-model-pill rendering", () => {
-  it("renders the model pill with aria-label Switch model or effort", () => {
-    render(
-      <div>
-        <button
-          aria-label="Switch model or effort"
-          className="chat-model-pill"
-          onClick={() => {
-            /* noop */
-          }}
-          title="Option+P / Alt+P to switch model"
-          type="button"
-        >
-          claude · default
-        </button>
-      </div>,
-    );
-
-    const pill = screen.getByRole("button", { name: "Switch model or effort" });
-    expect(pill).toBeTruthy();
-    expect(pill.textContent).toContain("claude");
-    expect(pill.textContent).toContain("default");
-  });
-});
-
-describe("Alt+G keydown toggle", () => {
-  it("toggles chatTerminalMode when Alt+G is fired on window", () => {
-    // We test the keydown toggle indirectly by verifying the event fires
-    // without throwing. Full integration requires mocked fetch; we verify
-    // the event handler infrastructure by firing on a minimal harness.
-    let toggleCount = 0;
-
-    const handler = (event: KeyboardEvent) => {
-      if (event.altKey && (event.key === "g" || event.key === "G")) {
-        toggleCount++;
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    fireEvent.keyDown(window, { key: "g", altKey: true });
-    window.removeEventListener("keydown", handler);
-
-    expect(toggleCount).toBe(1);
-  });
-});
+// The model pill and its Alt+P shortcut are covered against the real
+// ConversationsPrimaryView in conversations-stop-and-model.test.tsx.

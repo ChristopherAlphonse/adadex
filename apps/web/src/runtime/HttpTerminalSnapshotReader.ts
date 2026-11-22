@@ -59,6 +59,8 @@ const isTerminalSnapshot = (value: ParsedValue): value is TerminalSnapshot => {
     (snapshot.workspaceMode === undefined ||
       snapshot.workspaceMode === "shared" ||
       snapshot.workspaceMode === "worktree") &&
+    (snapshot.agentModel === undefined || typeof snapshot.agentModel === "string") &&
+    (snapshot.agentEffort === undefined || typeof snapshot.agentEffort === "string") &&
     typeof snapshot.createdAt === "string" &&
     (snapshot.lifecycleState === undefined || isLifecycleState(snapshot.lifecycleState)) &&
     (snapshot.lifecycleReason === undefined || typeof snapshot.lifecycleReason === "string") &&

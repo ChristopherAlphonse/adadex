@@ -34,13 +34,19 @@ export const allocateTerminalId = (
   terminals: ReadonlyMap<string, PersistedTerminal>,
   sessions: ReadonlyMap<string, TerminalSession>,
   hasWorktree: (terminalId: string) => boolean,
+  hasTranscript: (terminalId: string) => boolean = () => false,
 ): string => {
   let candidateNumber = 1;
 
   while (candidateNumber < Number.MAX_SAFE_INTEGER) {
     const candidateId = `${TERMINAL_ID_PREFIX}${candidateNumber}`;
 
-    if (terminals.has(candidateId) || sessions.has(candidateId) || hasWorktree(candidateId)) {
+    if (
+      terminals.has(candidateId) ||
+      sessions.has(candidateId) ||
+      hasWorktree(candidateId) ||
+      hasTranscript(candidateId)
+    ) {
       candidateNumber += 1;
       continue;
     }
@@ -108,6 +114,14 @@ export const toTerminalSnapshot = (
 
   if (session) {
     snapshot.agentRuntimeState = session.agentState;
+  }
+
+  if (terminal.agentModel) {
+    snapshot.agentModel = terminal.agentModel;
+  }
+
+  if (terminal.agentEffort) {
+    snapshot.agentEffort = terminal.agentEffort;
   }
 
   if (terminal.lifecycleReason) {

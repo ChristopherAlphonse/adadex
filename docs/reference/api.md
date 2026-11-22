@@ -15,6 +15,7 @@ Most HTTP routes either read/write persisted files or create runtime records. We
 - `POST /api/terminals` - creates a new terminal session
 - `POST /api/terminals/prune` - removes terminal records with `stale`, `stopped`, or `exited` lifecycle state
 - `PATCH /api/terminals/:terminalId` - updates terminal metadata such as the display name
+- `PATCH /api/terminals/:terminalId/launch-options` - updates `agentModel` / `agentEffort` for the terminal's next agent launch; an empty string clears a flag
 - `DELETE /api/terminals/:terminalId` - removes a terminal and closes its active session
 - `POST /api/terminals/:terminalId/stop` - stops an active session or recorded stale process
 - `POST /api/terminals/:terminalId/kill` - kills an active session or recorded stale process

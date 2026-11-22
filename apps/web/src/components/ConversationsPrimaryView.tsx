@@ -1,10 +1,15 @@
+import { AlignLeft, Braces, Eye, FileText, MessageSquare, SquareTerminal } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { readAgentProviderPreference } from "../app/agentProviders";
-import { formatClock, formatDay, toTitle } from "../app/conversationText";
+import { formatClock, formatDay, isSessionLive, toTitle } from "../app/conversationText";
+import { useClickOutside } from "../app/hooks/useClickOutside";
 import { useConversationChat } from "../app/hooks/useConversationChat";
 import { useConversationsRuntime } from "../app/hooks/useConversationsRuntime";
+import { useTerminalLaunchOptions } from "../app/hooks/useTerminalLaunchOptions";
 import { isEditableEventTarget } from "../app/hotkeys";
+import { stopTerminal } from "../runtime/terminalActions";
+import { AgentLaunchSettingsMenu } from "./AgentLaunchSettingsMenu";
 import { ClearAllConversationsDialog } from "./ClearAllConversationsDialog";
 import { ConversationChatThread } from "./ConversationChatThread";
 import { ConversationComposer } from "./ConversationComposer";
@@ -69,6 +74,12 @@ export const ConversationsPrimaryView = ({
   const [viewMode, setViewMode] = useState<"quiet" | "normal" | "summary" | "detailed">("quiet");
   const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false);
   const viewDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const [isLaunchOptionsOpen, setIsLaunchOptionsOpen] = useState(false);
+  const launchOptionsRef = useRef<HTMLDivElement | null>(null);
+  const launchOptions = useTerminalLaunchOptions(selectedSessionId, enabled);
+
+  useClickOutside(launchOptionsRef, isLaunchOptionsOpen, () => setIsLaunchOptionsOpen(false));
 
   // Close the view dropdown when clicking outside of it
   useEffect(() => {
@@ -279,6 +290,7 @@ export const ConversationsPrimaryView = ({
     setPreviousSessionId(selectedSessionId);
     setRestoreDraft(null);
     setStashedDraft(null);
+    setIsLaunchOptionsOpen(false);
   }
 
   const threadRef = useRef<HTMLOListElement | null>(null);
@@ -301,9 +313,12 @@ export const ConversationsPrimaryView = ({
     [selectedSessionId],
   );
 
-  const isLiveSession =
-    selectedSession !== null &&
-    !selectedSession.events.some((event) => event.type === "session_end");
+  const isLiveSession = selectedSession !== null && isSessionLive(selectedSession.events);
+
+  const launchOptionsSummary =
+    launchOptions.options.model || launchOptions.options.effort
+      ? `${launchOptions.options.model || "default model"} / ${launchOptions.options.effort || "default effort"}`
+      : "default";
 
   // Alt+G / Option+G: toggle between chat and terminal view
   useEffect(() => {
@@ -330,6 +345,24 @@ export const ConversationsPrimaryView = ({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [selectedSession]);
+
+  // Alt+P / Option+P: toggle the model and effort menu
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey || (event.key !== "p" && event.key !== "P")) return;
+
+      if (!enabled || !selectedSessionId || isEditableEventTarget(event.target)) return;
+
+      event.preventDefault();
+      setIsLaunchOptionsOpen((current) => !current);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [enabled, selectedSessionId]);
 
   // Alt+Ctrl+S → summary, Alt+Ctrl+Q → quiet, Cmd+F / Ctrl+F → focus search
   useEffect(() => {
@@ -445,9 +478,21 @@ export const ConversationsPrimaryView = ({
     [updateComposerState],
   );
 
-  const handleStop = useCallback(() => {
-    console.warn("Agent stop not yet implemented");
-  }, []);
+  const handleStop = useCallback(async () => {
+    if (!selectedSessionId) return;
+
+    updateComposerState((current) => ({ ...current, sendError: null }));
+
+    try {
+      await stopTerminal(selectedSessionId);
+      await Promise.all([refreshSelectedSession(), refreshSessions()]);
+    } catch (error) {
+      updateComposerState((current) => ({
+        ...current,
+        sendError: error instanceof Error ? error.message : "Unable to stop the agent.",
+      }));
+    }
+  }, [selectedSessionId, refreshSelectedSession, refreshSessions, updateComposerState]);
 
   const handleReply = useCallback((quotedText: string) => {
     setRestoreDraft(`> ${quotedText}\n\n`);
@@ -512,7 +557,9 @@ export const ConversationsPrimaryView = ({
                 <p>
                   {[
                     formatDay(selectedSession.startedAt),
-                    `${formatClock(selectedSession.startedAt)} – ${formatClock(selectedSession.endedAt)}`,
+                    selectedSession.endedAt
+                      ? `${formatClock(selectedSession.startedAt)} – ${formatClock(selectedSession.endedAt)}`
+                      : `Started ${formatClock(selectedSession.startedAt)}`,
                     `${selectedSession.turns.length} messages`,
                   ]
                     .filter((part) => part.trim().length > 1)
@@ -524,23 +571,25 @@ export const ConversationsPrimaryView = ({
                   <button
                     aria-label="Toggle between rich chat and plain turns"
                     aria-pressed={isPlainView}
-                    className="chat-ghost-btn"
+                    className="chat-ghost-btn chat-ghost-btn--icon"
                     onClick={() => {
                       setIsPlainView((value) => !value);
                     }}
+                    title={isPlainView ? "Rich chat" : "Plain turns"}
                     type="button"
                   >
-                    {isPlainView ? "Rich" : "Plain"}
+                    {isPlainView ? <MessageSquare size={15} /> : <AlignLeft size={15} />}
                   </button>
                 ) : null}
                 <div style={{ position: "relative" }} ref={viewDropdownRef}>
                   <button
                     aria-label="Change view mode"
-                    className="chat-ghost-btn"
+                    className="chat-ghost-btn chat-ghost-btn--icon"
                     onClick={() => setIsViewDropdownOpen((v) => !v)}
+                    title="View mode"
                     type="button"
                   >
-                    View
+                    <Eye size={15} />
                   </button>
                   {isViewDropdownOpen ? (
                     <div className="chat-view-dropdown">
@@ -575,35 +624,42 @@ export const ConversationsPrimaryView = ({
                   aria-label={
                     chatTerminalMode === "chat" ? "Switch to terminal view" : "Switch to chat view"
                   }
-                  className="chat-ghost-btn"
+                  className="chat-ghost-btn chat-ghost-btn--icon"
                   onClick={() => {
                     setChatTerminalMode((current) => (current === "chat" ? "terminal" : "chat"));
                   }}
+                  title={chatTerminalMode === "chat" ? "Terminal view" : "Chat view"}
                   type="button"
                 >
-                  {chatTerminalMode === "chat" ? "Terminal" : "Chat"}
+                  {chatTerminalMode === "chat" ? (
+                    <SquareTerminal size={15} />
+                  ) : (
+                    <MessageSquare size={15} />
+                  )}
                 </button>
                 <button
                   aria-label="Export conversation as JSON"
-                  className="chat-ghost-btn"
+                  className="chat-ghost-btn chat-ghost-btn--icon"
                   disabled={isExporting}
                   onClick={() => {
                     onExport("json");
                   }}
+                  title="Export as JSON"
                   type="button"
                 >
-                  JSON
+                  <Braces size={15} />
                 </button>
                 <button
                   aria-label="Export conversation as Markdown"
-                  className="chat-ghost-btn"
+                  className="chat-ghost-btn chat-ghost-btn--icon"
                   disabled={isExporting}
                   onClick={() => {
                     onExport("md");
                   }}
+                  title="Export as Markdown"
                   type="button"
                 >
-                  Markdown
+                  <FileText size={15} />
                 </button>
                 <button
                   aria-label="Delete this conversation"
@@ -752,18 +808,31 @@ export const ConversationsPrimaryView = ({
                   onStop={handleStop}
                   key={`${selectedSession.sessionId}:${restoreDraft ?? ""}`}
                 />
-                <div className="chat-model-row">
+                <div className="chat-model-row relative" ref={launchOptionsRef}>
                   <button
+                    aria-expanded={isLaunchOptionsOpen}
+                    aria-haspopup="dialog"
                     aria-label="Switch model or effort"
                     className="chat-model-pill"
-                    onClick={() => {
-                      console.warn("Model switching not yet implemented");
-                    }}
+                    onClick={() => setIsLaunchOptionsOpen((current) => !current)}
                     title="Option+P / Alt+P to switch model"
                     type="button"
                   >
-                    {agentProvider} · default
+                    {agentProvider} · {launchOptionsSummary}
                   </button>
+                  {isLaunchOptionsOpen ? (
+                    <AgentLaunchSettingsMenu
+                      error={launchOptions.error}
+                      isSaving={launchOptions.isSaving}
+                      onChange={launchOptions.update}
+                      onClose={() => setIsLaunchOptionsOpen(false)}
+                      onSave={() => {
+                        void launchOptions.save().then(() => setIsLaunchOptionsOpen(false));
+                      }}
+                      options={launchOptions.options}
+                      provider={agentProvider}
+                    />
+                  ) : null}
                 </div>
               </>
             )}

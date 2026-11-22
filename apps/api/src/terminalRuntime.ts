@@ -36,6 +36,7 @@ import {
   readUsageSummary,
   readConversationSession,
   searchConversations,
+  transcriptFilenameForSession,
 } from "./terminalRuntime/conversations";
 import { createGitOperations } from "./terminalRuntime/gitOperations";
 import { createHookProcessor } from "./terminalRuntime/hookProcessor";
@@ -283,6 +284,9 @@ export const createTerminalRuntime = ({
     signalGroup: signalProcessGroup,
     onProcessSpawn: (details) => processSupervisor.register(details),
     onProcessExit: (sessionId) => processSupervisor.unregister(sessionId),
+    prepareAgentLaunch: (workingDirectory, agentProvider) => {
+      hookProcessor.installHooksInDirectory(workingDirectory, agentProvider);
+    },
   });
 
   const gitOps = createGitOperations({
@@ -324,8 +328,12 @@ export const createTerminalRuntime = ({
   }
 
   const allocateTerminalId = () =>
-    allocateTerminalIdFrom(terminals, sessions, (id) =>
-      worktreeManager.hasOrchestrationWorktree(id),
+    allocateTerminalIdFrom(
+      terminals,
+      sessions,
+      (id) => worktreeManager.hasOrchestrationWorktree(id),
+      // An id with a saved conversation would append a new run to an old chat.
+      (id) => existsSync(join(transcriptDirectoryPath, transcriptFilenameForSession(id))),
     );
 
   const allocateDefaultTerminalName = (): string => allocateDefaultTerminalNameFrom(terminals);
@@ -659,6 +667,38 @@ export const createTerminalRuntime = ({
       terminal.coordinationName = coordinationName;
       terminal.nameOrigin = "user";
       terminal.autoRenamePromptContext = undefined;
+      persistRegistry();
+      broadcastTerminalEvent({
+        type: "terminal-updated",
+        snapshot: toTerminalSnapshot(terminal),
+      });
+
+      return toTerminalSnapshot(terminal);
+    },
+
+    /** Updates the flags stored for the next agent (re)launch. An empty string clears a flag. */
+    updateTerminalLaunchOptions(
+      terminalId: string,
+      options: { agentModel?: string | undefined; agentEffort?: string | undefined },
+    ): TerminalSnapshot | null {
+      const terminal = terminals.get(terminalId);
+
+      if (!terminal) {
+        return null;
+      }
+
+      for (const key of ["agentModel", "agentEffort"] as const) {
+        const value = options[key];
+
+        if (value === undefined) continue;
+
+        if (value === "") {
+          delete terminal[key];
+        } else if (isSafeAgentFlagValue(value)) {
+          terminal[key] = value;
+        }
+      }
+
       persistRegistry();
       broadcastTerminalEvent({
         type: "terminal-updated",

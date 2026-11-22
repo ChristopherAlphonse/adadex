@@ -12,6 +12,18 @@ type ReplayTerminal = {
 
 const NEAR_BOTTOM_THRESHOLD_PX = 8;
 
+/** Mouse tracking modes (X10, normal, button, any-event, UTF-8, SGR, urxvt) an app can switch on. */
+// oxlint-disable-next-line no-control-regex -- ESC is the point of this pattern
+const MOUSE_TRACKING_ENABLE = /\u001b\[\?(?:\d+;)*(?:9|100[0-6]|1015)(?:;\d+)*h/g;
+
+/**
+ * Saved history can contain the sequence that turned mouse tracking on without the one that turned it off, because
+ * the app that asked for it has since exited. Replaying that would leave the terminal reporting every mouse move to
+ * whatever is running now, which a plain shell prints as `35;33;2M` junk.
+ */
+export const stripMouseTracking = (history: string): string =>
+  history.replace(MOUSE_TRACKING_ENABLE, "");
+
 const restoreViewportScroll = (
   viewport: ReplayViewport,
   previousScrollTop: number,
@@ -44,7 +56,7 @@ export const replayTerminalHistory = (
 
   terminal.clearSelection?.();
   terminal.reset();
-  terminal.write(history, () => {
+  terminal.write(stripMouseTracking(history), () => {
     terminal.clearSelection?.();
 
     if (isFunctionValue(terminal.refresh) && isNumber(terminal.rows) && terminal.rows > 0) {

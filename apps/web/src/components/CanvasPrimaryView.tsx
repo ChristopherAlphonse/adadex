@@ -72,6 +72,13 @@ export type CanvasPrimaryViewProps = {
   onSpawnSwarm?: (coordinationId: string, workspaceMode: TerminalWorkspaceMode) => Promise<void>;
   onSolveTodoItem?: (coordinationId: string, itemIndex: number) => Promise<void> | void;
   onDeckLeadAction?: (action: string) => Promise<string | undefined> | undefined;
+  onDeckLeadRunSwarm?:
+    | ((
+        coordinationId: string,
+        coordinationName: string,
+        openTodoCount: number,
+      ) => Promise<string | undefined> | undefined)
+    | undefined;
   onOrchestrationAction?: (
     coordinationId: string,
     action: string,
@@ -122,6 +129,7 @@ export const CanvasPrimaryView = ({
   onSpawnSwarm,
   onSolveTodoItem,
   onDeckLeadAction,
+  onDeckLeadRunSwarm,
   onOrchestrationAction,
   onNavigateToConversation,
   onCloseActiveSession,
@@ -987,6 +995,28 @@ export const CanvasPrimaryView = ({
       ? (columns.find((column) => column.terminalId === selectedTerminalId) ?? null)
       : null;
 
+  const panelTabs = [
+    ...Array.from(openOrchestrations, ([nodeId, node]) => ({
+      nodeId,
+      label: node.label,
+      onClose: () => handleCloseOrchestration(nodeId),
+    })),
+    ...Array.from(openTerminals, ([nodeId, node]) => ({
+      nodeId,
+      label: node.label,
+      onClose: () => handleMinimizeTerminal(nodeId),
+    })),
+  ];
+
+  const lastPanelId = panelTabs[panelTabs.length - 1]?.nodeId ?? null;
+
+  const activePanelId = panelTabs.some((tab) => tab.nodeId === selectedNodeId)
+    ? selectedNodeId
+    : lastPanelId;
+
+  const panelSlotClass = (nodeId: string) =>
+    `flex min-h-0 min-w-0 flex-1 [&>*]:min-w-0 [&>*]:flex-1${nodeId === activePanelId ? "" : " hidden"}`;
+
   return (
     <section
       ref={containerRef}
@@ -1005,7 +1035,6 @@ export const CanvasPrimaryView = ({
             });
           }
         }}
-        onFitView={handleFitView}
         onRefresh={handleRefresh}
         onDeleteAll={() => setIsDeleteAllDialogOpen(true)}
         onNewAgent={() => {
@@ -1237,9 +1266,13 @@ export const CanvasPrimaryView = ({
             </div>
           ) : null}
 
-          <div className="absolute left-3 top-3 z-10 w-72 max-w-[40%] overflow-hidden rounded-xl border border-border bg-surface/90 backdrop-blur empty:hidden">
+          <details className="group/threads absolute left-3 top-3 z-10 w-72 max-w-[40%] overflow-hidden rounded-xl border border-border bg-surface/90 backdrop-blur open:max-h-[60%] open:overflow-y-auto">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+              Threads
+              <span className="tabular-nums">{columns.length}</span>
+            </summary>
             <ThreadTree onApproval={answerApproval} onOpen={openTerminalFor} terminals={columns} />
-          </div>
+          </details>
 
           <ConsoleCanvasViewportControls
             scale={transform.scale}
@@ -1263,70 +1296,126 @@ export const CanvasPrimaryView = ({
             />
             <div
               ref={terminalsPanelRef}
-              className="canvas-terminals-panel"
+              className="canvas-terminals-panel canvas-terminals-panel--tabbed"
               style={
                 terminalsPanelWidth != null ? { flex: `0 0 ${terminalsPanelWidth}px` } : undefined
               }
             >
-              {Array.from(openOrchestrations.entries()).map(([nodeId, node]) => (
-                <CanvasOrchestrationPanel
-                  key={nodeId}
-                  node={node}
-                  isFocused={selectedNodeId === nodeId}
-                  panelRef={setPanelRef(nodeId)}
-                  orchestration={orchestrationById.get(node.coordinationId) ?? null}
-                  sessions={sessionsByOrchestrationId.get(node.coordinationId) ?? []}
-                  onClose={() => handleCloseOrchestration(nodeId)}
-                  onFocus={() => handlePanelFocus(nodeId)}
-                  onCreateAgent={(coordinationId) => {
-                    handleCreateAgent(coordinationId);
-                  }}
-                  onSolveTodoItem={(coordinationId, itemIndex) => {
-                    void onSolveTodoItem?.(coordinationId, itemIndex);
-                  }}
-                  onSpawnSwarm={(coordinationId, workspaceMode) => {
-                    return handleSpawnSwarm(coordinationId, workspaceMode);
-                  }}
-                  onNavigateToConversation={onNavigateToConversation}
-                  onRefreshOrchestrationData={refreshDeckOrchestrations}
-                />
-              ))}
-              {isHydratingTerminals && openTerminals.size === 0 && (
-                <div className="canvas-terminal-skeleton">
-                  <div className="canvas-terminal-skeleton__header" />
-                  <div className="canvas-terminal-skeleton__body">
-                    <div className="canvas-terminal-skeleton__line" style={{ width: "60%" }} />
-                    <div className="canvas-terminal-skeleton__line" style={{ width: "80%" }} />
-                    <div className="canvas-terminal-skeleton__line" style={{ width: "45%" }} />
+              <div
+                aria-label="Open panels"
+                className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-surface px-2 py-1.5"
+                role="tablist"
+              >
+                {panelTabs.map((tab) => (
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-md pl-2.5 pr-1 text-xs ${
+                      tab.nodeId === activePanelId
+                        ? "bg-secondary font-medium text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    key={tab.nodeId}
+                  >
+                    <button
+                      aria-selected={tab.nodeId === activePanelId}
+                      className="max-w-40 truncate py-1"
+                      onClick={() => handlePanelFocus(tab.nodeId)}
+                      role="tab"
+                      type="button"
+                    >
+                      {tab.label}
+                    </button>
+                    <button
+                      aria-label={`Close ${tab.label}`}
+                      className="grid size-5 place-items-center rounded hover:bg-background"
+                      onClick={tab.onClose}
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex min-h-0 min-w-0 flex-1">
+                {Array.from(openOrchestrations.entries()).map(([nodeId, node]) => (
+                  <div className={panelSlotClass(nodeId)} key={nodeId}>
+                    <CanvasOrchestrationPanel
+                      node={node}
+                      isFocused={selectedNodeId === nodeId}
+                      panelRef={setPanelRef(nodeId)}
+                      orchestration={orchestrationById.get(node.coordinationId) ?? null}
+                      sessions={sessionsByOrchestrationId.get(node.coordinationId) ?? []}
+                      onClose={() => handleCloseOrchestration(nodeId)}
+                      onFocus={() => handlePanelFocus(nodeId)}
+                      onCreateAgent={(coordinationId) => {
+                        handleCreateAgent(coordinationId);
+                      }}
+                      onSolveTodoItem={(coordinationId, itemIndex) => {
+                        void onSolveTodoItem?.(coordinationId, itemIndex);
+                      }}
+                      onSpawnSwarm={(coordinationId, workspaceMode) => {
+                        return handleSpawnSwarm(coordinationId, workspaceMode);
+                      }}
+                      onDeckLeadAction={handleDeckLeadAction}
+                      onAskDeckLeadToSwarm={(coordinationId, coordinationName, openTodoCount) => {
+                        const result = onDeckLeadRunSwarm?.(
+                          coordinationId,
+                          coordinationName,
+                          openTodoCount,
+                        );
+
+                        if (result && isFunctionValue(result.then)) {
+                          void result.then((agentId) => {
+                            if (agentId) setPendingOpenAgentId(agentId);
+                          });
+                        }
+                      }}
+                      onNavigateToConversation={onNavigateToConversation}
+                      onRefreshOrchestrationData={refreshDeckOrchestrations}
+                    />
                   </div>
-                </div>
-              )}
-              {Array.from(openTerminals.entries()).map(([nodeId, node]) => (
-                <CanvasTerminalColumn
-                  key={nodeId}
-                  node={node}
-                  terminals={columns}
-                  layoutVersion={terminalLayoutVersion}
-                  isFocused={selectedNodeId === nodeId}
-                  panelRef={setPanelRef(nodeId)}
-                  onMinimize={() => handleMinimizeTerminal(nodeId)}
-                  onClose={() => handleCloseTerminal(node)}
-                  onFocus={() => handlePanelFocus(nodeId)}
-                  onTerminalRenamed={onTerminalRenamed}
-                  onTerminalActivity={onTerminalActivity}
-                />
-              ))}
+                ))}
+                {isHydratingTerminals && openTerminals.size === 0 && (
+                  <div className="canvas-terminal-skeleton">
+                    <div className="canvas-terminal-skeleton__header" />
+                    <div className="canvas-terminal-skeleton__body">
+                      <div className="canvas-terminal-skeleton__line" style={{ width: "60%" }} />
+                      <div className="canvas-terminal-skeleton__line" style={{ width: "80%" }} />
+                      <div className="canvas-terminal-skeleton__line" style={{ width: "45%" }} />
+                    </div>
+                  </div>
+                )}
+                {Array.from(openTerminals.entries()).map(([nodeId, node]) => (
+                  <div className={panelSlotClass(nodeId)} key={nodeId}>
+                    <CanvasTerminalColumn
+                      node={node}
+                      terminals={columns}
+                      layoutVersion={terminalLayoutVersion}
+                      isFocused={selectedNodeId === nodeId}
+                      panelRef={setPanelRef(nodeId)}
+                      onMinimize={() => handleMinimizeTerminal(nodeId)}
+                      onClose={() => handleCloseTerminal(node)}
+                      onFocus={() => handlePanelFocus(nodeId)}
+                      onTerminalRenamed={onTerminalRenamed}
+                      onTerminalActivity={onTerminalActivity}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </>
         )}
 
-        <ConsoleInspectorPanel
-          selectedNode={selectedNode}
-          terminal={selectedTerminal}
-          gitStatus={
-            selectedNode ? (gitStatusByOrchestrationId[selectedNode.coordinationId] ?? null) : null
-          }
-        />
+        {selectedNode && !hasPanels ? (
+          <ConsoleInspectorPanel
+            selectedNode={selectedNode}
+            terminal={selectedTerminal}
+            gitStatus={
+              selectedNode
+                ? (gitStatusByOrchestrationId[selectedNode.coordinationId] ?? null)
+                : null
+            }
+          />
+        ) : null}
       </div>
 
       {contextMenu && (

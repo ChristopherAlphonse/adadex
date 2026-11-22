@@ -89,6 +89,33 @@ export const buildTerminalsUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   return buildAbsoluteUrl(runtimeBaseUrl, "/api/terminals");
 };
 
+export const buildTerminalActionUrl = (
+  terminalId: string,
+  action: "stop" | "kill",
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/terminals/${encodeURIComponent(terminalId)}/${action}`;
+
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
+export const buildTerminalLaunchOptionsUrl = (
+  terminalId: string,
+  runtimeBaseUrl = readRuntimeBaseUrl(),
+) => {
+  const path = `/api/terminals/${encodeURIComponent(terminalId)}/launch-options`;
+
+  if (!runtimeBaseUrl) {
+    return path;
+  }
+
+  return buildAbsoluteUrl(runtimeBaseUrl, path);
+};
+
 export const buildGithubSummaryUrl = (runtimeBaseUrl = readRuntimeBaseUrl()) => {
   if (!runtimeBaseUrl) {
     return "/api/github/summary";

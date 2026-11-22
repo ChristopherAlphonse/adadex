@@ -27,6 +27,7 @@ import {
 import {
   parseTerminalAgentFlags,
   parseTerminalAgentProvider,
+  parseTerminalLaunchOptions,
   parseTerminalName,
   parseTerminalNameOrigin,
   parseTerminalWorkspaceMode,
@@ -53,6 +54,8 @@ type CreateTerminalResponse = TerminalSnapshot & {
   initialPrompt?: string;
   initialInputDraft?: string;
 };
+
+type TerminalLaunchOptionsPatch = { agentModel?: string; agentEffort?: string };
 
 const buildCoordinationInitialPrompt = (
   promptsDir: string,
@@ -462,6 +465,73 @@ export const handleTerminalApprovalRoute: ApiRouteHandler = async (
   }
 
   writeJson(response, 200, { ok: true }, corsOrigin);
+
+  return true;
+};
+
+const TERMINAL_LAUNCH_OPTIONS_PATH_PATTERN = /^\/api\/terminals\/([^/]+)\/launch-options$/;
+
+/** Updates the model/effort flags a terminal stores for its next agent launch. */
+export const handleTerminalLaunchOptionsRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(TERMINAL_LAUNCH_OPTIONS_PATH_PATTERN);
+
+  if (!match) {
+    return false;
+  }
+
+  if (request.method !== "PATCH") {
+    writeMethodNotAllowed(response, corsOrigin);
+
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const parsed = parseTerminalLaunchOptions(bodyReadResult.payload);
+
+  if (parsed.error) {
+    writeJson(response, 400, { error: parsed.error }, corsOrigin);
+
+    return true;
+  }
+
+  if (!parsed.provided) {
+    writeJson(
+      response,
+      400,
+      { error: "At least one of agentModel or agentEffort is required." },
+      corsOrigin,
+    );
+
+    return true;
+  }
+
+  const patch: TerminalLaunchOptionsPatch = {};
+
+  if (parsed.agentModel !== undefined) {
+    patch.agentModel = parsed.agentModel;
+  }
+
+  if (parsed.agentEffort !== undefined) {
+    patch.agentEffort = parsed.agentEffort;
+  }
+
+  const snapshot = runtime.updateTerminalLaunchOptions(decodeURIComponent(match[1] ?? ""), patch);
+
+  if (!snapshot) {
+    writeJson(response, 404, { error: "Terminal not found." }, corsOrigin);
+
+    return true;
+  }
+
+  writeJson(response, 200, snapshot, corsOrigin);
 
   return true;
 };

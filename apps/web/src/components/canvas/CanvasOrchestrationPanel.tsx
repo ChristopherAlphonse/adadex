@@ -3,7 +3,7 @@ import type {
   DeckCoordinationStatus,
   DeckCoordinationSummary,
 } from "@adadex/core";
-import { Terminal, X } from "lucide-react";
+import { Terminal, Trash2, X } from "lucide-react";
 import { type Ref, useCallback, useMemo, useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
@@ -31,9 +31,31 @@ type CanvasOrchestrationPanelProps = {
   onSpawnSwarm?:
     | ((coordinationId: string, workspaceMode: CoordinationWorkspaceMode) => Promise<void> | void)
     | undefined;
+  onDeckLeadAction?: ((action: string) => void) | undefined;
+  onAskDeckLeadToSwarm?:
+    | ((coordinationId: string, coordinationName: string, openTodoCount: number) => void)
+    | undefined;
   onNavigateToConversation?: ((sessionId: string) => void) | undefined;
   onRefreshOrchestrationData?: (() => Promise<void>) | undefined;
 };
+
+const DECK_LEAD_ACTIONS = [
+  {
+    action: "deck-lead-reorganize-todos",
+    label: "Reorganize to-dos",
+    description: "Review every coordination's todos and propose moves, merges and priorities.",
+  },
+  {
+    action: "deck-lead-reorganize-coordinations",
+    label: "Reorganize coordinations",
+    description: "Review the coordination structure and propose keeps, merges and drops.",
+  },
+  {
+    action: "deck-lead-clean-contexts",
+    label: "Clean coordination contexts",
+    description: "Find stale or redundant context files and propose fixes.",
+  },
+] as const;
 
 const STATUS_LABELS = {
   idle: "idle",
@@ -71,6 +93,8 @@ export const CanvasOrchestrationPanel = ({
   onCreateAgent,
   onSolveTodoItem,
   onSpawnSwarm,
+  onDeckLeadAction,
+  onAskDeckLeadToSwarm,
   onNavigateToConversation,
   onRefreshOrchestrationData,
 }: CanvasOrchestrationPanelProps) => {
@@ -207,6 +231,13 @@ export const CanvasOrchestrationPanel = ({
       ? Math.round((orchestration.todoDone / orchestration.todoTotal) * 100)
       : 0;
 
+  const openTodoCount = orchestration ? orchestration.todoTotal - orchestration.todoDone : 0;
+
+  const swarmHint =
+    openTodoCount === 0
+      ? "Nothing to spawn: this coordination has no open todos."
+      : `Spawns up to ${openTodoCount} worker${openTodoCount === 1 ? "" : "s"}, one per open todo.`;
+
   return (
     <div
       ref={panelRef}
@@ -260,31 +291,74 @@ export const CanvasOrchestrationPanel = ({
 
         <div className="detail-section">
           <div className="detail-section-title">Actions</div>
-          <div className="detail-actions">
-            <button
-              type="button"
-              className="detail-action-btn"
-              onClick={() => onCreateAgent?.(node.coordinationId)}
-            >
-              &gt;_ Create Agent
-            </button>
-            <button
-              type="button"
-              className="detail-action-btn"
-              disabled={spawningSwarmMode !== null}
-              onClick={() => void handleSpawnSwarm("worktree")}
-            >
-              {spawningSwarmMode === "worktree" ? "Spawning..." : "\u2263 Spawn Swarm (Worktrees)"}
-            </button>
-            <button
-              type="button"
-              className="detail-action-btn"
-              disabled={spawningSwarmMode !== null}
-              onClick={() => void handleSpawnSwarm("shared")}
-            >
-              {spawningSwarmMode === "shared" ? "Spawning..." : "\u2263 Spawn Swarm (Normal)"}
-            </button>
-          </div>
+          {node.type === "deck-lead" ? (
+            <div className="grid gap-2">
+              {DECK_LEAD_ACTIONS.map((item) => (
+                <button
+                  className="detail-action-btn flex-col items-start gap-0.5 text-left"
+                  key={item.action}
+                  onClick={() => onDeckLeadAction?.(item.action)}
+                  type="button"
+                >
+                  <span className="font-medium">{item.label}</span>
+                  <span className="text-[11px] font-normal text-muted-foreground">
+                    {item.description}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="detail-actions">
+                <button
+                  type="button"
+                  className="detail-action-btn"
+                  onClick={() => onCreateAgent?.(node.coordinationId)}
+                  title="Open a new agent in this coordination"
+                >
+                  &gt;_ Create Agent
+                </button>
+                <button
+                  type="button"
+                  className="detail-action-btn"
+                  disabled={spawningSwarmMode !== null || openTodoCount === 0}
+                  onClick={() => void handleSpawnSwarm("worktree")}
+                  title={swarmHint}
+                >
+                  {spawningSwarmMode === "worktree"
+                    ? "Spawning..."
+                    : "\u2263 Spawn Swarm (Worktrees)"}
+                </button>
+                <button
+                  type="button"
+                  className="detail-action-btn"
+                  disabled={spawningSwarmMode !== null || openTodoCount === 0}
+                  onClick={() => void handleSpawnSwarm("shared")}
+                  title={swarmHint}
+                >
+                  {spawningSwarmMode === "shared" ? "Spawning..." : "\u2263 Spawn Swarm (Normal)"}
+                </button>
+              </div>
+              {onAskDeckLeadToSwarm ? (
+                <button
+                  type="button"
+                  className="detail-action-btn mt-2 w-full"
+                  disabled={openTodoCount === 0}
+                  onClick={() =>
+                    onAskDeckLeadToSwarm(
+                      node.coordinationId,
+                      orchestration?.displayName ?? node.label,
+                      openTodoCount,
+                    )
+                  }
+                  title="The Deck lead picks the todos and workspace mode, then asks you to confirm"
+                >
+                  Ask Deck lead to plan a swarm
+                </button>
+              ) : null}
+              <p className="m-0 mt-1.5 text-[11px] text-muted-foreground">{swarmHint}</p>
+            </>
+          )}
           {spawnSwarmError ? <div className="deck-add-form-error">{spawnSwarmError}</div> : null}
         </div>
 
@@ -309,27 +383,9 @@ export const CanvasOrchestrationPanel = ({
                 {orchestration.todoItems.map((item, i) => (
                   <li
                     key={item.text}
-                    className={`detail-todo${item.done ? " detail-todo--done" : ""}`}
+                    className={`detail-todo group/todo${item.done ? " detail-todo--done" : ""}`}
                   >
                     <div className="detail-todo-controls">
-                      <button
-                        type="button"
-                        className="detail-todo-delete"
-                        title="Delete item"
-                        onClick={() => void handleTodoDelete(i)}
-                      >
-                        <X size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        className="detail-todo-solve"
-                        aria-label={`Spawn agent for todo item: ${item.text}`}
-                        title="Spawn agent for this item"
-                        disabled={item.done || solvingTodoIndex === i}
-                        onClick={() => void handleTodoSolve(i)}
-                      >
-                        {solvingTodoIndex === i ? "…" : <Terminal size={15} strokeWidth={2.4} />}
-                      </button>
                       <input
                         type="checkbox"
                         checked={item.done}
@@ -360,6 +416,34 @@ export const CanvasOrchestrationPanel = ({
                         {item.text}
                       </span>
                     )}
+                    <span className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/todo:opacity-100">
+                      <button
+                        type="button"
+                        aria-label={`Spawn agent for todo item: ${item.text}`}
+                        title="Spawn an agent to work on this item"
+                        className="inline-flex h-6 items-center gap-1 rounded-md bg-secondary px-2 text-[11px] font-medium text-foreground hover:bg-accent disabled:opacity-40"
+                        disabled={item.done || solvingTodoIndex === i}
+                        onClick={() => void handleTodoSolve(i)}
+                      >
+                        {solvingTodoIndex === i ? (
+                          "Starting…"
+                        ) : (
+                          <>
+                            <Terminal size={11} strokeWidth={2.4} />
+                            Solve
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Delete item"
+                        title="Delete item"
+                        className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-destructive"
+                        onClick={() => void handleTodoDelete(i)}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </span>
                   </li>
                 ))}
               </ul>

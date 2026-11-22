@@ -275,7 +275,7 @@ export const useCanvasTransform = (): UseCanvasTransformResult => {
 
     const graphW = maxX - minX || 1;
     const graphH = maxY - minY || 1;
-    const padding = 200;
+    const padding = Math.min(120, rect.width * 0.12, rect.height * 0.12);
     const scaleX = (rect.width - padding * 2) / graphW;
     const scaleY = (rect.height - padding * 2) / graphH;
 

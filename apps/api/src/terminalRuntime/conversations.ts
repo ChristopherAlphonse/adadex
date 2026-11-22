@@ -206,13 +206,23 @@ const buildConversationSummary = (
   const firstEvent = events[0] ?? null;
   const lastEvent = events.length > 0 ? events[events.length - 1] : null;
 
+  const lastSessionEndIndex = events.map((event) => event.type).lastIndexOf("session_end");
+  const lastSessionStartIndex = events.map((event) => event.type).lastIndexOf("session_start");
+
+  // An end only counts while no later run has started: a record can be reused by a terminal with the same id.
   const lastSessionEnd =
-    [...events].reverse().find((event) => event.type === "session_end") ?? null;
+    lastSessionEndIndex >= 0 && lastSessionEndIndex > lastSessionStartIndex
+      ? (events[lastSessionEndIndex] ?? null)
+      : null;
 
   return {
     sessionId,
     coordinationId: firstEvent?.coordinationId ?? null,
-    startedAt: firstEvent?.timestamp ?? null,
+    // A reused record holds several runs; the start that matters is the latest one.
+    startedAt:
+      (lastSessionStartIndex >= 0 ? events[lastSessionStartIndex]?.timestamp : undefined) ??
+      firstEvent?.timestamp ??
+      null,
     endedAt: lastSessionEnd?.timestamp ?? null,
     lastEventAt: lastEvent?.timestamp ?? null,
     eventCount: events.length,
