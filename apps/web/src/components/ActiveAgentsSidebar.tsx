@@ -12,6 +12,7 @@ type ActiveAgentsSidebarProps = {
   onSidebarWidthChange: (width: number) => void;
   actionPanel?: ReactNode;
   bodyContent?: ReactNode;
+  threadTree?: ReactNode;
 };
 
 export const ActiveAgentsSidebar = ({
@@ -19,6 +20,7 @@ export const ActiveAgentsSidebar = ({
   onSidebarWidthChange,
   actionPanel = null,
   bodyContent,
+  threadTree = null,
 }: ActiveAgentsSidebarProps) => {
   const sidebarRef = useRef<HTMLElement | null>(null);
 
@@ -62,7 +64,10 @@ export const ActiveAgentsSidebar = ({
         {actionPanel ? (
           <div className="active-agents-action-panel">{actionPanel}</div>
         ) : (
-          <div className="active-agents-body">{bodyContent}</div>
+          <div className="active-agents-body">
+            {threadTree}
+            {bodyContent}
+          </div>
         )}
         <button
           aria-label="Resize Active Agents sidebar"

@@ -46,6 +46,7 @@ import { ActiveAgentsSidebar } from "./components/ActiveAgentsSidebar";
 import { ConsoleChromeHeader } from "./components/design-system/ConsoleChromeHeader";
 import { PrimaryViewRouter } from "./components/PrimaryViewRouter";
 import { SidebarActionPanel } from "./components/SidebarActionPanel";
+import { ThreadTree } from "./components/ThreadTree";
 import { createFactoryHost } from "./runtime/factoryHost";
 import { HttpTerminalSnapshotReader } from "./runtime/HttpTerminalSnapshotReader";
 import {
@@ -485,6 +486,7 @@ const AppShell = () => {
                 setSidebarWidth(clampSidebarWidth(width));
               }}
               actionPanel={sidebarActionPanel}
+              threadTree={<ThreadTree terminals={terminals} />}
               bodyContent={
                 activePrimaryNav === 2
                   ? (deckSidebarContent ?? undefined)
