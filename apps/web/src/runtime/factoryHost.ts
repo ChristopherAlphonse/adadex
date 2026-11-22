@@ -468,3 +468,13 @@ export const createFactoryHost = (): FactoryHost => {
 
   return isBridge(electron) ? createHostApiFactoryHost(electron) : createEmptyFactoryHost();
 };
+
+/** True when the desktop app's bridge is present, so factory actions can run. In a plain browser it is false. */
+export const isFactoryHostConnected = (): boolean => {
+  if (typeof window === "undefined") return false;
+
+  const injected: unknown = window.adadexFactoryHost;
+  const electron: unknown = window.adadex;
+
+  return isBridge(injected) || isBridge(electron);
+};

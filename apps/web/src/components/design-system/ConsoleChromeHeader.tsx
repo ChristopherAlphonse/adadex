@@ -1,6 +1,7 @@
 import { Moon, Sun } from "lucide-react";
 
-import { PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "../../app/constants";
+import { FACTORY_NAV_INDEX, PRIMARY_NAV_ITEMS, type PrimaryNavIndex } from "../../app/constants";
+import { isFactoryHostConnected } from "../../runtime/factoryHost";
 
 type ConsoleChromeHeaderProps = {
   activePrimaryNav: PrimaryNavIndex;
@@ -27,7 +28,9 @@ export const ConsoleChromeHeader = ({
         aria-label="Primary navigation"
         className="mx-6 hidden h-full min-w-0 flex-1 items-center justify-center gap-1 md:flex"
       >
-        {PRIMARY_NAV_ITEMS.map((item) => {
+        {PRIMARY_NAV_ITEMS.filter(
+          (item) => item.index !== FACTORY_NAV_INDEX || isFactoryHostConnected(),
+        ).map((item) => {
           const active = item.index === activePrimaryNav;
 
           return (

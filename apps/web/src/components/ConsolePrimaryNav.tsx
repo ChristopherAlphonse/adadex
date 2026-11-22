@@ -1,4 +1,10 @@
-import { PRIMARY_NAV_ITEMS, PRIMARY_NAV_KEY_HINT, type PrimaryNavIndex } from "../app/constants";
+import {
+  FACTORY_NAV_INDEX,
+  PRIMARY_NAV_ITEMS,
+  PRIMARY_NAV_KEY_HINT,
+  type PrimaryNavIndex,
+} from "../app/constants";
+import { isFactoryHostConnected } from "../runtime/factoryHost";
 
 type ConsolePrimaryNavProps = {
   activePrimaryNav: PrimaryNavIndex;
@@ -11,7 +17,9 @@ export const ConsolePrimaryNav = ({
 }: ConsolePrimaryNavProps) => (
   <nav className="console-primary-nav" aria-label="Primary navigation">
     <div className="console-primary-nav-tabs">
-      {PRIMARY_NAV_ITEMS.map((item) => (
+      {PRIMARY_NAV_ITEMS.filter(
+        (item) => item.index !== FACTORY_NAV_INDEX || isFactoryHostConnected(),
+      ).map((item) => (
         <button
           aria-current={item.index === activePrimaryNav ? "page" : undefined}
           className="console-primary-nav-tab"

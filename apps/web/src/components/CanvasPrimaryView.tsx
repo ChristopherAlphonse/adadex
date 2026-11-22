@@ -37,6 +37,7 @@ import { DeleteOrchestrationDialog } from "./DeleteOrchestrationDialog";
 import { ConsoleCanvasViewportControls } from "./design-system/ConsoleCanvasViewportControls";
 import { ConsoleChromeToolbar } from "./design-system/ConsoleChromeToolbar";
 import { ConsoleInspectorPanel } from "./design-system/ConsoleInspectorPanel";
+import { ThreadTree } from "./ThreadTree";
 
 type ContextMenuState =
   | { kind: "canvas"; x: number; y: number }
@@ -332,7 +333,7 @@ export const CanvasPrimaryView = ({
     "expanded" | "minimized" | "hidden"
   >(() => {
     if (!shouldShowWorkspaceSetupCard || typeof sessionStorage === "undefined") {
-      return "expanded";
+      return "minimized";
     }
 
     const raw = sessionStorage.getItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY);
@@ -341,7 +342,7 @@ export const CanvasPrimaryView = ({
       return raw;
     }
 
-    return "expanded";
+    return "minimized";
   });
 
   const [wasSetupCardVisible, setWasSetupCardVisible] = useState(shouldShowWorkspaceSetupCard);
@@ -350,7 +351,7 @@ export const CanvasPrimaryView = ({
     setWasSetupCardVisible(shouldShowWorkspaceSetupCard);
 
     if (!shouldShowWorkspaceSetupCard) {
-      setWorkspaceSetupOverlay("expanded");
+      setWorkspaceSetupOverlay("minimized");
     }
   }
 
@@ -1415,6 +1416,10 @@ export const CanvasPrimaryView = ({
               </button>
             </div>
           ) : null}
+
+          <div className="absolute left-3 top-3 z-10 w-72 max-w-[40%] overflow-hidden rounded-xl border border-border bg-surface/90 backdrop-blur empty:hidden">
+            <ThreadTree terminals={columns} />
+          </div>
 
           <ConsoleCanvasViewportControls
             scale={transform.scale}

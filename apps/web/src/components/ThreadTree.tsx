@@ -24,7 +24,7 @@ const STATUS_TONE: Record<ThreadStatus, string> = {
   working: "text-running",
   "needs-you": "text-stopped font-medium",
   done: "text-muted-foreground",
-  idle: "text-idle",
+  idle: "text-muted-foreground",
 };
 
 const formatAge = (createdAt: string, now: number): string => {
