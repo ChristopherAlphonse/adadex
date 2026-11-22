@@ -19,16 +19,16 @@ export const SettingsToggle = ({
     aria-checked={checked}
     aria-label={ariaLabel}
     className={cn(
-      "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border p-3 text-left transition-colors",
+      "grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-secondary",
       "focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-ring",
-      checked ? "border-running/60 bg-running/15" : "border-border bg-surface text-foreground",
+      "text-foreground",
     )}
     onClick={() => onChange(!checked)}
     role="switch"
     type="button"
   >
     <span className="grid content-start gap-1">
-      <span className="text-[0.8rem] tracking-wide text-foreground">{label}</span>
+      <span className="text-[0.8125rem] font-medium text-foreground">{label}</span>
       <span className="text-[0.73rem] leading-snug text-muted-foreground">{description}</span>
     </span>
     <span
@@ -45,12 +45,7 @@ export const SettingsToggle = ({
         )}
       />
     </span>
-    <span
-      className={cn(
-        "font-mono text-[0.75rem] tracking-wide uppercase",
-        checked ? "text-primary" : "text-muted-foreground",
-      )}
-    >
+    <span className={cn("text-[0.75rem] text-muted-foreground")}>
       {checked ? "Enabled" : "Disabled"}
     </span>
   </button>

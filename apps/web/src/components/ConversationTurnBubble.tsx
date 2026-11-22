@@ -1,7 +1,8 @@
-import { forwardRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 
 import { formatClock, toGist, toPlainText } from "../app/conversationText";
 import { MarkdownContent } from "./ui/MarkdownContent";
+import { TextSelectionBar, useTextSelection } from "./ui/TextSelectionBar";
 
 const GIST_LENGTH = 220;
 
@@ -12,11 +13,31 @@ type ConversationTurnBubbleProps = {
   showSender: boolean;
   highlighted: boolean;
   highlightTerm: string | undefined;
+  turnId?: string | undefined;
+  onRewind?: ((turnId: string) => void) | undefined;
+  onFork?: ((turnId: string) => void) | undefined;
+  onReply?: ((selectedText: string) => void) | undefined;
 };
 
 export const ConversationTurnBubble = forwardRef<HTMLLIElement, ConversationTurnBubbleProps>(
-  ({ role, content, startedAt, showSender, highlighted, highlightTerm }, ref) => {
+  (
+    {
+      role,
+      content,
+      startedAt,
+      showSender,
+      highlighted,
+      highlightTerm,
+      turnId,
+      onRewind,
+      onFork,
+      onReply,
+    },
+    ref,
+  ) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
     const plain = toPlainText(content);
 
     const isLong =
@@ -24,12 +45,82 @@ export const ConversationTurnBubble = forwardRef<HTMLLIElement, ConversationTurn
 
     const showFull = isExpanded || highlighted || !isLong;
 
+    const liRef = useRef<HTMLLIElement | null>(null);
+    const menuRef = useRef<HTMLDivElement | null>(null);
+    const selection = useTextSelection(liRef);
+
+    // Merge forwarded ref with local liRef
+    const setRef = useCallback(
+      (node: HTMLLIElement | null) => {
+        liRef.current = node;
+
+        if (ref && "current" in ref) {
+          ref.current = node;
+        } else if (ref) {
+          ref(node);
+        }
+      },
+      [ref],
+    );
+
+    // Close menu when clicking outside
+    useEffect(() => {
+      if (!isMenuOpen) return;
+
+      const handleMouseDown = (event: MouseEvent) => {
+        // SAFETY: a mousedown target is always a DOM Node.
+        if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+          setIsMenuOpen(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleMouseDown);
+
+      return () => {
+        document.removeEventListener("mousedown", handleMouseDown);
+      };
+    }, [isMenuOpen]);
+
+    const handleCopyMessage = () => {
+      void navigator.clipboard.writeText(toPlainText(content));
+      setIsMenuOpen(false);
+    };
+
+    const handleSaveAsMarkdown = () => {
+      const blob = new Blob([content], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `turn-${turnId ?? "unknown"}.md`;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setIsMenuOpen(false);
+    };
+
+    const handleRewind = () => {
+      if (onRewind && turnId) {
+        onRewind(turnId);
+      }
+
+      setIsMenuOpen(false);
+    };
+
+    const handleFork = () => {
+      if (onFork && turnId) {
+        onFork(turnId);
+      }
+
+      setIsMenuOpen(false);
+    };
+
     return (
       <li
         className="chat-turn"
         data-role={role}
         data-highlighted={highlighted ? "true" : undefined}
-        ref={ref}
+        ref={setRef}
       >
         {showSender ? (
           <span className="chat-sender">{role === "user" ? "You" : "Agent"}</span>
@@ -59,6 +150,48 @@ export const ConversationTurnBubble = forwardRef<HTMLLIElement, ConversationTurn
             </button>
           ) : null}
         </div>
+
+        {/* Per-message action menu trigger */}
+        <button
+          type="button"
+          className="chat-turn-menu-trigger"
+          aria-label="Message actions"
+          aria-expanded={isMenuOpen ? "true" : undefined}
+          onClick={() => setIsMenuOpen((v) => !v)}
+        >
+          ⋯
+        </button>
+
+        {/* Per-message action menu */}
+        {isMenuOpen ? (
+          <div role="menu" className="chat-turn-menu" ref={menuRef}>
+            <button type="button" onClick={handleCopyMessage}>
+              Copy
+            </button>
+            <button type="button" onClick={handleSaveAsMarkdown}>
+              Save as Markdown
+            </button>
+            {role === "user" && onRewind ? (
+              <button type="button" onClick={handleRewind}>
+                Rewind to here
+              </button>
+            ) : null}
+            {role === "assistant" && onFork ? (
+              <button type="button" onClick={handleFork}>
+                Fork from here
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* Text selection bar */}
+        {selection.isSelectionBarVisible ? (
+          <TextSelectionBar
+            onDismiss={selection.dismissSelectionBar}
+            onReply={onReply}
+            selectedText={selection.selectedText}
+          />
+        ) : null}
       </li>
     );
   },

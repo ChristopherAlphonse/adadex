@@ -1,12 +1,22 @@
+import { AlignLeft, Braces, Eye, FileText, MessageSquare, SquareTerminal } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { formatClock, formatDay, toTitle } from "../app/conversationText";
+import { readAgentProviderPreference } from "../app/agentProviders";
+import { formatClock, formatDay, isSessionLive, toTitle } from "../app/conversationText";
+import { useClickOutside } from "../app/hooks/useClickOutside";
+import { useConversationChat } from "../app/hooks/useConversationChat";
 import { useConversationsRuntime } from "../app/hooks/useConversationsRuntime";
+import { useTerminalLaunchOptions } from "../app/hooks/useTerminalLaunchOptions";
+import { isEditableEventTarget } from "../app/hotkeys";
+import { stopTerminal } from "../runtime/terminalActions";
+import { AgentLaunchSettingsMenu } from "./AgentLaunchSettingsMenu";
 import { ClearAllConversationsDialog } from "./ClearAllConversationsDialog";
+import { ConversationChatThread } from "./ConversationChatThread";
 import { ConversationComposer } from "./ConversationComposer";
 import { ConversationTurnBubble } from "./ConversationTurnBubble";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { SidebarConversationsList } from "./SidebarConversationsList";
+import { TerminalChatPane } from "./TerminalChatPane";
 
 type ConversationsPrimaryViewProps = {
   enabled: boolean;
@@ -56,6 +66,49 @@ export const ConversationsPrimaryView = ({
     clearSearch: clearConversationsSearch,
     navigateToSearchHit: navigateToConversationSearchHit,
   } = useConversationsRuntime({ enabled });
+
+  const [isPlainView, setIsPlainView] = useState(false);
+
+  const [chatTerminalMode, setChatTerminalMode] = useState<"chat" | "terminal">("chat");
+  const [agentProvider] = useState(readAgentProviderPreference);
+  const [viewMode, setViewMode] = useState<"quiet" | "normal" | "summary" | "detailed">("quiet");
+  const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false);
+  const viewDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const [isLaunchOptionsOpen, setIsLaunchOptionsOpen] = useState(false);
+  const launchOptionsRef = useRef<HTMLDivElement | null>(null);
+  const launchOptions = useTerminalLaunchOptions(selectedSessionId, enabled);
+
+  useClickOutside(launchOptionsRef, isLaunchOptionsOpen, () => setIsLaunchOptionsOpen(false));
+
+  // Close the view dropdown when clicking outside of it
+  useEffect(() => {
+    if (!isViewDropdownOpen) return;
+
+    const handleOutsideMouseDown = (event: MouseEvent) => {
+      // SAFETY: a mousedown listener on document always receives a Node as its target.
+      if (viewDropdownRef.current && !viewDropdownRef.current.contains(event.target as Node)) {
+        setIsViewDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideMouseDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideMouseDown);
+    };
+  }, [isViewDropdownOpen]);
+
+  const chatMessages = useConversationChat(
+    selectedSessionId,
+    selectedSession ? `${selectedSession.lastEventAt}:${selectedSession.turnCount}` : null,
+  );
+
+  const showRichChat =
+    !isPlainView &&
+    chatMessages !== null &&
+    highlightedTurnId === null &&
+    chatMessages.some((message) => message.blocks.some((block) => block.kind === "tool-call"));
 
   const [isPendingClearAll, setIsPendingClearAll] = useState(false);
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
@@ -112,8 +165,8 @@ export const ConversationsPrimaryView = ({
     [searchConversations],
   );
 
-  // Pushed content must keep a stable identity: the parent stores it in state, so a
-  // fresh element on every render would re-render this view in an endless loop.
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const sidebarContent = useMemo(
     () => (
       <SidebarConversationsList
@@ -130,6 +183,7 @@ export const ConversationsPrimaryView = ({
         onSearch={handleSearchConversations}
         onClearSearch={clearConversationsSearch}
         onNavigateToHit={navigateToConversationSearchHit}
+        searchInputRef={searchInputRef}
       />
     ),
     [
@@ -176,7 +230,6 @@ export const ConversationsPrimaryView = ({
     });
   }, [clearAllSessions]);
 
-  // Push action panel for single or bulk delete confirmations
   const actionPanelContent = useMemo(
     () =>
       pendingDeleteSessionId ? (
@@ -226,10 +279,22 @@ export const ConversationsPrimaryView = ({
     emptyComposerStateFor(selectedSessionId),
   );
 
+  const [stashedDraft, setStashedDraft] = useState<string | null>(null);
+  const [restoreDraft, setRestoreDraft] = useState<string | null>(null);
+
+  // Reset session-specific state when switching sessions
+  const [previousSessionId, setPreviousSessionId] = useState(selectedSessionId);
+
+  if (previousSessionId !== selectedSessionId) {
+    // Clear the drafts when navigating to a different session.
+    setPreviousSessionId(selectedSessionId);
+    setRestoreDraft(null);
+    setStashedDraft(null);
+    setIsLaunchOptionsOpen(false);
+  }
+
   const threadRef = useRef<HTMLOListElement | null>(null);
 
-  // A session change makes the stored state stale, so read it as empty instead
-  // of resetting it from an effect.
   const composerState =
     storedComposerState.sessionId === selectedSessionId
       ? storedComposerState
@@ -248,9 +313,89 @@ export const ConversationsPrimaryView = ({
     [selectedSessionId],
   );
 
-  const isLiveSession =
-    selectedSession !== null &&
-    !selectedSession.events.some((event) => event.type === "session_end");
+  const isLiveSession = selectedSession !== null && isSessionLive(selectedSession.events);
+
+  const launchOptionsSummary =
+    launchOptions.options.model || launchOptions.options.effort
+      ? `${launchOptions.options.model || "default model"} / ${launchOptions.options.effort || "default effort"}`
+      : "default";
+
+  // Alt+G / Option+G: toggle between chat and terminal view
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey || (event.key !== "g" && event.key !== "G")) {
+        return;
+      }
+
+      if (selectedSession === null) {
+        return;
+      }
+
+      if (isEditableEventTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      setChatTerminalMode((current) => (current === "chat" ? "terminal" : "chat"));
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedSession]);
+
+  // Alt+P / Option+P: toggle the model and effort menu
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey || (event.key !== "p" && event.key !== "P")) return;
+
+      if (!enabled || !selectedSessionId || isEditableEventTarget(event.target)) return;
+
+      event.preventDefault();
+      setIsLaunchOptionsOpen((current) => !current);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [enabled, selectedSessionId]);
+
+  // Alt+Ctrl+S → summary, Alt+Ctrl+Q → quiet, Cmd+F / Ctrl+F → focus search
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey && event.ctrlKey && event.key === "s") {
+        if (isEditableEventTarget(event.target)) return;
+        event.preventDefault();
+        setViewMode("summary");
+
+        return;
+      }
+
+      if (event.altKey && event.ctrlKey && event.key === "q") {
+        if (isEditableEventTarget(event.target)) return;
+        event.preventDefault();
+        setViewMode("quiet");
+
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key === "f") {
+        if (isEditableEventTarget(event.target)) return;
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const isAcknowledged = (text: string) =>
     selectedSession?.turns.some(
@@ -261,7 +406,6 @@ export const ConversationsPrimaryView = ({
     (message) => !isAcknowledged(message.text),
   );
 
-  // While a message is waiting for the agent, keep checking for the reply.
   const hasPendingMessages = pendingMessages.length > 0;
 
   useEffect(() => {
@@ -278,7 +422,6 @@ export const ConversationsPrimaryView = ({
     };
   }, [hasPendingMessages, refreshSelectedSession]);
 
-  // Keep the newest message in view.
   const turnCount = selectedSession?.turns.length ?? 0;
 
   useEffect(() => {
@@ -321,6 +464,82 @@ export const ConversationsPrimaryView = ({
     [selectedSessionId, sendMessage, refreshSelectedSession, updateComposerState],
   );
 
+  const handleStash = useCallback((text: string) => {
+    setStashedDraft(text);
+  }, []);
+
+  const handleQueue = useCallback(
+    (text: string) => {
+      updateComposerState((current) => ({
+        ...current,
+        pendingMessages: [...current.pendingMessages, { id: `pending-${Date.now()}`, text }],
+      }));
+    },
+    [updateComposerState],
+  );
+
+  const handleStop = useCallback(async () => {
+    if (!selectedSessionId) return;
+
+    updateComposerState((current) => ({ ...current, sendError: null }));
+
+    try {
+      await stopTerminal(selectedSessionId);
+      await Promise.all([refreshSelectedSession(), refreshSessions()]);
+    } catch (error) {
+      updateComposerState((current) => ({
+        ...current,
+        sendError: error instanceof Error ? error.message : "Unable to stop the agent.",
+      }));
+    }
+  }, [selectedSessionId, refreshSelectedSession, refreshSessions, updateComposerState]);
+
+  const handleReply = useCallback((quotedText: string) => {
+    setRestoreDraft(`> ${quotedText}\n\n`);
+  }, []);
+
+  const handleRewind = useCallback((turnId: string) => {
+    console.warn("Rewind to here not yet implemented for turn", turnId);
+  }, []);
+
+  const handleFork = useCallback((turnId: string) => {
+    console.warn("Fork from here not yet implemented for turn", turnId);
+  }, []);
+
+  const handleInterruptAndSend = useCallback(
+    async (text: string): Promise<boolean> => {
+      return onSendMessage(text);
+    },
+    [onSendMessage],
+  );
+
+  const sendNow = useCallback(
+    async (message: { id: string; text: string }) => {
+      // Optimistically remove from pending
+      updateComposerState((current) => ({
+        ...current,
+        pendingMessages: current.pendingMessages.filter((m) => m.id !== message.id),
+      }));
+
+      if (!selectedSessionId) {
+        return;
+      }
+
+      try {
+        await sendMessage(selectedSessionId, message.text);
+        void refreshSelectedSession();
+      } catch (error) {
+        // Re-add to pending on failure
+        updateComposerState((current) => ({
+          ...current,
+          sendError: error instanceof Error ? error.message : "Unable to send the message.",
+          pendingMessages: [...current.pendingMessages, message],
+        }));
+      }
+    },
+    [selectedSessionId, sendMessage, refreshSelectedSession, updateComposerState],
+  );
+
   return (
     <section className="conversations-view" aria-label="Conversations primary view">
       {errorMessage ? <p className="conversations-error">{errorMessage}</p> : null}
@@ -338,7 +557,9 @@ export const ConversationsPrimaryView = ({
                 <p>
                   {[
                     formatDay(selectedSession.startedAt),
-                    `${formatClock(selectedSession.startedAt)} – ${formatClock(selectedSession.endedAt)}`,
+                    selectedSession.endedAt
+                      ? `${formatClock(selectedSession.startedAt)} – ${formatClock(selectedSession.endedAt)}`
+                      : `Started ${formatClock(selectedSession.startedAt)}`,
                     `${selectedSession.turns.length} messages`,
                   ]
                     .filter((part) => part.trim().length > 1)
@@ -346,27 +567,99 @@ export const ConversationsPrimaryView = ({
                 </p>
               </div>
               <div className="chat-header-actions">
+                {chatMessages ? (
+                  <button
+                    aria-label="Toggle between rich chat and plain turns"
+                    aria-pressed={isPlainView}
+                    className="chat-ghost-btn chat-ghost-btn--icon"
+                    onClick={() => {
+                      setIsPlainView((value) => !value);
+                    }}
+                    title={isPlainView ? "Rich chat" : "Plain turns"}
+                    type="button"
+                  >
+                    {isPlainView ? <MessageSquare size={15} /> : <AlignLeft size={15} />}
+                  </button>
+                ) : null}
+                <div style={{ position: "relative" }} ref={viewDropdownRef}>
+                  <button
+                    aria-label="Change view mode"
+                    className="chat-ghost-btn chat-ghost-btn--icon"
+                    onClick={() => setIsViewDropdownOpen((v) => !v)}
+                    title="View mode"
+                    type="button"
+                  >
+                    <Eye size={15} />
+                  </button>
+                  {isViewDropdownOpen ? (
+                    <div className="chat-view-dropdown">
+                      {(
+                        [
+                          { key: "quiet", label: "Quiet View", shortcut: "Alt+Ctrl+Q" },
+                          { key: "normal", label: "Normal", shortcut: undefined },
+                          { key: "summary", label: "Summary", shortcut: "Alt+Ctrl+S" },
+                          { key: "detailed", label: "Detailed", shortcut: undefined },
+                        ] as const
+                      ).map(({ key, label, shortcut }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          className="chat-view-option"
+                          data-active={viewMode === key ? "true" : undefined}
+                          onClick={() => {
+                            setViewMode(key);
+                            setIsViewDropdownOpen(false);
+                          }}
+                        >
+                          <span>{label}</span>
+                          {shortcut ? (
+                            <span style={{ fontSize: 11, opacity: 0.6 }}>{shortcut}</span>
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <button
+                  aria-label={
+                    chatTerminalMode === "chat" ? "Switch to terminal view" : "Switch to chat view"
+                  }
+                  className="chat-ghost-btn chat-ghost-btn--icon"
+                  onClick={() => {
+                    setChatTerminalMode((current) => (current === "chat" ? "terminal" : "chat"));
+                  }}
+                  title={chatTerminalMode === "chat" ? "Terminal view" : "Chat view"}
+                  type="button"
+                >
+                  {chatTerminalMode === "chat" ? (
+                    <SquareTerminal size={15} />
+                  ) : (
+                    <MessageSquare size={15} />
+                  )}
+                </button>
                 <button
                   aria-label="Export conversation as JSON"
-                  className="chat-ghost-btn"
+                  className="chat-ghost-btn chat-ghost-btn--icon"
                   disabled={isExporting}
                   onClick={() => {
                     onExport("json");
                   }}
+                  title="Export as JSON"
                   type="button"
                 >
-                  JSON
+                  <Braces size={15} />
                 </button>
                 <button
                   aria-label="Export conversation as Markdown"
-                  className="chat-ghost-btn"
+                  className="chat-ghost-btn chat-ghost-btn--icon"
                   disabled={isExporting}
                   onClick={() => {
                     onExport("md");
                   }}
+                  title="Export as Markdown"
                   type="button"
                 >
-                  Markdown
+                  <FileText size={15} />
                 </button>
                 <button
                   aria-label="Delete this conversation"
@@ -398,41 +691,151 @@ export const ConversationsPrimaryView = ({
                 </button>
               </div>
             </header>
-            <ol className="chat-thread" ref={threadRef}>
-              {selectedSession.turns.map((turn, index) => {
-                const isHighlighted = turn.turnId === highlightedTurnId;
-
-                return (
-                  <ConversationTurnBubble
-                    content={turn.content}
-                    highlightTerm={
-                      isHighlighted && searchQuery.length > 0 ? searchQuery : undefined
+            {chatTerminalMode === "terminal" ? (
+              <div className="chat-terminal-embed">
+                <TerminalChatPane terminalId={selectedSession.sessionId} />
+              </div>
+            ) : (
+              <>
+                {showRichChat && chatMessages ? (
+                  <ConversationChatThread
+                    messages={chatMessages}
+                    viewMode={viewMode}
+                    onReply={handleReply}
+                    onSendAnswer={
+                      selectedSessionId ? (text) => sendMessage(selectedSessionId, text) : undefined
                     }
-                    highlighted={isHighlighted}
-                    key={turn.turnId}
-                    ref={isHighlighted ? highlightedRef : undefined}
-                    role={turn.role}
-                    showSender={selectedSession.turns[index - 1]?.role !== turn.role}
-                    startedAt={turn.startedAt}
                   />
-                );
-              })}
-              {pendingMessages.map((message) => (
-                <li className="chat-turn" data-pending="true" data-role="user" key={message.id}>
-                  <div className="chat-bubble">
-                    <p className="chat-bubble-gist">{message.text}</p>
+                ) : null}
+                <ol className="chat-thread" hidden={showRichChat} ref={threadRef}>
+                  {selectedSession.turns.map((turn, index) => {
+                    const isHighlighted = turn.turnId === highlightedTurnId;
+
+                    return (
+                      <ConversationTurnBubble
+                        content={turn.content}
+                        highlightTerm={
+                          isHighlighted && searchQuery.length > 0 ? searchQuery : undefined
+                        }
+                        highlighted={isHighlighted}
+                        key={turn.turnId}
+                        ref={isHighlighted ? highlightedRef : undefined}
+                        role={turn.role}
+                        showSender={selectedSession.turns[index - 1]?.role !== turn.role}
+                        startedAt={turn.startedAt}
+                        turnId={turn.turnId}
+                        onReply={handleReply}
+                        onRewind={handleRewind}
+                        onFork={handleFork}
+                      />
+                    );
+                  })}
+                  {pendingMessages.map((message) => (
+                    <li className="chat-turn" data-pending="true" data-role="user" key={message.id}>
+                      <div className="chat-bubble">
+                        <p className="chat-bubble-gist">{message.text}</p>
+                      </div>
+                      <div className="chat-meta">
+                        Sent · the agent will reply when it is free
+                        <button
+                          aria-label="Send now"
+                          className="chat-pending-play"
+                          onClick={() => void sendNow(message)}
+                          type="button"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            fill="currentColor"
+                            focusable="false"
+                            viewBox="0 0 16 16"
+                          >
+                            <path d="M5 3.5l8 4.5-8 4.5V3.5z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                {stashedDraft !== null ? (
+                  <div className="chat-stash-banner">
+                    <span className="chat-stash-banner-text">
+                      Stashed: &ldquo;
+                      {stashedDraft.length > 60 ? `${stashedDraft.slice(0, 60)}…` : stashedDraft}
+                      &rdquo;
+                    </span>
+                    <button
+                      className="chat-stash-banner-restore"
+                      onClick={() => {
+                        setRestoreDraft(stashedDraft);
+                        setStashedDraft(null);
+                      }}
+                      type="button"
+                    >
+                      Restore
+                    </button>
+                    <button
+                      aria-label="Dismiss stash"
+                      className="chat-stash-banner-dismiss"
+                      onClick={() => {
+                        setStashedDraft(null);
+                      }}
+                      type="button"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        fill="none"
+                        focusable="false"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M4 4l8 8M12 4l-8 8" />
+                      </svg>
+                    </button>
                   </div>
-                  <div className="chat-meta">Sent · the agent will reply when it is free</div>
-                </li>
-              ))}
-            </ol>
-            <ConversationComposer
-              disabled={!isLiveSession}
-              disabledReason="This session has ended. Start the agent again to keep talking."
-              error={composerState.sendError}
-              onSend={onSendMessage}
-              key={selectedSession.sessionId}
-            />
+                ) : null}
+                <ConversationComposer
+                  disabled={!isLiveSession}
+                  disabledReason="This session has ended. Start the agent again to keep talking."
+                  error={composerState.sendError}
+                  {...(restoreDraft !== null ? { externalDraft: restoreDraft } : {})}
+                  onInterruptAndSend={handleInterruptAndSend}
+                  onQueue={handleQueue}
+                  onSend={onSendMessage}
+                  onStash={handleStash}
+                  onStop={handleStop}
+                  key={`${selectedSession.sessionId}:${restoreDraft ?? ""}`}
+                />
+                <div className="chat-model-row relative" ref={launchOptionsRef}>
+                  <button
+                    aria-expanded={isLaunchOptionsOpen}
+                    aria-haspopup="dialog"
+                    aria-label="Switch model or effort"
+                    className="chat-model-pill"
+                    onClick={() => setIsLaunchOptionsOpen((current) => !current)}
+                    title="Option+P / Alt+P to switch model"
+                    type="button"
+                  >
+                    {agentProvider} · {launchOptionsSummary}
+                  </button>
+                  {isLaunchOptionsOpen ? (
+                    <AgentLaunchSettingsMenu
+                      error={launchOptions.error}
+                      isSaving={launchOptions.isSaving}
+                      onChange={launchOptions.update}
+                      onClose={() => setIsLaunchOptionsOpen(false)}
+                      onSave={() => {
+                        void launchOptions.save().then(() => setIsLaunchOptionsOpen(false));
+                      }}
+                      options={launchOptions.options}
+                      provider={agentProvider}
+                    />
+                  ) : null}
+                </div>
+              </>
+            )}
           </>
         ) : (
           <p className="conversations-empty">Select a conversation from the sidebar.</p>

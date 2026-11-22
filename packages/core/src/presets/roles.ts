@@ -17,8 +17,7 @@ const role = (
 });
 
 /**
- * The baseline roles. Each gets the least it needs: read-only roles cannot edit code, no role can write the gate
- * result, the audit log or the job record, and none can run an action that needs a human click.
+ * The baseline roles.
  */
 export const PRESET_ROLES: readonly RoleDefinition[] = [
   role({

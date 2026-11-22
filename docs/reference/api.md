@@ -15,6 +15,7 @@ Most HTTP routes either read/write persisted files or create runtime records. We
 - `POST /api/terminals` - creates a new terminal session
 - `POST /api/terminals/prune` - removes terminal records with `stale`, `stopped`, or `exited` lifecycle state
 - `PATCH /api/terminals/:terminalId` - updates terminal metadata such as the display name
+- `PATCH /api/terminals/:terminalId/launch-options` - updates `agentModel` / `agentEffort` for the terminal's next agent launch; an empty string clears a flag
 - `DELETE /api/terminals/:terminalId` - removes a terminal and closes its active session
 - `POST /api/terminals/:terminalId/stop` - stops an active session or recorded stale process
 - `POST /api/terminals/:terminalId/kill` - kills an active session or recorded stale process
@@ -42,16 +43,16 @@ Creating a terminal registers metadata first. A PTY starts immediately only when
 - `DELETE /api/deck/coordinations/:coordinationId` - deletes a coordination and its stored files
 - `PATCH /api/deck/coordinations/:coordinationId/skills` - updates the coordination's suggested skills and rewrites the managed block in `CONTEXT.md`
 - `PATCH /api/deck/coordinations/:coordinationId/agent` - sets the agent provider (`claude`, `kiro`, or `opencode`) for the coordination's terminals
-- `POST /api/deck/coordinations/:coordinationId/todo` - adds a todo item to `todo.md`
+- `GET /api/deck/coordinations/:coordinationId/todo` - lists the coordination's todo items
+- `POST /api/deck/coordinations/:coordinationId/todo` - adds a todo item
 - `PATCH /api/deck/coordinations/:coordinationId/todo/toggle` - marks a todo item done or undone
 - `PATCH /api/deck/coordinations/:coordinationId/todo/edit` - edits the text of a todo item
 - `POST /api/deck/coordinations/:coordinationId/todo/delete` - deletes a todo item
 - `POST /api/deck/coordinations/:coordinationId/todo/solve` - starts one worker terminal for one todo item
 - `GET /api/deck/coordinations/:coordinationId/files/:filename` - reads one markdown file from the coordination vault
-- `PUT /api/deck/coordinations/:coordinationId/files/:filename` - overwrites `todo.md` with raw markdown from the Deck editor
 - `POST /api/deck/coordinations/:coordinationId/swarm` - spawns worker terminals from incomplete todo items
 
-Deck routes treat `.adadex/coordinations/<coordination-id>/` as the source of truth for agent-facing context. Todo item operations update `todo.md` by parsed item index; the Deck editor can also replace the whole file with operator-authored markdown. Other vault files are read-only through the API. Swarm operations derive worker assignments from incomplete parsed todo items.
+Deck routes treat `.adadex/coordinations/<coordination-id>/` as the source of truth for agent-facing context. Todo item operations update `todos.json` by item index. Vault files are read-only through the API. Swarm operations derive worker assignments from incomplete parsed todo items.
 
 ## Prompts
 

@@ -107,7 +107,6 @@ export const createJobExecutor = (deps: JobActionDeps): ActionExecutor => ({
         throw new Error(`${job.id} is not parked`);
       }
 
-      // Back to where it was parked, with a fresh allowance of rounds, so a job parked for running out of rounds can go on.
       const { note: _note, parkedFrom: _from, ...rest } = job;
       const back = job.parkedFrom;
       await store.save({

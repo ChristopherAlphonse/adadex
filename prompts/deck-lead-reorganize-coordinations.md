@@ -4,7 +4,7 @@ Do NOT delete folders or make changes until the operator confirms your recommend
 
 ## Process
 
-For each coordination folder, read all files (`CONTEXT.md`, `todo.md`, and any additional reference files). Then read the actual source code in the directories each coordination claims as its scope to verify the coordination files reflect reality. Evaluate the overall structure:
+For each coordination folder, read all files (`CONTEXT.md` and any additional reference files) and run `./bin/adadex todo list <coordination-id>` for its todos. Then read the actual source code in the directories each coordination claims as its scope to verify the coordination files reflect reality. Evaluate the overall structure:
 
 1. **Keep or drop**: Are any coordinations redundant, empty, or no longer relevant? Recommend which to keep and which to remove with reasoning for each.
 2. **Merge candidates**: Are any coordinations so closely related that they should be merged? Two coordinations that routinely touch the same files are a merge signal.
@@ -23,5 +23,5 @@ Watch for these in your own behavior:
 
 1. **Merging by name similarity**: Two coordinations with similar names may cover genuinely different concerns. Check what files they actually touch before recommending a merge.
 2. **Creating coordinations for every directory**: Not every subdirectory needs its own coordination. Group by work domain, not file structure.
-3. **Recommending drops without checking workload**: A coordination with an empty `CONTEXT.md` but an active `todo.md` may need enrichment, not removal.
+3. **Recommending drops without checking workload**: A coordination with an empty `CONTEXT.md` but an active todo list may need enrichment, not removal.
 4. **Trusting coordination files at face value**: `CONTEXT.md` may be stale. Verify scope claims against the actual codebase before recommending keeps or merges.

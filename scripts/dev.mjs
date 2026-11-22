@@ -69,7 +69,6 @@ const findOpenPort = async (startPort) => {
       break;
     }
 
-    // eslint-disable-next-line no-await-in-loop
     const isAvailable = await canListenOnPort(port);
 
     if (isAvailable) {
@@ -93,7 +92,6 @@ console.log(`[adadex-dev] using api port ${apiPort}`);
 
 const monorepoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-// Resolve project state dir from global registry.
 const resolveProjectStateDir = (workspaceCwd) => {
   if (process.env.ADADEX_PROJECT_STATE_DIR) {
     return process.env.ADADEX_PROJECT_STATE_DIR;
@@ -108,9 +106,7 @@ const resolveProjectStateDir = (workspaceCwd) => {
       if (isStringValue(projectConfig.projectId) && projectConfig.projectId.trim().length > 0) {
         return join(homedir(), ".adadex", "projects", projectConfig.projectId);
       }
-    } catch {
-      // fall through
-    }
+    } catch {}
   }
 
   const projectsFile = join(homedir(), ".adadex", "projects.json");
@@ -129,9 +125,7 @@ const resolveProjectStateDir = (workspaceCwd) => {
           return join(homedir(), ".adadex", "projects", project.name);
         }
       }
-    } catch {
-      // fall through
-    }
+    } catch {}
   }
 
   return `${workspaceCwd}/.adadex`;
@@ -186,7 +180,6 @@ for (const child of children) {
     remaining -= 1;
 
     if (!shuttingDown) {
-      // One side died on its own: take the other down so dev never half-runs.
       exitCode = code ?? 1;
       forwardSignal("SIGTERM");
     }

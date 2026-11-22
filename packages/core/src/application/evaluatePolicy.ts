@@ -8,7 +8,7 @@ const ask = (reason: string): PolicyDecision => ({ kind: "ask", reason });
 
 const escapeRegex = (c: string): string => c.replace(/[.*+?^${}()|[\]\\/-]/g, "\\$&");
 
-/** `*` matches any text, spaces included. Anchored at the start only, as the guard script does. */
+/** `*` matches any text, spaces included. Anchored at the start only. */
 const shellGlob = (pattern: string): RegExp =>
   new RegExp(`^${[...pattern].map((c) => (c === "*" ? "[\\s\\S]*" : escapeRegex(c))).join("")}`);
 

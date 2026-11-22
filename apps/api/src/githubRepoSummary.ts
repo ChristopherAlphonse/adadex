@@ -302,7 +302,6 @@ const readCommitDiffStats = async (
       continue;
     }
 
-    // line is a hash; the next non-empty line may be the shortstat
     const hash = line;
     const nextLine = lines[i + 1]?.trim() ?? "";
 

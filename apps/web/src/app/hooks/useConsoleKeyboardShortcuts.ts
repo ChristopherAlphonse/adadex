@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
-import type { PrimaryNavIndex } from "../constants";
+import { isFactoryHostConnected } from "../../runtime/factoryHost";
+import { FACTORY_NAV_INDEX, type PrimaryNavIndex } from "../constants";
 import { isEditableEventTarget, parsePrimaryNavKey } from "../hotkeys";
 
 type UseConsoleKeyboardShortcutsOptions = {
@@ -17,6 +18,10 @@ export const useConsoleKeyboardShortcuts = ({
       }
 
       const nextPrimaryNav = parsePrimaryNavKey(event.key);
+
+      if (nextPrimaryNav === FACTORY_NAV_INDEX && !isFactoryHostConnected()) {
+        return;
+      }
 
       if (nextPrimaryNav !== null) {
         setActivePrimaryNav(nextPrimaryNav);

@@ -1,23 +1,16 @@
 import { isFunctionValue } from "@adadex/core";
 import type { WorkspaceSetupSnapshot, WorkspaceSetupStepId } from "@adadex/core";
-import {
-  ChevronUp,
-  GitBranch,
-  Hexagon,
-  Layers,
-  ListTodo,
-  Sparkles,
-  Terminal as TerminalIcon,
-  Trash2,
-} from "lucide-react";
+import { ChevronUp, ListTodo } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { answerApproval } from "../app/answerApproval";
 import type { GraphNode } from "../app/canvas/types";
 import { useAgentRuntimeStates } from "../app/hooks/useAgentRuntimeStates";
 import { useCanvasGraphData } from "../app/hooks/useCanvasGraphData";
 import { useCanvasTransform } from "../app/hooks/useCanvasTransform";
 import { useForceSimulation } from "../app/hooks/useForceSimulation";
 import type { PendingDeleteTerminal } from "../app/hooks/useTerminalMutations";
+import { useWorkspaceSetupOverlay } from "../app/hooks/useWorkspaceSetupOverlay";
 import {
   createTerminalRuntimeStateStore,
   type TerminalRuntimeStateStore,
@@ -27,7 +20,21 @@ import type {
   TerminalView,
   TerminalWorkspaceMode,
 } from "../app/types";
+import { CanvasContextMenu } from "./canvas/CanvasContextMenu";
 import { CanvasOrchestrationPanel } from "./canvas/CanvasOrchestrationPanel";
+import {
+  type ContextMenuState,
+  CLICK_THRESHOLD,
+  GRAPH_MIN_WIDTH,
+  TERMINAL_MIN_WIDTH,
+  ACTIVE_SESSION_RADIUS,
+  buildActiveSessionNodeId,
+  buildOrchestrationNodeId,
+  buildCanvasEdgePath,
+  reconcileOpenTerminalNodes,
+  isEdgeActivityVisible,
+  renderEdgeActivityDots,
+} from "./canvas/canvasSupport";
 import { CanvasTerminalColumn } from "./canvas/CanvasTerminalColumn";
 import { DeleteAllTerminalsDialog } from "./canvas/DeleteAllTerminalsDialog";
 import { MascotNode } from "./canvas/MascotNode";
@@ -37,23 +44,9 @@ import { DeleteOrchestrationDialog } from "./DeleteOrchestrationDialog";
 import { ConsoleCanvasViewportControls } from "./design-system/ConsoleCanvasViewportControls";
 import { ConsoleChromeToolbar } from "./design-system/ConsoleChromeToolbar";
 import { ConsoleInspectorPanel } from "./design-system/ConsoleInspectorPanel";
+import { ThreadTree } from "./ThreadTree";
 
-type ContextMenuState =
-  | { kind: "canvas"; x: number; y: number }
-  | { kind: "orchestration"; x: number; y: number; coordinationId: string }
-  | { kind: "deck-lead"; x: number; y: number }
-  | {
-      kind: "active-session";
-      x: number;
-      y: number;
-      nodeId: string;
-      coordinationId: string;
-      sessionId: string;
-      label: string;
-      workspaceMode?: string;
-    };
-
-type CanvasPrimaryViewProps = {
+export type CanvasPrimaryViewProps = {
   columns: TerminalView;
   runtimeStateStore?: TerminalRuntimeStateStore;
   isUiStateHydrated?: boolean;
@@ -70,13 +63,22 @@ type CanvasPrimaryViewProps = {
   onCanvasOpenTerminalIdsChange?: (ids: string[]) => void;
   onCanvasOpenOrchestrationIdsChange?: (ids: string[]) => void;
   onCanvasTerminalsPanelWidthChange?: (width: number | null) => void;
-  onCreateAgent?: (coordinationId: string) => Promise<string | undefined> | undefined;
+  onCreateAgent?:
+    | ((coordinationId: string, parentTerminalId?: string) => Promise<string | undefined>)
+    | undefined;
   onCreateTerminal?: () => Promise<string | undefined> | undefined;
   onCreateWorktreeTerminal?: () => Promise<string | undefined> | undefined;
   onCreateOrchestration?: () => void;
   onSpawnSwarm?: (coordinationId: string, workspaceMode: TerminalWorkspaceMode) => Promise<void>;
   onSolveTodoItem?: (coordinationId: string, itemIndex: number) => Promise<void> | void;
   onDeckLeadAction?: (action: string) => Promise<string | undefined> | undefined;
+  onDeckLeadRunSwarm?:
+    | ((
+        coordinationId: string,
+        coordinationName: string,
+        openTodoCount: number,
+      ) => Promise<string | undefined> | undefined)
+    | undefined;
   onOrchestrationAction?: (
     coordinationId: string,
     action: string,
@@ -99,163 +101,9 @@ type CanvasPrimaryViewProps = {
   onTerminalRenamed?: ((terminalId: string, coordinationName: string) => void) | undefined;
   onTerminalActivity?: ((terminalId: string) => void) | undefined;
   onRefreshColumns?: () => Promise<void> | void;
+  onOpenGitActions?: (coordinationId: string) => void;
   gitStatusByOrchestrationId?: Record<string, CoordinationGitStatusSnapshot>;
 };
-
-const CLICK_THRESHOLD = 5;
-
-const WORKSPACE_SETUP_OVERLAY_STORAGE_KEY = "adadex.canvas.workspaceSetupOverlay";
-
-const GRAPH_MIN_WIDTH = 300;
-
-const TERMINAL_MIN_WIDTH = 370;
-
-const ACTIVE_SESSION_RADIUS = 12;
-
-const buildActiveSessionNodeId = (terminalId: string) => `a:${terminalId}`;
-
-const buildOrchestrationNodeId = (coordinationId: string) => `t:${coordinationId}`;
-
-const buildCanvasEdgePath = (
-  source: GraphNode,
-  target: GraphNode,
-  edgeIndex: number,
-  edgeCount: number,
-): string => {
-  const dx = target.x - source.x;
-  const dy = target.y - source.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-
-  if (dist < 1) return "";
-
-  const shortenSourceBy = source.radius + 6;
-  const shortenTargetBy = target.radius + 6;
-  const startRatio = Math.min(1, shortenSourceBy / dist);
-  const endRatio = Math.max(0, (dist - shortenTargetBy) / dist);
-  const sx = source.x + dx * startRatio;
-  const sy = source.y + dy * startRatio;
-  const tx = source.x + dx * endRatio;
-  const ty = source.y + dy * endRatio;
-
-  const curvature = edgeCount <= 1 ? 0.18 : (edgeIndex / (edgeCount - 1) - 0.5) * 1.2;
-  const offsetRatio = edgeCount <= 1 ? 0.16 : 0.18;
-  const baseOffset = Math.max(16, Math.min(32, dist * offsetRatio));
-  const offsetX = (-dy / dist) * curvature * baseOffset;
-  const offsetY = (dx / dist) * curvature * baseOffset;
-  const cpx = (sx + tx) / 2 + offsetX;
-  const cpy = (sy + ty) / 2 + offsetY;
-
-  return `M ${sx} ${sy} Q ${cpx} ${cpy} ${tx} ${ty}`;
-};
-
-const reconcileOpenTerminalNodes = (
-  current: Map<string, GraphNode>,
-  columns: TerminalView,
-): Map<string, GraphNode> => {
-  let didChange = false;
-  const next = new Map<string, GraphNode>();
-
-  for (const [nodeId, node] of current) {
-    if (!node.sessionId) {
-      next.set(nodeId, node);
-      continue;
-    }
-
-    const terminal = columns.find((entry) => entry.terminalId === node.sessionId);
-
-    if (!terminal) {
-      didChange = true;
-      continue;
-    }
-
-    const nextLabel = terminal.coordinationName || terminal.label || terminal.terminalId;
-
-    const nextNode: GraphNode = {
-      ...node,
-      coordinationId: terminal.coordinationId,
-      label: nextLabel,
-      agentState: terminal.state,
-      hasUserPrompt: terminal.hasUserPrompt ?? false,
-    };
-
-    if (terminal.workspaceMode) nextNode.workspaceMode = terminal.workspaceMode;
-
-    if (terminal.parentTerminalId) nextNode.parentTerminalId = terminal.parentTerminalId;
-
-    if (
-      node.label !== nextNode.label ||
-      node.coordinationId !== nextNode.coordinationId ||
-      node.agentState !== nextNode.agentState ||
-      node.hasUserPrompt !== nextNode.hasUserPrompt ||
-      node.workspaceMode !== nextNode.workspaceMode ||
-      node.parentTerminalId !== nextNode.parentTerminalId
-    ) {
-      didChange = true;
-      next.set(nodeId, nextNode);
-      continue;
-    }
-
-    next.set(nodeId, node);
-  }
-
-  return didChange ? next : current;
-};
-
-const isEdgeActivityVisible = (target: GraphNode): boolean =>
-  target.type === "active-session" &&
-  target.hasUserPrompt !== false &&
-  target.agentRuntimeState !== undefined &&
-  target.agentRuntimeState !== "idle";
-
-const renderEdgeActivityDots = (path: string, color: string, keyPrefix: string) =>
-  [0, 1, 2].flatMap((index) => [
-    <circle
-      key={`${keyPrefix}-trail-${index}`}
-      className="canvas-edge-activity-dot canvas-edge-activity-dot--trail"
-      r={4.6}
-      fill={color}
-      opacity={Math.max(0.14, 0.28 - index * 0.04)}
-    >
-      <animateMotion
-        path={path}
-        begin={`${index * 0.62}s`}
-        dur="1.9s"
-        repeatCount="indefinite"
-        rotate="auto"
-      />
-      <animate
-        attributeName="r"
-        values="3.8;5.2;3.8"
-        dur="1.9s"
-        begin={`${index * 0.62}s`}
-        repeatCount="indefinite"
-      />
-    </circle>,
-    <circle
-      key={`${keyPrefix}-dot-${index}`}
-      className="canvas-edge-activity-dot"
-      r={3.2}
-      fill="#fff4cc"
-      stroke={color}
-      strokeWidth={1.2}
-      opacity={Math.max(0.7, 1 - index * 0.08)}
-    >
-      <animateMotion
-        path={path}
-        begin={`${index * 0.62}s`}
-        dur="1.9s"
-        repeatCount="indefinite"
-        rotate="auto"
-      />
-      <animate
-        attributeName="r"
-        values="2.8;3.8;2.8"
-        dur="1.9s"
-        begin={`${index * 0.62}s`}
-        repeatCount="indefinite"
-      />
-    </circle>,
-  ]);
 
 export const CanvasPrimaryView = ({
   columns,
@@ -281,6 +129,7 @@ export const CanvasPrimaryView = ({
   onSpawnSwarm,
   onSolveTodoItem,
   onDeckLeadAction,
+  onDeckLeadRunSwarm,
   onOrchestrationAction,
   onNavigateToConversation,
   onCloseActiveSession,
@@ -294,7 +143,6 @@ export const CanvasPrimaryView = ({
   onRefreshColumns,
   gitStatusByOrchestrationId = {},
 }: CanvasPrimaryViewProps) => {
-  // Lazy state keeps one store for the component lifetime without reading a ref during render.
   const [initialRuntimeStateStore] = useState(
     () => providedRuntimeStateStore ?? createTerminalRuntimeStateStore(),
   );
@@ -327,52 +175,13 @@ export const CanvasPrimaryView = ({
   const terminalsPanelRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef(new Map<string, HTMLElement>());
   const lastFocusedPanelIdRef = useRef<string | null>(null);
-  const shouldShowWorkspaceSetupCard = Boolean(workspaceSetup?.shouldShowSetupCard);
 
-  const [workspaceSetupOverlay, setWorkspaceSetupOverlay] = useState<
-    "expanded" | "minimized" | "hidden"
-  >(() => {
-    if (!shouldShowWorkspaceSetupCard || typeof sessionStorage === "undefined") {
-      return "expanded";
-    }
-
-    const raw = sessionStorage.getItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY);
-
-    if (raw === "minimized" || raw === "hidden" || raw === "expanded") {
-      return raw;
-    }
-
-    return "expanded";
-  });
-
-  const [wasSetupCardVisible, setWasSetupCardVisible] = useState(shouldShowWorkspaceSetupCard);
-
-  if (wasSetupCardVisible !== shouldShowWorkspaceSetupCard) {
-    setWasSetupCardVisible(shouldShowWorkspaceSetupCard);
-
-    if (!shouldShowWorkspaceSetupCard) {
-      setWorkspaceSetupOverlay("expanded");
-    }
-  }
-
-  const visibleWorkspaceSetupOverlay = shouldShowWorkspaceSetupCard
-    ? workspaceSetupOverlay
-    : "expanded";
-
-  const incompleteWorkspaceSetupSteps = useMemo(
-    () => (workspaceSetup?.steps ?? []).filter((step) => !step.complete).length,
-    [workspaceSetup],
-  );
-
-  useEffect(() => {
-    if (!shouldShowWorkspaceSetupCard) {
-      sessionStorage.removeItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY);
-
-      return;
-    }
-
-    sessionStorage.setItem(WORKSPACE_SETUP_OVERLAY_STORAGE_KEY, visibleWorkspaceSetupOverlay);
-  }, [shouldShowWorkspaceSetupCard, visibleWorkspaceSetupOverlay]);
+  const {
+    shouldShow: shouldShowWorkspaceSetupCard,
+    overlay: visibleWorkspaceSetupOverlay,
+    setOverlay: setWorkspaceSetupOverlay,
+    incompleteSteps: incompleteWorkspaceSetupSteps,
+  } = useWorkspaceSetupOverlay(workspaceSetup);
 
   const agentRuntimeStates = useAgentRuntimeStates(runtimeStateStore, columns);
 
@@ -464,8 +273,6 @@ export const CanvasPrimaryView = ({
     [columns, nodesById],
   );
 
-  // Hydrate open terminals after a settling delay so all async data (columns,
-  // graph nodes, simulation) has time to land before we attempt the lookup.
   const hasPersistedTerminalIds = Boolean(
     canvasOpenTerminalIds && canvasOpenTerminalIds.length > 0,
   );
@@ -476,9 +283,6 @@ export const CanvasPrimaryView = ({
 
   const openTerminalCount = openTerminals.size;
 
-  // Once the settling timer fires, restore from the simulation graph which
-  // should now be fully populated. Adjusting state during render keeps this
-  // one-shot reconciliation out of an effect.
   if (
     !hasRestoredPersistedTerminals &&
     isUiStateHydrated &&
@@ -518,7 +322,6 @@ export const CanvasPrimaryView = ({
       return;
     }
 
-    // Only the timer completion updates state; the "hydrating" value is derived.
     const timer = window.setTimeout(() => {
       hasHydratedTerminals.current = true;
       setHasTerminalHydrationSettled(true);
@@ -527,20 +330,16 @@ export const CanvasPrimaryView = ({
     return () => window.clearTimeout(timer);
   }, [isUiStateHydrated, canvasOpenTerminalIds]);
 
-  // Persist open terminal IDs when they change
   useEffect(() => {
     if (!hasHydratedTerminals.current) return;
     onCanvasOpenTerminalIdsChange?.(Array.from(openTerminals.keys()));
   }, [openTerminals, onCanvasOpenTerminalIdsChange]);
 
-  // Keep open terminal nodes in step with incoming column data.
   if (reconciledColumns !== columns) {
     setReconciledColumns(columns);
     setOpenTerminals((current) => reconcileOpenTerminalNodes(current, columns));
   }
 
-  // Hydrate open orchestrations from persisted IDs.
-  // Gate on orchestration-type nodes being present (deck API fetch is async).
   const hasOrchestrationNodes = simulatedNodes.some((n) => n.type === "orchestration");
   const openOrchestrationCount = openOrchestrations.size;
 
@@ -564,13 +363,11 @@ export const CanvasPrimaryView = ({
     }
   }
 
-  // Persist open orchestration IDs when they change
   useEffect(() => {
     if (!hasHydratedOrchestrations) return;
     onCanvasOpenOrchestrationIdsChange?.(Array.from(openOrchestrations.keys()));
   }, [openOrchestrations, hasHydratedOrchestrations, onCanvasOpenOrchestrationIdsChange]);
 
-  // Persist terminals panel width only when user has explicitly dragged the divider
   useEffect(() => {
     if (!hasHydratedTerminals.current) return;
 
@@ -601,6 +398,25 @@ export const CanvasPrimaryView = ({
       handleCanvasPointerMove(e);
     },
     [dragNodeId, screenToGraph, moveNode, handleCanvasPointerMove],
+  );
+
+  const openTerminalFor = useCallback(
+    (terminalId: string) => {
+      const nodeId = buildActiveSessionNodeId(terminalId);
+      const node = nodesById.get(nodeId);
+
+      if (!node) return;
+
+      const resolvedNode = node.sessionId
+        ? (resolveActiveSessionNode(node.sessionId) ?? node)
+        : node;
+
+      setSelectedNodeId(nodeId);
+      setOpenTerminals((prev) =>
+        prev.has(nodeId) ? prev : new Map(prev).set(nodeId, { ...resolvedNode }),
+      );
+    },
+    [nodesById, resolveActiveSessionNode],
   );
 
   const handleNodeClick = useCallback(
@@ -711,12 +527,10 @@ export const CanvasPrimaryView = ({
     [columns, onCloseActiveSession],
   );
 
-  // Divider drag handlers
   const handleDividerPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       e.preventDefault();
 
-      // Measure the actual rendered width of the terminals panel (works whether CSS- or inline-sized)
       const panelEl =
         /* SAFETY: preceding checks establish the invariant this assertion encodes. */ /* SAFETY: preceding checks establish the invariant this assertion encodes. */ (
           e.target as HTMLElement
@@ -736,7 +550,6 @@ export const CanvasPrimaryView = ({
 
     if (!drag) return;
     const containerWidth = containerRef.current?.clientWidth ?? 1200;
-    // Dragging left → terminals grow, dragging right → terminals shrink
     const delta = drag.startX - e.clientX;
 
     const newWidth = Math.max(
@@ -751,7 +564,6 @@ export const CanvasPrimaryView = ({
     dividerDragRef.current = null;
   }, []);
 
-  // Convert vertical wheel to horizontal scroll only when hovering terminal headers
   useEffect(() => {
     if (!isHydratingTerminals && openTerminalCount === 0 && openOrchestrationCount === 0) return;
     const panel = terminalsPanelRef.current;
@@ -814,7 +626,6 @@ export const CanvasPrimaryView = ({
     }
   }, []);
 
-  // Stable refs so the native listener always sees the latest data and callbacks
   const nodesByIdRef = useRef(nodesById);
   const onNavigateRef = useRef(onNavigateToConversation);
 
@@ -823,7 +634,6 @@ export const CanvasPrimaryView = ({
     onNavigateRef.current = onNavigateToConversation;
   }, [nodesById, onNavigateToConversation]);
 
-  // Native contextmenu listener — must be native to reliably preventDefault
   useEffect(() => {
     const svg = svgRef.current;
 
@@ -964,7 +774,6 @@ export const CanvasPrimaryView = ({
     [onOrchestrationAction],
   );
 
-  // Auto-open terminal for newly created agent once it appears in the graph
   if (pendingOpenAgentId) {
     const nodeId = buildActiveSessionNodeId(pendingOpenAgentId);
     const node = resolveActiveSessionNode(pendingOpenAgentId);
@@ -1049,7 +858,6 @@ export const CanvasPrimaryView = ({
     };
   }, [selectedNodeId, openTerminals, openOrchestrations]);
 
-  // Separate orchestration and session nodes for render order
   const orchestrationNodes = simulatedNodes.filter(
     (n) => n.type === "orchestration" || n.type === "deck-lead",
   );
@@ -1187,6 +995,28 @@ export const CanvasPrimaryView = ({
       ? (columns.find((column) => column.terminalId === selectedTerminalId) ?? null)
       : null;
 
+  const panelTabs = [
+    ...Array.from(openOrchestrations, ([nodeId, node]) => ({
+      nodeId,
+      label: node.label,
+      onClose: () => handleCloseOrchestration(nodeId),
+    })),
+    ...Array.from(openTerminals, ([nodeId, node]) => ({
+      nodeId,
+      label: node.label,
+      onClose: () => handleMinimizeTerminal(nodeId),
+    })),
+  ];
+
+  const lastPanelId = panelTabs[panelTabs.length - 1]?.nodeId ?? null;
+
+  const activePanelId = panelTabs.some((tab) => tab.nodeId === selectedNodeId)
+    ? selectedNodeId
+    : lastPanelId;
+
+  const panelSlotClass = (nodeId: string) =>
+    `flex min-h-0 min-w-0 flex-1 [&>*]:min-w-0 [&>*]:flex-1${nodeId === activePanelId ? "" : " hidden"}`;
+
   return (
     <section
       ref={containerRef}
@@ -1205,7 +1035,6 @@ export const CanvasPrimaryView = ({
             });
           }
         }}
-        onFitView={handleFitView}
         onRefresh={handleRefresh}
         onDeleteAll={() => setIsDeleteAllDialogOpen(true)}
         onNewAgent={() => {
@@ -1295,7 +1124,6 @@ export const CanvasPrimaryView = ({
                 }),
               )}
 
-              {/* Render orchestration nodes (with arms) first */}
               {orchestrationNodes.map((node) => {
                 const connected = edges
                   .filter((e) => e.source === node.id)
@@ -1333,7 +1161,6 @@ export const CanvasPrimaryView = ({
                 );
               })}
 
-              {/* Render session nodes on top */}
               {sessionNodes.map((node) => (
                 <SessionNode
                   key={node.id}
@@ -1368,7 +1195,6 @@ export const CanvasPrimaryView = ({
             </div>
           </div>
 
-          {/* Waiting notifications — compact bars below the toolbar */}
           {waitingNodes.length > 0 && (
             <div className="canvas-waiting-list">
               {waitingNodes.map((node) => {
@@ -1440,6 +1266,14 @@ export const CanvasPrimaryView = ({
             </div>
           ) : null}
 
+          <details className="group/threads absolute left-3 top-3 z-10 w-72 max-w-[40%] overflow-hidden rounded-xl border border-border bg-surface/90 backdrop-blur open:max-h-[60%] open:overflow-y-auto">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+              Threads
+              <span className="tabular-nums">{columns.length}</span>
+            </summary>
+            <ThreadTree onApproval={answerApproval} onOpen={openTerminalFor} terminals={columns} />
+          </details>
+
           <ConsoleCanvasViewportControls
             scale={transform.scale}
             showGrid={showCanvasGrid}
@@ -1462,322 +1296,142 @@ export const CanvasPrimaryView = ({
             />
             <div
               ref={terminalsPanelRef}
-              className="canvas-terminals-panel"
+              className="canvas-terminals-panel canvas-terminals-panel--tabbed"
               style={
                 terminalsPanelWidth != null ? { flex: `0 0 ${terminalsPanelWidth}px` } : undefined
               }
             >
-              {Array.from(openOrchestrations.entries()).map(([nodeId, node]) => (
-                <CanvasOrchestrationPanel
-                  key={nodeId}
-                  node={node}
-                  isFocused={selectedNodeId === nodeId}
-                  panelRef={setPanelRef(nodeId)}
-                  orchestration={orchestrationById.get(node.coordinationId) ?? null}
-                  sessions={sessionsByOrchestrationId.get(node.coordinationId) ?? []}
-                  onClose={() => handleCloseOrchestration(nodeId)}
-                  onFocus={() => handlePanelFocus(nodeId)}
-                  onCreateAgent={(coordinationId) => {
-                    handleCreateAgent(coordinationId);
-                  }}
-                  onSolveTodoItem={(coordinationId, itemIndex) => {
-                    void onSolveTodoItem?.(coordinationId, itemIndex);
-                  }}
-                  onSpawnSwarm={(coordinationId, workspaceMode) => {
-                    return handleSpawnSwarm(coordinationId, workspaceMode);
-                  }}
-                  onNavigateToConversation={onNavigateToConversation}
-                  onRefreshOrchestrationData={refreshDeckOrchestrations}
-                />
-              ))}
-              {isHydratingTerminals && openTerminals.size === 0 && (
-                <div className="canvas-terminal-skeleton">
-                  <div className="canvas-terminal-skeleton__header" />
-                  <div className="canvas-terminal-skeleton__body">
-                    <div className="canvas-terminal-skeleton__line" style={{ width: "60%" }} />
-                    <div className="canvas-terminal-skeleton__line" style={{ width: "80%" }} />
-                    <div className="canvas-terminal-skeleton__line" style={{ width: "45%" }} />
+              <div
+                aria-label="Open panels"
+                className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-surface px-2 py-1.5"
+                role="tablist"
+              >
+                {panelTabs.map((tab) => (
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-md pl-2.5 pr-1 text-xs ${
+                      tab.nodeId === activePanelId
+                        ? "bg-secondary font-medium text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    key={tab.nodeId}
+                  >
+                    <button
+                      aria-selected={tab.nodeId === activePanelId}
+                      className="max-w-40 truncate py-1"
+                      onClick={() => handlePanelFocus(tab.nodeId)}
+                      role="tab"
+                      type="button"
+                    >
+                      {tab.label}
+                    </button>
+                    <button
+                      aria-label={`Close ${tab.label}`}
+                      className="grid size-5 place-items-center rounded hover:bg-background"
+                      onClick={tab.onClose}
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex min-h-0 min-w-0 flex-1">
+                {Array.from(openOrchestrations.entries()).map(([nodeId, node]) => (
+                  <div className={panelSlotClass(nodeId)} key={nodeId}>
+                    <CanvasOrchestrationPanel
+                      node={node}
+                      isFocused={selectedNodeId === nodeId}
+                      panelRef={setPanelRef(nodeId)}
+                      orchestration={orchestrationById.get(node.coordinationId) ?? null}
+                      sessions={sessionsByOrchestrationId.get(node.coordinationId) ?? []}
+                      onClose={() => handleCloseOrchestration(nodeId)}
+                      onFocus={() => handlePanelFocus(nodeId)}
+                      onCreateAgent={(coordinationId) => {
+                        handleCreateAgent(coordinationId);
+                      }}
+                      onSolveTodoItem={(coordinationId, itemIndex) => {
+                        void onSolveTodoItem?.(coordinationId, itemIndex);
+                      }}
+                      onSpawnSwarm={(coordinationId, workspaceMode) => {
+                        return handleSpawnSwarm(coordinationId, workspaceMode);
+                      }}
+                      onDeckLeadAction={handleDeckLeadAction}
+                      onAskDeckLeadToSwarm={(coordinationId, coordinationName, openTodoCount) => {
+                        const result = onDeckLeadRunSwarm?.(
+                          coordinationId,
+                          coordinationName,
+                          openTodoCount,
+                        );
+
+                        if (result && isFunctionValue(result.then)) {
+                          void result.then((agentId) => {
+                            if (agentId) setPendingOpenAgentId(agentId);
+                          });
+                        }
+                      }}
+                      onNavigateToConversation={onNavigateToConversation}
+                      onRefreshOrchestrationData={refreshDeckOrchestrations}
+                    />
                   </div>
-                </div>
-              )}
-              {Array.from(openTerminals.entries()).map(([nodeId, node]) => (
-                <CanvasTerminalColumn
-                  key={nodeId}
-                  node={node}
-                  terminals={columns}
-                  layoutVersion={terminalLayoutVersion}
-                  isFocused={selectedNodeId === nodeId}
-                  panelRef={setPanelRef(nodeId)}
-                  onMinimize={() => handleMinimizeTerminal(nodeId)}
-                  onClose={() => handleCloseTerminal(node)}
-                  onFocus={() => handlePanelFocus(nodeId)}
-                  onTerminalRenamed={onTerminalRenamed}
-                  onTerminalActivity={onTerminalActivity}
-                />
-              ))}
+                ))}
+                {isHydratingTerminals && openTerminals.size === 0 && (
+                  <div className="canvas-terminal-skeleton">
+                    <div className="canvas-terminal-skeleton__header" />
+                    <div className="canvas-terminal-skeleton__body">
+                      <div className="canvas-terminal-skeleton__line" style={{ width: "60%" }} />
+                      <div className="canvas-terminal-skeleton__line" style={{ width: "80%" }} />
+                      <div className="canvas-terminal-skeleton__line" style={{ width: "45%" }} />
+                    </div>
+                  </div>
+                )}
+                {Array.from(openTerminals.entries()).map(([nodeId, node]) => (
+                  <div className={panelSlotClass(nodeId)} key={nodeId}>
+                    <CanvasTerminalColumn
+                      node={node}
+                      terminals={columns}
+                      layoutVersion={terminalLayoutVersion}
+                      isFocused={selectedNodeId === nodeId}
+                      panelRef={setPanelRef(nodeId)}
+                      onMinimize={() => handleMinimizeTerminal(nodeId)}
+                      onClose={() => handleCloseTerminal(node)}
+                      onFocus={() => handlePanelFocus(nodeId)}
+                      onTerminalRenamed={onTerminalRenamed}
+                      onTerminalActivity={onTerminalActivity}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </>
         )}
 
-        <ConsoleInspectorPanel
-          selectedNode={selectedNode}
-          terminal={selectedTerminal}
-          gitStatus={
-            selectedNode ? (gitStatusByOrchestrationId[selectedNode.coordinationId] ?? null) : null
-          }
-        />
+        {selectedNode && !hasPanels ? (
+          <ConsoleInspectorPanel
+            selectedNode={selectedNode}
+            terminal={selectedTerminal}
+            gitStatus={
+              selectedNode
+                ? (gitStatusByOrchestrationId[selectedNode.coordinationId] ?? null)
+                : null
+            }
+          />
+        ) : null}
       </div>
 
-      {/* Context menu */}
       {contextMenu && (
-        <>
-          <button
-            type="button"
-            aria-label="Close canvas context menu"
-            className="canvas-context-menu-backdrop"
-            onClick={() => setContextMenu(null)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // Close current menu, then re-derive what's under the cursor on the SVG
-              setContextMenu(null);
-              // Use rAF so the backdrop is removed before we probe elementFromPoint
-              requestAnimationFrame(() => {
-                const under = document.elementFromPoint(e.clientX, e.clientY);
-
-                if (under) {
-                  under.dispatchEvent(
-                    new MouseEvent("contextmenu", {
-                      bubbles: true,
-                      clientX: e.clientX,
-                      clientY: e.clientY,
-                    }),
-                  );
-                }
-              });
-            }}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter" && e.key !== " " && e.key !== "Escape") return;
-              e.preventDefault();
-              setContextMenu(null);
-            }}
-          />
-          <div
-            className="canvas-context-menu"
-            style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setContextMenu(null);
-              requestAnimationFrame(() => {
-                const under = document.elementFromPoint(e.clientX, e.clientY);
-
-                if (under) {
-                  under.dispatchEvent(
-                    new MouseEvent("contextmenu", {
-                      bubbles: true,
-                      clientX: e.clientX,
-                      clientY: e.clientY,
-                    }),
-                  );
-                }
-              });
-            }}
-          >
-            {contextMenu.kind === "canvas" && (
-              <>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    setContextMenu(null);
-                    onCreateOrchestration?.();
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Hexagon size={14} />
-                  </span>
-                  New Orchestration
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    setContextMenu(null);
-                    const result = onCreateTerminal?.();
-
-                    if (result && isFunctionValue(result.then)) {
-                      void result.then((agentId) => {
-                        if (agentId) setPendingOpenAgentId(agentId);
-                      });
-                    }
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <TerminalIcon size={14} />
-                  </span>
-                  New Terminal
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    setContextMenu(null);
-                    const result = onCreateWorktreeTerminal?.();
-
-                    if (result && isFunctionValue(result.then)) {
-                      void result.then((agentId) => {
-                        if (agentId) setPendingOpenAgentId(agentId);
-                      });
-                    }
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <GitBranch size={14} />
-                  </span>
-                  New Worktree Terminal
-                </button>
-              </>
-            )}
-            {contextMenu.kind === "orchestration" && (
-              <>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => handleCreateAgent(contextMenu.coordinationId)}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <TerminalIcon size={14} />
-                  </span>
-                  Create new agent
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    setContextMenu(null);
-                    const result = onCreateWorktreeTerminal?.();
-
-                    if (result && isFunctionValue(result.then)) {
-                      void result.then((agentId) => {
-                        if (agentId) setPendingOpenAgentId(agentId);
-                      });
-                    }
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <GitBranch size={14} />
-                  </span>
-                  New Worktree Terminal
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() =>
-                    handleOrchestrationAction(
-                      contextMenu.coordinationId,
-                      "coordination-reorganize-todos",
-                    )
-                  }
-                >
-                  <span className="canvas-context-menu-icon">
-                    <ListTodo size={14} />
-                  </span>
-                  Update To-Do List
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() =>
-                    handleOrchestrationAction(contextMenu.coordinationId, "coordination-update")
-                  }
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Hexagon size={14} />
-                  </span>
-                  Update Orchestration
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    void handleSpawnSwarm(contextMenu.coordinationId, "worktree");
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Layers size={14} />
-                  </span>
-                  Spawn Swarm (Worktrees)
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => {
-                    void handleSpawnSwarm(contextMenu.coordinationId, "shared");
-                  }}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Layers size={14} />
-                  </span>
-                  Spawn Swarm (Normal)
-                </button>
-              </>
-            )}
-            {contextMenu.kind === "deck-lead" && (
-              <>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => handleDeckLeadAction("deck-lead-reorganize-todos")}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <ListTodo size={14} />
-                  </span>
-                  Reorganize To-Do's
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => handleDeckLeadAction("deck-lead-reorganize-coordinations")}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Hexagon size={14} />
-                  </span>
-                  Reorganize Coordinations
-                </button>
-                <button
-                  type="button"
-                  className="canvas-context-menu-item"
-                  onClick={() => handleDeckLeadAction("deck-lead-clean-contexts")}
-                >
-                  <span className="canvas-context-menu-icon">
-                    <Sparkles size={14} />
-                  </span>
-                  Clean Coordination Contexts
-                </button>
-              </>
-            )}
-            {contextMenu.kind === "active-session" && (
-              <button
-                type="button"
-                className="canvas-context-menu-item canvas-context-menu-item--danger"
-                onClick={() => {
-                  onDeleteActiveSession?.(
-                    contextMenu.sessionId,
-                    contextMenu.label,
-                    contextMenu.workspaceMode,
-                  );
-                  setContextMenu(null);
-                }}
-              >
-                <span className="canvas-context-menu-icon">
-                  <Trash2 size={14} />
-                </span>
-                Delete
-              </button>
-            )}
-          </div>
-        </>
+        <CanvasContextMenu
+          menu={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onCreateAgent={handleCreateAgent}
+          onCreateOrchestration={onCreateOrchestration}
+          onCreateTerminal={onCreateTerminal}
+          onCreateWorktreeTerminal={onCreateWorktreeTerminal}
+          onDeckLeadAction={handleDeckLeadAction}
+          onDeleteActiveSession={onDeleteActiveSession}
+          onOpenAgent={setPendingOpenAgentId}
+          onOrchestrationAction={handleOrchestrationAction}
+          onSpawnSwarm={handleSpawnSwarm}
+        />
       )}
 
       {pendingDeleteTerminal && onCancelDelete && onConfirmDelete && (

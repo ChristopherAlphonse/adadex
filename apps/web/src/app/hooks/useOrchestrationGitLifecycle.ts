@@ -170,7 +170,6 @@ export const useOrchestrationGitLifecycle = ({
     Record<string, boolean>
   >({});
 
-  // Only used to fetch each orchestration once; never rendered, so refs rather than state.
   const gitStatusAttemptedIdsRef = useRef(new Set<string>());
   const pullRequestAttemptedIdsRef = useRef(new Set<string>());
   const [prunedForColumns, setPrunedForColumns] = useState(columns);
@@ -274,8 +273,6 @@ export const useOrchestrationGitLifecycle = ({
     [columns],
   );
 
-  // Drop state for orchestrations that left `columns`. Done during render (React's
-  // "adjust state when a prop changes" pattern) instead of in an effect.
   if (prunedForColumns !== columns) {
     const activeOrchestrationIds = new Set(columns.map((column) => column.coordinationId));
 

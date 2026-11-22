@@ -83,8 +83,7 @@ export interface WorkflowDefinition {
   /** 0 for a build, 1 for a review that starts in its only round. */
   readonly initialRound: number;
   /**
-   * Whether the unattended loop may work jobs of this workflow. Off unless the workflow says so, so autonomy is a
-   * choice made for each workflow and not a machine-wide switch.
+   * Whether the unattended loop may work jobs of this workflow.
    */
   readonly unattended?: boolean;
   readonly stages: readonly StageDef[];

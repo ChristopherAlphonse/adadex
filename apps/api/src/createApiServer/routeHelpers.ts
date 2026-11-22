@@ -33,7 +33,6 @@ export type ApiRouteHandler = (
   dependencies: RouteHandlerDependencies,
 ) => Promise<boolean>;
 
-/** The payload is already a domain value at this boundary; JSON.stringify owns serialization. */
 export const writeJson = <T>(
   response: ServerResponse,
   status: number,

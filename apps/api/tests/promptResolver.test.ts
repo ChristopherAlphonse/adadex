@@ -1,6 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -113,5 +114,24 @@ describe("listPromptTemplates", () => {
   it("returns empty array when directory does not exist", async () => {
     const names = await listPromptTemplates("/tmp/nonexistent-workspace");
     expect(names).toEqual([]);
+  });
+});
+
+describe("deck-lead-run-swarm template", () => {
+  const repoPromptsDir = fileURLToPath(new URL("../../../prompts", import.meta.url));
+
+  it("fills every placeholder from the variables the web app and API send", async () => {
+    const resolved = await resolvePrompt(repoPromptsDir, "deck-lead-run-swarm", {
+      coordinationId: "core-domain",
+      coordinationName: "Core Domain",
+      openTodoCount: "5",
+      apiPort: "8787",
+    });
+
+    expect(resolved).toBeDefined();
+    expect(resolved).not.toContain("{{");
+    expect(resolved).toContain("Core Domain");
+    expect(resolved).toContain("http://localhost:8787/api/deck/coordinations/core-domain/swarm");
+    expect(resolved).toContain("5 open todo");
   });
 });

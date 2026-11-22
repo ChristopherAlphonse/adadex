@@ -1,8 +1,11 @@
 import type { TerminalSnapshot } from "@adadex/core";
+import { useState } from "react";
 
 import type { GraphNode } from "../../app/canvas/types";
+import { useSessionStats } from "../../app/hooks/useSessionStats";
 import type { CoordinationGitStatusSnapshot } from "../../app/types";
 import { KV, Section } from "./ConsolePrimitives";
+import { InspectorLimits } from "./InspectorLimits";
 import { mapAgentStateToStatus } from "./mapAgentStatus";
 import { StatusPill } from "./StatusPill";
 
@@ -32,6 +35,8 @@ export const ConsoleInspectorPanel = ({
   terminal,
   gitStatus,
 }: ConsoleInspectorPanelProps): React.ReactElement => {
+  const [tab, setTab] = useState<"overview" | "limits">("overview");
+  const stats = useSessionStats(selectedNode ? resolveTerminalId(selectedNode) : null);
   const status = mapAgentStateToStatus(terminal?.state ?? selectedNode?.agentState);
   const title = terminal?.label ?? selectedNode?.label ?? "No selection";
   const id = selectedNode ? resolveTerminalId(selectedNode) : "—";
@@ -61,8 +66,30 @@ export const ConsoleInspectorPanel = ({
         </div>
       </div>
 
+      <div className="flex gap-1 border-b border-border px-3 py-2">
+        {(["overview", "limits"] as const).map((name) => (
+          <button
+            aria-pressed={tab === name}
+            className={
+              tab === name
+                ? "flex-1 rounded-md bg-surface-2 px-3 py-1 text-[13px] font-medium text-foreground"
+                : "flex-1 rounded-md px-3 py-1 text-[13px] text-muted-foreground hover:text-foreground"
+            }
+            key={name}
+            onClick={() => {
+              setTab(name);
+            }}
+            type="button"
+          >
+            {name === "overview" ? "Overview" : "Limits"}
+          </button>
+        ))}
+      </div>
+
       <div className="flex-1 overflow-y-auto">
-        {selectedNode ? (
+        {selectedNode && tab === "limits" ? (
+          <InspectorLimits stats={stats} />
+        ) : selectedNode ? (
           <>
             <Section title="Metadata">
               <div className="space-y-1">

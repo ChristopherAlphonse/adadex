@@ -46,55 +46,6 @@ export const RuntimeStatusStrip = ({ usageData }: RuntimeStatusStripProps) => {
       <div className="console-status-main">
         <span className="console-status-brand">ADADEX</span>
       </div>
-      {/* <div className="console-status-charts">
-        <div
-          className="console-status-sparkline"
-          aria-label="Commits per day over last 30 days"
-        >
-          <div className="console-status-sparkline-chart">
-            <svg
-              viewBox={`0 0 ${GITHUB_SPARKLINE_WIDTH} ${GITHUB_SPARKLINE_HEIGHT}`}
-              role="presentation"
-            >
-              <polyline points={sparklinePoints} />
-            </svg>
-          </div>
-          <span className="console-status-sparkline-label">
-            COMMITS/DAY · LAST 30 DAYS
-          </span>
-        </div>
-        <div
-          className="console-status-usage-mini"
-          aria-label="Agent token usage last 30 days"
-        >
-          {usageBars.length > 0 ? (
-            <>
-              <div className="console-status-usage-mini-chart">
-                <svg
-                  viewBox={`0 0 ${MINI_USAGE_WIDTH} ${MINI_USAGE_HEIGHT}`}
-                  role="presentation"
-                >
-                  {usageBars.map((bar, index) => (
-                    <rect
-                      key={`${index}-${bar.x}-${bar.height}`}
-                      x={bar.x}
-                      y={bar.y}
-                      width={bar.width}
-                      height={bar.height}
-                      rx={0.5}
-                    />
-                  ))}
-                </svg>
-              </div>
-              <span className="console-status-sparkline-label">
-                AGENT TOKENS/DAY · LAST 30 DAYS
-              </span>
-            </>
-          ) : (
-            <span className="console-status-sparkline-label">USAGE —</span>
-          )}
-        </div>
-      </div> */}
     </section>
   );
 };

@@ -92,7 +92,6 @@ export const PromptsPrimaryView = ({ enabled, onSidebarContent }: PromptsPrimary
     onCancelNew,
   ]);
 
-  // Push sidebar content
   const sidebarContent = (
     <SidebarPromptsList
       prompts={prompts}

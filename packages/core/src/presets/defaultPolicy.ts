@@ -1,8 +1,6 @@
 import type { PolicyRules } from "../domain/policy";
 import { PROTECTED_FLOOR } from "../domain/protectedPaths";
 
-// Shell commands only: precedence is deny, then ask, then allow, and a command no rule names needs a human.
-
 const DENY: readonly string[] = ["git push*", "git -C * push*", "aws s3 rm*", "curl -X POST*"];
 
 const ASK: readonly string[] = [
@@ -304,7 +302,6 @@ const BUILD_ALLOW: readonly string[] = [
   "make fmt*",
 ];
 
-/** Where an agent may never write: tool config, git internals, job state, and everything protected. */
 const NO_WRITE: readonly string[] = [
   "**/.claude/**",
   "**/.kiro/**",
@@ -313,7 +310,6 @@ const NO_WRITE: readonly string[] = [
   "**/.adadex/**/job.json",
   "**/.adadex/**/audit.log",
   "**/.adadex/**/config.json",
-  // The floor is relative to the repo. A write is checked by absolute path, so match it in any folder.
   ...PROTECTED_FLOOR.filter((p) => !p.includes("/factory/")).map((p) =>
     p.startsWith("**/") ? p : `**/${p}`,
   ),

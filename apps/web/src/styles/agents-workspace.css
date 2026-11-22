@@ -1,0 +1,126 @@
+/* Agents workspace: the embedded terminal drops its duplicate title and neon accents. */
+.design-console .agents-terminal .terminal-header {
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  justify-content: flex-end;
+  min-height: 0;
+  padding: 0.25rem 0.5rem;
+}
+
+.design-console .agents-terminal .terminal-title {
+  display: none;
+}
+
+.design-console .agents-terminal .terminal-prompt-picker-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--muted-foreground);
+}
+
+.design-console .agents-terminal .terminal-prompt-picker-btn:hover {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.design-console .agents-terminal .terminal-prompt-picker-label {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Deck: "Clear all" is a quiet, rarely used action, not a permanent red banner. */
+.deck-bottom-clear-link {
+  color: var(--muted-foreground);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.deck-bottom-clear-link:hover {
+  background: transparent;
+  color: var(--destructive);
+}
+
+/* Deck: cards keep a readable width instead of stretching across a wide, mostly empty page. */
+[data-mode="grid"] .deck-pods-container {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 380px));
+  grid-auto-rows: minmax(220px, auto);
+  align-content: start;
+}
+
+/* Graph: action chips wrap instead of running off the panel edge. */
+.design-console .detail-actions {
+  flex-wrap: wrap;
+}
+
+.design-console .detail-action-btn {
+  flex: 1 1 9rem;
+  white-space: nowrap;
+}
+
+/* Graph: opening a node panel splits the space evenly instead of squeezing the graph away. */
+.design-console .canvas-graph-panel--split {
+  flex: 1 1 0;
+  min-width: 420px;
+}
+
+.design-console .canvas-terminals-panel {
+  flex: 1 1 0;
+  min-width: 380px;
+}
+
+/* Graph: one node panel at a time, switched with tabs. */
+.design-console .canvas-terminals-panel--tabbed {
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Agents: the collapsed setup bar sits in the page flow, so it drops the floating-card look. */
+.design-console .agents-setup-bar .workspace-setup-minimized-bar {
+  background: var(--secondary);
+  border-color: var(--border);
+  border-radius: 0.75rem;
+  box-shadow: none;
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+}
+
+.design-console .agents-setup-bar .workspace-setup-minimized-bar:hover {
+  background: var(--accent);
+  border-color: var(--border);
+}
+
+/* Workspace setup card: follow the theme instead of a fixed dark panel, so it reads in light mode. */
+.design-console .workspace-setup-card {
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: 0.875rem;
+  box-shadow: none;
+}
+
+.design-console .workspace-setup-step {
+  background: var(--secondary);
+  border-color: var(--border);
+}
+
+.design-console .workspace-setup-step[data-complete="true"] {
+  background: var(--secondary);
+  border-color: color-mix(in srgb, var(--running) 50%, var(--border));
+}
+
+.design-console .workspace-setup-step-command {
+  background: var(--background);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+.design-console .workspace-setup-card-overlay-btn {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted-foreground);
+}
+
+.design-console .workspace-setup-card-overlay-btn:hover {
+  background: var(--secondary);
+  border-color: transparent;
+  color: var(--foreground);
+}

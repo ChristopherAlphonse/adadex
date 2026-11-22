@@ -25,7 +25,9 @@ import {
   writeNoContent,
 } from "./routeHelpers";
 import {
+  parseTerminalAgentFlags,
   parseTerminalAgentProvider,
+  parseTerminalLaunchOptions,
   parseTerminalName,
   parseTerminalNameOrigin,
   parseTerminalWorkspaceMode,
@@ -38,6 +40,8 @@ type CreateTerminalApiInput = {
   coordinationName?: string;
   workspaceMode: CoordinationWorkspaceMode;
   agentProvider?: TerminalAgentProvider;
+  agentModel?: string;
+  agentEffort?: string;
   plainShell?: boolean;
   nameOrigin?: TerminalNameOrigin;
   initialPrompt?: string;
@@ -50,6 +54,8 @@ type CreateTerminalResponse = TerminalSnapshot & {
   initialPrompt?: string;
   initialInputDraft?: string;
 };
+
+type TerminalLaunchOptionsPatch = { agentModel?: string; agentEffort?: string };
 
 const buildCoordinationInitialPrompt = (
   promptsDir: string,
@@ -143,6 +149,14 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
     return true;
   }
 
+  const agentFlagsResult = parseTerminalAgentFlags(bodyReadResult.payload);
+
+  if (agentFlagsResult.error) {
+    writeJson(response, 400, { error: agentFlagsResult.error }, corsOrigin);
+
+    return true;
+  }
+
   const nameOriginResult = parseTerminalNameOrigin(bodyReadResult.payload);
 
   if (nameOriginResult.error) {
@@ -162,6 +176,14 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 
     if (agentProviderResult.agentProvider !== undefined) {
       createTerminalInput.agentProvider = agentProviderResult.agentProvider;
+    }
+
+    if (agentFlagsResult.agentModel !== undefined) {
+      createTerminalInput.agentModel = agentFlagsResult.agentModel;
+    }
+
+    if (agentFlagsResult.agentEffort !== undefined) {
+      createTerminalInput.agentEffort = agentFlagsResult.agentEffort;
     }
 
     if (nameOriginResult.nameOrigin !== undefined) {
@@ -215,7 +237,6 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
       createTerminalInput.worktreeId = bodyPayload.worktreeId.trim();
     }
 
-    // Support prompt resolution via template name + variables, or a raw string.
     if (
       bodyPayload &&
       isString(bodyPayload.promptTemplate) &&
@@ -233,24 +254,18 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
           )
         : {};
 
-      // Auto-inject terminalId variable so callers don't have to guess it.
-      // The runtime hasn't allocated the ID yet, so we use the orchestration name
-      // when provided (sandbox always passes its name).
       if (!templateVars.terminalId && createTerminalInput.coordinationName) {
         templateVars.terminalId = createTerminalInput.coordinationName;
       }
 
-      // Auto-inject apiPort so prompt templates can reference the local API.
       if (!templateVars.apiPort) {
         templateVars.apiPort = getApiPort();
       }
 
-      // Auto-inject userPromptsDir so prompt templates know where to save user prompts.
       if (!templateVars.userPromptsDir) {
         templateVars.userPromptsDir = userPromptsDir;
       }
 
-      // Auto-inject existingTerminals summary so planner-style prompts have context.
       if (!templateVars.existingTerminals) {
         const deckOrchestrations = readDeckCoordinations(workspaceCwd, projectStateDir);
 
@@ -322,6 +337,8 @@ export const handleTerminalsCollectionRoute: ApiRouteHandler = async (
 
 const TERMINAL_ITEM_PATH_PATTERN = /^\/api\/terminals\/([^/]+)$/;
 
+const TERMINAL_APPROVAL_PATH_PATTERN = /^\/api\/terminals\/([^/]+)\/approval$/;
+
 const TERMINAL_ACTION_PATH_PATTERN = /^\/api\/terminals\/([^/]+)\/(stop|kill)$/;
 
 export const handleTerminalItemRoute: ApiRouteHandler = async (
@@ -388,6 +405,133 @@ export const handleTerminalItemRoute: ApiRouteHandler = async (
   }
 
   writeJson(response, 200, payload, corsOrigin);
+
+  return true;
+};
+
+/**
+ * Answers an agent's permission prompt on the user's behalf. It only works while the agent is waiting on one, and the
+ * request must carry a browser Origin header. That keeps a plain `curl` from an agent out, but it cannot stop a
+ * process that forges the header: the owner accepted that limit (2026-11-22).
+ */
+export const handleTerminalApprovalRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(TERMINAL_APPROVAL_PATH_PATTERN);
+
+  if (!match) {
+    return false;
+  }
+
+  if (request.method !== "POST") {
+    writeMethodNotAllowed(response, corsOrigin);
+
+    return true;
+  }
+
+  if (request.headers.origin === undefined) {
+    writeJson(
+      response,
+      403,
+      { error: "Approvals must come from the Adadex web page." },
+      corsOrigin,
+    );
+
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  // SAFETY: readJsonBody parsed the body into ParsedValue members; a missing key reads as undefined.
+  const decision = (bodyReadResult.payload as ParsedRecord | null)?.decision;
+
+  if (decision !== "approve" && decision !== "deny") {
+    writeJson(response, 400, { error: "decision must be approve or deny." }, corsOrigin);
+
+    return true;
+  }
+
+  const result = runtime.answerPermission(decodeURIComponent(match[1] ?? ""), decision);
+
+  if (!result.ok) {
+    writeJson(response, 409, { error: result.reason }, corsOrigin);
+
+    return true;
+  }
+
+  writeJson(response, 200, { ok: true }, corsOrigin);
+
+  return true;
+};
+
+const TERMINAL_LAUNCH_OPTIONS_PATH_PATTERN = /^\/api\/terminals\/([^/]+)\/launch-options$/;
+
+/** Updates the model/effort flags a terminal stores for its next agent launch. */
+export const handleTerminalLaunchOptionsRoute: ApiRouteHandler = async (
+  { request, response, requestUrl, corsOrigin },
+  { runtime },
+) => {
+  const match = requestUrl.pathname.match(TERMINAL_LAUNCH_OPTIONS_PATH_PATTERN);
+
+  if (!match) {
+    return false;
+  }
+
+  if (request.method !== "PATCH") {
+    writeMethodNotAllowed(response, corsOrigin);
+
+    return true;
+  }
+
+  const bodyReadResult = await readJsonBodyOrWriteError(request, response, corsOrigin);
+
+  if (!bodyReadResult.ok) {
+    return true;
+  }
+
+  const parsed = parseTerminalLaunchOptions(bodyReadResult.payload);
+
+  if (parsed.error) {
+    writeJson(response, 400, { error: parsed.error }, corsOrigin);
+
+    return true;
+  }
+
+  if (!parsed.provided) {
+    writeJson(
+      response,
+      400,
+      { error: "At least one of agentModel or agentEffort is required." },
+      corsOrigin,
+    );
+
+    return true;
+  }
+
+  const patch: TerminalLaunchOptionsPatch = {};
+
+  if (parsed.agentModel !== undefined) {
+    patch.agentModel = parsed.agentModel;
+  }
+
+  if (parsed.agentEffort !== undefined) {
+    patch.agentEffort = parsed.agentEffort;
+  }
+
+  const snapshot = runtime.updateTerminalLaunchOptions(decodeURIComponent(match[1] ?? ""), patch);
+
+  if (!snapshot) {
+    writeJson(response, 404, { error: "Terminal not found." }, corsOrigin);
+
+    return true;
+  }
+
+  writeJson(response, 200, snapshot, corsOrigin);
 
   return true;
 };

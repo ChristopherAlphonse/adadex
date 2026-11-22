@@ -57,8 +57,8 @@ export const SettingsPrimaryView = ({
     </section>
     <section className="settings-panel" aria-label="Completion notification settings">
       <header className="settings-panel-header">
-        <h2>Orchestration completion sound</h2>
-        <p>Play a notification when a orchestration moves from processing to idle.</p>
+        <h2>Coordination completion sound</h2>
+        <p>Play a notification when a coordination moves from processing to idle.</p>
       </header>
 
       <div className="settings-sound-picker">

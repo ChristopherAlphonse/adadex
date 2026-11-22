@@ -39,10 +39,8 @@ export type AuthorizeResult<I = ParsedValue> =
 
 const JOB_ID = /^[a-z0-9][a-z0-9-]*$/;
 
-/** Input for actions that only need to identify a job. */
 export type JobRef = { readonly id: string };
 
-/** Input for the action that moves a job to another stage. */
 export type AdvanceInput = JobRef & { readonly to: string };
 
 const requireRecord = (input: ParsedValue): ParsedRecord => {
@@ -72,7 +70,6 @@ const parseAdvance = (input: ParsedValue): AdvanceInput => {
   return { id: jobId(r.id ?? null), to: r.to };
 };
 
-/** The factory pipeline's actions as data. Execution is the runtime's job. */
 export const FACTORY_ACTIONS: readonly ActionDef[] = [
   {
     id: "job.advance",

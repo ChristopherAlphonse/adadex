@@ -87,9 +87,7 @@ const listTranscripts = async (projectsDir: string, onlyDir: string | null): Pro
           files.push(join(projectsDir, dirName, entry));
         }
       }
-    } catch {
-      // Not a directory, or it vanished mid-scan.
-    }
+    } catch {}
   }
 
   return files;
@@ -186,9 +184,7 @@ export const scanUsageHeatmap = async (
         addTo(projectTotals, project, tokens);
         addTo(modelTotals, model, tokens);
       }
-    } catch {
-      // Unreadable transcript: skip it rather than failing the whole chart.
-    }
+    } catch {}
   }
 
   return {

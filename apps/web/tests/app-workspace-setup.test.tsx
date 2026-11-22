@@ -155,10 +155,11 @@ describe("App workspace setup", () => {
 
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: /Expand workspace setup/ }));
     expect(await screen.findByLabelText("Workspace setup")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
     expect(screen.getByLabelText("Main content canvas")).toBeInTheDocument();
-    expect(screen.getByLabelText("Canvas graph view")).toBeInTheDocument();
+    expect(screen.getByLabelText("Agents workspace")).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Primary navigation" });
     const agentsBtn = nav.querySelector("button");
     expect(agentsBtn).toHaveAttribute("aria-current", "page");
@@ -187,6 +188,8 @@ describe("App workspace setup", () => {
     });
 
     render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Expand workspace setup/ }));
 
     const setupCard = await screen.findByLabelText("Workspace setup");
     fireEvent.click(within(setupCard).getByRole("button", { name: "Update .gitignore" }));
@@ -218,7 +221,7 @@ describe("App workspace setup", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Deck/ }));
 
     await waitFor(() => {
-      expect(screen.getAllByText("Add Orchestration")).toHaveLength(1);
+      expect(screen.getAllByText("Add Coordination")).toHaveLength(1);
     });
     expect(screen.queryByLabelText("Active Agents sidebar")).not.toBeInTheDocument();
   });

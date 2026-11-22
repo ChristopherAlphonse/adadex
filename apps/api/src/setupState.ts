@@ -35,7 +35,6 @@ export const readSetupState = (stateDir: string): SetupState => {
 
     if (verifiedStepRecords) {
       for (const stepId of VERIFIED_SETUP_STEP_IDS) {
-        // Older versions called the agent CLI check "check-kiro".
         const checkedAt =
           verifiedStepRecords[stepId] ??
           (stepId === "check-agent-cli" ? verifiedStepRecords["check-kiro"] : undefined);

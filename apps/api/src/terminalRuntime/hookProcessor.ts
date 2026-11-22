@@ -1,11 +1,30 @@
-import { type TerminalAgentProvider, asRecord, isString } from "@adadex/core";
+import { readFileSync } from "node:fs";
+
+import {
+  type TerminalAgentProvider,
+  asRecord,
+  isString,
+  parseClaudeTranscript,
+  summarizeClaudeUsage,
+} from "@adadex/core";
 
 import { logVerbose } from "../logging";
 import { installAgentHooks } from "./agentHooks";
 import { parseAgentTranscript } from "./agentTranscript";
-import { appendAgentTranscriptTurn, storeAgentTranscriptTurns } from "./conversations";
+import {
+  appendAgentTranscriptTurn,
+  storeAgentTranscriptTurns,
+  storeChatMessages,
+  storeUsageSummary,
+} from "./conversations";
 import { broadcastMessage } from "./protocol";
-import type { PersistedTerminal, TerminalSession, TerminalStateMessage } from "./types";
+import { buildThreadReport, hasRecentReportFrom } from "./threadReport";
+import type {
+  ChannelMessage,
+  PersistedTerminal,
+  TerminalSession,
+  TerminalStateMessage,
+} from "./types";
 
 const MAX_AUTO_NAME_LENGTH = 50;
 
@@ -16,7 +35,6 @@ const deriveTerminalNameFromPrompt = (prompt: string): string => {
     return normalized;
   }
 
-  // Truncate at the last space before the limit to avoid cutting mid-word.
   const truncated = normalized.slice(0, MAX_AUTO_NAME_LENGTH);
   const lastSpace = truncated.lastIndexOf(" ");
 
@@ -30,6 +48,12 @@ export const createHookProcessor = (deps: {
   getApiBaseUrl: () => string;
   persistRegistry: () => void;
   deliverChannelMessages: (terminalId: string) => number;
+  sendChannelMessage?: (
+    toTerminalId: string,
+    fromTerminalId: string,
+    content: string,
+  ) => ChannelMessage | null;
+  listChannelMessages?: (terminalId: string) => ChannelMessage[];
   releaseSessionKeepAlive: (terminalId: string) => boolean;
   onStateChange?: (
     terminalId: string,
@@ -50,6 +74,37 @@ export const createHookProcessor = (deps: {
 
   const installHooksInDirectory = (targetCwd: string, agentProvider: TerminalAgentProvider) => {
     installAgentHooks(targetCwd, agentProvider, getApiBaseUrl());
+  };
+
+  /** A child agent ending its turn tells its parent, so the parent never has to poll or rely on the child remembering. */
+  const reportToParent = (
+    childId: string,
+    turns: { role: string; content: string }[] | null,
+    lastAssistantMessage: string | null,
+  ) => {
+    const child = terminals.get(childId);
+    const parentId = child?.parentTerminalId;
+
+    if (!child || !parentId || !terminals.has(parentId) || !deps.sendChannelMessage) {
+      return;
+    }
+
+    const lastTurn = turns?.filter((turn) => turn.role === "assistant").at(-1);
+    const finalMessage = lastAssistantMessage || lastTurn?.content || "";
+
+    if (finalMessage.trim().length === 0) {
+      return;
+    }
+
+    if (hasRecentReportFrom(deps.listChannelMessages?.(parentId) ?? [], childId, Date.now())) {
+      return;
+    }
+
+    deps.sendChannelMessage(
+      parentId,
+      childId,
+      buildThreadReport(child.coordinationName, finalMessage),
+    );
   };
 
   const handleHook = <T>(hookName: string, payload: T, hookSessionId?: string) => {
@@ -101,7 +156,6 @@ export const createHookProcessor = (deps: {
         onStateChange?.(hookSessionId, "idle");
         broadcastMessage(session, { type: "state", state: "idle" });
 
-        // Deliver any queued channel messages now that the agent is idle.
         deliverChannelMessages(hookSessionId);
       }
 
@@ -148,11 +202,8 @@ export const createHookProcessor = (deps: {
         return { ok: true };
       }
 
-      // Update last-active timestamp (determines active/inactive on the canvas).
       terminal.lastActiveAt = new Date().toISOString();
 
-      // The user submitted a prompt, so the agent is about to start processing.
-      // Transition state out of waiting/idle to processing immediately.
       const activitySession = sessions.get(terminal.terminalId);
 
       if (activitySession) {
@@ -164,8 +215,6 @@ export const createHookProcessor = (deps: {
         broadcastMessage(activitySession, { type: "activity" });
       }
 
-      // Keep the operator's message as a conversation turn, even if the agent's transcript file
-      // cannot be read later on.
       const submittedPrompt = isString(hookPayloadRecord.prompt)
         ? hookPayloadRecord.prompt.trim()
         : "";
@@ -179,7 +228,6 @@ export const createHookProcessor = (deps: {
         );
       }
 
-      // Auto-name the terminal from the first prompt when it still has its default name.
       if (terminal.nameOrigin === "generated") {
         const prompt = isString(hookPayloadRecord.prompt) ? hookPayloadRecord.prompt.trim() : "";
 
@@ -215,38 +263,51 @@ export const createHookProcessor = (deps: {
 
     logVerbose(`[Hook] Stop hook: transcriptPath=${transcriptPath}`);
 
-    let matchedSessionId: string | null = null;
-
-    if (hookSessionId && sessions.has(hookSessionId)) {
-      matchedSessionId = hookSessionId;
-      logVerbose(`[Hook] Matched session by hook session id: ${matchedSessionId}`);
-    } else if (hookSessionId) {
-      logVerbose(`[Hook] hook session id=${hookSessionId} not found in active sessions, skipping.`);
-
-      return { ok: true };
-    } else {
+    if (!hookSessionId) {
       logVerbose("[Hook] No session id header/query — ignoring hook from external agent session.");
 
       return { ok: true };
     }
 
+    if (!sessions.has(hookSessionId)) {
+      logVerbose(`[Hook] hook session id=${hookSessionId} not found in active sessions, skipping.`);
+
+      return { ok: true };
+    }
+
+    const matchedSessionId = hookSessionId;
     logVerbose(`[Hook] Matched session: ${matchedSessionId}, parsing transcript...`);
     // OpenCode has no transcript file; its stop still ends the turn and delivers queued messages.
     const turns = transcriptPath ? parseAgentTranscript(transcriptPath) : null;
     logVerbose(`[Hook] Parsed ${turns?.length ?? 0} turns from transcript.`);
+
+    if (transcriptPath) {
+      try {
+        const rawTranscript = readFileSync(transcriptPath, "utf8");
+        const chat = parseClaudeTranscript(rawTranscript);
+
+        storeUsageSummary(
+          transcriptDirectoryPath,
+          matchedSessionId,
+          summarizeClaudeUsage(rawTranscript),
+        );
+
+        if (chat.length > 0) {
+          storeChatMessages(transcriptDirectoryPath, matchedSessionId, chat);
+        }
+      } catch {}
+    }
 
     const lastAssistantMessage = isString(hookPayloadRecord.last_assistant_message)
       ? hookPayloadRecord.last_assistant_message.trim()
       : null;
 
     if (turns && turns.length > 0) {
-      // The agent's own transcript is the full record, so it replaces what was stored so far.
       const effectiveTurns = [...turns];
       const lastTurn = effectiveTurns[effectiveTurns.length - 1];
 
       if (
         lastAssistantMessage &&
-        lastAssistantMessage.length > 0 &&
         (lastTurn?.role !== "assistant" || lastTurn.content !== lastAssistantMessage)
       ) {
         const now = new Date().toISOString();
@@ -262,8 +323,7 @@ export const createHookProcessor = (deps: {
 
       storeAgentTranscriptTurns(transcriptDirectoryPath, matchedSessionId, effectiveTurns);
       logVerbose(`[Hook] Stored ${effectiveTurns.length} turns for session ${matchedSessionId}.`);
-    } else if (lastAssistantMessage && lastAssistantMessage.length > 0) {
-      // No readable transcript: add the reply after the prompts already recorded for this session.
+    } else if (lastAssistantMessage) {
       appendAgentTranscriptTurn(
         transcriptDirectoryPath,
         matchedSessionId,
@@ -273,7 +333,8 @@ export const createHookProcessor = (deps: {
       logVerbose(`[Hook] Appended last_assistant_message for session ${matchedSessionId}.`);
     }
 
-    // Deliver any queued channel messages now that the agent is idle.
+    reportToParent(matchedSessionId, turns, lastAssistantMessage);
+
     if (matchedSessionId) {
       const deliveredMessageCount = deliverChannelMessages(matchedSessionId);
 

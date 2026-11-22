@@ -3,8 +3,10 @@ import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
 import type { Duplex } from "node:stream";
 
-import type { TerminalSnapshot } from "@adadex/core";
+import type { PermissionDecision, TerminalSnapshot } from "@adadex/core";
 import {
+  isSafeAgentFlagValue,
+  permissionAnswerKeys,
   LEGACY_TERMINAL_REGISTRY_FILENAME,
   TERMINAL_REGISTRY_FILENAME,
   WORKSPACE_RUNTIME_DIR,
@@ -23,8 +25,6 @@ import {
 import { createChannelMessaging } from "./terminalRuntime/channelMessaging";
 import {
   DEFAULT_AGENT_PROVIDER,
-  DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS,
-  TERMINAL_ID_PREFIX,
   TERMINAL_MAX_CONCURRENT_SESSIONS,
 } from "./terminalRuntime/constants";
 import {
@@ -32,8 +32,11 @@ import {
   deleteAllConversations,
   deleteConversation,
   listConversationSessions,
+  readChatMessages,
+  readUsageSummary,
   readConversationSession,
   searchConversations,
+  transcriptFilenameForSession,
 } from "./terminalRuntime/conversations";
 import { createGitOperations } from "./terminalRuntime/gitOperations";
 import { createHookProcessor } from "./terminalRuntime/hookProcessor";
@@ -45,6 +48,13 @@ import {
 import { recoverPersistedSessions } from "./terminalRuntime/sessionRecovery";
 import { createSessionRuntime } from "./terminalRuntime/sessionRuntime";
 import { createDefaultGitClient } from "./terminalRuntime/systemClients";
+import {
+  allocateDefaultTerminalName as allocateDefaultTerminalNameFrom,
+  allocateTerminalId as allocateTerminalIdFrom,
+  collectTerminalCascade as collectTerminalCascadeFrom,
+  isProcessAlive,
+  toTerminalSnapshot as toTerminalSnapshotFrom,
+} from "./terminalRuntime/terminalViews";
 import type { DirectSessionListener } from "./terminalRuntime/types";
 import {
   type CoordinationWorkspaceMode,
@@ -106,9 +116,7 @@ export const createTerminalRuntime = ({
   if (!existsSync(registryPathPrimary) && existsSync(registryPathLegacy)) {
     try {
       renameSync(registryPathLegacy, registryPathPrimary);
-    } catch {
-      // best-effort migration from legacy registry filename
-    }
+    } catch {}
   }
 
   const registryPath = registryPathPrimary;
@@ -156,35 +164,6 @@ export const createTerminalRuntime = ({
       terminals,
       uiState,
     });
-  };
-
-  const isProcessAlive = (pid: number | undefined): pid is number => {
-    if (!pid || !Number.isInteger(pid) || pid <= 0) {
-      return false;
-    }
-
-    try {
-      process.kill(pid, 0);
-
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const lifecycleStateToAgentState = (
-    lifecycleState: TerminalLifecycleState,
-  ): TerminalSnapshot["state"] => {
-    switch (lifecycleState) {
-      case "stale":
-        return "stale";
-      case "exited":
-        return "exited";
-      case "stopped":
-        return "stopped";
-      default:
-        return "live";
-    }
   };
 
   const markTerminalRunning = (
@@ -305,6 +284,9 @@ export const createTerminalRuntime = ({
     signalGroup: signalProcessGroup,
     onProcessSpawn: (details) => processSupervisor.register(details),
     onProcessExit: (sessionId) => processSupervisor.unregister(sessionId),
+    prepareAgentLaunch: (workingDirectory, agentProvider) => {
+      hookProcessor.installHooksInDirectory(workingDirectory, agentProvider);
+    },
   });
 
   const gitOps = createGitOperations({
@@ -327,6 +309,8 @@ export const createTerminalRuntime = ({
     getApiBaseUrl,
     persistRegistry,
     deliverChannelMessages: channelMessaging.deliverChannelMessages,
+    sendChannelMessage: channelMessaging.sendChannelMessage,
+    listChannelMessages: channelMessaging.listChannelMessages,
     releaseSessionKeepAlive: sessionRuntime.releaseSessionKeepAlive,
     onStateChange: broadcastTerminalStateChanged,
   });
@@ -343,116 +327,26 @@ export const createTerminalRuntime = ({
     persistRegistry();
   }
 
-  const allocateTerminalId = () => {
-    let candidateNumber = 1;
+  const allocateTerminalId = () =>
+    allocateTerminalIdFrom(
+      terminals,
+      sessions,
+      (id) => worktreeManager.hasOrchestrationWorktree(id),
+      // An id with a saved conversation would append a new run to an old chat.
+      (id) => existsSync(join(transcriptDirectoryPath, transcriptFilenameForSession(id))),
+    );
 
-    while (candidateNumber < Number.MAX_SAFE_INTEGER) {
-      const candidateId = `${TERMINAL_ID_PREFIX}${candidateNumber}`;
+  const allocateDefaultTerminalName = (): string => allocateDefaultTerminalNameFrom(terminals);
 
-      if (terminals.has(candidateId)) {
-        candidateNumber += 1;
-        continue;
-      }
+  const toTerminalSnapshot = (terminal: PersistedTerminal): TerminalSnapshot =>
+    toTerminalSnapshotFrom(
+      terminal,
+      sessions.get(terminal.terminalId),
+      uiState.terminalInactivityThresholdMs,
+    );
 
-      if (sessions.has(candidateId)) {
-        candidateNumber += 1;
-        continue;
-      }
-
-      if (worktreeManager.hasOrchestrationWorktree(candidateId)) {
-        candidateNumber += 1;
-        continue;
-      }
-
-      return candidateId;
-    }
-
-    throw new Error("Unable to allocate terminal id.");
-  };
-
-  const allocateDefaultTerminalName = (): string => {
-    const usedNumbers = new Set<number>();
-    const pattern = /^Adadex Terminal (\d+)$/;
-
-    for (const t of terminals.values()) {
-      const match = pattern.exec(t.coordinationName);
-
-      if (match) usedNumbers.add(Number(match[1]));
-    }
-
-    let n = 1;
-
-    while (usedNumbers.has(n)) n++;
-
-    return `Adadex Terminal ${n}`;
-  };
-
-  const isTerminalRecentlyActive = (terminal: PersistedTerminal): boolean => {
-    if (!terminal.lastActiveAt) return false;
-
-    const thresholdMs =
-      uiState.terminalInactivityThresholdMs ?? DEFAULT_TERMINAL_INACTIVITY_THRESHOLD_MS;
-
-    return Date.now() - new Date(terminal.lastActiveAt).getTime() < thresholdMs;
-  };
-
-  const toTerminalSnapshot = (terminal: PersistedTerminal): TerminalSnapshot => {
-    const session = sessions.get(terminal.terminalId);
-
-    const lifecycleState: TerminalLifecycleState = session
-      ? "running"
-      : (terminal.lifecycleState ?? "registered");
-
-    const snapshot: TerminalSnapshot = {
-      terminalId: terminal.terminalId,
-      label: terminal.terminalId,
-      state: lifecycleStateToAgentState(lifecycleState),
-      coordinationId: terminal.coordinationId,
-      coordinationName: terminal.coordinationName,
-      workspaceMode: terminal.workspaceMode,
-      createdAt: terminal.createdAt,
-      hasUserPrompt: isTerminalRecentlyActive(terminal),
-      lifecycleState,
-    };
-
-    if (terminal.parentTerminalId) {
-      snapshot.parentTerminalId = terminal.parentTerminalId;
-    }
-
-    if (session) {
-      snapshot.agentRuntimeState = session.agentState;
-    }
-
-    if (terminal.lifecycleReason) {
-      snapshot.lifecycleReason = terminal.lifecycleReason;
-    }
-
-    if (terminal.lifecycleUpdatedAt) {
-      snapshot.lifecycleUpdatedAt = terminal.lifecycleUpdatedAt;
-    }
-
-    if (terminal.processId) {
-      snapshot.processId = terminal.processId;
-    }
-
-    if (terminal.startedAt) {
-      snapshot.startedAt = terminal.startedAt;
-    }
-
-    if (terminal.endedAt) {
-      snapshot.endedAt = terminal.endedAt;
-    }
-
-    if (terminal.exitCode !== undefined) {
-      snapshot.exitCode = terminal.exitCode;
-    }
-
-    if (terminal.exitSignal !== undefined) {
-      snapshot.exitSignal = terminal.exitSignal;
-    }
-
-    return snapshot;
-  };
+  const collectTerminalCascade = (rootTerminalId: string): string[] =>
+    collectTerminalCascadeFrom(rootTerminalId, terminals);
 
   const broadcastTerminalEvent = (event: TerminalEvent) => {
     const payload = JSON.stringify(event);
@@ -470,29 +364,6 @@ export const createTerminalRuntime = ({
     broadcastTerminalEvent({ type: "terminal-list-changed" });
   };
 
-  const collectTerminalCascade = (rootTerminalId: string): string[] => {
-    const toDelete = new Set<string>();
-    const queue = [rootTerminalId];
-
-    while (queue.length > 0) {
-      const currentTerminalId = queue.shift();
-
-      if (!currentTerminalId || toDelete.has(currentTerminalId)) {
-        continue;
-      }
-
-      toDelete.add(currentTerminalId);
-
-      for (const terminal of terminals.values()) {
-        if (terminal.parentTerminalId === currentTerminalId) {
-          queue.push(terminal.terminalId);
-        }
-      }
-    }
-
-    return Array.from(toDelete);
-  };
-
   const createTerminal = ({
     terminalId: requestedTerminalId,
     coordinationId: requestedCoordinationId,
@@ -500,6 +371,8 @@ export const createTerminalRuntime = ({
     coordinationName,
     workspaceMode = "shared",
     agentProvider,
+    agentModel,
+    agentEffort,
     plainShell,
     initialPrompt,
     initialInputDraft,
@@ -514,6 +387,8 @@ export const createTerminalRuntime = ({
     coordinationName?: string;
     workspaceMode?: CoordinationWorkspaceMode;
     agentProvider?: TerminalAgentProvider;
+    agentModel?: string;
+    agentEffort?: string;
     plainShell?: boolean;
     initialPrompt?: string;
     initialInputDraft?: string;
@@ -522,7 +397,6 @@ export const createTerminalRuntime = ({
     nameOrigin?: TerminalNameOrigin;
     autoRenamePromptContext?: string;
   }): TerminalSnapshot => {
-    // Enforce max children per parent.
     if (parentTerminalId) {
       const childCount = [...terminals.values()].filter(
         (t) => t.parentTerminalId === parentTerminalId,
@@ -550,16 +424,12 @@ export const createTerminalRuntime = ({
       }
     }
 
-    // Allow explicit coordinationId so multiple terminals can share a orchestration context (e.g. swarm workers).
     const coordinationId = requestedCoordinationId ?? terminalId;
     const effectiveName = coordinationName ?? allocateDefaultTerminalName();
 
-    // Auto-allocate a unique worktreeId when creating a worktree terminal
-    // so multiple worktree terminals can coexist (each gets its own directory).
     const worktreeId =
       requestedWorktreeId ?? (workspaceMode === "worktree" ? terminalId : undefined);
 
-    // Apply per-coordination agent provider default if not already specified
     let effectiveAgentProvider = agentProvider;
 
     if (requestedCoordinationId) {
@@ -587,6 +457,14 @@ export const createTerminalRuntime = ({
       lifecycleState: "registered",
       lifecycleUpdatedAt: new Date().toISOString(),
     };
+
+    if (isSafeAgentFlagValue(agentModel)) {
+      terminal.agentModel = agentModel;
+    }
+
+    if (isSafeAgentFlagValue(agentEffort)) {
+      terminal.agentEffort = agentEffort;
+    }
 
     if (plainShell) {
       terminal.plainShell = true;
@@ -630,9 +508,7 @@ export const createTerminalRuntime = ({
           hookTargetCwd,
           terminal.agentProvider ?? DEFAULT_AGENT_PROVIDER,
         );
-      } catch {
-        // Best-effort: hook installation should not block terminal creation.
-      }
+      } catch {}
     }
 
     terminals.set(terminalId, terminal);
@@ -681,6 +557,14 @@ export const createTerminalRuntime = ({
 
     listConversationSessions() {
       return listConversationSessions(transcriptDirectoryPath);
+    },
+
+    readConversationStats(sessionId: string) {
+      return readUsageSummary(transcriptDirectoryPath, sessionId);
+    },
+
+    readConversationChat(sessionId: string) {
+      return readChatMessages(transcriptDirectoryPath, sessionId);
     },
 
     readConversationSession(sessionId: string) {
@@ -792,6 +676,38 @@ export const createTerminalRuntime = ({
       return toTerminalSnapshot(terminal);
     },
 
+    /** Updates the flags stored for the next agent (re)launch. An empty string clears a flag. */
+    updateTerminalLaunchOptions(
+      terminalId: string,
+      options: { agentModel?: string | undefined; agentEffort?: string | undefined },
+    ): TerminalSnapshot | null {
+      const terminal = terminals.get(terminalId);
+
+      if (!terminal) {
+        return null;
+      }
+
+      for (const key of ["agentModel", "agentEffort"] as const) {
+        const value = options[key];
+
+        if (value === undefined) continue;
+
+        if (value === "") {
+          delete terminal[key];
+        } else if (isSafeAgentFlagValue(value)) {
+          terminal[key] = value;
+        }
+      }
+
+      persistRegistry();
+      broadcastTerminalEvent({
+        type: "terminal-updated",
+        snapshot: toTerminalSnapshot(terminal),
+      });
+
+      return toTerminalSnapshot(terminal);
+    },
+
     stopTerminal(terminalId: string): TerminalSnapshot | null {
       const terminal = terminals.get(terminalId);
 
@@ -804,9 +720,7 @@ export const createTerminalRuntime = ({
       if (!stoppedActiveSession && isProcessAlive(terminal.processId)) {
         try {
           process.kill(terminal.processId, "SIGTERM");
-        } catch {
-          // The lifecycle marker below still removes this terminal from the active set.
-        }
+        } catch {}
       }
 
       if (!stoppedActiveSession) {
@@ -832,9 +746,7 @@ export const createTerminalRuntime = ({
       if (!killedActiveSession && isProcessAlive(terminal.processId)) {
         try {
           process.kill(terminal.processId, signal);
-        } catch {
-          // The lifecycle marker below still removes this terminal from the active set.
-        }
+        } catch {}
       }
 
       if (!killedActiveSession) {
@@ -954,6 +866,33 @@ export const createTerminalRuntime = ({
 
     writeInput(terminalId: string, data: string): boolean {
       return sessionRuntime.writeInput(terminalId, data);
+    },
+
+    /** Answers the permission prompt an agent is waiting on. Refuses unless the agent is waiting on exactly that. */
+    answerPermission(
+      terminalId: string,
+      decision: PermissionDecision,
+    ): { ok: true } | { ok: false; reason: string } {
+      const terminal = terminals.get(terminalId);
+      const session = sessions.get(terminalId);
+
+      if (!terminal || !session) {
+        return { ok: false, reason: "That terminal is not running." };
+      }
+
+      if (session.agentState !== "waiting_for_permission") {
+        return { ok: false, reason: "That agent is not waiting for a permission answer." };
+      }
+
+      const keys = permissionAnswerKeys(terminal.agentProvider ?? DEFAULT_AGENT_PROVIDER, decision);
+
+      if (keys === null) {
+        return { ok: false, reason: "Answering permission prompts is only supported for Claude." };
+      }
+
+      return sessionRuntime.writeInput(terminalId, keys)
+        ? { ok: true }
+        : { ok: false, reason: "Could not send the answer to the terminal." };
     },
 
     resizeTerminal(terminalId: string, cols: number, rows: number): boolean {

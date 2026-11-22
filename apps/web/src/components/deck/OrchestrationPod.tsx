@@ -3,8 +3,7 @@ import { useEffect, useRef } from "react";
 
 import { CuteMascot, MASCOT_STATE_FOR_STATUS } from "./CuteMascot";
 import type { MascotVisuals } from "./mascotVisuals";
-
-// ─── Status styling ──────────────────────────────────────────────────────────
+import { renderInlineCode } from "./TodoRow";
 
 export const STATUS_LABELS: Record<DeckCoordinationSummary["status"], string> = {
   idle: "idle",
@@ -12,8 +11,6 @@ export const STATUS_LABELS: Record<DeckCoordinationSummary["status"], string> = 
   blocked: "blocked",
   "needs-review": "review",
 };
-
-// ─── TodoList (used by the expanded vault view) ──────────────────────────────
 
 export const TodoList = ({
   items,
@@ -60,8 +57,6 @@ export const TodoList = ({
   );
 };
 
-// ─── OrchestrationPod ─────────────────────────────────────────────────────────────
-
 export type OrchestrationPodProps = {
   orchestration: DeckCoordinationSummary;
   visuals: MascotVisuals;
@@ -73,10 +68,6 @@ export type OrchestrationPodProps = {
   onTodoToggle?: (coordinationId: string, itemIndex: number, done: boolean) => void;
 };
 
-/**
- * Deck card: a quiet preview (name, summary, progress, next todo). Everything else about the
- * agent lives in the side panel the card opens.
- */
 export const OrchestrationPod = ({
   orchestration,
   visuals,
@@ -185,7 +176,7 @@ export const OrchestrationPod = ({
               {nextTodo ? (
                 <>
                   <span className="deck-pod-next-label">Next</span>
-                  <span className="deck-pod-next-text">{nextTodo.text}</span>
+                  <span className="deck-pod-next-text">{renderInlineCode(nextTodo.text)}</span>
                 </>
               ) : orchestration.todoTotal > 0 ? (
                 <span className="deck-pod-next-text">All todos done</span>

@@ -133,7 +133,6 @@ describe("job actions on disk", () => {
       "only the user can move it",
     );
     expect(await executor.execute("job.unblock", { id: "j1" })).toEqual({ stage: "gate" });
-    // A job parked for running out of rounds gets a fresh allowance, and the reason is cleared.
     const back = await store.load("j1");
     expect(back).toMatchObject({ stage: "gate", round: 2, roundLimit: 5 });
     expect(back.note).toBeUndefined();

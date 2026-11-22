@@ -468,9 +468,7 @@ describe("createApiServer", () => {
           if (predicate(document)) {
             return document;
           }
-        } catch {
-          // Empty or partially written registry file; retry shortly.
-        }
+        } catch {}
       }
 
       await new Promise((resolve) => setTimeout(resolve, 20));
@@ -1823,91 +1821,84 @@ describe("createApiServer", () => {
     );
   });
 
-  it("overwrites todo.md with raw markdown from the Deck editor", async () => {
+  it("migrates a legacy todo.md to todos.json and keeps todos in the JSON file", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const orchestrationDir = join(workspaceCwd, ".adadex", "coordinations", "docs");
     mkdirSync(orchestrationDir, { recursive: true });
     writeFileSync(join(orchestrationDir, "CONTEXT.md"), "# Docs\n\nDocumentation team\n", "utf8");
-    writeFileSync(join(orchestrationDir, "todo.md"), "# Todo\n\n- [ ] Old item\n", "utf8");
+    const legacy = "# Todo\n\n- [x] Ship it\n- [ ] Document it\n";
+    writeFileSync(join(orchestrationDir, "todo.md"), legacy, "utf8");
 
     const baseUrl = await startServer({ workspaceCwd });
-    const updated = "# Todo\n\n- [x] Ship it\n- [ ] Document it\n";
-
-    const saveResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/files/todo.md`, {
-      method: "PUT",
-      headers: {
-        Accept: "text/markdown",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ content: updated }),
-    });
-
-    expect(saveResponse.status).toBe(200);
-    await expect(saveResponse.text()).resolves.toBe(updated);
-    expect(readFileSync(join(orchestrationDir, "todo.md"), "utf8")).toBe(updated);
-
-    const readResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/files/todo.md`, {
-      headers: { Accept: "text/markdown" },
-    });
-
-    expect(readResponse.status).toBe(200);
-    await expect(readResponse.text()).resolves.toBe(updated);
 
     const listResponse = await fetch(`${baseUrl}/api/deck/coordinations`, {
       headers: { Accept: "application/json" },
     });
 
-    expect(listResponse.status).toBe(200);
-
-    const coordinations: Array<{ coordinationId: string; todoTotal: number; todoDone: number }> =
-      await listResponse.json();
+    const coordinations: Array<{
+      coordinationId: string;
+      todoTotal: number;
+      todoDone: number;
+      vaultFiles: string[];
+    }> = await listResponse.json();
 
     expect(coordinations.find((entry) => entry.coordinationId === "docs")).toEqual(
-      expect.objectContaining({ todoTotal: 2, todoDone: 1 }),
+      expect.objectContaining({ todoTotal: 2, todoDone: 1, vaultFiles: [] }),
     );
+
+    const addResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/todo`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "Write the changelog" }),
+    });
+
+    expect(addResponse.status).toBe(201);
+
+    const toggleResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/todo/toggle`, {
+      method: "PATCH",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ itemIndex: 1, done: true }),
+    });
+
+    expect(toggleResponse.status).toBe(200);
+
+    const readResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/todo`, {
+      headers: { Accept: "application/json" },
+    });
+
+    await expect(readResponse.json()).resolves.toEqual({
+      total: 3,
+      done: 2,
+      items: [
+        { text: "Ship it", done: true },
+        { text: "Document it", done: true },
+        { text: "Write the changelog", done: false },
+      ],
+    });
+
+    expect(JSON.parse(readFileSync(join(orchestrationDir, "todos.json"), "utf8"))).toHaveLength(3);
+    expect(readFileSync(join(orchestrationDir, "todo.md"), "utf8")).toBe(legacy);
   });
 
-  it("rejects raw writes to read-only vault files and invalid payloads", async () => {
+  it("no longer accepts raw writes to coordination vault files", async () => {
     const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
     temporaryDirectories.push(workspaceCwd);
     const orchestrationDir = join(workspaceCwd, ".adadex", "coordinations", "docs");
     mkdirSync(orchestrationDir, { recursive: true });
-    writeFileSync(join(orchestrationDir, "CONTEXT.md"), "# Docs\n", "utf8");
-    writeFileSync(join(orchestrationDir, "todo.md"), "# Todo\n\n- [ ] Keep me\n", "utf8");
+    const contextPath = join(orchestrationDir, "CONTEXT.md");
+    writeFileSync(contextPath, "# Docs\n", "utf8");
 
     const baseUrl = await startServer({ workspaceCwd });
-    const contextPath = join(orchestrationDir, "CONTEXT.md");
-    const todoPath = join(orchestrationDir, "todo.md");
-    const contextBefore = readFileSync(contextPath, "utf8");
-    const todoBefore = readFileSync(todoPath, "utf8");
 
-    const readOnlyResponse = await fetch(
-      `${baseUrl}/api/deck/coordinations/docs/files/CONTEXT.md`,
-      {
-        method: "PUT",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ content: "# Replaced\n" }),
-      },
-    );
-
-    expect(readOnlyResponse.status).toBe(403);
-    expect(readFileSync(contextPath, "utf8")).toBe(contextBefore);
-
-    const invalidResponse = await fetch(`${baseUrl}/api/deck/coordinations/docs/files/todo.md`, {
+    const response = await fetch(`${baseUrl}/api/deck/coordinations/docs/files/CONTEXT.md`, {
       method: "PUT",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "# Replaced\n" }),
     });
 
-    expect(invalidResponse.status).toBe(400);
-    expect(readFileSync(todoPath, "utf8")).toBe(todoBefore);
+    expect(response.status).toBe(405);
+    expect(readFileSync(contextPath, "utf8")).toBe("# Docs\n");
   });
 
   it("persists mascot color updates from the Deck sheet", async () => {
@@ -3386,5 +3377,79 @@ describe("createApiServer", () => {
 
     expect(listResponse.status).toBe(200);
     await expect(listResponse.json()).resolves.toEqual([]);
+  });
+
+  it("updates and clears a terminal's persisted launch options through the PATCH route", async () => {
+    const workspaceCwd = mkdtempSync(join(tmpdir(), "adadex-api-test-"));
+    temporaryDirectories.push(workspaceCwd);
+    const registryPath = join(workspaceCwd, ".adadex", "state", "coordinations.json");
+    mkdirSync(join(workspaceCwd, ".adadex", "state"), { recursive: true });
+    writeFileSync(
+      registryPath,
+      `${JSON.stringify(
+        {
+          version: 3,
+          terminals: [
+            {
+              terminalId: "terminal-1",
+              coordinationId: "terminal-1",
+              coordinationName: "planner",
+              createdAt: "2026-04-09T10:00:00.000Z",
+              workspaceMode: "shared",
+              agentProvider: "claude",
+              agentModel: "claude-opus-5-5",
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const baseUrl = await startServer({ workspaceCwd });
+    const url = `${baseUrl}/api/terminals/terminal-1/launch-options`;
+
+    const invalidResponse = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentModel: "opus; rm -rf /" }),
+    });
+
+    expect(invalidResponse.status).toBe(400);
+    await expect(invalidResponse.json()).resolves.toEqual({
+      error: expect.stringContaining("agentModel"),
+    });
+
+    const updateResponse = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentEffort: "high" }),
+    });
+
+    expect(updateResponse.status).toBe(200);
+    await expect(updateResponse.json()).resolves.toEqual(
+      expect.objectContaining({ agentModel: "claude-opus-5-5", agentEffort: "high" }),
+    );
+
+    const clearResponse = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentModel: "" }),
+    });
+
+    expect(clearResponse.status).toBe(200);
+    const clearedSnapshot = await clearResponse.json();
+
+    expect(clearedSnapshot).toEqual(expect.objectContaining({ agentEffort: "high" }));
+    expect(clearedSnapshot).not.toHaveProperty("agentModel");
+
+    const missingResponse = await fetch(`${baseUrl}/api/terminals/unknown/launch-options`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentEffort: "low" }),
+    });
+
+    expect(missingResponse.status).toBe(404);
   });
 });

@@ -334,9 +334,7 @@ export const Terminal = ({
           const unicode11Addon = new Unicode11Addon();
           terminal.loadAddon(unicode11Addon);
           terminal.unicode.activeVersion = "11";
-        } catch {
-          // Non-critical: terminal works without unicode11, just with less accurate character widths
-        }
+        } catch {}
 
         activeTerminal = terminal;
 

@@ -10,6 +10,7 @@ import {
   asRecord,
   isBoolean,
   isNumber,
+  isSafeAgentFlagValue,
   isString,
 } from "@adadex/core";
 
@@ -170,11 +171,6 @@ export const pruneUiStateTerminalReferences = (
   return nextState;
 };
 
-/**
- * Migrate a v1/v2 registry document to v3 terminal format.
- * Each old coordination entry becomes a terminal where terminalId = coordinationId.
- * Child agents are dropped.
- */
 const migrateV2ToV3 = (
   record: ParsedRecord,
   registryPath: string,
@@ -309,6 +305,10 @@ const parseV3Terminals = (
     if (isString(entry.parentTerminalId)) terminal.parentTerminalId = entry.parentTerminalId;
 
     if (isTerminalAgentProvider(entry.agentProvider)) terminal.agentProvider = entry.agentProvider;
+
+    if (isSafeAgentFlagValue(entry.agentModel)) terminal.agentModel = entry.agentModel;
+
+    if (isSafeAgentFlagValue(entry.agentEffort)) terminal.agentEffort = entry.agentEffort;
 
     if (entry.plainShell === true) terminal.plainShell = true;
 

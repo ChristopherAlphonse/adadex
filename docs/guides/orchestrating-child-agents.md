@@ -23,11 +23,11 @@ Do not use them when the work is too entangled and the agents will overwrite eac
 
 1. create or pick a coordination
 2. write or refine `CONTEXT.md`
-3. break the work into checkbox items in `todo.md`
+3. break the work into todo items (`adadex todo add`)
 4. spawn worker terminals from those items
 5. review results in the parent terminal
 6. use channel messages when workers need to coordinate
-7. update `todo.md` only after reviewing the result
+7. mark todos done (`adadex todo done`) only after reviewing the result
 
 ## Shared vs worktree
 
@@ -68,6 +68,6 @@ Worker terminal IDs are derived from the coordination ID and todo index. That ma
 ## Limits
 
 - PTY sessions do not survive API restarts; interrupted terminals relaunch when a client attaches
-- delegation quality depends on the quality of `CONTEXT.md` and `todo.md`
+- delegation quality depends on the quality of `CONTEXT.md` and the todo items
 - shared-mode workers can still collide in files, because shared mode is not git isolation
 - worktree-mode workers still need a human or parent merge step before their work reaches the base branch

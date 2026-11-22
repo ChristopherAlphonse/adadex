@@ -4,7 +4,7 @@ import { factoryReviewPreset } from "./factoryReview";
 
 export { factoryBuildPreset, factoryReviewPreset };
 
-/** The two workflows that ship with the app. Users can copy and edit them, or write their own. */
+/** The two workflows that ship with the app. */
 export const PRESET_WORKFLOWS: readonly WorkflowDefinition[] = [
   factoryBuildPreset,
   factoryReviewPreset,

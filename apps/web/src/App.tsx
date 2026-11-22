@@ -53,6 +53,8 @@ import {
   buildTerminalSnapshotsUrl,
 } from "./runtime/runtimeEndpoints";
 
+type CreateAgentOptions = { plainShell?: boolean; parentTerminalId?: string };
+
 const AppShell = () => {
   const [terminals, setTerminals] = useState<TerminalView>([]);
 
@@ -163,6 +165,7 @@ const AppShell = () => {
     isGitDialogLoading,
     isGitDialogMutating,
     setGitCommitMessageDraft,
+    openOrchestrationGitActions,
     closeOrchestrationGitActions,
     commitOrchestrationChanges,
     commitAndPushOrchestrationBranch,
@@ -431,9 +434,14 @@ const AppShell = () => {
           ? promptsSidebarContent !== null
           : true;
 
+  const isGitPanelOpen =
+    openGitOrchestrationId !== null &&
+    terminals.find((terminal) => terminal.coordinationId === openGitOrchestrationId)
+      ?.workspaceMode === "worktree";
+
   const showAgentsSidebar =
     isAgentsSidebarVisible &&
-    activePrimaryNav !== 1 &&
+    (activePrimaryNav !== 1 || isGitPanelOpen) &&
     activePrimaryNav !== 3 &&
     activePrimaryNav !== 6 &&
     activePrimaryNav !== 7 &&
@@ -459,9 +467,7 @@ const AppShell = () => {
         if (isString(error) && error.trim().length > 0) {
           message = error;
         }
-      } catch {
-        // Fall back to the generic message when the server returns a non-JSON error.
-      }
+      } catch {}
 
       throw new Error(message);
     }
@@ -509,10 +515,6 @@ const AppShell = () => {
               onRefreshWorkspaceSetup: refreshWorkspaceSetup,
               onRunWorkspaceSetupStep: runWorkspaceSetupStep,
               suppressWorkspaceSetupCard: true,
-              onCreateAgent: async (coordinationId) => {
-                return await createTerminal("shared", coordinationId);
-              },
-              onSpawnSwarm: spawnSwarm,
             }}
             activityPrimaryViewProps={{
               usageChartProps: {
@@ -589,8 +591,14 @@ const AppShell = () => {
               onCanvasOpenTerminalIdsChange: setCanvasOpenTerminalIds,
               onCanvasOpenOrchestrationIdsChange: setCanvasOpenCoordinationIds,
               onCanvasTerminalsPanelWidthChange: setCanvasTerminalsPanelWidth,
-              onCreateAgent: async (coordinationId) => {
-                return await createTerminal("shared", coordinationId);
+              onCreateAgent: async (coordinationId, parentTerminalId) => {
+                const options: CreateAgentOptions = {};
+
+                if (parentTerminalId) {
+                  options.parentTerminalId = parentTerminalId;
+                }
+
+                return await createTerminal("shared", coordinationId, options);
               },
               onCreateTerminal: async () => {
                 return await createTerminal("shared", DECK_LEAD_ID, { plainShell: true });
@@ -599,9 +607,7 @@ const AppShell = () => {
                 return await createTerminal("worktree", DECK_LEAD_ID, { plainShell: true });
               },
               onCreateOrchestration: async () => {
-                // The API requires a unique, folder-safe name, so pick the first free "orchestration-N".
                 for (let index = 1; index <= 50; index += 1) {
-                  // eslint-disable-next-line no-await-in-loop
                   const response = await fetch("/api/deck/coordinations", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -609,14 +615,11 @@ const AppShell = () => {
                   });
 
                   if (response.ok) {
-                    // eslint-disable-next-line no-await-in-loop
                     await refreshColumns();
 
                     return;
                   }
 
-                  // Only a name collision is worth retrying; anything else won't improve with a new name.
-                  // eslint-disable-next-line no-await-in-loop
                   const failure = asRecord(await response.json().catch(() => null));
 
                   if (!isString(failure?.error) || !failure.error.includes("already exists")) {
@@ -633,6 +636,29 @@ const AppShell = () => {
                     workspaceMode: "shared",
                     coordinationId: DECK_LEAD_ID,
                     promptTemplate: action,
+                  }),
+                });
+
+                if (!response.ok) return undefined;
+                const snapshot = asRecord(await response.json());
+                await refreshColumns();
+                const terminalId = snapshot?.terminalId;
+
+                return isString(terminalId) ? terminalId : undefined;
+              },
+              onDeckLeadRunSwarm: async (coordinationId, coordinationName, openTodoCount) => {
+                const response = await fetch("/api/terminals", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    workspaceMode: "shared",
+                    coordinationId: DECK_LEAD_ID,
+                    promptTemplate: "deck-lead-run-swarm",
+                    promptVariables: {
+                      coordinationId,
+                      coordinationName,
+                      openTodoCount: String(openTodoCount),
+                    },
                   }),
                 });
 
@@ -685,6 +711,7 @@ const AppShell = () => {
               onRefreshColumns: async () => {
                 await refreshColumns();
               },
+              onOpenGitActions: openOrchestrationGitActions,
               gitStatusByOrchestrationId,
             }}
             factoryPrimaryViewProps={{ host: factoryHost }}

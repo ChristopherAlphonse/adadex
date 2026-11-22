@@ -32,6 +32,7 @@ import {
   readAvailableAgentSkills,
 } from "../agentSkills";
 import { markCoordinationsInitialized } from "../setupState";
+import { initTodos, LEGACY_TODO_FILE, readTodoProgress } from "./todoStore";
 
 const COORDINATIONS_DIR = join(WORKSPACE_RUNTIME_DIR, COORDINATIONS_DIR_SEGMENT);
 
@@ -41,17 +42,7 @@ const isDeckCoordinationStatus = (
   value: ParsedValue | undefined,
 ): value is DeckCoordinationStatus => isString(value) && VALID_STATUSES.has(value);
 
-// ─── Deck state (app metadata, separate from agent-facing files) ────────────
-
 type DeckCoordinationScope = { paths: string[]; tags: string[] };
-
-type TodoProgressItem = { text: string; done: boolean };
-
-type TodoProgress = {
-  total: number;
-  done: number;
-  items: TodoProgressItem[];
-};
 
 type DeckCoordinationState = {
   color: string | null;
@@ -94,9 +85,7 @@ const readDeckState = (projectStateDir: string): DeckStateDocument => {
 
       return { coordinations };
     }
-  } catch {
-    // missing or corrupt — return empty
-  }
+  } catch {}
 
   return { coordinations: {} };
 };
@@ -166,12 +155,6 @@ const parseCoordinationState = (raw: CoordinationStateInput): DeckCoordinationSt
   return result;
 };
 
-/**
- * Coordination folders are project-local files, but their Deck metadata lives in global
- * state. A folder can exist without a state entry (manually added coordinations, a
- * migrated or lost state file), so initialize defaults instead of treating the PATCH as
- * a missing coordination.
- */
 const ensureDeckCoordinationState = (
   workspaceCwd: string,
   deckState: DeckStateDocument,
@@ -190,8 +173,6 @@ const ensureDeckCoordinationState = (
 
   return created;
 };
-
-// ─── Parse CONTEXT.md for title and description ───────────────────────────────
 
 const parseContextMd = (
   content: string,
@@ -213,7 +194,6 @@ const parseContextMd = (
       continue;
     }
 
-    // First non-empty line after the H1 is the description
     if (trimmed.length > 0) {
       description = trimmed;
       break;
@@ -224,34 +204,6 @@ const parseContextMd = (
 
   return { displayName, description, suggestedSkills: parseSuggestedSkillsFromContext(content) };
 };
-
-// ─── Todo parsing ───────────────────────────────────────────────────────────
-
-export const parseTodoProgress = (content: string): TodoProgress => {
-  const lines = content.split("\n");
-  let total = 0;
-  let done = 0;
-  const items: TodoProgressItem[] = [];
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const checkedMatch = trimmed.match(/^- \[x\]\s+(.+)/i);
-    const uncheckedMatch = trimmed.match(/^- \[ \]\s+(.+)/);
-
-    if (checkedMatch) {
-      total++;
-      done++;
-      items.push({ text: checkedMatch[1] ?? "", done: true });
-    } else if (uncheckedMatch) {
-      total++;
-      items.push({ text: uncheckedMatch[1] ?? "", done: false });
-    }
-  }
-
-  return { total, done, items };
-};
-
-// ─── Read all deck coordinations ───────────────────────────────────────────
 
 export const readDeckCoordinations = (
   workspaceCwd: string,
@@ -277,7 +229,6 @@ export const readDeckCoordinations = (
 
     if (!statSync(entryPath).isDirectory()) continue;
 
-    // A coordination folder must have CONTEXT.md
     const contextMdPath = join(entryPath, "CONTEXT.md");
 
     if (!existsSync(contextMdPath)) continue;
@@ -294,43 +245,17 @@ export const readDeckCoordinations = (
       continue;
     }
 
-    // App metadata from deck state
     const state = parseCoordinationState(deckState.coordinations[entry]);
 
-    // List markdown files in the coordination folder (excluding CONTEXT.md itself)
     let vaultFiles: string[] = [];
 
     try {
       vaultFiles = readdirSync(entryPath)
-        .filter((f) => f.endsWith(".md") && f !== "CONTEXT.md")
-        .sort((a, b) => {
-          if (a === "todo.md") return -1;
+        .filter((f) => f.endsWith(".md") && f !== "CONTEXT.md" && f !== LEGACY_TODO_FILE)
+        .sort((a, b) => a.localeCompare(b));
+    } catch {}
 
-          if (b === "todo.md") return 1;
-
-          return a.localeCompare(b);
-        });
-    } catch {
-      // skip unreadable dirs
-    }
-
-    // Parse todo.md for progress
-    let todoTotal = 0;
-    let todoDone = 0;
-    let todoItems: TodoProgressItem[] = [];
-    const todoPath = join(entryPath, "todo.md");
-
-    if (existsSync(todoPath)) {
-      try {
-        const todoContent = readFileSync(todoPath, "utf-8");
-        const progress = parseTodoProgress(todoContent);
-        todoTotal = progress.total;
-        todoDone = progress.done;
-        todoItems = progress.items;
-      } catch {
-        // skip unreadable todo
-      }
-    }
+    const todos = readTodoProgress(workspaceCwd, entry) ?? { total: 0, done: 0, items: [] };
 
     const result: DeckCoordinationSummary = {
       coordinationId: entry,
@@ -341,9 +266,9 @@ export const readDeckCoordinations = (
       mascot: state.mascot,
       scope: state.scope,
       vaultFiles,
-      todoTotal,
-      todoDone,
-      todoItems,
+      todoTotal: todos.total,
+      todoDone: todos.done,
+      todoItems: todos.items,
       suggestedSkills: agentInfo.suggestedSkills,
     };
 
@@ -357,14 +282,11 @@ export const readDeckCoordinations = (
   return results;
 };
 
-// ─── Read a vault file from a coordination ─────────────────────────────────
-
 export const readDeckVaultFile = (
   workspaceCwd: string,
   coordinationId: string,
   fileName: string,
 ): string | null => {
-  // Prevent path traversal
   if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
 
   if (fileName.includes("..") || fileName.includes("/")) return null;
@@ -379,243 +301,6 @@ export const readDeckVaultFile = (
     return null;
   }
 };
-
-/** Vault files the Deck UI may overwrite as raw markdown. */
-export const EDITABLE_DECK_VAULT_FILES: ReadonlySet<string> = new Set(["todo.md"]);
-
-/**
- * Overwrite an existing coordination markdown file with operator-authored content.
- */
-export const writeDeckVaultFile = (
-  workspaceCwd: string,
-  coordinationId: string,
-  fileName: string,
-  content: string,
-): boolean => {
-  if (!EDITABLE_DECK_VAULT_FILES.has(fileName)) return false;
-
-  // Prevent path traversal, including Windows separators.
-  if (
-    coordinationId.includes("..") ||
-    coordinationId.includes("/") ||
-    coordinationId.includes("\\")
-  ) {
-    return false;
-  }
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, fileName);
-
-  try {
-    if (!statSync(filePath).isFile()) return false;
-
-    writeFileSync(filePath, content, "utf-8");
-
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Toggle a todo checkbox in a coordination's todo.md by item index.
- */
-export const toggleTodoItem = (
-  workspaceCwd: string,
-  coordinationId: string,
-  itemIndex: number,
-  done: boolean,
-): TodoProgress | null => {
-  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
-
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const lines = content.split("\n");
-  let todoIndex = 0;
-  let toggled = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i] ?? "";
-    const trimmed = line.trim();
-
-    if (/^- \[[ xX]\]\s+/.test(trimmed)) {
-      if (todoIndex === itemIndex) {
-        lines[i] = done ? line.replace(/- \[ \]/, "- [x]") : line.replace(/- \[[xX]\]/, "- [ ]");
-        toggled = true;
-        break;
-      }
-
-      todoIndex++;
-    }
-  }
-
-  if (!toggled) return null;
-
-  const updated = lines.join("\n");
-
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-/**
- * Edit the text of a todo item in a coordination's todo.md by item index.
- */
-export const editTodoItem = (
-  workspaceCwd: string,
-  coordinationId: string,
-  itemIndex: number,
-  text: string,
-): TodoProgress | null => {
-  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
-
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const lines = content.split("\n");
-  let todoIndex = 0;
-  let edited = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i] ?? "";
-    const trimmed = line.trim();
-    const match = trimmed.match(/^(- \[[ xX]\])\s+(.+)/);
-
-    if (match) {
-      if (todoIndex === itemIndex) {
-        const indent = line.match(/^(\s*)/)?.[1] ?? "";
-        lines[i] = `${indent}${match[1]} ${text}`;
-        edited = true;
-        break;
-      }
-
-      todoIndex++;
-    }
-  }
-
-  if (!edited) return null;
-
-  const updated = lines.join("\n");
-
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-/**
- * Add a new todo item to a coordination's todo.md.
- */
-export const addTodoItem = (
-  workspaceCwd: string,
-  coordinationId: string,
-  text: string,
-): TodoProgress | null => {
-  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
-
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const trimmed = content.endsWith("\n") ? content : `${content}\n`;
-  const updated = `${trimmed}- [ ] ${text}\n`;
-
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-/**
- * Delete a todo item from a coordination's todo.md by item index.
- */
-export const deleteTodoItem = (
-  workspaceCwd: string,
-  coordinationId: string,
-  itemIndex: number,
-): TodoProgress | null => {
-  if (coordinationId.includes("..") || coordinationId.includes("/")) return null;
-
-  const filePath = join(workspaceCwd, COORDINATIONS_DIR, coordinationId, "todo.md");
-
-  if (!existsSync(filePath)) return null;
-
-  let content: string;
-
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const lines = content.split("\n");
-  let todoIndex = 0;
-  let deleted = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = (lines[i] ?? "").trim();
-
-    if (/^- \[[ xX]\]\s+/.test(trimmed)) {
-      if (todoIndex === itemIndex) {
-        lines.splice(i, 1);
-        deleted = true;
-        break;
-      }
-
-      todoIndex++;
-    }
-  }
-
-  if (!deleted) return null;
-
-  const updated = lines.join("\n");
-
-  try {
-    writeFileSync(filePath, updated, "utf-8");
-  } catch {
-    return null;
-  }
-
-  return parseTodoProgress(updated);
-};
-
-// ─── Create a new deck coordination ────────────────────────────────────────
 
 type CreateDeckCoordinationInput = {
   name: string;
@@ -651,7 +336,6 @@ export const createDeckCoordination = (
     return { ok: false, error: "A coordination with this name already exists" };
   }
 
-  // Create the coordination folder with agent-facing files
   mkdirSync(coordinationDir, { recursive: true });
 
   const description = input.description.trim();
@@ -663,9 +347,8 @@ export const createDeckCoordination = (
 
   const contextMd = applySuggestedSkillsToContext(baseContextMd, suggestedSkills);
   writeFileSync(join(coordinationDir, "CONTEXT.md"), contextMd);
-  writeFileSync(join(coordinationDir, "todo.md"), "# Todo\n");
+  initTodos(workspaceCwd, name);
 
-  // Persist app metadata in deck state
   const deckState = readDeckState(stateDir);
   deckState.coordinations[name] = {
     color: input.color,
@@ -794,8 +477,6 @@ export const updateDeckCoordinationMascot = (
   );
 };
 
-// ─── Delete a coordination ─────────────────────────────────────────────────
-
 export const deleteDeckCoordination = (
   workspaceCwd: string,
   coordinationId: string,
@@ -815,7 +496,6 @@ export const deleteDeckCoordination = (
 
   rmSync(coordinationDir, { recursive: true, force: true });
 
-  // Remove from deck state
   const deckState = readDeckState(stateDir);
   delete deckState.coordinations[coordinationId];
   writeDeckState(stateDir, deckState);

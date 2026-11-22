@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { replayTerminalHistory } from "../src/components/terminalReplay";
+import { replayTerminalHistory, stripMouseTracking } from "../src/components/terminalReplay";
 
 describe("replayTerminalHistory", () => {
   it("clears selection and restores the previous scroll position after replay", () => {
@@ -74,5 +74,23 @@ describe("replayTerminalHistory", () => {
     expect(viewport.scrollTop).toBe(1_280);
 
     requestAnimationFrameSpy.mockRestore();
+  });
+});
+
+describe("stripMouseTracking", () => {
+  it("removes the sequences that switch mouse tracking on", () => {
+    const history = "before\u001b[?1000h\u001b[?1003h\u001b[?1006hafter";
+
+    expect(stripMouseTracking(history)).toBe("beforeafter");
+  });
+
+  it("removes mouse modes grouped with other modes", () => {
+    expect(stripMouseTracking("a\u001b[?25;1006hb")).toBe("ab");
+  });
+
+  it("keeps other terminal modes and the sequences that turn tracking off", () => {
+    const history = "\u001b[?25l\u001b[?2004h text \u001b[?1000l";
+
+    expect(stripMouseTracking(history)).toBe(history);
   });
 });

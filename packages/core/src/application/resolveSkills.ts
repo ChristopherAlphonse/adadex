@@ -11,8 +11,7 @@ export interface ResolvedSkill {
 
 /**
  * Match each stage's skill names to the skills on this machine. `skillMap` is the machine's own
- * overrides (for example an enterprise machine maps `prd-mode` to its own spec skill), so a shared
- * workflow works anywhere without editing it. A name with no match is reported, never guessed.
+ * overrides. A name with no match is reported, never guessed.
  */
 export const resolveSkills = (
   def: WorkflowDefinition,

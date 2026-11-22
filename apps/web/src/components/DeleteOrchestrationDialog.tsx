@@ -27,13 +27,9 @@ export const DeleteOrchestrationDialog = ({
   const isCleanupConfirmationValid =
     !isCleanupIntent || cleanupConfirmationInput.trim() === pendingDeleteTerminal.terminalId;
 
-  // Only treat *this* orchestration as busy. A stale `isDeletingTerminalId` for another id would
-  // otherwise keep confirm/cancel disabled and make the dialog feel "stuck".
   const isThisDeleting = isDeletingTerminalId === pendingDeleteTerminal.terminalId;
   const dialogResetKey = `${pendingDeleteTerminal.terminalId}:${pendingDeleteTerminal.intent}`;
 
-  // Reset the confirmation field when the pending target changes, during render, so the field
-  // is already clear on the frame that displays the new dialog.
   const [previousDialogResetKey, setPreviousDialogResetKey] = useState(dialogResetKey);
 
   if (dialogResetKey !== previousDialogResetKey) {
@@ -45,10 +41,10 @@ export const DeleteOrchestrationDialog = ({
     <ConfirmationDialog
       title={
         isCleanupIntent
-          ? "Cleanup Worktree Orchestration"
+          ? "Cleanup Worktree Coordination"
           : isCloseIntent
             ? "Close Terminal"
-            : "Delete Orchestration"
+            : "Delete Coordination"
       }
       ariaLabel={`${isCloseIntent ? "Close" : "Delete"} confirmation for ${pendingDeleteTerminal.terminalId}`}
       message={
@@ -107,9 +103,9 @@ export const DeleteOrchestrationDialog = ({
       </dl>
       {isCleanupIntent && (
         <div className="delete-confirm-typed-check">
-          <label htmlFor="cleanup-confirm-id-input">Type orchestration ID to confirm cleanup</label>
+          <label htmlFor="cleanup-confirm-id-input">Type coordination ID to confirm cleanup</label>
           <input
-            aria-label="Type orchestration ID to confirm cleanup"
+            aria-label="Type coordination ID to confirm cleanup"
             id="cleanup-confirm-id-input"
             onChange={(event) => setCleanupConfirmationInput(event.target.value)}
             type="text"

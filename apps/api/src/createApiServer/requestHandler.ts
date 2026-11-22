@@ -9,6 +9,8 @@ import type { GitHubRepoSummarySnapshot } from "../githubRepoSummary";
 import { logVerbose } from "../logging";
 import type { UsageChartResponse } from "../usageHeatmapScanner";
 import {
+  handleConversationChatRoute,
+  handleConversationStatsRoute,
   handleConversationExportRoute,
   handleConversationItemRoute,
   handleConversationSearchRoute,
@@ -52,7 +54,9 @@ import {
 } from "./security";
 import {
   handleTerminalActionRoute,
+  handleTerminalApprovalRoute,
   handleTerminalItemRoute,
+  handleTerminalLaunchOptionsRoute,
   handleTerminalPruneRoute,
   handleTerminalSnapshotsRoute,
   handleTerminalsCollectionRoute,
@@ -118,6 +122,8 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
     [
       handleConversationsCollectionRoute,
       handleConversationSearchRoute,
+      handleConversationChatRoute,
+      handleConversationStatsRoute,
       handleConversationExportRoute,
       handleConversationItemRoute,
     ],
@@ -128,6 +134,8 @@ const API_ROUTE_MAP: ReadonlyMap<string, readonly ApiRouteHandler[]> = new Map([
       handleTerminalsCollectionRoute,
       handleTerminalPruneRoute,
       handleTerminalActionRoute,
+      handleTerminalApprovalRoute,
+      handleTerminalLaunchOptionsRoute,
       handleTerminalItemRoute,
     ],
   ],
@@ -153,7 +161,6 @@ const serveStaticFile = async (
   webDistDir: string,
   pathname: string,
 ): Promise<boolean> => {
-  // Prevent path traversal.
   const safePath = pathname.replace(/\.\./g, "").replace(/\/+/g, "/");
   const filePath = join(webDistDir, safePath === "/" ? "index.html" : safePath);
 
@@ -267,7 +274,6 @@ export const createApiRequestHandler = ({
         }
       }
 
-      // Serve static web frontend if available.
       if (resolvedWebDistDir && request.method === "GET") {
         const served =
           (await serveStaticFile(response, resolvedWebDistDir, requestUrl.pathname)) ||

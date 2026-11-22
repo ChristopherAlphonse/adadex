@@ -15,7 +15,6 @@ const built = spawnSync(process.execPath, [join(root, "scripts/build-shell.mjs")
 if (built.status !== 0) process.exit(built.status ?? 1);
 
 // Some hosts (VS Code, for one) set ELECTRON_RUN_AS_NODE, which makes Electron start as plain Node. Clear it.
-// Jobs are written under the project folder, so the smoke run gets a throwaway one.
 const project = mkdtempSync(join(tmpdir(), "adadex-smoke-project-"));
 
 const env = { ...process.env, ADADEX_SMOKE: "1", ADADEX_PROJECT: project };

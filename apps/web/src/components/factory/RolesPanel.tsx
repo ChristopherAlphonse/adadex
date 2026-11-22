@@ -12,13 +12,11 @@ type RolesPanelProps = {
   onRemove: (id: string) => void;
 };
 
-/** Edit a role as JSON. The host validates it and a native dialog asks the user before it is saved. */
 export const RolesPanel = ({ roles, pendingKey, onSave, onRemove }: RolesPanelProps) => {
   const [draft, setDraft] = useState("");
   const [parseError, setParseError] = useState<string | null>(null);
 
   const edit = (role: FactoryRole) => {
-    // A preset cannot be overwritten, so editing one starts a copy under a new id.
     const definition =
       role.origin === "preset"
         ? { ...role.definition, id: `${role.id}-copy`, name: `${role.name} (copy)`, origin: "user" }

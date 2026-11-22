@@ -147,10 +147,6 @@ const normalizeDeckCoordinationSummary = (value: ParsedValue): DeckCoordinationS
 
 const JITTER_SPREAD = 60;
 
-/**
- * Stable pseudo-random offset in [-JITTER_SPREAD/2, JITTER_SPREAD/2) for a new node, derived
- * from its id (FNV-1a), so render stays pure and a node lands in the same spot every time.
- */
 const jitterFor = (nodeId: string, axis: "x" | "y"): number => {
   let hash = 0x811c9dc5;
 
@@ -209,8 +205,6 @@ export const useCanvasGraphData = ({
 }: UseCanvasGraphDataOptions): UseCanvasGraphDataResult => {
   const [deckOrchestrations, setDeckOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [inactiveSessions, setInactiveSessions] = useState<ConversationSessionSummary[]>([]);
-  // Last rendered nodes by id. The force simulation mutates these objects in place, so
-  // the next build reads positions from here. Read during render, written after commit.
   const [renderedNodesById] = useState(() => new Map<string, GraphNode>());
   const [previousEnabled, setPreviousEnabled] = useState(enabled);
 
@@ -256,7 +250,6 @@ export const useCanvasGraphData = ({
 
   const activeTerminalIds = new Set(columns.map((terminal) => terminal.terminalId));
 
-  // Build a map of deck orchestrations for color/label lookup
   const deckMap = new Map<string, DeckCoordinationSummary>();
 
   for (const dt of deckOrchestrations) {
@@ -285,7 +278,6 @@ export const useCanvasGraphData = ({
   const currentNodesById = new Map<string, GraphNode>();
   const seenOrchestrationIds = new Set<string>();
 
-  // Build a map of active terminals by coordinationId (multiple terminals can share a orchestration)
   const activeTerminalsByOrchestration = new Map<string, TerminalView>();
 
   for (const terminal of columns) {
@@ -298,8 +290,6 @@ export const useCanvasGraphData = ({
     }
   }
 
-  // Build orchestration list: only deck orchestrations (sandbox and other non-deck
-  // terminals are excluded from the graph).
   const allOrchestrationIds: string[] = [];
 
   for (const dt of deckOrchestrations) {
@@ -349,7 +339,6 @@ export const useCanvasGraphData = ({
     nodes.push(node);
     currentNodesById.set(orchestrationNodeId, node);
 
-    // Active terminal session nodes — one per terminal in this orchestration
     if (activeTerminals) {
       for (const activeTerminal of activeTerminals) {
         const sessionNodeId = buildActiveSessionNodeId(activeTerminal.terminalId);
@@ -402,7 +391,6 @@ export const useCanvasGraphData = ({
     }
   }
 
-  // Deck lead — synthetic always-present hub node
   const prevBoss =
     prevNodes.get(DECK_LEAD_NODE_ID) ?? prevNodes.get(LEGACY_DECK_LEAD_NODE_ID) ?? null;
 
@@ -425,12 +413,10 @@ export const useCanvasGraphData = ({
   nodes.push(deckLeadNode);
   currentNodesById.set(DECK_LEAD_NODE_ID, deckLeadNode);
 
-  // Connect deck lead to every coordination node
   for (const coordinationId of allOrchestrationIds) {
     edges.push({ source: DECK_LEAD_NODE_ID, target: buildOrchestrationNodeId(coordinationId) });
   }
 
-  // Link active terminals belonging to the deck lead hub
   for (const terminal of columns) {
     if (!isDeckLeadCoordinationId(terminal.coordinationId)) continue;
     const sessionNodeId = buildActiveSessionNodeId(terminal.terminalId);
@@ -475,7 +461,6 @@ export const useCanvasGraphData = ({
     edges.push({ source: DECK_LEAD_NODE_ID, target: sessionNodeId });
   }
 
-  // Inactive sessions from conversations
   for (const session of inactiveSessions) {
     if (!session.coordinationId || !seenOrchestrationIds.has(session.coordinationId)) continue;
 
@@ -520,7 +505,6 @@ export const useCanvasGraphData = ({
     edges.push({ source: orchestrationNodeId, target: sessionNodeId });
   }
 
-  // Remember the committed nodes so the next build keeps their simulated positions.
   useEffect(() => {
     renderedNodesById.clear();
 

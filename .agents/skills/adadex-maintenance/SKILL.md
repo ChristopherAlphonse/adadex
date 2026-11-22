@@ -21,10 +21,10 @@ npm update                       # bumps packages in all workspaces within semve
 npx npm-check-updates -u -ws --root  # bumps package.json versions beyond semver range
 ```
 
-### After upgrading — verify in this order
+### After upgrading: verify in this order
 
 ```bash
-npm ci                           # will FAIL if lockfile is stale — expected
+npm ci                           # will FAIL if lockfile is stale, expected
 npm install                      # regenerate lockfile
 npm run lint                     # catch config breakage first (fast)
 npm test                         # catch logic breakage
@@ -48,12 +48,12 @@ npm run build                    # catch type/compile breakage
 
 ### vitest (v2 → v4)
 
-- `requestAnimationFrame` in jsdom is now synchronous — any component that loops via `rAF` will hit max call stack in tests.
+- `requestAnimationFrame` in jsdom is now synchronous. Any component that loops via `rAF` will hit max call stack in tests.
 - Fix: mock `requestAnimationFrame` in test setup or cancel the animation loop before/after each test.
 
 ---
 
-## 3. Stale Test Patterns — What to Look For
+## 3. Stale Test Patterns: What to Look For
 
 After any source refactor, tests go stale silently. Check these:
 
@@ -91,8 +91,8 @@ When `prompts/coordination-context-init.md` changes:
 
 Nav buttons now render with `<span>Label</span><kbd>N</kbd>` (accessible name: `"Label N"`). When nav items are added/removed:
 - Update all `getByRole("button", { name: /Label/i })` queries (use regex, not `[N] Label`).
-- Check `PRIMARY_NAV_ITEMS` in `apps/web/src/app/constants.ts` for current indices (currently 1-7).
-- `Settings` is index **7**. Mock `activePrimaryNav: 7` to render settings view.
+- Check `PRIMARY_NAV_ITEMS` in `apps/web/src/app/constants.ts` for current indices (currently 1-7: Agents, Deck, Activity, Conversations, Prompts, Settings, Factory).
+- `Settings` is index **6**. Mock `activePrimaryNav: 6` to render the settings view.
 - `parsePrimaryNavKey("8")` should return `null` (only 1-7 valid).
 
 ### RuntimeStatusStrip
@@ -124,9 +124,9 @@ Husky + lint-staged auto-fixes lint and formatting on every commit. Never skip w
 
 ### Config files
 
-- `.husky/pre-commit` — hook entry point
-- `.lintstagedrc` — maps file globs to oxlint/oxfmt commands
-- `package.json` `"prepare": "husky"` — auto-installs hooks on `npm install`
+- `.husky/pre-commit`: hook entry point
+- `.lintstagedrc`: maps file globs to oxlint/oxfmt commands
+- `package.json` `"prepare": "husky"`: auto-installs hooks on `npm install`
 
 ### lint-staged config (`.lintstagedrc`)
 
@@ -139,19 +139,19 @@ Husky + lint-staged auto-fixes lint and formatting on every commit. Never skip w
 
 ### Key flags
 
-- `oxlint --fix` — applies safe lint fixes only.
-- `oxfmt` — writes formatting (including import sorting) in place; there is no separate `--write` needed.
-- `--no-error-on-unmatched-pattern` — prevents failure when a staged file is in oxfmt's `ignorePatterns`.
+- `oxlint --fix`: applies safe lint fixes only.
+- `oxfmt`: writes formatting (including import sorting) in place; there is no separate `--write` needed.
+- `--no-error-on-unmatched-pattern`: prevents failure when a staged file is in oxfmt's `ignorePatterns`.
 
 ### Troubleshooting
 
 - If a commit is blocked, it means oxlint found an error it cannot auto-fix (e.g., a parse error). Fix the source, don't skip the hook.
-- If hooks stop running after a fresh clone, run `npm install` — the `prepare` script re-installs husky.
+- If hooks stop running after a fresh clone, run `npm install`. The `prepare` script re-installs husky.
 - Husky v9+ does not need shebangs in hook files.
 
 ---
 
-## 6. Lint & Format — Recurring Fix Patterns
+## 6. Lint & Format: Recurring Fix Patterns
 
 Before every PR or after any refactor, run `npm run lint` and address issues. These are the patterns that recur in this codebase.
 
@@ -166,16 +166,16 @@ Common locations: `App.tsx` (hook return values), component prop destructuring, 
 
 ### Duplicated logic in module-level functions
 
-`forEach` callbacks that implicitly return a value are worth avoiding. Refactor to `for...of` loops or extract a `notify()` helper. Example: `Toast.tsx` had four identical toast methods — consolidate into a single `addToast(type, message)` function.
+`forEach` callbacks that implicitly return a value are worth avoiding. Refactor to `for...of` loops or extract a `notify()` helper. Example: `Toast.tsx` had four identical toast methods. Consolidate them into a single `addToast(type, message)` function.
 
 ### a11y rules on SVG and interactive visualizations
 
 This codebase has visualization-heavy components (treemaps, arc diagrams, heatmaps, canvas nodes) that legitimately use mouse handlers on `<div>`, `<g>`, and `<svg>` elements. These trigger:
-- `jsx-a11y/no-static-element-interactions` and `jsx-a11y/no-noninteractive-element-interactions` — add `role="button"` or `role="img"` only when semantically correct; otherwise leave as warning.
-- `jsx-a11y/control-has-associated-label` — give icon-only controls an `aria-label`.
-- `jsx-a11y/role-supports-aria-props` — `aria-label` on plain `<div>` needs a `role` attribute to be valid. Add `role="region"` or `role="group"` when the label is meaningful.
+- `jsx-a11y/no-static-element-interactions` and `jsx-a11y/no-noninteractive-element-interactions`: add `role="button"` or `role="img"` only when semantically correct; otherwise leave as warning.
+- `jsx-a11y/control-has-associated-label`: give icon-only controls an `aria-label`.
+- `jsx-a11y/role-supports-aria-props`: `aria-label` on plain `<div>` needs a `role` attribute to be valid. Add `role="region"` or `role="group"` when the label is meaningful.
 
-These rules are set to `"warn"` in `.oxlintrc.json` — they will not block commits but should be addressed when touching those files.
+These rules are set to `"warn"` in `.oxlintrc.json`, so they will not block commits but should be addressed when touching those files.
 
 ### CSS and Tailwind
 
@@ -196,7 +196,7 @@ All actions must be pinned to commit SHAs (CICD-SEC-09). Verify with:
 gh api repos/{owner}/{repo}/commits/{tag} --jq '.sha'
 ```
 
-Dependabot (`dependabot.yml`) auto-updates SHA pins weekly — review those PRs promptly.
+Dependabot (`dependabot.yml`) auto-updates SHA pins weekly. Review those PRs promptly.
 
 ---
 
@@ -209,7 +209,7 @@ Releases are manual, from `main`: **Actions → Release → Run workflow → pic
 
 The workflow: quality gate (via `_quality.yml`) → resolve version (fails if its tag already exists) → build → tarball → commit the bump (if any) + annotated tag → push to `main` → GitHub Release. Nothing is pushed until the build and tarball succeed. Tags must be annotated: `git push --follow-tags` skips lightweight tags.
 
-Users download from the Releases tab — not npm.
+Users download from the Releases tab, not npm.
 
 No `NPM_TOKEN` secret needed. `GITHUB_TOKEN` (built-in) handles everything.
 
@@ -220,7 +220,7 @@ No `NPM_TOKEN` secret needed. `GITHUB_TOKEN` (built-in) handles everything.
 The reusable workflow runs: `checkout → actionlint → install → audit → lint → test → build`.
 
 - **actionlint** validates all workflow YAML (runs as Docker: `rhysd/actionlint:1.7.12`).
-- `npm audit --audit-level=high` will fail if a HIGH or CRITICAL CVE exists in the dependency tree. Resolve before merging — check dependabot PRs or run `npm audit fix`.
+- `npm audit --audit-level=high` will fail if a HIGH or CRITICAL CVE exists in the dependency tree. Resolve before merging: check dependabot PRs or run `npm audit fix`.
 - The CI quality gate uses `permissions: contents: read` (least privilege). Individual jobs escalate only when needed (`pull-requests: write` for dependency-review).
 
 ---
@@ -238,15 +238,15 @@ Search: `grep -rn "resolvePrompt.*{template-name}" apps/api/src/`
 Before modifying any source file, verify:
 
 1. `npm run lint` exits 0 (only warnings, no errors).
-2. Remove unused destructured bindings — don't leave dead variables from prior refactors.
-3. Remove unused imports — oxfmt's `sortImports` handles ordering but not removal of dead imports.
+2. Remove unused destructured bindings: don't leave dead variables from prior refactors.
+3. Remove unused imports: oxfmt's `sortImports` handles ordering but not removal of dead imports.
 4. Check that commented-out JSX blocks don't reference variables that appear "used" to grep but are dead to the compiler.
 5. After editing, run `npx oxlint --fix && npm run format` to auto-fix what you can before committing.
 6. The pre-commit hook handles staged files automatically, but catching issues earlier avoids noisy diffs.
 
 ---
 
-## 12. Git Hygiene — Tracked vs Ignored
+## 12. Git Hygiene: Tracked vs Ignored
 
 ### Problem pattern
 
@@ -262,9 +262,9 @@ git push
 
 | Path | Why |
 |------|-----|
-| `.cursor/` | IDE state, hooks, plans — machine-local |
-| `.planning/` | Internal roadmap/phase plans — not published |
-| `.agents/` | Installed agent skills — machine-local |
+| `.cursor/` | IDE state, hooks, plans: machine-local |
+| `.planning/` | Internal roadmap/phase plans: not published |
+| `.agents/` | Installed agent skills, machine-local. Exception: `.agents/skills/adadex-maintenance/` is tracked |
 | `skills-lock.json` | Skill install manifest with per-machine hashes |
 | `.adadex/` | Runtime project state |
 | `.env` / `.env.*` | Secrets |
@@ -331,10 +331,9 @@ When a component (e.g., `RuntimeStatusStrip`) is removed from the render tree:
 Components using animation loops call `requestAnimationFrame` recursively. A synchronous mock causes infinite recursion:
 
 ```tsx
-// BAD — infinite loop
 vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => { cb(0); return 1; });
 
-// GOOD — schedules async to break the loop
+// schedules async to break the loop
 vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
   setTimeout(() => cb(0), 0);
   return ++id;
@@ -357,7 +356,7 @@ beforeEach(() => {
 
 ### Settings nav index
 
-Settings is at index **7** (not 8). When mocking `GET /api/ui-state` with `activePrimaryNav` to show the settings view, use `7`.
+Settings is at index **6** and Factory at **7**. When mocking `GET /api/ui-state` with `activePrimaryNav` to show the settings view, use `6`.
 
 ---
 
@@ -365,9 +364,9 @@ Settings is at index **7** (not 8). When mocking `GET /api/ui-state` with `activ
 
 ### `open-pull-requests-limit`
 
-This caps **simultaneously open** Dependabot PRs per ecosystem — not "PRs per day."
+This caps **simultaneously open** Dependabot PRs per ecosystem, not "PRs per day."
 
-- npm: `5` (was 15 — caused PR backlog)
+- npm: `5` (was 15, which caused PR backlog)
 - github-actions: `5`
 
 Combined worst-case: 10 open PRs total.
@@ -413,7 +412,7 @@ npm run lint       # exit 0, warnings only
 npm test           # all tests pass
 npm run build      # no type errors
 git status         # no accidentally tracked secrets or IDE state
-git ls-files '.cursor' '.planning' '.agents' 'skills-lock.json'  # must be empty
+git ls-files '.cursor' '.planning' 'skills-lock.json'  # must be empty
 ```
 
 If `git ls-files` shows any of those paths, run `git rm -r --cached <path>` before committing.

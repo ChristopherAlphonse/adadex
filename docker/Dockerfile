@@ -1,14 +1,7 @@
 # syntax=docker/dockerfile:1.7
-#
-# Adadex sandbox image. Three rules shape it:
-#   1. Nothing runs a dependency's install script except node-pty (compiled on purpose)
-#      and the two vendor agent CLIs that only link a prebuilt binary.
-#   2. Every external input is pinned: base image digest, npm lockfiles, Kiro checksum.
-#   3. The final image has no compiler, no package manager cache and no root shell for the app.
 
 ARG NODE_IMAGE=node:22-bookworm-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee
 
-# ---------------------------------------------------------------- build Adadex
 FROM ${NODE_IMAGE} AS build
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 make g++ \
@@ -19,19 +12,13 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY apps/desktop/package.json apps/desktop/
 COPY packages/core/package.json packages/core/
-# --ignore-scripts: no package's lifecycle script runs during install.
 RUN npm ci --ignore-scripts
 COPY . .
-# Compile node-pty with no network: the build can only use what npm ci already installed.
 # nodedir points node-gyp at the headers already in the image, so it downloads nothing.
-# (The patch in patches/ only touches Windows files, so patch-package is not run here.)
 RUN --network=none npm_config_nodedir=/usr/local npm rebuild node-pty
-# The bundler and type checker are dependencies too, so the whole build runs with no network.
 RUN --network=none npm run build
 
-# --------------------------------------------------------------- agent CLIs
-# Claude Code, Codex and OpenCode come from docker/agents/package-lock.json (versions and
-# integrity hashes pinned). Their postinstall only links the prebuilt platform binary.
+# Their postinstall only links the prebuilt platform binary.
 FROM ${NODE_IMAGE} AS agents
 WORKDIR /opt/agents
 COPY docker/agents/package.json docker/agents/package-lock.json ./
@@ -60,7 +47,6 @@ RUN set -eux; \
     tar -xzf /tmp/kiro.tgz -C /opt/kiro --strip-components=1 kirocli/bin; \
     rm /tmp/kiro.tgz
 
-# -------------------------------------------------------------------- runtime
 FROM ${NODE_IMAGE} AS runtime
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git curl ca-certificates \
@@ -75,14 +61,12 @@ RUN ln -s /opt/agents/node_modules/.bin/claude /usr/local/bin/claude \
  && ln -s /opt/agents/node_modules/.bin/opencode /usr/local/bin/opencode \
  && ln -s /opt/kiro/bin/kiro-cli /usr/local/bin/kiro-cli
 
-# Only what Adadex needs at run time: the bundle, the web assets, and the two native-addon deps.
 COPY --from=build /src/bin /opt/adadex/bin
 COPY --from=build /src/dist /opt/adadex/dist
 COPY --from=build /src/package.json /opt/adadex/package.json
 COPY --from=build /src/node_modules/node-pty /opt/adadex/node_modules/node-pty
 COPY --from=build /src/node_modules/ws /opt/adadex/node_modules/ws
 
-# Start-up guard: exits unless caps are dropped, root is read-only and there is no default route.
 COPY --chmod=0555 docker/sandbox-check.sh /opt/adadex/sandbox-check.sh
 
 ENV NODE_ENV=production \

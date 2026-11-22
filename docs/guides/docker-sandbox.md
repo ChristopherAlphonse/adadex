@@ -7,7 +7,7 @@ Adadex and the agent CLIs it drives (Claude Code, Codex, OpenCode, Kiro) pull in
 Run these from your Adadex clone (or pass `-f /path/to/adadex/docker-compose.yml` from elsewhere, as the [README](../../README.md#run-in-docker-preferred) does):
 
 ```bash
-export ADADEX_WORKSPACE=/absolute/path/to/a-dedicated-clone   # the only folder the agents can touch
+export ADADEX_WORKSPACE=/absolute/path/to/a-dedicated-clone
 docker compose up --build
 ```
 
@@ -45,7 +45,6 @@ State these to anyone you share this with:
 ## Offline mode
 
 ```bash
-# from the Adadex clone, with ADADEX_WORKSPACE set as above
 docker compose -f docker-compose.yml -f docker-compose.offline.yml up
 ```
 

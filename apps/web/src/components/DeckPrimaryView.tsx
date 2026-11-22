@@ -1,5 +1,4 @@
 import type {
-  CoordinationWorkspaceMode,
   DeckAvailableSkill,
   DeckCoordinationSummary,
   WorkspaceSetupSnapshot,
@@ -8,6 +7,7 @@ import type {
 import { asRecord, isObjectValue, isString, type ParsedValue } from "@adadex/core";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { launchSettingsToRequest, readAgentLaunchSettings } from "../app/agentLaunchOptions";
 import { useAgentProviderPreference } from "../app/hooks/useAgentProviderPreference";
 import { useClickOutside } from "../app/hooks/useClickOutside";
 import type { TerminalAgentProvider } from "../app/types";
@@ -17,6 +17,9 @@ import {
   buildDeckOrchestrationsUrl,
   buildDeckOrchestrationUrl,
   buildDeckSkillsUrl,
+  buildDeckTodoAddUrl,
+  buildDeckTodoDeleteUrl,
+  buildDeckTodoEditUrl,
   buildDeckTodoToggleUrl,
   buildDeckVaultFileUrl,
   buildTerminalsUrl,
@@ -28,9 +31,8 @@ import { AgentSheet } from "./deck/AgentSheet";
 import { DeckBottomActions } from "./deck/DeckBottomActions";
 import { deriveMascotVisuals, type MascotVisuals } from "./deck/mascotVisuals";
 import { OrchestrationPod } from "./deck/OrchestrationPod";
-import { VaultFileEditor } from "./deck/VaultFileEditor";
 import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
-import { Terminal } from "./Terminal";
+import { TerminalChatPane } from "./TerminalChatPane";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
 export type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
@@ -47,8 +49,6 @@ const normalizeDeckAvailableSkill = (value: ParsedValue): DeckAvailableSkill | n
   };
 };
 
-// ─── Main view ───────────────────────────────────────────────────────────────
-
 type FocusState =
   | { type: "vault-browser"; coordinationId: string }
   | { type: "vault"; coordinationId: string; fileName: string }
@@ -64,18 +64,9 @@ type DeckPrimaryViewProps = {
   onRefreshWorkspaceSetup: () => Promise<WorkspaceSetupSnapshot | null>;
   onRunWorkspaceSetupStep: (stepId: WorkspaceSetupStepId) => Promise<WorkspaceSetupSnapshot | null>;
   suppressWorkspaceSetupCard?: boolean;
-  onCreateAgent?: (coordinationId: string) => Promise<string | undefined>;
-  onSpawnSwarm?: (
-    coordinationId: string,
-    workspaceMode: CoordinationWorkspaceMode,
-  ) => Promise<void>;
 };
 
 type LoadedVaultFile = { focus: FocusState; content: string | null };
-
-const EDITABLE_VAULT_FILE_NAMES: ReadonlySet<string> = new Set(["todo.md"]);
-
-const canEditVaultFile = (fileName: string) => EDITABLE_VAULT_FILE_NAMES.has(fileName);
 
 const requestDeckOrchestrations = async (): Promise<DeckCoordinationSummary[] | null> => {
   try {
@@ -100,17 +91,11 @@ export const DeckPrimaryView = ({
   onRefreshWorkspaceSetup,
   onRunWorkspaceSetupStep,
   suppressWorkspaceSetupCard = false,
-  onCreateAgent,
-  onSpawnSwarm,
 }: DeckPrimaryViewProps) => {
   const [orchestrations, setOrchestrations] = useState<DeckCoordinationSummary[]>([]);
   const [focus, setFocus] = useState<FocusState | null>(null);
   const [sheetCoordinationId, setSheetCoordinationId] = useState<string | null>(null);
   const [loadedVault, setLoadedVault] = useState<LoadedVaultFile | null>(null);
-  const [editingVaultFocus, setEditingVaultFocus] = useState<FocusState | null>(null);
-  const [vaultDraft, setVaultDraft] = useState("");
-  const [vaultSaveError, setVaultSaveError] = useState<string | null>(null);
-  const [isSavingVault, setIsSavingVault] = useState(false);
   const [emptyViewMode, setEmptyViewMode] = useState<EmptyViewMode>("idle");
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -128,7 +113,6 @@ export const DeckPrimaryView = ({
   const [isLaunchingAgent, setIsLaunchingAgent] = useState(false);
   const [runningSetupStepId, setRunningSetupStepId] = useState<WorkspaceSetupStepId | null>(null);
 
-  // Fetch orchestration list
   const fetchOrchestrations = useCallback(async () => {
     const data = await requestDeckOrchestrations();
 
@@ -138,9 +122,7 @@ export const DeckPrimaryView = ({
 
     try {
       await onRefreshWorkspaceSetup();
-    } catch {
-      // silently ignore
-    }
+    } catch {}
   }, [onRefreshWorkspaceSetup]);
 
   useEffect(() => {
@@ -153,9 +135,7 @@ export const DeckPrimaryView = ({
 
       try {
         await onRefreshWorkspaceSetup();
-      } catch {
-        // silently ignore
-      }
+      } catch {}
     });
 
     return () => {
@@ -184,9 +164,7 @@ export const DeckPrimaryView = ({
         if (!cancelled) {
           setAvailableSkills(skills);
         }
-      } catch {
-        // silently ignore
-      }
+      } catch {}
     };
 
     void fetchSkills();
@@ -196,7 +174,6 @@ export const DeckPrimaryView = ({
     };
   }, []);
 
-  // Precompute visuals for all orchestrations
   const visualsMap = useMemo(() => {
     const map = new Map<string, MascotVisuals>();
 
@@ -207,8 +184,6 @@ export const DeckPrimaryView = ({
     return map;
   }, [orchestrations]);
 
-  // Fetch vault file content when focus changes. The result is tagged with the focus it
-  // was fetched for, so loading and stale content are derived instead of reset in the effect.
   useEffect(() => {
     if (focus?.type !== "vault") return;
 
@@ -244,10 +219,7 @@ export const DeckPrimaryView = ({
   const isVaultFocused = focus?.type === "vault";
   const vaultContent = isVaultFocused && loadedVault?.focus === focus ? loadedVault.content : null;
   const loadingVault = isVaultFocused && loadedVault?.focus !== focus;
-  const isEditingVault = isVaultFocused && editingVaultFocus === focus;
-  const isVaultEditable = focus?.type === "vault" && canEditVaultFile(focus.fileName);
 
-  // Agent menu click-outside/escape
   const handleDismissAgentMenu = useCallback(() => setAgentMenuOpen(false), []);
   useClickOutside(agentMenuRef, agentMenuOpen, handleDismissAgentMenu);
 
@@ -255,59 +227,8 @@ export const DeckPrimaryView = ({
     setFocus({ type: "vault", coordinationId, fileName });
   }, []);
 
-  const handleStartVaultEdit = useCallback(() => {
-    if (focus?.type !== "vault" || vaultContent === null) return;
-
-    setVaultDraft(vaultContent);
-    setVaultSaveError(null);
-    setEditingVaultFocus(focus);
-  }, [focus, vaultContent]);
-
-  const handleCancelVaultEdit = useCallback(() => {
-    setEditingVaultFocus(null);
-    setVaultSaveError(null);
-  }, []);
-
-  const handleSaveVault = useCallback(async () => {
-    if (focus?.type !== "vault" || vaultContent === null) return;
-
-    setIsSavingVault(true);
-    setVaultSaveError(null);
-
-    try {
-      const response = await fetch(buildDeckVaultFileUrl(focus.coordinationId, focus.fileName), {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "text/markdown",
-        },
-        body: JSON.stringify({ content: vaultDraft }),
-      });
-
-      if (!response.ok) {
-        const payload: ParsedValue = await response.json().catch(() => null);
-        const message = asRecord(payload)?.error;
-
-        setVaultSaveError(isString(message) ? message : "Could not save file.");
-
-        return;
-      }
-
-      const savedContent = await response.text();
-
-      setLoadedVault({ focus, content: savedContent });
-      setEditingVaultFocus(null);
-      await fetchOrchestrations();
-    } catch {
-      setVaultSaveError("Could not save file.");
-    } finally {
-      setIsSavingVault(false);
-    }
-  }, [fetchOrchestrations, focus, vaultContent, vaultDraft]);
-
   const handleClose = useCallback(() => {
     setFocus(null);
-    setEditingVaultFocus(null);
   }, []);
 
   const handleLaunchAgent = useCallback(async () => {
@@ -324,6 +245,7 @@ export const DeckPrimaryView = ({
           name: "coordination-planner",
           workspaceMode: "shared",
           agentProvider: selectedAgent,
+          ...launchSettingsToRequest(readAgentLaunchSettings()),
           promptTemplate: "coordination-planner",
         }),
       });
@@ -335,11 +257,10 @@ export const DeckPrimaryView = ({
       setFocus({
         type: "terminal",
         agentId,
-        terminalLabel: "Orchestration Planner",
+        terminalLabel: "Coordination Planner",
       });
       await fetchOrchestrations();
     } catch {
-      // silently ignore
     } finally {
       setIsLaunchingAgent(false);
     }
@@ -395,7 +316,7 @@ export const DeckPrimaryView = ({
           const msg =
             body && isObjectValue(body) && "error" in body && isString(body.error)
               ? body.error
-              : "Failed to create orchestration";
+              : "Failed to create coordination";
 
           setCreateError(msg);
 
@@ -514,7 +435,6 @@ export const DeckPrimaryView = ({
         if (!response.ok) return;
         await fetchOrchestrations();
       } catch {
-        // silently ignore
       } finally {
         setDeletingOrchestrationId(null);
       }
@@ -533,11 +453,43 @@ export const DeckPrimaryView = ({
 
         if (!response.ok) return;
         await fetchOrchestrations();
-      } catch {
-        // silently ignore
-      }
+      } catch {}
     },
     [fetchOrchestrations],
+  );
+
+  const sendTodoRequest = useCallback(
+    async (url: string, method: "PATCH" | "POST", body: Record<string, number | string>) => {
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) return;
+        await fetchOrchestrations();
+      } catch {}
+    },
+    [fetchOrchestrations],
+  );
+
+  const handleTodoAdd = useCallback(
+    (coordinationId: string, text: string) =>
+      sendTodoRequest(buildDeckTodoAddUrl(coordinationId), "POST", { text }),
+    [sendTodoRequest],
+  );
+
+  const handleTodoEdit = useCallback(
+    (coordinationId: string, itemIndex: number, text: string) =>
+      sendTodoRequest(buildDeckTodoEditUrl(coordinationId), "PATCH", { itemIndex, text }),
+    [sendTodoRequest],
+  );
+
+  const handleTodoDelete = useCallback(
+    (coordinationId: string, itemIndex: number) =>
+      sendTodoRequest(buildDeckTodoDeleteUrl(coordinationId), "POST", { itemIndex }),
+    [sendTodoRequest],
   );
 
   const focusedOrchestration =
@@ -552,7 +504,6 @@ export const DeckPrimaryView = ({
     orchestrations.length === 0 &&
     workspaceSetup?.shouldShowSetupCard;
 
-  // Push sidebar content to the shared sidebar
   const sidebarContent = useMemo(
     () =>
       orchestrations.length > 0 || focus?.type === "terminal" ? (
@@ -627,8 +578,6 @@ export const DeckPrimaryView = ({
     return () => onSidebarContent?.(null);
   }, [onSidebarContent, sidebarContent]);
 
-  // ─── Empty state (no orchestrations) ─────────────────────────────────────────────
-
   if (orchestrations.length === 0 && focus?.type !== "terminal") {
     return (
       <section
@@ -680,8 +629,6 @@ export const DeckPrimaryView = ({
       </section>
     );
   }
-
-  // ─── Populated state ────────────────────────────────────────────────────────
 
   return (
     <section
@@ -803,21 +750,12 @@ export const DeckPrimaryView = ({
               <span className="deck-detail-main-path">
                 {focusedOrchestration.displayName} / <strong>{focus.fileName}</strong>
               </span>
-              {isVaultEditable && !isEditingVault && !loadingVault && vaultContent !== null ? (
-                <button
-                  className="ml-auto cursor-pointer rounded-lg border border-border bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-surface-2"
-                  onClick={handleStartVaultEdit}
-                  type="button"
-                >
-                  Edit
-                </button>
-              ) : null}
             </header>
             <div
               className="deck-detail-main-content"
               key={`${focus.coordinationId}/${focus.fileName}`}
             >
-              <div className={isEditingVault ? "pb-72" : undefined}>
+              <div>
                 {loadingVault ? (
                   <span className="deck-detail-loading">Loading…</span>
                 ) : vaultContent !== null ? (
@@ -839,24 +777,10 @@ export const DeckPrimaryView = ({
                 <strong>{focus.terminalLabel}</strong>
               </span>
             </header>
-            <Terminal terminalId={focus.agentId} terminalLabel={focus.terminalLabel} />
+            <TerminalChatPane terminalId={focus.agentId} terminalLabel={focus.terminalLabel} />
           </div>
         )}
       </div>
-
-      {isEditingVault && vaultContent !== null ? (
-        <div className="absolute inset-x-0 bottom-0 z-30 border-t border-border bg-surface px-6 py-4 shadow-[0_-8px_24px_rgba(0,0,0,0.12)]">
-          <VaultFileEditor
-            error={vaultSaveError}
-            fileName={focus?.type === "vault" ? focus.fileName : ""}
-            isSaving={isSavingVault}
-            onChange={setVaultDraft}
-            onCancel={handleCancelVaultEdit}
-            onSave={() => void handleSaveVault()}
-            value={vaultDraft}
-          />
-        </div>
-      ) : null}
 
       <AgentSheet
         orchestration={
@@ -865,6 +789,9 @@ export const DeckPrimaryView = ({
         visuals={sheetCoordinationId ? (visualsMap.get(sheetCoordinationId) ?? null) : null}
         onClose={() => setSheetCoordinationId(null)}
         onTodoToggle={handleTodoToggle}
+        onTodoAdd={handleTodoAdd}
+        onTodoEdit={handleTodoEdit}
+        onTodoDelete={handleTodoDelete}
         onVaultFileClick={(coordinationId, fileName) =>
           setFocus({ type: "vault", coordinationId, fileName })
         }
@@ -876,8 +803,6 @@ export const DeckPrimaryView = ({
         onSaveMascot={handleMascotSave}
         onSaveAgent={handleSaveCoordinationAgent}
         onDelete={handleDeleteOrchestration}
-        onCreateAgent={onCreateAgent}
-        onSpawnSwarm={onSpawnSwarm}
       />
     </section>
   );

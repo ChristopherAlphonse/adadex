@@ -1,5 +1,4 @@
 import {
-  type CoordinationWorkspaceMode,
   type DeckAvailableSkill,
   type DeckCoordinationSummary,
   TERMINAL_AGENT_PROVIDERS,
@@ -20,6 +19,7 @@ import {
 import { CuteMascot, type CuteMascotState, MASCOT_STATE_FOR_STATUS } from "./CuteMascot";
 import type { MascotVisuals } from "./mascotVisuals";
 import { MASCOT_COLORS } from "./mascotVisuals";
+import { AddTodo, TodoRow } from "./TodoRow";
 
 const STATUS_LABELS: Record<DeckCoordinationSummary["status"], string> = {
   idle: "Idle",
@@ -71,12 +71,11 @@ type AgentSheetProps = {
   isDeleting?: boolean;
   onClose: () => void;
   onTodoToggle?: ((coordinationId: string, itemIndex: number, done: boolean) => void) | undefined;
+  onTodoAdd?: ((coordinationId: string, text: string) => void) | undefined;
+  onTodoEdit?: ((coordinationId: string, itemIndex: number, text: string) => void) | undefined;
+  onTodoDelete?: ((coordinationId: string, itemIndex: number) => void) | undefined;
   onVaultFileClick: (coordinationId: string, fileName: string) => void;
   onVaultBrowse: (coordinationId: string) => void;
-  onCreateAgent?: ((coordinationId: string) => Promise<string | undefined>) | undefined;
-  onSpawnSwarm?:
-    | ((coordinationId: string, workspaceMode: CoordinationWorkspaceMode) => Promise<void>)
-    | undefined;
   onSaveSuggestedSkills?:
     | ((coordinationId: string, suggestedSkills: string[]) => Promise<boolean>)
     | undefined;
@@ -100,17 +99,16 @@ export const AgentSheet = ({
   isDeleting,
   onClose,
   onTodoToggle,
+  onTodoAdd,
+  onTodoEdit,
+  onTodoDelete,
   onVaultFileClick,
   onVaultBrowse,
-  onCreateAgent,
-  onSpawnSwarm,
   onSaveSuggestedSkills,
   onSaveMascot,
   onSaveAgent,
   onDelete,
 }: AgentSheetProps) => {
-  const [busyAction, setBusyAction] = useState<string | null>(null);
-
   const [message, setMessage] = useState<{
     tone: "ok" | "error";
     text: string;
@@ -133,7 +131,6 @@ export const AgentSheet = ({
   const coordinationId = orchestration?.coordinationId ?? null;
   const [previousCoordinationId, setPreviousCoordinationId] = useState(coordinationId);
 
-  // Start every agent from a clean panel when a different one is selected.
   if (previousCoordinationId !== coordinationId) {
     setPreviousCoordinationId(coordinationId);
     setMessage(null);
@@ -143,24 +140,6 @@ export const AgentSheet = ({
     setMoodPreview(null);
     setNewSkill("");
   }
-
-  const run = async (key: string, task: () => Promise<string | undefined>) => {
-    setBusyAction(key);
-    setMessage(null);
-
-    try {
-      const successText = await task();
-
-      setMessage({ tone: "ok", text: successText || "Done." });
-    } catch (error) {
-      setMessage({
-        tone: "error",
-        text: error instanceof Error ? error.message : "Action failed.",
-      });
-    } finally {
-      setBusyAction(null);
-    }
-  };
 
   const progressPct =
     orchestration && orchestration.todoTotal > 0
@@ -403,63 +382,16 @@ export const AgentSheet = ({
                 </section>
               ) : null}
 
-              <section className="flex flex-col gap-3">
-                <SectionTitle>Actions</SectionTitle>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className={primaryButtonClass}
-                    disabled={busyAction !== null || !onCreateAgent}
-                    onClick={() => {
-                      void run("agent", async () => {
-                        await onCreateAgent?.(orchestration.coordinationId);
-
-                        return "Agent started. Find it on the Agents tab.";
-                      });
-                    }}
-                    type="button"
-                  >
-                    {busyAction === "agent" ? "Starting…" : "Create agent"}
-                  </button>
-                  <button
-                    className={actionButtonClass}
-                    disabled={busyAction !== null || !onSpawnSwarm}
-                    onClick={() => {
-                      void run("worktree", async () => {
-                        await onSpawnSwarm?.(orchestration.coordinationId, "worktree");
-
-                        return "Swarm started in separate worktrees.";
-                      });
-                    }}
-                    type="button"
-                  >
-                    {busyAction === "worktree" ? "Spawning…" : "Spawn swarm (worktrees)"}
-                  </button>
-                  <button
-                    className={actionButtonClass}
-                    disabled={busyAction !== null || !onSpawnSwarm}
-                    onClick={() => {
-                      void run("shared", async () => {
-                        await onSpawnSwarm?.(orchestration.coordinationId, "shared");
-
-                        return "Swarm started in the shared workspace.";
-                      });
-                    }}
-                    type="button"
-                  >
-                    {busyAction === "shared" ? "Spawning…" : "Spawn swarm (shared)"}
-                  </button>
-                </div>
-                {message ? (
-                  <output
-                    className={cn(
-                      "text-sm",
-                      message.tone === "error" ? "text-destructive" : "text-running",
-                    )}
-                  >
-                    {message.text}
-                  </output>
-                ) : null}
-              </section>
+              {message ? (
+                <output
+                  className={cn(
+                    "text-sm",
+                    message.tone === "error" ? "text-destructive" : "text-running",
+                  )}
+                >
+                  {message.text}
+                </output>
+              ) : null}
 
               <section className="flex flex-col gap-3">
                 <div className="flex items-baseline justify-between">
@@ -483,29 +415,40 @@ export const AgentSheet = ({
                 ) : (
                   <ul className="flex flex-col gap-1">
                     {orchestration.todoItems.map((item, index) => (
-                      <li key={item.text}>
-                        <label
-                          className={cn(
-                            "flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2 text-sm leading-snug transition-colors hover:bg-surface-2",
-                            item.done && "text-muted-foreground line-through",
-                          )}
-                          htmlFor={`todo-${orchestration.coordinationId}-${index}`}
-                        >
-                          <input
-                            checked={item.done}
-                            id={`todo-${orchestration.coordinationId}-${index}`}
-                            className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
-                            onChange={() => {
-                              onTodoToggle?.(orchestration.coordinationId, index, !item.done);
-                            }}
-                            type="checkbox"
-                          />
-                          {item.text}
-                        </label>
+                      <li key={`${orchestration.coordinationId}-${index}-${item.text}`}>
+                        <TodoRow
+                          done={item.done}
+                          id={`todo-${orchestration.coordinationId}-${index}`}
+                          onDelete={
+                            onTodoDelete
+                              ? () => {
+                                  onTodoDelete(orchestration.coordinationId, index);
+                                }
+                              : undefined
+                          }
+                          onEdit={
+                            onTodoEdit
+                              ? (text) => {
+                                  onTodoEdit(orchestration.coordinationId, index, text);
+                                }
+                              : undefined
+                          }
+                          onToggle={() => {
+                            onTodoToggle?.(orchestration.coordinationId, index, !item.done);
+                          }}
+                          text={item.text}
+                        />
                       </li>
                     ))}
                   </ul>
                 )}
+                {onTodoAdd ? (
+                  <AddTodo
+                    onAdd={(text) => {
+                      onTodoAdd(orchestration.coordinationId, text);
+                    }}
+                  />
+                ) : null}
               </section>
 
               <section className="flex flex-col gap-3">
@@ -560,7 +503,7 @@ export const AgentSheet = ({
                                 <span className="font-medium">{skillName}</span>
                                 <span className="text-xs text-muted-foreground">
                                   {skill?.description ??
-                                    "Stored on this orchestration, but not available right now."}
+                                    "Stored on this coordination, but not available right now."}
                                 </span>
                               </span>
                             </label>

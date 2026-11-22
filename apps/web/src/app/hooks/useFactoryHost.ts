@@ -55,7 +55,6 @@ const readSnapshot = async (host: FactoryHost): Promise<FactorySnapshot> => {
 export const useFactoryHost = (host: FactoryHost) => {
   const [snapshot, setSnapshot] = useState<FactorySnapshot>(EMPTY_SNAPSHOT);
   const [isLoading, setIsLoading] = useState(true);
-  // An action's error must survive the refresh its own host event triggers, so the two are kept apart.
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -80,7 +79,6 @@ export const useFactoryHost = (host: FactoryHost) => {
   useEffect(() => {
     isMountedRef.current = true;
 
-    // Load once per host; the subscription below handles subsequent host events.
     if (loadedHostRef.current !== host) {
       loadedHostRef.current = host;
       void refresh();

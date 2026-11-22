@@ -1,13 +1,11 @@
-import { createWriteStream, existsSync, mkdirSync } from "node:fs";
-import type { IncomingMessage } from "node:http";
-import { join } from "node:path";
-import type { Duplex } from "node:stream";
+import { existsSync } from "node:fs";
 
-import { isNumber, isString } from "@adadex/core";
+import { buildAgentLaunchCommand, isNumber, isString } from "@adadex/core";
 import { type IPty, spawn } from "node-pty";
 import type { WebSocket, WebSocketServer } from "ws";
 
 import { type AgentRuntimeState, AgentStateTracker } from "../agentStateDetection";
+import { claudeHookSettingsPath } from "./agentHooks";
 import { stripBrokenLeadingAnsi } from "./ansiScrollback";
 import {
   DEFAULT_AGENT_PROVIDER,
@@ -17,18 +15,26 @@ import {
   TERMINAL_SESSION_IDLE_GRACE_MS,
 } from "./constants";
 import {
-  type ConversationTranscriptEvent,
   type ConversationTranscriptEventPayload,
-  ensureTranscriptDirectory,
   type SessionEndTranscriptEvent,
-  transcriptFilenameForSession,
 } from "./conversations";
-import { broadcastMessage, getTerminalId, sendMessage } from "./protocol";
+import { broadcastMessage, sendMessage } from "./protocol";
 import { createShellEnvironment, ensureNodePtySpawnHelperExecutable } from "./ptyEnvironment";
+import {
+  appendDebugLog,
+  appendScrollback as appendScrollbackChunk,
+  appendTranscriptEvent,
+  closeTranscript,
+  createDebugLog as openDebugLog,
+  createTranscriptLog as openTranscriptLog,
+  getShellLaunch,
+} from "./sessionLogs";
+import { createUpgradeHandler } from "./sessionSocket";
 import { toErrorMessage } from "./systemClients";
 import type {
   DirectSessionListener,
   PersistedTerminal,
+  TerminalAgentProvider,
   TerminalSession,
   TerminalSessionEndDetails,
   TerminalSessionStartDetails,
@@ -64,6 +70,11 @@ type CreateSessionRuntimeOptions = {
     coordinationId: string;
   }) => void;
   onProcessExit?: (sessionId: string) => void;
+  /**
+   * Called right before the agent CLI launches, so its hook settings exist even when `.adadex` was removed after
+   * the terminal was created. Without them the session runs but never reports a chat.
+   */
+  prepareAgentLaunch?: (workingDirectory: string, agentProvider: TerminalAgentProvider) => void;
 };
 
 export const createSessionRuntime = ({
@@ -84,6 +95,7 @@ export const createSessionRuntime = ({
   signalGroup,
   onProcessSpawn,
   onProcessExit,
+  prepareAgentLaunch,
 }: CreateSessionRuntimeOptions) => {
   const DEFAULT_PTY_COLS = 120;
   const DEFAULT_PTY_ROWS = 35;
@@ -92,100 +104,14 @@ export const createSessionRuntime = ({
     ? Math.max(1, Math.floor(maxConcurrentSessions))
     : TERMINAL_MAX_CONCURRENT_SESSIONS;
 
-  const getShellLaunch = () => {
-    if (process.platform === "win32") {
-      return {
-        command: process.env.ComSpec ?? "cmd.exe",
-        args: [],
-      };
-    }
+  const createDebugLog = (sessionId: string) =>
+    openDebugLog(sessionId, isDebugPtyLogsEnabled, ptyLogDir);
 
-    const shellFromEnvironment = process.env.SHELL?.trim();
+  const createTranscriptLog = (sessionId: string) =>
+    openTranscriptLog(sessionId, transcriptDirectoryPath);
 
-    if (shellFromEnvironment && shellFromEnvironment.length > 0) {
-      return {
-        command: shellFromEnvironment,
-        args: ["-i"],
-      };
-    }
-
-    return {
-      command: "/bin/bash",
-      args: ["-i"],
-    };
-  };
-
-  const createDebugLog = (sessionId: string) => {
-    if (!isDebugPtyLogsEnabled) {
-      return undefined;
-    }
-
-    mkdirSync(ptyLogDir, { recursive: true });
-    const filename = `${sessionId}-${Date.now()}.log`;
-
-    return createWriteStream(join(ptyLogDir, filename), {
-      flags: "a",
-      encoding: "utf8",
-    });
-  };
-
-  const appendDebugLog = (session: TerminalSession, line: string) => {
-    session.debugLog?.write(`${new Date().toISOString()} ${line}\n`);
-  };
-
-  const createTranscriptLog = (sessionId: string) => {
-    ensureTranscriptDirectory(transcriptDirectoryPath);
-    const filename = transcriptFilenameForSession(sessionId);
-
-    const stream = createWriteStream(join(transcriptDirectoryPath, filename), {
-      flags: "a",
-      encoding: "utf8",
-    });
-
-    stream.on("error", () => {
-      // Keep terminal flow alive even if transcript writes fail.
-    });
-
-    return stream;
-  };
-
-  const appendTranscriptEvent = (
-    session: TerminalSession,
-    sessionId: string,
-    event: ConversationTranscriptEventPayload,
-  ) => {
-    if (!session.transcriptLog) {
-      return;
-    }
-
-    const nextEventCount = (session.transcriptEventCount ?? 0) + 1;
-    session.transcriptEventCount = nextEventCount;
-
-    // SAFETY: event is a validated ConversationTranscriptEventPayload; adding the ids
-    // completes the same discriminated union with no field changes.
-    const payload: ConversationTranscriptEvent = {
-      ...event,
-      eventId: `${sessionId}:${nextEventCount}`,
-      sessionId,
-      coordinationId: session.coordinationId,
-    } as ConversationTranscriptEvent;
-
-    session.transcriptLog.write(`${JSON.stringify(payload)}\n`);
-  };
-
-  const closeTranscript = (
-    session: TerminalSession,
-    sessionId: string,
-    event: ConversationTranscriptEventPayload,
-  ) => {
-    if (session.hasTranscriptEnded) {
-      return;
-    }
-
-    appendTranscriptEvent(session, sessionId, event);
-    session.hasTranscriptEnded = true;
-    session.transcriptLog?.end();
-    session.transcriptLog = undefined;
+  const appendScrollback = (session: TerminalSession, chunk: string) => {
+    appendScrollbackChunk(session, chunk, scrollbackMaxBytes);
   };
 
   const emitStateIfChanged = (
@@ -273,32 +199,6 @@ export const createSessionRuntime = ({
     session.promptTimers.add(timer);
   };
 
-  const appendScrollback = (session: TerminalSession, chunk: string) => {
-    let nextChunk = chunk;
-    let nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
-
-    if (nextChunkBytes > scrollbackMaxBytes) {
-      const chunkBuffer = Buffer.from(nextChunk, "utf8");
-      nextChunk = chunkBuffer.subarray(chunkBuffer.length - scrollbackMaxBytes).toString("utf8");
-      nextChunkBytes = Buffer.byteLength(nextChunk, "utf8");
-      session.scrollbackChunks = [];
-      session.scrollbackBytes = 0;
-    }
-
-    session.scrollbackChunks.push(nextChunk);
-    session.scrollbackBytes += nextChunkBytes;
-
-    while (session.scrollbackBytes > scrollbackMaxBytes && session.scrollbackChunks.length > 0) {
-      const removedChunk = session.scrollbackChunks.shift();
-
-      if (!removedChunk) {
-        break;
-      }
-
-      session.scrollbackBytes -= Buffer.byteLength(removedChunk, "utf8");
-    }
-  };
-
   const sendHistory = (websocket: WebSocket, session: TerminalSession) => {
     if (session.scrollbackChunks.length === 0) {
       return;
@@ -353,9 +253,7 @@ export const createSessionRuntime = ({
     for (const disposable of session.ptyDisposables ?? []) {
       try {
         disposable.dispose();
-      } catch {
-        // Ignore listener cleanup errors; the PTY teardown below is still required.
-      }
+      } catch {}
     }
 
     session.ptyDisposables = [];
@@ -369,16 +267,12 @@ export const createSessionRuntime = ({
       if (processId !== undefined) {
         try {
           signalGroup?.(processId, options.killSignal ?? "SIGKILL");
-        } catch {
-          // Ignore group-signal errors; pty.kill still tears down the leader.
-        }
+        } catch {}
       }
 
       try {
         session.pty.kill(options.killSignal);
-      } catch {
-        // Ignore teardown errors; session will still be discarded.
-      }
+      } catch {}
     }
 
     for (const client of session.clients) {
@@ -500,20 +394,31 @@ export const createSessionRuntime = ({
     session.isBootstrapCommandSent = true;
     const terminal = terminals.get(session.terminalId);
 
-    // Plain shells stay a bare shell: no agent CLI, no initial prompt injection.
     if (terminal?.plainShell) {
       return;
     }
 
     const provider = terminal?.agentProvider ?? DEFAULT_AGENT_PROVIDER;
 
-    const bootstrapCommand =
-      TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER];
+    try {
+      prepareAgentLaunch?.(session.workingDirectory, provider);
+    } catch {}
+
+    const bootstrapCommand = buildAgentLaunchCommand(
+      provider,
+      TERMINAL_BOOTSTRAP_COMMANDS[provider] ?? TERMINAL_BOOTSTRAP_COMMANDS[DEFAULT_AGENT_PROVIDER],
+      {
+        model: terminal?.agentModel,
+        effort: terminal?.agentEffort,
+        settingsFile: existsSync(claudeHookSettingsPath(session.workingDirectory))
+          ? claudeHookSettingsPath(session.workingDirectory)
+          : undefined,
+      },
+    );
 
     appendDebugLog(session, `bootstrap session=${sessionId} command=${bootstrapCommand}`);
     session.pty.write(`${bootstrapCommand}\r`);
 
-    // Schedule initial prompt injection after the agent CLI has had time to boot.
     if (session.initialPrompt && !session.isInitialPromptSent) {
       schedulePromptTimer(
         session,
@@ -605,6 +510,7 @@ export const createSessionRuntime = ({
     const transcriptLog = createTranscriptLog(sessionId);
 
     const session: TerminalSession = {
+      workingDirectory: orchestrationCwd,
       terminalId: sessionId,
       coordinationId,
       pty,
@@ -705,7 +611,6 @@ export const createSessionRuntime = ({
 
     session.ptyDisposables = [dataDisposable, exitDisposable];
 
-    // Propagate initial prompt from the terminal definition, if set.
     if (terminalRecord?.initialPrompt) {
       session.initialPrompt = terminalRecord.initialPrompt;
     }
@@ -719,112 +624,16 @@ export const createSessionRuntime = ({
     return session;
   };
 
-  const handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): boolean => {
-    const terminalId = getTerminalId(request);
-
-    if (!terminalId) {
-      return false;
-    }
-
-    const resolvedSession = resolveSession(terminalId);
-
-    if (!resolvedSession) {
-      return false;
-    }
-
-    const { sessionId, coordinationId } = resolvedSession;
-
-    websocketServer.handleUpgrade(request, socket, head, (websocket: WebSocket) => {
-      let session: TerminalSession;
-
-      try {
-        session = ensureSession(sessionId, coordinationId);
-      } catch (error) {
-        sendMessage(websocket, {
-          type: "output",
-          data: `\r\n[terminal failed to start: ${toErrorMessage(error)}]\r\n`,
-        });
-        websocket.close();
-
-        return;
-      }
-
-      session.clients.add(websocket);
-      appendDebugLog(session, `ws-open session=${sessionId} clients=${session.clients.size}`);
-      clearIdleCloseTimer(session);
-      ensureAgentBootstrapped(sessionId, session);
-      sendHistory(websocket, session);
-      sendMessage(websocket, {
-        type: "state",
-        state: session.agentState,
-      });
-
-      websocket.on("message", (raw) => {
-        if (session.isClosed) {
-          return;
-        }
-
-        const text = isString(raw) ? raw : raw instanceof Buffer ? raw.toString() : String(raw);
-
-        try {
-          // SAFETY: websocket text is an input or resize command; the branches below
-          // validate data/cols/rows before using them.
-          const payload = JSON.parse(text) as
-            | { type: "input"; data: string }
-            | { type: "resize"; cols: number; rows: number };
-
-          if (payload.type === "input" && isString(payload.data)) {
-            appendDebugLog(
-              session,
-              `ws-input session=${sessionId} data=${JSON.stringify(payload.data)}`,
-            );
-            session.pty.write(payload.data);
-
-            if (/[\r\n]/.test(payload.data)) {
-              emitStateIfChanged(
-                session,
-                sessionId,
-                session.stateTracker.observeSubmit(Date.now()),
-              );
-            }
-
-            return;
-          }
-
-          if (
-            payload.type === "resize" &&
-            Number.isFinite(payload.cols) &&
-            Number.isFinite(payload.rows)
-          ) {
-            const nextCols = Math.max(20, Math.floor(payload.cols));
-            const nextRows = Math.max(10, Math.floor(payload.rows));
-
-            if (session.cols === nextCols && session.rows === nextRows) {
-              return;
-            }
-
-            session.cols = nextCols;
-            session.rows = nextRows;
-            session.pty.resize(nextCols, nextRows);
-          }
-        } catch {
-          session.pty.write(text);
-        }
-      });
-
-      websocket.on("close", () => {
-        if (session.isClosed) {
-          return;
-        }
-
-        session.clients.delete(websocket);
-        appendDebugLog(session, `ws-close session=${sessionId} clients=${session.clients.size}`);
-        scheduleIdleCloseIfNeeded(session, sessionId);
-      });
-    });
-
-    return true;
-  };
+  const handleUpgrade = createUpgradeHandler({
+    websocketServer,
+    resolveSession,
+    ensureSession,
+    clearIdleCloseTimer,
+    ensureAgentBootstrapped,
+    sendHistory,
+    emitStateIfChanged,
+    scheduleIdleCloseIfNeeded,
+  });
 
   const close = () => {
     for (const sessionId of sessions.keys()) {
@@ -856,7 +665,6 @@ export const createSessionRuntime = ({
     clearIdleCloseTimer(session);
     ensureAgentBootstrapped(sessionId, session);
 
-    // Send history and current state to the new listener
     if (session.scrollbackChunks.length > 0) {
       listener({ type: "history", data: session.scrollbackChunks.join("") });
     }

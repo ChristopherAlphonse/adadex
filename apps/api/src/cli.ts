@@ -7,6 +7,7 @@ import {
   type ChannelMessage,
   type ParsedRecord,
   type TerminalSnapshot,
+  asRecord,
   isNumber,
   isObjectValue,
   isString,
@@ -144,7 +145,6 @@ const findOpenPort = async (startPort: number): Promise<number> => {
       break;
     }
 
-    // eslint-disable-next-line no-await-in-loop
     if (await canListenOnPort(port)) {
       return port;
     }
@@ -169,10 +169,6 @@ const readPreferredStartPort = () => {
   return parsed;
 };
 
-/**
- * Loopback unless ADADEX_BIND_HOST says otherwise. Only the container image sets it (to
- * 0.0.0.0, on a network with no route to the outside); the Host and Origin checks stay on.
- */
 const readBindHost = () => process.env.ADADEX_BIND_HOST?.trim() || "127.0.0.1";
 
 const resolveRuntimeApiBase = () => {
@@ -222,9 +218,7 @@ const maybeOpenBrowser = (url: string) => {
     });
 
     child.unref();
-  } catch {
-    // Best-effort browser open.
-  }
+  } catch {}
 };
 
 const startServer = async () => {
@@ -416,6 +410,100 @@ const coordinationCreate = async () => {
     }
 
     console.log(`Created coordination "${String(data.coordinationId ?? "")}"`);
+  } catch {
+    apiError();
+  }
+};
+
+const TODO_ACTIONS = ["list", "add", "done", "undone", "edit", "remove"] as const;
+
+type TodoAction = (typeof TODO_ACTIONS)[number];
+
+const isTodoAction = (value: string | undefined): value is TodoAction =>
+  TODO_ACTIONS.some((action) => action === value);
+
+const todoRequest = (action: TodoAction, coordinationId: string, rest: string[]) => {
+  const base = `${resolveRuntimeApiBase()}/api/deck/coordinations/${encodeURIComponent(coordinationId)}/todo`;
+  const json = { "Content-Type": "application/json" };
+  const index = Number(rest[0]);
+  const text = (action === "add" ? rest : rest.slice(1)).join(" ").trim();
+
+  if (action === "list") return fetch(base);
+
+  if (action === "add") {
+    return fetch(base, { method: "POST", headers: json, body: JSON.stringify({ text }) });
+  }
+
+  if (action === "done" || action === "undone") {
+    return fetch(`${base}/toggle`, {
+      method: "PATCH",
+      headers: json,
+      body: JSON.stringify({ itemIndex: index, done: action === "done" }),
+    });
+  }
+
+  if (action === "edit") {
+    return fetch(`${base}/edit`, {
+      method: "PATCH",
+      headers: json,
+      body: JSON.stringify({ itemIndex: index, text }),
+    });
+  }
+
+  return fetch(`${base}/delete`, {
+    method: "POST",
+    headers: json,
+    body: JSON.stringify({ itemIndex: index }),
+  });
+};
+
+const todoCommand = async () => {
+  const action = args[1];
+  const coordinationId = args[2];
+  const rest = args.slice(3);
+
+  if (!isTodoAction(action) || !coordinationId) {
+    console.error(
+      "Usage: adadex todo <list|add|done|undone|edit|remove> <coordination-id> [index] [text]",
+    );
+    process.exit(1);
+  }
+
+  const needsIndex = action !== "list" && action !== "add";
+  const needsText = action === "add" || action === "edit";
+
+  if (needsIndex && !Number.isInteger(Number(rest[0]))) {
+    console.error(
+      `Error: "${action}" needs a todo index (see "adadex todo list ${coordinationId}").`,
+    );
+    process.exit(1);
+  }
+
+  if (needsText && (action === "add" ? rest : rest.slice(1)).join(" ").trim().length === 0) {
+    console.error(`Error: "${action}" needs the todo text.`);
+    process.exit(1);
+  }
+
+  try {
+    const response = await todoRequest(action, coordinationId, rest);
+    // SAFETY: the todo endpoints return a JSON object ({ total, done, items } or { error }).
+    const data = (await response.json()) as ParsedRecord;
+
+    if (!response.ok) {
+      console.error(`Error: ${String(data.error ?? "Failed")}`);
+      process.exit(1);
+    }
+
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    items.forEach((item, position) => {
+      const record = asRecord(item);
+      console.log(
+        `  ${position}. [${record?.done === true ? "x" : " "}] ${String(record?.text ?? "")}`,
+      );
+    });
+
+    if (items.length === 0) console.log("No todos.");
   } catch {
     apiError();
   }
@@ -763,6 +851,10 @@ const main = async () => {
     }
   }
 
+  if (command === "todo" || command === "todos") {
+    return todoCommand();
+  }
+
   if (command === "terminal" || command === "terminals") {
     if (args[1] === "create") {
       return terminalCreate();
@@ -802,6 +894,11 @@ const main = async () => {
 
   adadex coordination create <name>    Create a coordination (Adadex must be running)
   adadex coordination list             List coordinations
+  adadex todo list <coordination-id>   Show a coordination's todos (indexes start at 0)
+  adadex todo add <id> <text>          Add a todo
+  adadex todo done|undone <id> <n>     Mark todo n done or not done
+  adadex todo edit <id> <n> <text>     Change the text of todo n
+  adadex todo remove <id> <n>          Delete todo n
   adadex terminal create [options]     Create a terminal
     --name, -n                         Terminal display name
     --workspace-mode, -w               shared | worktree

@@ -54,7 +54,7 @@ Terminal WebSockets do not own the PTY. They are clients attached to a PTY sessi
 
 The terminal registry file is named `coordinations.json`. Current records are terminals. A terminal record stores identity, coordination ID, optional worktree ID, parent terminal ID, workspace mode, display name, lifecycle fields, and UI-related metadata.
 
-Deck metadata is separate from coordination markdown. `deck.json` stores display/status details that should not be mixed into `CONTEXT.md` or `todo.md`.
+Deck metadata is separate from coordination markdown. `deck.json` stores display/status details that should not be mixed into `CONTEXT.md` or `todos.json`.
 
 ## Terminal lifecycle
 
@@ -75,7 +75,7 @@ Stopping or killing a terminal tears down the active PTY and updates lifecycle m
 
 Adadex installs hooks in the target workspace that `curl` back into the local API. Where they go depends on the terminal's agent:
 
-- **Claude Code** (default): merged into `.claude/settings.local.json`
+- **Claude Code** (default): written to `.adadex/hooks/claude.settings.json` and loaded with `claude --settings`. The project's own `.claude/settings.local.json` is not touched; Adadex entries that older versions put there are removed.
 - **Kiro CLI**: written to `.kiro/hooks/adadex.json`
 - **OpenCode**: none, because it has no shell hooks; its state comes from terminal output only
 

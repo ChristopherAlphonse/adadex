@@ -21,7 +21,7 @@ Coordination example:
   coordinations/
     api-backend/
       CONTEXT.md
-      todo.md
+      todos.json
       routes.md
 ```
 

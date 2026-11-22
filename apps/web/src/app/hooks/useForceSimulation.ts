@@ -41,7 +41,6 @@ const ALPHA_TARGET = 0;
 
 const REHEAT_ALPHA = 0.8;
 
-// Reference dimensions used by useCanvasTransform to compute the initial viewport fit scale.
 export const WORLD_W = 1400;
 
 export const WORLD_H = 800;
@@ -77,7 +76,6 @@ export const useForceSimulation = ({
   const simNodeMapRef = useRef<Map<string, SimNode>>(new Map());
   const [snapshot, setSnapshot] = useState<GraphNode[]>(nodes);
 
-  // Keep latest inputs in refs so the effect can read them without depending on them
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const paramsRef = useRef(params);
@@ -88,12 +86,9 @@ export const useForceSimulation = ({
     paramsRef.current = params;
   }, [nodes, edges, params]);
 
-  // Stable topology keys — effect only fires when graph structure actually changes
   const nodeIdKey = useMemo(() => nodes.map((n) => n.id).join("\0"), [nodes]);
   const edgeKey = useMemo(() => edges.map((e) => `${e.source}\0${e.target}`).join("\0"), [edges]);
 
-  // Content key — captures mutable node properties that should update the snapshot
-  // even when topology (nodeIdKey/edgeKey) hasn't changed.
   const contentKey = useMemo(
     () =>
       nodes
@@ -224,9 +219,6 @@ export const useForceSimulation = ({
     }
   }, [nodeIdKey, edgeKey, centerX, centerY]);
 
-  // Sync non-topology node property changes (e.g., hasUserPrompt, agentState,
-  // color, label) into the simulation's internal nodes and produce a fresh
-  // snapshot without reheating the simulation.
   useEffect(() => {
     void contentKey;
 
@@ -256,7 +248,6 @@ export const useForceSimulation = ({
     }
   }, [contentKey]);
 
-  // Apply param changes without rebuilding the simulation
   useEffect(() => {
     const sim = simRef.current;
 

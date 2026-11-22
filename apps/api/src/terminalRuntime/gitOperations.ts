@@ -19,7 +19,6 @@ export const createGitOperations = (deps: {
   const resolveWorktreeOrchestrationContext = (
     coordinationId: string,
   ): { terminal: PersistedTerminal; workspaceCwd: string } | null => {
-    // Find any terminal belonging to this orchestration
     let terminal: PersistedTerminal | undefined;
 
     for (const t of terminals.values()) {

@@ -110,6 +110,17 @@ const isToolUseMessage = (msg: AgentTranscriptMessage): boolean => {
   return content.some((block) => block.type === "tool_use");
 };
 
+const TOOL_DETAIL_FIELDS = new Map([
+  ["Bash", "command"],
+  ["Read", "file_path"],
+  ["Write", "file_path"],
+  ["Edit", "file_path"],
+  ["Glob", "pattern"],
+  ["Grep", "pattern"],
+  ["Agent", "description"],
+  ["WebFetch", "url"],
+]);
+
 const extractToolUseSummary = (msg: AgentTranscriptMessage): string | null => {
   const content = msg.message?.content ?? msg.content;
 
@@ -125,25 +136,13 @@ const extractToolUseSummary = (msg: AgentTranscriptMessage): string | null => {
     }
 
     const input = isParsedRecord(block.input) ? block.input : null;
+    const field = TOOL_DETAIL_FIELDS.get(block.name);
+    const value = input && field ? input[field] : null;
     let detail = "";
 
-    if (input) {
-      if (block.name === "Bash" && isString(input.command)) {
-        detail = `: \`${input.command.length > 80 ? `${input.command.slice(0, 77)}...` : input.command}\``;
-      } else if (
-        (block.name === "Read" || block.name === "Write" || block.name === "Edit") &&
-        isString(input.file_path)
-      ) {
-        detail = `: ${input.file_path}`;
-      } else if (block.name === "Glob" && isString(input.pattern)) {
-        detail = `: ${input.pattern}`;
-      } else if (block.name === "Grep" && isString(input.pattern)) {
-        detail = `: ${input.pattern}`;
-      } else if (block.name === "Agent" && isString(input.description)) {
-        detail = `: ${input.description}`;
-      } else if (block.name === "WebFetch" && isString(input.url)) {
-        detail = `: ${input.url}`;
-      }
+    if (isString(value)) {
+      const text = value.length > 80 ? `${value.slice(0, 77)}...` : value;
+      detail = block.name === "Bash" ? `: \`${text}\`` : `: ${value}`;
     }
 
     summaries.push(`[${block.name}${detail}]`);
@@ -192,9 +191,7 @@ export const parseAgentTranscript = (transcriptPath: string): ConversationTurn[]
       if (isAgentTranscriptMessage(parsed)) {
         messages.push(parsed);
       }
-    } catch {
-      // Skip malformed lines
-    }
+    } catch {}
   }
 
   if (messages.length === 0) {

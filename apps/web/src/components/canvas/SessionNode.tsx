@@ -16,7 +16,6 @@ const PILL_MAX_CHARS = 14;
 
 const splitLabel = (label: string): [string] | [string, string] => {
   if (label.length <= LINE_MAX) return [label];
-  // Try to break at a space near the midpoint
   const mid = Math.floor(label.length / 2);
   let best = -1;
 
@@ -120,7 +119,6 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
       }}
       style={{ cursor: "pointer" }}
     >
-      {/* Worktree ring — dashed stroke */}
       {isWorktree && (
         <circle
           className="canvas-node-ring canvas-node-ring--worktree"
@@ -130,7 +128,6 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         />
       )}
 
-      {/* Swarm worker ring — double concentric circles */}
       {isSwarmWorker && (
         <>
           <circle
@@ -148,7 +145,6 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         </>
       )}
 
-      {/* Focused shine — accent glow when waiting, white otherwise */}
       {isSelected && (
         <circle
           className="canvas-node-focus-glow"
@@ -157,7 +153,6 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         />
       )}
 
-      {/* Subtle glow halo — accent when waiting */}
       <circle
         className={`canvas-node-bloom${isLive || isWaiting || isLifecycleAttention ? " canvas-node-bloom--pulse" : ""}`}
         r={node.radius + 3}
@@ -165,7 +160,6 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         opacity={isWaiting || isLifecycleAttention ? 0.45 : isActive ? 0.25 : 0.1}
       />
 
-      {/* Bright core dot — accent when waiting */}
       <circle
         className="canvas-node-core"
         r={node.radius}
@@ -173,7 +167,6 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         opacity={isActive ? 1 : 0.4}
       />
 
-      {/* State indicator pill */}
       {(isWaiting || isLifecycleAttention) && (
         <g className="canvas-node-waiting-indicator">
           <rect
@@ -194,7 +187,6 @@ export const SessionNode = ({ node, isSelected, onPointerDown, onClick }: Sessio
         </g>
       )}
 
-      {/* Label — always visible, up to two lines */}
       <text
         y={node.radius + 16 + labelYOffset}
         textAnchor="middle"

@@ -1,7 +1,6 @@
 version: 2
 
 updates:
-  # npm ecosystem — monorepo root
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -9,7 +8,6 @@ updates:
       day: monday
       time: "08:00"
       timezone: UTC
-    # CICD-SEC-03: Group by semver tier — majors isolated for deliberate review
     groups:
       patch-updates:
         patterns:
@@ -26,9 +24,6 @@ updates:
           - "*"
         update-types:
           - major
-    # Caps simultaneously open Dependabot PRs for this ecosystem (npm), not merges/day.
-    # Weekly schedule bounds how often Dependabot checks; limit bounds backlog size.
-    # See https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/optimizing-pr-creation-version-updates
     open-pull-requests-limit: 5
     labels:
       - dependencies
@@ -36,10 +31,8 @@ updates:
     reviewers:
       - christopheralphonse
     ignore:
-      # Pin node-pty — patched locally, don't auto-bump
       - dependency-name: node-pty
 
-  # GitHub Actions — pin to SHA, dependabot keeps SHAs current
   - package-ecosystem: github-actions
     directory: /
     schedule:

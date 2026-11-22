@@ -14,7 +14,7 @@ import { cn } from "../../lib/utils";
 /**
  * shadcn-style Sheet (same API as `ui.shadcn.com/docs/components/sheet`), without the Radix
  * dependency. Closes on Escape or overlay click, moves focus into the panel and restores it on
- * close. Swap for the Radix-backed version if `@radix-ui/react-dialog` is ever added.
+ * close.
  */
 type SheetContextValue = { open: boolean; onOpenChange: (open: boolean) => void };
 
@@ -41,7 +41,6 @@ export const Sheet = ({ open, onOpenChange, children }: SheetProps) => (
 );
 
 const getPortalTarget = (): HTMLElement =>
-  // Portal inside the console shell so the theme variables still apply.
   document.querySelector<HTMLElement>(".design-console") ?? document.body;
 
 export const SheetContent = ({

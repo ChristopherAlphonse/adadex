@@ -98,7 +98,6 @@ describe("signed audit lines", () => {
   it("catches someone who rewrites the whole chain consistently but does not have the key", async () => {
     const { store, logDb, attacker } = await setup();
     await store.audit({ actor: "agent", action: "note", jobId: "j1", detail: "original" });
-    // Edit a line, then recompute every hash after it so the chain links up again. Without the key, the signatures cannot follow.
     const db = attacker();
     const rows = logDb.auditRows("p", "j1");
     let prev = GENESIS;

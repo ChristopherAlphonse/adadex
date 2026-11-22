@@ -17,6 +17,9 @@ export type TerminalSnapshot = {
   hasUserPrompt?: boolean;
   parentTerminalId?: string;
   agentRuntimeState?: AgentRuntimeState;
+  /** Persisted launch flags for the agent CLI; applied when the session (re)starts. */
+  agentModel?: string;
+  agentEffort?: string;
   lifecycleState?: TerminalLifecycleState;
   lifecycleReason?: string;
   lifecycleUpdatedAt?: string;

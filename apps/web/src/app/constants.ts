@@ -30,6 +30,8 @@ export const GITHUB_OVERVIEW_GRAPH_HEIGHT = 180;
 
 export type PrimaryNavIndex = (typeof PRIMARY_NAV_ITEMS)[number]["index"];
 
+export const FACTORY_NAV_INDEX = 7;
+
 export const PRIMARY_NAV_KEY_HINT = "1-7";
 
 export const isPrimaryNavIndex = (value: number): value is PrimaryNavIndex =>

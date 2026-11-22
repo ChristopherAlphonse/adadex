@@ -1,5 +1,3 @@
-# CodeRabbit is off for this repo: no automatic reviews, no summaries, no status comments.
-# Mention `@coderabbitai review` on a PR if you ever want a one-off review.
 reviews:
   auto_review:
     enabled: false

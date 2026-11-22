@@ -21,7 +21,6 @@ const text = (v: ParsedValue | undefined): v is string => isString(v) && v !== "
 
 const strings = (v: ParsedValue | undefined): v is string[] => Array.isArray(v) && v.every(text);
 
-/** Files in a job's folder that only the app writes. No role can be granted them, whatever its writeDocs say. */
 const APP_ONLY = ["job.json", "audit.log", "checks.md", "human"];
 
 const badDoc = (pattern: string): string | null => {

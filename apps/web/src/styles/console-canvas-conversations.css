@@ -229,7 +229,6 @@
   text-align: right;
 }
 
-/* Highlighted turn (from search navigation) */
 .conversations-turn[data-highlighted="true"] {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
@@ -248,7 +247,6 @@
   }
 }
 
-/* Search term highlight inside conversation bubbles */
 .conversations-turn-content .search-highlight {
   background: color-mix(in srgb, var(--accent-primary) 40%, transparent);
   color: inherit;
@@ -257,7 +255,6 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 50%, transparent);
 }
 
-/* Rendered markdown content in conversation bubbles */
 .conversations-turn-content {
   color: color-mix(in srgb, var(--accent-primary) 25%, var(--foreground));
   font-family: var(--font-main);
@@ -429,7 +426,6 @@
   }
 }
 
-/* Sidebar conversations section — blend with sidebar background */
 .active-agents-section[aria-label="Sidebar section Conversations"] {
   border: none;
   background: transparent;
@@ -440,7 +436,6 @@
   padding: 0.36rem;
 }
 
-/* Sidebar conversations list */
 .sidebar-conversations-list {
   margin: 0;
   padding: 0;
@@ -528,7 +523,6 @@
   height: 0.7rem;
 }
 
-/* Sidebar search results */
 .sidebar-search-results-count {
   margin: 0 0 0.22rem;
   color: var(--muted-foreground);
@@ -565,7 +559,6 @@
   overflow: hidden;
 }
 
-/* Sidebar toolbar (refresh / clear all icons) */
 .sidebar-conversations-toolbar {
   display: flex;
   align-items: stretch;
@@ -621,7 +614,6 @@
   outline-offset: -1px;
 }
 
-/* Delete button in main conversation body */
 .conversations-delete-btn {
   display: inline-flex;
   align-items: center;

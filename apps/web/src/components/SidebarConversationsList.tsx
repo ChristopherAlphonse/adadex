@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { formatRelativeTime, toGist, toTitle } from "../app/conversationText";
+import { MASCOT_COLORS } from "../app/mascotPalette";
 import type { ConversationSearchHit, ConversationSessionSummary } from "../app/types";
-
-const AVATAR_HUES = [210, 262, 152, 28, 340, 186];
+import { CuteMascot } from "./deck/CuteMascot";
 
 const getSessionTitle = (session: ConversationSessionSummary): string =>
   toTitle(session.firstUserTurnPreview, session.sessionId, 40);
 
-const getAvatarHue = (sessionId: string): number => {
+const getMascotColor = (sessionId: string): string => {
   let hash = 0;
 
   for (const char of sessionId) {
     hash = (hash * 31 + char.charCodeAt(0)) % 997;
   }
 
-  return AVATAR_HUES[hash % AVATAR_HUES.length] ?? 210;
+  return MASCOT_COLORS[hash % MASCOT_COLORS.length] ?? "#b79cf0";
 };
 
 const getSessionSortTimestamp = (session: ConversationSessionSummary): number => {
@@ -41,6 +41,7 @@ type SidebarConversationsListProps = {
   onSearch: (query: string) => void;
   onClearSearch: () => void;
   onNavigateToHit: (hit: ConversationSearchHit) => void;
+  searchInputRef?: React.Ref<HTMLInputElement> | undefined;
 };
 
 export const SidebarConversationsList = ({
@@ -57,9 +58,27 @@ export const SidebarConversationsList = ({
   onSearch,
   onClearSearch,
   onNavigateToHit,
+  searchInputRef,
 }: SidebarConversationsListProps) => {
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Merge external searchInputRef with internal inputRef
+  const setInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      inputRef.current = node;
+
+      if (searchInputRef && "current" in searchInputRef) {
+        searchInputRef.current = node;
+
+        return;
+      }
+
+      searchInputRef?.(node);
+    },
+    [searchInputRef],
+  );
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSearchRef = useRef(onSearch);
   const onClearSearchRef = useRef(onClearSearch);
@@ -74,7 +93,6 @@ export const SidebarConversationsList = ({
     [sessions],
   );
 
-  // Live search: debounce input changes and trigger search after 2+ chars
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -137,6 +155,7 @@ export const SidebarConversationsList = ({
   return (
     <section className="active-agents-section" aria-label="Sidebar section Conversations">
       <div className="sidebar-conversations-toolbar">
+        <span className="sidebar-conversations-title">Conversations</span>
         <button
           aria-label="Refresh conversations"
           className="sidebar-conversations-icon-btn"
@@ -203,7 +222,7 @@ export const SidebarConversationsList = ({
             <path d="M10.5 10.5L14 14" />
           </svg>
           <input
-            ref={inputRef}
+            ref={setInputRef}
             type="text"
             className="sidebar-conversations-search-input"
             placeholder="Search conversations..."
@@ -284,15 +303,12 @@ export const SidebarConversationsList = ({
                   }}
                   type="button"
                 >
-                  <span
-                    aria-hidden="true"
-                    className="sidebar-conversation-avatar"
-                    style={
-                      /* SAFETY: React passes custom properties through; "--avatar-hue" is a valid CSS variable name. */
-                      { "--avatar-hue": getAvatarHue(session.sessionId) } as React.CSSProperties
-                    }
-                  >
-                    {getSessionTitle(session).charAt(0).toUpperCase()}
+                  <span aria-hidden="true" className="sidebar-conversation-avatar">
+                    <CuteMascot
+                      color={getMascotColor(session.sessionId)}
+                      size={36}
+                      state={session.endedAt ? "sleeping" : "idle"}
+                    />
                   </span>
                   <span className="sidebar-conversation-body">
                     <span className="sidebar-conversation-top">

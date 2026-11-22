@@ -47,15 +47,12 @@ export const OrchestrationGitActionsDialog = ({
   const isBusy = isLoading || isMutating;
   const [wasBusy, setWasBusy] = useState(isBusy);
 
-  // Dismiss the commit menu the moment a git action starts, so no stale options remain visible.
   if (isBusy !== wasBusy) {
     setWasBusy(isBusy);
 
     if (isBusy) setIsCommitMenuOpen(false);
   }
 
-  // Escape handling lives on the document because a non-interactive section cannot own a
-  // keyboard handler; this also covers focus sitting on any control inside the dialog.
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
