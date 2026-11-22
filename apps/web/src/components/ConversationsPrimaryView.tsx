@@ -66,6 +66,8 @@ export const ConversationsPrimaryView = ({
 
   const [chatTerminalMode, setChatTerminalMode] = useState<"chat" | "terminal">("chat");
   const [agentProvider] = useState(readAgentProviderPreference);
+  const [viewMode, setViewMode] = useState<"quiet" | "normal" | "summary" | "detailed">("quiet");
+  const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false);
 
   const chatMessages = useConversationChat(
     selectedSessionId,
@@ -133,6 +135,8 @@ export const ConversationsPrimaryView = ({
     [searchConversations],
   );
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const sidebarContent = useMemo(
     () => (
       <SidebarConversationsList
@@ -149,6 +153,7 @@ export const ConversationsPrimaryView = ({
         onSearch={handleSearchConversations}
         onClearSearch={clearConversationsSearch}
         onNavigateToHit={navigateToConversationSearchHit}
+        searchInputRef={searchInputRef}
       />
     ),
     [
@@ -297,6 +302,39 @@ export const ConversationsPrimaryView = ({
     };
   }, [selectedSession]);
 
+  // Alt+Ctrl+S → summary, Alt+Ctrl+Q → quiet, Cmd+F / Ctrl+F → focus search
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey && event.ctrlKey && event.key === "s") {
+        if (isEditableEventTarget(event.target)) return;
+        event.preventDefault();
+        setViewMode("summary");
+
+        return;
+      }
+
+      if (event.altKey && event.ctrlKey && event.key === "q") {
+        if (isEditableEventTarget(event.target)) return;
+        event.preventDefault();
+        setViewMode("quiet");
+
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key === "f") {
+        if (isEditableEventTarget(event.target)) return;
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   const isAcknowledged = (text: string) =>
     selectedSession?.turns.some(
       (turn) => turn.role === "user" && turn.content.trim() === text.trim(),
@@ -382,6 +420,10 @@ export const ConversationsPrimaryView = ({
     console.warn("Agent stop not yet implemented");
   }, []);
 
+  const handleReply = useCallback((quotedText: string) => {
+    setRestoreDraft(`> ${quotedText}\n\n`);
+  }, []);
+
   const handleInterruptAndSend = useCallback(
     async (text: string): Promise<boolean> => {
       return onSendMessage(text);
@@ -454,6 +496,44 @@ export const ConversationsPrimaryView = ({
                     {isPlainView ? "Rich" : "Plain"}
                   </button>
                 ) : null}
+                <div style={{ position: "relative" }}>
+                  <button
+                    aria-label="Change view mode"
+                    className="chat-ghost-btn"
+                    onClick={() => setIsViewDropdownOpen((v) => !v)}
+                    type="button"
+                  >
+                    View
+                  </button>
+                  {isViewDropdownOpen ? (
+                    <div className="chat-view-dropdown">
+                      {(
+                        [
+                          { key: "quiet", label: "Quiet View", shortcut: "Alt+Ctrl+Q" },
+                          { key: "normal", label: "Normal", shortcut: undefined },
+                          { key: "summary", label: "Summary", shortcut: "Alt+Ctrl+S" },
+                          { key: "detailed", label: "Detailed", shortcut: undefined },
+                        ] as const
+                      ).map(({ key, label, shortcut }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          className="chat-view-option"
+                          data-active={viewMode === key ? "true" : undefined}
+                          onClick={() => {
+                            setViewMode(key);
+                            setIsViewDropdownOpen(false);
+                          }}
+                        >
+                          <span>{label}</span>
+                          {shortcut ? (
+                            <span style={{ fontSize: 11, opacity: 0.6 }}>{shortcut}</span>
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
                 <button
                   aria-label={
                     chatTerminalMode === "chat" ? "Switch to terminal view" : "Switch to chat view"
@@ -527,6 +607,8 @@ export const ConversationsPrimaryView = ({
                 {showRichChat && chatMessages ? (
                   <ConversationChatThread
                     messages={chatMessages}
+                    viewMode={viewMode}
+                    onReply={handleReply}
                     onSendAnswer={
                       selectedSessionId ? (text) => sendMessage(selectedSessionId, text) : undefined
                     }
@@ -548,6 +630,8 @@ export const ConversationsPrimaryView = ({
                         role={turn.role}
                         showSender={selectedSession.turns[index - 1]?.role !== turn.role}
                         startedAt={turn.startedAt}
+                        turnId={turn.turnId}
+                        onReply={handleReply}
                       />
                     );
                   })}

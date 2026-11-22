@@ -7,10 +7,10 @@ import { sendChannelMessage } from "../../app/sendChannelMessage";
 import { AgentStateBadge } from "../AgentStateBadge";
 import { type CanvasPrimaryViewProps, CanvasPrimaryView } from "../CanvasPrimaryView";
 import { WorkspaceSetupCard } from "../deck/WorkspaceSetupCard";
-import { DeleteOrchestrationDialog } from "../DeleteOrchestrationDialog";
 import { TerminalChatPane } from "../TerminalChatPane";
 import { AgentsRail } from "./AgentsRail";
 import { type ChatWorkbenchPanel, ChatWorkbench } from "./ChatWorkbench";
+import { SessionDeleteDialog } from "./SessionDeleteDialog";
 
 const CLOCK_TICK_MS = 30_000;
 
@@ -295,14 +295,12 @@ export const AgentsWorkspaceView = (props: CanvasPrimaryViewProps) => {
         </aside>
       ) : null}
       {pendingDeleteTerminal && onCancelDelete && onConfirmDelete ? (
-        <div className="canvas-delete-dialog">
-          <DeleteOrchestrationDialog
-            isDeletingTerminalId={isDeletingTerminalId ?? null}
-            onCancel={onCancelDelete}
-            onConfirmDelete={onConfirmDelete}
-            pendingDeleteTerminal={pendingDeleteTerminal}
-          />
-        </div>
+        <SessionDeleteDialog
+          isDeletingTerminalId={isDeletingTerminalId ?? null}
+          onCancel={onCancelDelete}
+          onConfirm={onConfirmDelete}
+          pending={pendingDeleteTerminal}
+        />
       ) : null}
     </section>
   );

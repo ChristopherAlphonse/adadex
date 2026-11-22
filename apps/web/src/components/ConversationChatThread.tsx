@@ -193,13 +193,15 @@ const WorkSummary = ({
   results,
   duration,
   fileCount,
+  open,
 }: {
   calls: ToolCallBlock[];
   results: Map<string, ToolResultBlock>;
   duration: string | null;
   fileCount: number;
+  open?: boolean | undefined;
 }) => (
-  <details className="rounded-xl bg-surface-2 text-sm">
+  <details className="rounded-xl bg-surface-2 text-sm" open={open}>
     <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-3 py-2">
       <span className="font-medium">{duration ? `Worked ${duration}` : "Worked"}</span>
       <span className="rounded-full border border-border px-2 text-xs text-muted-foreground">
@@ -226,11 +228,13 @@ const AgentTurn = ({
   results,
   answered,
   onSendAnswer,
+  viewMode,
 }: {
   messages: TranscriptMessage[];
   results: Map<string, ToolResultBlock>;
   answered: ReadonlySet<string>;
   onSendAnswer?: ((text: string) => Promise<void>) | undefined;
+  viewMode?: "quiet" | "normal" | "summary" | "detailed" | undefined;
 }) => {
   const calls = messages.flatMap((message) =>
     message.blocks.flatMap((block) => (block.kind === "tool-call" ? [block] : [])),
@@ -251,15 +255,16 @@ const AgentTurn = ({
 
   return (
     <li className="flex max-w-[92%] flex-col items-stretch gap-2 self-start" data-role="assistant">
-      {calls.length > 0 ? (
+      {calls.length > 0 && viewMode !== "summary" ? (
         <WorkSummary
           calls={calls}
           duration={formatDuration(messages)}
           fileCount={files.length}
           results={results}
+          open={viewMode === "detailed" ? true : undefined}
         />
       ) : null}
-      {files.length > 0 ? <EditedFiles files={files} /> : null}
+      {files.length > 0 && viewMode !== "summary" ? <EditedFiles files={files} /> : null}
       {segments.map(({ key, segment }) =>
         segment.kind === "form" ? (
           <QuestionCard
@@ -291,10 +296,14 @@ const AgentTurn = ({
 export const ConversationChatThread = ({
   messages,
   onSendAnswer,
+  viewMode = "quiet",
+  onReply: _onReply,
 }: {
   messages: TranscriptMessage[];
   /** Sends a question card's answers to the agent. Without it, cards are read-only. */
   onSendAnswer?: ((text: string) => Promise<void>) | undefined;
+  viewMode?: "quiet" | "normal" | "summary" | "detailed" | undefined;
+  onReply?: ((selectedText: string) => void) | undefined;
 }) => {
   const results = useMemo(() => {
     const map = new Map<string, ToolResultBlock>();
@@ -344,6 +353,7 @@ export const ConversationChatThread = ({
             messages={turn.messages}
             onSendAnswer={onSendAnswer}
             results={results}
+            viewMode={viewMode}
           />
         ),
       )}

@@ -41,6 +41,7 @@ type SidebarConversationsListProps = {
   onSearch: (query: string) => void;
   onClearSearch: () => void;
   onNavigateToHit: (hit: ConversationSearchHit) => void;
+  searchInputRef?: React.Ref<HTMLInputElement> | undefined;
 };
 
 export const SidebarConversationsList = ({
@@ -57,9 +58,27 @@ export const SidebarConversationsList = ({
   onSearch,
   onClearSearch,
   onNavigateToHit,
+  searchInputRef,
 }: SidebarConversationsListProps) => {
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Merge external searchInputRef with internal inputRef
+  const setInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      inputRef.current = node;
+
+      if (searchInputRef && "current" in searchInputRef) {
+        searchInputRef.current = node;
+
+        return;
+      }
+
+      searchInputRef?.(node);
+    },
+    [searchInputRef],
+  );
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSearchRef = useRef(onSearch);
   const onClearSearchRef = useRef(onClearSearch);
@@ -202,7 +221,7 @@ export const SidebarConversationsList = ({
             <path d="M10.5 10.5L14 14" />
           </svg>
           <input
-            ref={inputRef}
+            ref={setInputRef}
             type="text"
             className="sidebar-conversations-search-input"
             placeholder="Search conversations..."
