@@ -30,7 +30,7 @@ import { deriveMascotVisuals, type MascotVisuals } from "./deck/mascotVisuals";
 import { OrchestrationPod } from "./deck/OrchestrationPod";
 import { VaultFileEditor } from "./deck/VaultFileEditor";
 import { WorkspaceSetupCard } from "./deck/WorkspaceSetupCard";
-import { Terminal } from "./Terminal";
+import { TerminalChatPane } from "./TerminalChatPane";
 import { MarkdownContent } from "./ui/MarkdownContent";
 
 export type { MascotAppearancePayload } from "./deck/AddOrchestrationForm";
@@ -817,7 +817,7 @@ export const DeckPrimaryView = ({
                 <strong>{focus.terminalLabel}</strong>
               </span>
             </header>
-            <Terminal terminalId={focus.agentId} terminalLabel={focus.terminalLabel} />
+            <TerminalChatPane terminalId={focus.agentId} terminalLabel={focus.terminalLabel} />
           </div>
         )}
       </div>

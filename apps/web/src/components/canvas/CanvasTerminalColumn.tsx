@@ -4,7 +4,7 @@ import { type Ref, useCallback, useState } from "react";
 import type { GraphNode } from "../../app/canvas/types";
 import type { TerminalView } from "../../app/types";
 import { type AgentRuntimeState, AgentStateBadge } from "../AgentStateBadge";
-import { Terminal } from "../Terminal";
+import { TerminalChatPane } from "../TerminalChatPane";
 
 type CanvasTerminalColumnProps = {
   node: GraphNode;
@@ -90,7 +90,7 @@ export const CanvasTerminalColumn = ({
         </div>
       </div>
       <div className="canvas-terminal-column-body">
-        <Terminal
+        <TerminalChatPane
           terminalId={node.sessionId}
           terminalLabel={node.label}
           {...(layoutVersion === undefined ? {} : { layoutVersion })}
