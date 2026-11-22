@@ -42,6 +42,18 @@ adadex coordination list
 
 `adadex orchestration list` remains available as an alias.
 
+## Manage todos
+
+```bash
+adadex todo list <coordination-id>
+adadex todo add <coordination-id> <text>
+adadex todo done|undone <coordination-id> <n>
+adadex todo edit <coordination-id> <n> <text>
+adadex todo remove <coordination-id> <n>
+```
+
+Todo indexes start at 0; run `list` to see them. Adadex must already be running.
+
 ## Create a terminal
 
 ```bash

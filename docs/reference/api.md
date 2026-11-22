@@ -19,6 +19,7 @@ Most HTTP routes either read/write persisted files or create runtime records. We
 - `DELETE /api/terminals/:terminalId` - removes a terminal and closes its active session
 - `POST /api/terminals/:terminalId/stop` - stops an active session or recorded stale process
 - `POST /api/terminals/:terminalId/kill` - kills an active session or recorded stale process
+- `POST /api/terminals/:terminalId/approval` - answers a pending permission prompt with `{ "decision": "approve" | "deny" }`; only accepted from the Adadex web page (requests without an `Origin` header get `403`), and `409` when nothing is pending
 - `WS /api/terminals/:terminalId/ws` - streams live terminal IO over WebSocket
 
 Terminal snapshots include `lifecycleState` when known. Supported lifecycle states are `registered`, `running`, `stopped`, `exited`, and `stale`. Stale terminals are records that were persisted as running but could not be reattached to a live Adadex PTY session after startup.
@@ -107,6 +108,8 @@ Current hook names:
 - `DELETE /api/conversations` - deletes all stored conversations
 - `GET /api/conversations/search?q=...` - searches conversations by text
 - `GET /api/conversations/:sessionId` - reads one conversation in full
+- `GET /api/conversations/:sessionId/chat` - returns the session as chat messages (`{ messages }`) for the Chat view
+- `GET /api/conversations/:sessionId/stats` - returns usage stats for one conversation
 - `GET /api/conversations/:sessionId/export?format=json|md` - exports one conversation as JSON or Markdown
 
 ## Request limits and defaults

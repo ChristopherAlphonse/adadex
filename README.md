@@ -16,10 +16,10 @@ Terminals run [Claude Code](https://docs.claude.com/en/docs/claude-code) (`claud
 
 - **Start:** [Docs Home](docs/index.md), [Installation](docs/getting-started/installation.md), [Quickstart](docs/getting-started/quickstart.md)
 - **Concepts:** [Mental Model](docs/concepts/mental-model.md), [Coordination](docs/concepts/coordination.md), [Runtime and API](docs/concepts/runtime-and-api.md)
-- **Guides:** [Docker Sandbox](docs/guides/docker-sandbox.md), [Working With Todos](docs/guides/working-with-todos.md), [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md), [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md)
+- **Guides:** [Docker Sandbox](docs/guides/docker-sandbox.md), [Agents Workspace](docs/guides/agents-workspace.md), [Asking Questions](docs/guides/asking-questions.md), [Visual Replies](docs/guides/visual-replies.md), [Working With Todos](docs/guides/working-with-todos.md), [Orchestrating Child Agents](docs/guides/orchestrating-child-agents.md), [Inter-Agent Messaging](docs/guides/inter-agent-messaging.md)
 - **Reference:** [CLI](docs/reference/cli.md), [API](docs/reference/api.md), [Filesystem Layout](docs/reference/filesystem-layout.md), [Troubleshooting](docs/reference/troubleshooting.md)
 
-The Electron desktop app is in progress; see [plans/PLAN.md](docs/plans/PLAN.md).
+An Electron desktop app (`apps/desktop`) is in progress and is not yet a replacement for the web app.
 
 ## What Adadex Does
 

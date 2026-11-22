@@ -6,13 +6,13 @@ Adadex is an experimental personal project and is not actively reviewing pull re
 
 - read the relevant docs in `docs/`
 - check whether the behavior already exists in the API or UI before adding more surface area
-- keep the project Codex-first in docs and product framing
+- keep docs consistent with the product: Claude Code is the default agent, with Kiro CLI and OpenCode selectable per terminal
 - do not document speculative features as if they already work
 
 ## Prerequisites
 
 - Node.js `22+`
-- `codex` for the supported agent workflow
+- at least one agent CLI: Claude Code (`claude`, the default), Kiro CLI (`kiro-cli`) or OpenCode (`opencode`)
 - `git` for worktree features
 
 ## Setup
